@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Evan's Fresh Catch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Modern Fresh Design System */
+        :root {
+            /* Colors - Vibrant but Natural */
+            --ocean-gradient: linear-gradient(135deg, #0066CC, #00A896);
+            --coral-gradient: linear-gradient(135deg, #FF6B6B, #FFB366);
+            --mint-fresh: #00D9B1;
+            --ocean-blue: #0066CC;
+            --coral: #FF6B6B;
+            --warm-white: #FFFEF7;
+            --cool-gray: #64748B;
+            --light-gray: #F1F5F9;
+            --dark: #0F172A;
+            --glass-white: rgba(255,255,255,0.8);
+            --glass-dark: rgba(15,23,42,0.03);
+            
+            /* Typography */
+            --font-modern: 'DM Sans', -apple-system, system-ui;
+            
+            /* Spacing */
+            --space-xs: 8px;
+            --space-sm: 12px;
+            --space-md: 20px;
+            --space-lg: 28px;
+            --space-xl: 40px;
+            --space-2xl: 56px;
+            
+            /* Borders - Huge Radii */
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-xl: 36px;
+            --radius-full: 9999px;
+            
+            /* Shadows - Colorful */
+            --shadow-sm: 0 2px 8px rgba(0,102,204,0.08);
+            --shadow-md: 0 8px 24px rgba(0,102,204,0.12);
+            --shadow-lg: 0 20px 40px rgba(0,102,204,0.15);
+            --shadow-coral: 0 8px 24px rgba(255,107,107,0.2);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-modern);
+            background: var(--warm-white);
+            color: var(--dark);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: 80px;
+        }
+        
+        /* Mesh Gradient Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(0,217,177,0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(0,102,204,0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(255,107,107,0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Header - Floating */
+        .header {
+            background: var(--glass-white);
+            backdrop-filter: blur(20px);
+            padding: var(--space-md);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(0,102,204,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--ocean-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-action {
+            padding: var(--space-xs) var(--space-md);
+            background: var(--coral-gradient);
+            color: white;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: var(--shadow-coral);
+            transition: all 0.3s ease;
+        }
+        
+        .header-action:active {
+            transform: scale(0.95);
+        }
+        
+        /* Live Indicator */
+        .today-banner {
+            background: var(--mint-fresh);
+            color: white;
+            padding: var(--space-sm);
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+            animation: live-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes live-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        
+        /* Fresh Hero - Photo Background */
+        .fresh-section {
+            margin: var(--space-md);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            background: var(--ocean-gradient);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+        
+        .fresh-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><circle cx="200" cy="200" r="80" fill="white" opacity="0.05"/><circle cx="100" cy="100" r="40" fill="white" opacity="0.03"/><circle cx="300" cy="300" r="60" fill="white" opacity="0.04"/></svg>');
+            animation: float 20s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-30px, -30px) rotate(180deg); }
+        }
+        
+        .fresh-header {
+            position: relative;
+            z-index: 1;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .fresh-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .fresh-title {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: var(--space-xs);
+        }
+        
+        .fresh-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-sm);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .fresh-item {
+            background: var(--glass-white);
+            color: var(--dark);
+            padding: var(--space-md) var(--space-sm);
+            border-radius: var(--radius-md);
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .fresh-emoji {
+            display: block;
+            font-size: 28px;
+            margin-bottom: var(--space-xs);
+            filter: saturate(1.2);
+        }
+        
+        /* Markets - Glass Cards */
+        .markets-section {
+            padding: var(--space-lg) var(--space-md);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .section-link {
+            color: var(--ocean-blue);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        
+        /* Market Cards - Glassmorphism */
+        .market-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(0,102,204,0.08);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .market-card.favorite {
+            background: linear-gradient(135deg, white, rgba(0,217,177,0.03));
+        }
+        
+        .market-card.favorite::before {
+            content: 'â­';
+            position: absolute;
+            top: var(--space-md);
+            right: var(--space-md);
+            font-size: 20px;
+        }
+        
+        .market-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .market-details {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .market-date {
+            color: var(--ocean-blue);
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .market-time {
+            color: var(--cool-gray);
+            font-size: 14px;
+        }
+        
+        .market-distance {
+            display: inline-block;
+            background: var(--light-gray);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cool-gray);
+            margin-top: var(--space-xs);
+        }
+        
+        .market-actions {
+            display: flex;
+            gap: var(--space-sm);
+        }
+        
+        .btn-primary {
+            flex: 1;
+            padding: var(--space-md);
+            background: var(--ocean-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-icon {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--light-gray);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Quick Actions - Colorful Grid */
+        .quick-actions {
+            padding: 0 var(--space-md) var(--space-xl);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .quick-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg) var(--space-md);
+            text-align: center;
+            text-decoration: none;
+            color: var(--dark);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .quick-card:nth-child(1) { border-color: rgba(0,102,204,0.2); }
+        .quick-card:nth-child(2) { border-color: rgba(255,107,107,0.2); }
+        .quick-card:nth-child(3) { border-color: rgba(0,217,177,0.2); }
+        .quick-card:nth-child(4) { border-color: rgba(255,179,102,0.2); }
+        
+        .quick-card:active {
+            transform: scale(0.95);
+            box-shadow: none;
+        }
+        
+        .quick-icon {
+            font-size: 32px;
+            margin-bottom: var(--space-sm);
+            filter: saturate(1.5);
+        }
+        
+        .quick-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        /* Bottom Navigation - Floating Pills */
+        .bottom-nav {
+            position: fixed;
+            bottom: var(--space-md);
+            left: var(--space-md);
+            right: var(--space-md);
+            background: white;
+            border-radius: var(--radius-full);
+            box-shadow: var(--shadow-lg);
+            z-index: 200;
+            border: 1px solid rgba(0,102,204,0.08);
+        }
+        
+        .nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: var(--space-sm);
+        }
+        
+        .nav-item {
+            padding: var(--space-sm) var(--space-md);
+            text-decoration: none;
+            color: var(--cool-gray);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            border-radius: var(--radius-full);
+        }
+        
+        .nav-item.active {
+            background: var(--ocean-gradient);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: 0;
+            right: 8px;
+            background: var(--coral);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: var(--radius-full);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>Evan's Fresh Catch</h1>
+            <a href="#" class="header-action">+ Quick Order</a>
+        </div>
+    </header>
+    
+    <!-- Live Indicator -->
+    <div class="today-banner">
+        <span class="live-dot"></span>
+        <span>LIVE at Livingston Market</span>
+    </div>
+    
+    <!-- Fresh Hero with Gradient -->
+    <div class="fresh-section">
+        <div class="fresh-header">
+            <div class="fresh-label">This Week's Catch</div>
+            <h2 class="fresh-title">Fresh from the Gulf</h2>
+        </div>
+        <div class="fresh-grid">
+            <div class="fresh-item">
+                <span class="fresh-emoji">ðŸ¦</span>
+                Shrimp
+            </div>
+            <div class="fresh-item">
+                <span class="fresh-emoji">ðŸŸ</span>
+                Redfish
+            </div>
+            <div class="fresh-item">
+                <span class="fresh-emoji">ðŸ </span>
+                Flounder
+            </div>
+            <div class="fresh-item">
+                <span class="fresh-emoji">ðŸ¦€</span>
+                Crab
+            </div>
+            <div class="fresh-item">
+                <span class="fresh-emoji">ðŸ¦ª</span>
+                Oysters
+            </div>
+            <div class="fresh-item">
+                <span class="fresh-emoji">ðŸŸ</span>
+                Trout
+            </div>
+        </div>
+    </div>
+    
+    <!-- Your Markets -->
+    <div class="markets-section">
+        <div class="section-header">
+            <h2 class="section-title">Your Markets</h2>
+            <a href="#" class="section-link">Edit</a>
+        </div>
+        
+        <!-- Market 1 -->
+        <div class="market-card favorite">
+            <div class="market-name">Oxford City Market</div>
+            <div class="market-details">
+                <span class="market-date">Tuesday, November 5</span>
+                <span class="market-time">3:00 PM - 6:30 PM</span>
+                <span class="market-distance">3 days away</span>
+            </div>
+            <div class="market-actions">
+                <a href="#" class="btn-primary">Order Fish</a>
+                <a href="#" class="btn-icon">ðŸ“</a>
+            </div>
+        </div>
+        
+        <!-- Market 2 -->
+        <div class="market-card favorite">
+            <div class="market-name">Hernando Farmers Market</div>
+            <div class="market-details">
+                <span class="market-date">Saturday, November 9</span>
+                <span class="market-time">10:00 AM - 2:00 PM</span>
+                <span class="market-distance">This Saturday</span>
+            </div>
+            <div class="market-actions">
+                <a href="#" class="btn-primary">Order Fish</a>
+                <a href="#" class="btn-icon">ðŸ“</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <a href="#" class="quick-card">
+            <div class="quick-icon">ðŸ“…</div>
+            <div class="quick-title">All Markets</div>
+        </a>
+        <a href="#" class="quick-card">
+            <div class="quick-icon">ðŸ³</div>
+            <div class="quick-title">Recipes</div>
+        </a>
+        <a href="#" class="quick-card">
+            <div class="quick-icon">ðŸ’¬</div>
+            <div class="quick-title">Text Evan</div>
+        </a>
+        <a href="#" class="quick-card">
+            <div class="quick-icon">ðŸ“ž</div>
+            <div class="quick-title">Call</div>
+        </a>
+    </div>
+    
+    <!-- Floating Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-items">
+            <a href="#" class="nav-item active">Home</a>
+            <a href="#" class="nav-item">Markets</a>
+            <a href="#" class="nav-item">
+                Orders
+                <span class="nav-badge">2</span>
+            </a>
+            <a href="#" class="nav-item">More</a>
+        </div>
+    </nav>
+    
+    <script>
+        // Modern interactions
+        document.querySelectorAll('.market-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = 'var(--shadow-lg)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        });
+        
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

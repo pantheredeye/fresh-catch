@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market List Wireframe</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px;
+            color: #333;
+        }
+        .phone {
+            max-width: 375px;
+            margin: 0 auto 40px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .add-btn {
+            width: 36px;
+            height: 36px;
+            background: #0066cc;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 400;
+        }
+        
+        /* Quick Stats */
+        .stats-row {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .stat-dot.active { background: #4CAF50; }
+        .stat-dot.paused { background: #ffc107; }
+        .stat-count {
+            font-weight: 600;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            padding: 12px 20px;
+            background: #f8f8f8;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        /* Market Cards */
+        .market-card {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .market-card.paused {
+            background: #fafafa;
+        }
+        .market-card.paused .market-info {
+            opacity: 0.6;
+        }
+        
+        /* Toggle Switch */
+        .toggle {
+            width: 51px;
+            height: 31px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .toggle.on {
+            background: #4CAF50;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+        .toggle.on::after {
+            transform: translateX(20px);
+        }
+        
+        /* Market Info */
+        .market-info {
+            flex: 1;
+        }
+        .market-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .market-schedule {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .market-next {
+            font-size: 13px;
+            color: #0066cc;
+        }
+        .market-status {
+            font-size: 13px;
+            color: #856404;
+            font-style: italic;
+        }
+        
+        /* Chevron */
+        .chevron {
+            color: #ccc;
+            font-size: 20px;
+        }
+        
+        /* FAB */
+        .fab-container {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            z-index: 200;
+        }
+        .fab {
+            width: 56px;
+            height: 56px;
+            background: #0066cc;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+        }
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+        .empty-text {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .empty-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #0066cc;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        /* Alternative Layouts */
+        .alt-title {
+            text-align: center;
+            padding: 15px;
+            background: #333;
+            color: white;
+            font-weight: 600;
+        }
+        
+        /* Compact View */
+        .compact-card {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .compact-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .compact-toggle {
+            width: 44px;
+            height: 24px;
+            background: #4CAF50;
+            border-radius: 12px;
+            position: relative;
+        }
+        .compact-toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            right: 2px;
+        }
+        .compact-info {
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .compact-schedule {
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Main Market List View -->
+<div class="phone">
+    <!-- Header with Stats -->
+    <div class="header">
+        <div class="header-top">
+            <h1 class="header-title">My Markets</h1>
+            <div class="add-btn">+</div>
+        </div>
+        <div class="stats-row">
+            <div class="stat">
+                <span class="stat-dot active"></span>
+                <span><span class="stat-count">5</span> Active</span>
+            </div>
+            <div class="stat">
+                <span class="stat-dot paused"></span>
+                <span><span class="stat-count">2</span> Paused</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Markets Section -->
+    <div class="section-header">Active Markets</div>
+    
+    <div class="market-card">
+        <div class="toggle on"></div>
+        <div class="market-info">
+            <div class="market-name">Hernando Farmers Market</div>
+            <div class="market-schedule">Every Saturday • 8:00 AM - 2:00 PM</div>
+            <div class="market-next">Next: Tomorrow, Nov 2</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+    
+    <div class="market-card">
+        <div class="toggle on"></div>
+        <div class="market-info">
+            <div class="market-name">Oxford City Market</div>
+            <div class="market-schedule">Every Tuesday • 3:00 PM - 6:30 PM</div>
+            <div class="market-next">Next: Tue, Nov 5</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+    
+    <div class="market-card">
+        <div class="toggle on"></div>
+        <div class="market-info">
+            <div class="market-name">Olive Branch Market</div>
+            <div class="market-schedule">Every Saturday • 9:00 AM - 1:00 PM</div>
+            <div class="market-next">Next: Tomorrow, Nov 2</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+    
+    <div class="market-card">
+        <div class="toggle on"></div>
+        <div class="market-info">
+            <div class="market-name">Adobe Farmers Market</div>
+            <div class="market-schedule">Every Friday • 4:00 PM - 7:00 PM</div>
+            <div class="market-next">Next: Fri, Nov 8</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+    
+    <div class="market-card">
+        <div class="toggle on"></div>
+        <div class="market-info">
+            <div class="market-name">Livingston Market</div>
+            <div class="market-schedule">Every other Thursday • 10:00 AM - 2:00 PM</div>
+            <div class="market-next">Next: Thu, Nov 14</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+    
+    <!-- Paused Markets Section -->
+    <div class="section-header">Paused Markets</div>
+    
+    <div class="market-card paused">
+        <div class="toggle"></div>
+        <div class="market-info">
+            <div class="market-name">Senatobia Sunday Market</div>
+            <div class="market-schedule">Every other Sunday • 9:00 AM - 2:00 PM</div>
+            <div class="market-status">Paused until March (slow season)</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+    
+    <div class="market-card paused">
+        <div class="toggle"></div>
+        <div class="market-info">
+            <div class="market-name">Holly Springs Night Market</div>
+            <div class="market-schedule">First Friday • 5:00 PM - 9:00 PM</div>
+            <div class="market-status">Paused (winter break)</div>
+        </div>
+        <div class="chevron">›</div>
+    </div>
+</div>
+
+<!-- Alternative: Compact View -->
+<div class="phone">
+    <div class="alt-title">Alternative: Compact List</div>
+    
+    <div class="header">
+        <div class="header-top">
+            <h1 class="header-title">My Markets</h1>
+            <div class="add-btn">+</div>
+        </div>
+    </div>
+    
+    <div class="compact-card">
+        <div class="compact-left">
+            <div class="compact-toggle"></div>
+            <div>
+                <div class="compact-info">Hernando</div>
+            </div>
+        </div>
+        <div class="compact-schedule">Sat 8-2</div>
+    </div>
+    
+    <div class="compact-card">
+        <div class="compact-left">
+            <div class="compact-toggle"></div>
+            <div>
+                <div class="compact-info">Oxford City</div>
+            </div>
+        </div>
+        <div class="compact-schedule">Tue 3-6:30</div>
+    </div>
+    
+    <div class="compact-card">
+        <div class="compact-left">
+            <div class="compact-toggle"></div>
+            <div>
+                <div class="compact-info">Olive Branch</div>
+            </div>
+        </div>
+        <div class="compact-schedule">Sat 9-1</div>
+    </div>
+    
+    <div class="compact-card">
+        <div class="compact-left">
+            <div class="compact-toggle"></div>
+            <div>
+                <div class="compact-info">Adobe</div>
+            </div>
+        </div>
+        <div class="compact-schedule">Fri 4-7</div>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div class="phone">
+    <div class="alt-title">Empty State</div>
+    
+    <div class="header">
+        <div class="header-top">
+            <h1 class="header-title">My Markets</h1>
+            <div class="add-btn">+</div>
+        </div>
+    </div>
+    
+    <div class="empty-state">
+        <div class="empty-icon">🏪</div>
+        <div class="empty-text">No markets configured yet</div>
+        <div class="empty-text" style="font-size: 14px; margin-bottom: 30px;">Add your first market to start managing your schedule</div>
+        <a href="#" class="empty-btn">Add First Market</a>
+    </div>
+</div>
+
+<!-- Priority Guide -->
+<div style="max-width: 375px; margin: 0 auto; background: white; border: 2px solid #333; border-radius: 20px; padding: 30px;">
+    <h2 style="margin-bottom: 25px; text-align: center;">Market List Priority Guide</h2>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 1: Status Control</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • On/off toggle (immediate)
+            • Active vs paused state
+            • Visual differentiation
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 2: Recognition</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • Market name (prominent)
+            • Schedule pattern
+            • Next occurrence
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 3: Navigation</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • Tap to edit settings
+            • Add new market
+            • Section organization
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 4: Overview</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • Count of active/paused
+            • Reason for pause
+            • Grouping by status
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+        <strong>Design Decisions:</strong>
+        <ul style="font-size: 14px; line-height: 1.8; margin-top: 10px;">
+            <li>Toggle is OUTSIDE the tap target (no accidental changes)</li>
+            <li>Next occurrence helps plan upcoming days</li>
+            <li>Paused markets stay visible (not deleted)</li>
+            <li>Compact alternative for power users who know their markets</li>
+        </ul>
+    </div>
+</div>
+
+</body>
+</html>

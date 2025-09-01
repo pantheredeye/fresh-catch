@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Operations Wireframe</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px;
+            color: #333;
+        }
+        .phone {
+            max-width: 375px;
+            margin: 0 auto 40px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            position: relative;
+            min-height: 600px;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .select-btn {
+            color: #0066cc;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Add Event Button */
+        .add-event-container {
+            padding: 15px 20px;
+            background: #f8f8f8;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .add-event-btn {
+            width: 100%;
+            padding: 14px;
+            background: #0066cc;
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        /* Date Headers */
+        .date-header {
+            padding: 10px 20px;
+            background: #fafafa;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Market Instance Cards */
+        .instance-card {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: white;
+        }
+        .instance-card.special {
+            background: #fff9e6;
+        }
+        
+        /* Checkbox */
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .checkbox.checked {
+            background: #0066cc;
+            border-color: #0066cc;
+            position: relative;
+        }
+        .checkbox.checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            font-size: 14px;
+        }
+        .checkbox.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Instance Info */
+        .instance-info {
+            flex: 1;
+        }
+        .instance-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .instance-time {
+            font-size: 14px;
+            color: #666;
+        }
+        .special-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #ff9800;
+            color: white;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        /* Cancel Button */
+        .cancel-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* Bulk Action Bar */
+        .bulk-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 150;
+        }
+        .bulk-count {
+            font-size: 14px;
+        }
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .bulk-cancel {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .bulk-close {
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        /* States Container */
+        .state-label {
+            text-align: center;
+            padding: 10px;
+            background: #333;
+            color: white;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        /* Empty State */
+        .empty-week {
+            padding: 40px 20px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* Add Event Form */
+        .form-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 200;
+            border-radius: 28px;
+        }
+        .form-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .form-content {
+            padding: 20px;
+        }
+        .form-field {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .time-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .form-btn {
+            width: 100%;
+            padding: 14px;
+            background: #0066cc;
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Main Schedule Operations View -->
+<div class="phone">
+    <div class="header">
+        <div class="header-row">
+            <h1 class="header-title">Schedule</h1>
+            <span class="select-btn">Select</span>
+        </div>
+    </div>
+    
+    <div class="add-event-container">
+        <div class="add-event-btn">
+            <span>+</span>
+            <span>Add Special Event</span>
+        </div>
+    </div>
+    
+    <!-- Today -->
+    <div class="date-header">Today • Saturday, Nov 2</div>
+    
+    <div class="instance-card">
+        <div class="checkbox hidden"></div>
+        <div class="instance-info">
+            <div class="instance-name">Hernando Farmers Market</div>
+            <div class="instance-time">8:00 AM - 2:00 PM</div>
+        </div>
+        <button class="cancel-btn">Cancel</button>
+    </div>
+    
+    <div class="instance-card">
+        <div class="checkbox hidden"></div>
+        <div class="instance-info">
+            <div class="instance-name">Olive Branch Market</div>
+            <div class="instance-time">9:00 AM - 1:00 PM</div>
+        </div>
+        <button class="cancel-btn">Cancel</button>
+    </div>
+    
+    <!-- Tuesday -->
+    <div class="date-header">Tuesday, Nov 5</div>
+    
+    <div class="instance-card">
+        <div class="checkbox hidden"></div>
+        <div class="instance-info">
+            <div class="instance-name">Oxford City Market</div>
+            <div class="instance-time">3:00 PM - 6:30 PM</div>
+        </div>
+        <button class="cancel-btn">Cancel</button>
+    </div>
+    
+    <!-- Friday -->
+    <div class="date-header">Friday, Nov 8</div>
+    
+    <div class="instance-card special">
+        <div class="checkbox hidden"></div>
+        <div class="instance-info">
+            <div class="instance-name">
+                Memphis Tigers Tailgate
+                <span class="special-tag">SPECIAL</span>
+            </div>
+            <div class="instance-time">2:00 PM - 6:00 PM</div>
+        </div>
+        <button class="cancel-btn">Cancel</button>
+    </div>
+    
+    <div class="instance-card">
+        <div class="checkbox hidden"></div>
+        <div class="instance-info">
+            <div class="instance-name">Adobe Farmers Market</div>
+            <div class="instance-time">4:00 PM - 7:00 PM</div>
+        </div>
+        <button class="cancel-btn">Cancel</button>
+    </div>
+    
+    <!-- Saturday -->
+    <div class="date-header">Saturday, Nov 9</div>
+    
+    <div class="instance-card">
+        <div class="checkbox hidden"></div>
+        <div class="instance-info">
+            <div class="instance-name">Hernando Farmers Market</div>
+            <div class="instance-time">8:00 AM - 2:00 PM</div>
+        </div>
+        <button class="cancel-btn">Cancel</button>
+    </div>
+</div>
+
+<!-- State: Multi-Select Mode -->
+<div class="phone">
+    <div class="state-label">Multi-Select Mode</div>
+    
+    <div class="header">
+        <div class="header-row">
+            <h1 class="header-title">Schedule</h1>
+            <span class="select-btn" style="color: #333;">Done</span>
+        </div>
+    </div>
+    
+    <div class="add-event-container">
+        <div class="add-event-btn" style="opacity: 0.5; pointer-events: none;">
+            <span>+</span>
+            <span>Add Special Event</span>
+        </div>
+    </div>
+    
+    <!-- Today -->
+    <div class="date-header">Today • Saturday, Nov 2</div>
+    
+    <div class="instance-card">
+        <div class="checkbox checked"></div>
+        <div class="instance-info">
+            <div class="instance-name">Hernando Farmers Market</div>
+            <div class="instance-time">8:00 AM - 2:00 PM</div>
+        </div>
+    </div>
+    
+    <div class="instance-card">
+        <div class="checkbox checked"></div>
+        <div class="instance-info">
+            <div class="instance-name">Olive Branch Market</div>
+            <div class="instance-time">9:00 AM - 1:00 PM</div>
+        </div>
+    </div>
+    
+    <!-- Tuesday -->
+    <div class="date-header">Tuesday, Nov 5</div>
+    
+    <div class="instance-card">
+        <div class="checkbox"></div>
+        <div class="instance-info">
+            <div class="instance-name">Oxford City Market</div>
+            <div class="instance-time">3:00 PM - 6:30 PM</div>
+        </div>
+    </div>
+    <!-- Bulk Action Bar -->
+    <div class="bulk-bar">
+        <span class="bulk-count">2 selected</span>
+        <div class="bulk-actions">
+            <button class="bulk-cancel">Cancel Markets</button>
+            <button class="bulk-close">✕</button>
+        </div>
+    </div>
+</div>
+
+<!-- State: Add Special Event -->
+<div class="phone">
+    <div class="state-label">Add Special Event Form</div>
+    
+    <div class="form-overlay">
+        <div class="form-header">
+            <span style="color: #0066cc;">Cancel</span>
+            <h2 style="font-size: 18px; font-weight: 600;">Add Special Event</h2>
+            <span style="opacity: 0;">Cancel</span>
+        </div>
+        
+        <div class="form-content">
+            <div class="form-field">
+                <div class="form-label">Event Name</div>
+                <input type="text" class="form-input" placeholder="e.g., Memphis Tigers Tailgate">
+            </div>
+            
+            <div class="form-field">
+                <div class="form-label">Date</div>
+                <input type="text" class="form-input" value="Friday, November 8">
+            </div>
+            
+            <div class="form-field">
+                <div class="form-label">Time</div>
+                <div class="time-row">
+                    <input type="text" class="form-input" value="2:00 PM">
+                    <span>to</span>
+                    <input type="text" class="form-input" value="6:00 PM">
+                </div>
+            </div>
+            
+            <div class="form-field">
+                <div class="form-label">Location</div>
+                <input type="text" class="form-input" placeholder="e.g., Liberty Bowl parking lot">
+            </div>
+            
+            <button class="form-btn">Add Event</button>
+        </div>
+    </div>
+</div>
+
+<!-- Priority Guide -->
+<div style="max-width: 375px; margin: 0 auto; background: white; border: 2px solid #333; border-radius: 20px; padding: 30px;">
+    <h2 style="margin-bottom: 25px; text-align: center;">Operations Priority Guide</h2>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 1: Add Special Events</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • Prominent button always visible
+            • Quick form (name, date, time, location)
+            • Tagged as "special" in system
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 2: Cancel Instances</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • One-tap cancel per market
+            • Multi-select for bulk (weather)
+            • Clear it's just this instance
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Priority 3: Context</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">
+            • Day groupings for scanning
+            • Special events visually distinct
+            • Time info always visible
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+        <strong>Design Decisions:</strong>
+        <ul style="font-size: 14px; line-height: 1.8; margin-top: 10px;">
+            <li>Cancel button always visible (no swipe gestures)</li>
+            <li>Select mode for bulk operations</li>
+            <li>Special events have visual indicator</li>
+            <li>Chronological list (not calendar grid)</li>
+            <li>No edit/reschedule in v1 (just cancel)</li>
+        </ul>
+    </div>
+</div>
+
+</body>
+</html>

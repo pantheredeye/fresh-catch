@@ -1,0 +1,91 @@
+/* Design Tokens - Modern Fresh System */
+/* 
+WHY: Evolved from "Market Fresh Hybrid" - balances authentic seafood market feel 
+with Instagram-ready modern appeal for broader demographics
+*/
+
+:root {
+  /* Colors - Vibrant Ocean Theme with Market Authenticity */
+  /* WHY: Ocean gradients feel fresh and premium, coral adds warmth and appetite appeal */
+  --ocean-gradient: linear-gradient(135deg, #0066CC, #00A896);
+  --coral-gradient: linear-gradient(135deg, #FF6B6B, #FFB366);
+  
+  /* Core Brand Colors */
+  --mint-fresh: #00D9B1;        /* WHY: "Fresh" badges, success states - seafoam green energy */
+  --ocean-blue: #0066CC;         /* WHY: Primary brand - trustworthy ocean blue */
+  --coral: #FF6B6B;             /* WHY: Alert/action color - warm salmon appetite appeal */
+  --warm-gold: #F59E0B;         /* WHY: Favorites, special items - market premium feel */
+  
+  /* Base System - Market Fresh Hybrid */
+  --warm-white: #FFFCF8;        /* WHY: Warm white with subtle grain feel, not clinical */
+  --deep-navy: #1A2B3D;         /* WHY: Deep navy text instead of pure black - softer, market-like */
+  --cool-gray: #64748B;         /* WHY: Muted text, professional but approachable */
+  --light-gray: #F1F5F9;        /* WHY: Subtle backgrounds that don't compete */
+  
+  /* Glass Effects - Modern Premium Feel */
+  /* WHY: Glassmorphism feels Instagram-ready and premium like high-end seafood markets */
+  --glass-white: rgba(255,252,248,0.8);  /* Using warm white base */
+  --glass-dark: rgba(26,43,61,0.03);     /* Using deep navy base */
+  
+  /* Typography Mix - Authentic but Clean */
+  /* WHY: System fonts feel familiar, monospace adds market authenticity for prices/times */
+  --font-modern: 'DM Sans', -apple-system, system-ui;  /* Body text - familiar */
+  --font-display: 'DM Sans', system-ui;                /* Headers - clean but not excessive */
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace; /* Prices, times - trustworthy */
+  
+  /* Spacing System - Instagram-Ready Generous */
+  /* WHY: Generous spacing feels premium and photographs well for social media */
+  --space-xs: 8px;   /* Tight internal spacing */
+  --space-sm: 12px;  /* Small gaps, list items */
+  --space-md: 20px;  /* Standard component padding */
+  --space-lg: 28px;  /* Section spacing */
+  --space-xl: 40px;  /* Major section breaks */
+  --space-2xl: 56px; /* Hero/feature spacing */
+  
+  /* Border Radii - Bold but Not Excessive */
+  /* WHY: 12px base radius = confident but not over-designed, feels premium */
+  --radius-sm: 12px;  /* Base radius - confident corners */
+  --radius-md: 20px;  /* Cards, elevated elements */
+  --radius-lg: 28px;  /* Major cards, hero sections */
+  --radius-xl: 36px;  /* Special features */
+  --radius-full: 9999px; /* Pills, badges, navigation */
+  
+  /* Shadows - Colorful and Branded */
+  /* WHY: Colored shadows feel more premium than gray, single drops feel grounded */
+  --shadow-sm: 0 2px 8px rgba(0,102,204,0.08);   /* Subtle elements */
+  --shadow-md: 0 8px 24px rgba(0,102,204,0.12);  /* Cards - single drop shadow */
+  --shadow-lg: 0 20px 40px rgba(0,102,204,0.15); /* Floating elements */
+  --shadow-coral: 0 8px 24px rgba(255,107,107,0.2); /* Action elements */
+  --shadow-gold: 0 8px 24px rgba(245,158,11,0.2);   /* Favorite/special items */
+}
+
+/* Semantic Usage - Modern Fresh Guidelines */
+/*
+PRIMARY ACTIONS: 
+- Thick borders + ocean-gradient
+- WHY: Confidence, stands out in photos
+
+FRESH/SUCCESS STATES:
+- mint-fresh with subtle bounce animation
+- WHY: Energy, excitement about fresh catch
+
+FAVORITES/PREMIUM:
+- warm-gold accents
+- WHY: Market premium feel, special items
+
+BACKGROUNDS:
+- warm-white base (never pure white)
+- WHY: Photographs better, feels natural
+
+TEXT HIERARCHY:
+- deep-navy for headers (not black)
+- cool-gray for secondary text
+- font-mono for prices/times (trustworthy)
+
+SPECIAL TOUCHES:
+- Hand-drawn fish icons (when implemented)
+- "Fresh" badges with bounce
+- Torn-paper edges on market cards
+- Wave pattern dividers
+- Handwriting font for "Evan's notes"
+*/

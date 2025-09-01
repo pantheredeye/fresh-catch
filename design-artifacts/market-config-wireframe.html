@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Config Complete</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px;
+            color: #333;
+        }
+        .phone {
+            max-width: 375px;
+            margin: 0 auto 40px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        /* Sticky Header */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn {
+            color: #0066cc;
+            font-size: 16px;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+        }
+        .save-btn {
+            color: #0066cc;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        /* Market Status Bar */
+        .status-bar {
+            background: #f8f8f8;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .market-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toggle-switch {
+            width: 51px;
+            height: 31px;
+            background: #4CAF50;
+            border-radius: 20px;
+            position: relative;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            right: 2px;
+        }
+        
+        /* Form Sections */
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .section-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        /* Schedule Pattern */
+        .pattern-option {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pattern-option.selected {
+            background: #e8f4ff;
+            border-color: #0066cc;
+        }
+        .radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+        }
+        .pattern-option.selected .radio {
+            border-color: #0066cc;
+            background: #0066cc;
+            box-shadow: inset 0 0 0 4px white;
+        }
+        
+        /* Inline dropdowns */
+        .inline-select {
+            padding: 6px 10px;
+            background: white;
+            border: 2px solid #0066cc;
+            border-radius: 6px;
+            color: #0066cc;
+            font-weight: 600;
+            margin: 0 4px;
+        }
+        
+        /* Time inputs */
+        .time-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .time-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        /* Text fields */
+        .text-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: none;
+            min-height: 60px;
+        }
+        
+        /* Preview Box */
+        .preview {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #b3d9ff;
+        }
+        .preview-label {
+            font-size: 11px;
+            color: #0066cc;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .preview-dates {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        /* Actions */
+        .actions {
+            padding: 20px;
+        }
+        .btn-secondary {
+            width: 100%;
+            padding: 14px;
+            background: white;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            color: #856404;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .btn-danger {
+            width: 100%;
+            padding: 14px;
+            background: white;
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+            color: #dc3545;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Priority Guide */
+        .priority-guide {
+            max-width: 375px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 30px;
+        }
+        .priority-level {
+            margin-bottom: 25px;
+            padding-left: 30px;
+            position: relative;
+        }
+        .priority-level::before {
+            content: attr(data-level);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            background: #333;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .priority-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .priority-items {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Complete Market Configuration Wireframe -->
+<div class="phone">
+    <!-- Sticky Header -->
+    <div class="header">
+        <span class="back-btn">← Back</span>
+        <div class="header-title">Market Settings</div>
+        <span class="save-btn">Save</span>
+    </div>
+    
+    <!-- Market Name & Status -->
+    <div class="status-bar">
+        <div class="market-name">Hernando Farmers Market</div>
+        <div class="status-toggle">
+            <span>Market Active</span>
+            <div class="toggle-switch"></div>
+        </div>
+    </div>
+    
+    <!-- Schedule Pattern Section -->
+    <div class="section">
+        <div class="section-label">Schedule Pattern</div>
+        
+        <div class="pattern-option selected">
+            <div>Every <select class="inline-select"><option>Saturday</option></select></div>
+            <div class="radio"></div>
+        </div>
+        
+        <div class="pattern-option">
+            <div>Every other week</div>
+            <div class="radio"></div>
+        </div>
+        
+        <div class="pattern-option">
+            <div>Monthly on the...</div>
+            <div class="radio"></div>
+        </div>
+        
+        <div class="pattern-option">
+            <div>Custom schedule...</div>
+            <div class="radio"></div>
+        </div>
+        
+        <div class="time-row">
+            <input type="text" class="time-input" value="8:00 AM">
+            <span>to</span>
+            <input type="text" class="time-input" value="2:00 PM">
+        </div>
+        
+        <div class="preview">
+            <div class="preview-label">Upcoming Dates</div>
+            <div class="preview-dates">Nov 2, Nov 9, Nov 16, Nov 23...</div>
+        </div>
+    </div>
+    
+    <!-- Location Section -->
+    <div class="section">
+        <div class="section-label">Location & Setup Notes</div>
+        <textarea class="text-field" placeholder="Booth location, parking, setup notes...">Under main pavilion, third booth from entrance. Free parking behind library.</textarea>
+    </div>
+    
+    <!-- Customer Info Section -->
+    <div class="section">
+        <div class="section-label">Customer Information</div>
+        <textarea class="text-field" placeholder="Payment methods, what to bring...">Cash preferred (ATM on-site)
+Bring coolers for large orders
+Best selection before 10 AM</textarea>
+    </div>
+    
+    <!-- Actions -->
+    <div class="actions">
+        <button class="btn-secondary">⏸ Pause for Season</button>
+        <button class="btn-danger">Delete Market</button>
+    </div>
+</div>
+
+<!-- Priority Guide -->
+<div class="priority-guide">
+    <h2 style="margin-bottom: 25px; text-align: center;">Market Config Priority Guide</h2>
+    
+    <div class="priority-level" data-level="1">
+        <div class="priority-title">Core Configuration</div>
+        <div class="priority-items">
+            • Schedule pattern (frequency)
+            • Market hours
+            • Active/paused status
+        </div>
+    </div>
+    
+    <div class="priority-level" data-level="2">
+        <div class="priority-title">Location Details</div>
+        <div class="priority-items">
+            • Booth location
+            • Setup notes
+            • Parking info
+        </div>
+    </div>
+    
+    <div class="priority-level" data-level="3">
+        <div class="priority-title">Customer Info</div>
+        <div class="priority-items">
+            • Payment methods
+            • What to bring
+            • Best times to visit
+        </div>
+    </div>
+    
+    <div class="priority-level" data-level="4">
+        <div class="priority-title">Management Actions</div>
+        <div class="priority-items">
+            • Seasonal pause
+            • Delete market
+            • View history (future)
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+        <h3 style="margin-bottom: 10px;">Next Steps:</h3>
+        <ol style="font-size: 14px; line-height: 1.8; margin-left: 20px;">
+            <li>Market List View (see all markets)</li>
+            <li>Schedule Management (2-week view)</li>
+            <li>Exception Handling (cancel/reschedule)</li>
+            <li>Customer View (what they see)</li>
+        </ol>
+    </div>
+</div>
+
+</body>
+</html>
