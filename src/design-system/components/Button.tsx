@@ -64,10 +64,10 @@ export function Button({
       boxShadow: 'var(--shadow-coral)'
     },
     ghost: {
-      background: 'transparent',
+      background: 'var(--surface-primary)',
       color: 'var(--ocean-blue)',
-      border: '2px solid transparent',
-      boxShadow: 'none'
+      border: '1px solid rgba(0,102,204,0.08)',
+      boxShadow: 'var(--shadow-sm)'
     },
     outline: {
       background: 'transparent',

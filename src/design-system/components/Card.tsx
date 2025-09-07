@@ -17,8 +17,8 @@ interface CardProps {
 export function Card({ children, isFavorite = false, className = '', onClick }: CardProps) {
   const cardStyle: React.CSSProperties = {
     background: isFavorite 
-      ? 'linear-gradient(135deg, white, rgba(0,217,177,0.03))'
-      : 'white',
+      ? 'var(--surface-favorite)'
+      : 'var(--surface-primary)',
     borderRadius: 'var(--radius-lg)',
     padding: 'var(--space-lg)',
     marginBottom: 'var(--space-md)',

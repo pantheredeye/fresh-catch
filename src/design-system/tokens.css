@@ -22,6 +22,10 @@ with Instagram-ready modern appeal for broader demographics
   --cool-gray: #64748B;         /* WHY: Muted text, professional but approachable */
   --light-gray: #F1F5F9;        /* WHY: Subtle backgrounds that don't compete */
   
+  /* Adaptive Surface Colors - Dark Mode Compatible */
+  --surface-primary: white;     /* Cards, main surfaces - adapts in dark mode */
+  --surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03)); /* Favorite cards with mint tint */
+  
   /* Glass Effects - Modern Premium Feel */
   /* WHY: Glassmorphism feels Instagram-ready and premium like high-end seafood markets */
   --glass-white: rgba(255,252,248,0.8);  /* Using warm white base */
@@ -188,3 +192,11 @@ SPECIAL TOUCHES:
 - Wave pattern dividers
 - Handwriting font for "Evan's notes"
 */
+
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-primary: #1f2937;  /* Dark surface that's lighter than black background */
+    --surface-favorite: #1f2937; /* No gradient in dark mode - just solid surface */
+  }
+}

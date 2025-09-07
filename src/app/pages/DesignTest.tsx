@@ -1,4 +1,4 @@
-import { Container, Header, Card, CardTitle, CardContent, FreshBadge, LiveBadge, AvailableBadge, Button, OrderButton, QuickAction, FreshHero, FreshGrid, FreshItem, TodayBanner, MarketCard } from '@/design-system'
+import { Container, Header, Card, CardTitle, CardContent, FreshBadge, LiveBadge, AvailableBadge, Button, OrderButton, QuickAction, FreshHero, FreshGrid, FreshItem, TodayBanner, MarketCard, QuickActions, BottomNav, SpecialEvents } from '@/design-system'
 
 /**
  * DesignTest - Simple test page for design system validation
@@ -42,14 +42,29 @@ export function DesignTest() {
       
       <Container>
         <div style={{ marginBottom: 'var(--space-lg)' }}>
-          <h2 style={{ 
-            color: 'var(--deep-navy)', 
-            fontSize: '24px', 
-            fontWeight: 700,
+          <div style={{ 
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: 'var(--space-md)'
           }}>
-            Your Markets
-          </h2>
+            <h2 style={{ 
+              color: 'var(--deep-navy)', 
+              fontSize: '24px', 
+              fontWeight: 700,
+              margin: 0
+            }}>
+              Your Markets
+            </h2>
+            <a href="#edit" style={{
+              color: 'var(--ocean-blue)',
+              fontSize: '14px',
+              fontWeight: 600,
+              textDecoration: 'none'
+            }}>
+              Edit
+            </a>
+          </div>
           
           {/* New MarketCard Components */}
           <MarketCard
@@ -285,6 +300,51 @@ export function DesignTest() {
           </div>
         </div>
       </Container>
+      
+      {/* Special Events Test */}
+      <SpecialEvents 
+        events={[
+          {
+            name: "Gatorade Field House Pop-up",
+            date: "Wednesday, November 6", 
+            time: "11:00 AM - 3:00 PM",
+            pinHref: "#directions"
+          },
+          {
+            name: "Arts & Crafts Fair - Oxford Square",
+            date: "Friday, November 8",
+            time: "9:00 AM - 5:00 PM", 
+            pinHref: "#directions"
+          },
+          {
+            name: "Holiday Seafood Market - Downtown",
+            date: "Saturday, November 9",
+            time: "8:00 AM - 1:00 PM",
+            variant: "coral",
+            pinHref: "#directions"
+          }
+        ]}
+      />
+      
+      {/* Quick Actions Test */}
+      <QuickActions 
+        items={[
+          { icon: "📅", title: "All Markets", href: "#markets" },
+          { icon: "🍳", title: "Recipes", href: "#recipes" },
+          { icon: "💬", title: "Text Evan", href: "#text" },
+          { icon: "📞", title: "Call", href: "#call" }
+        ]} 
+      />
+      
+      {/* Bottom Navigation Test */}
+      <BottomNav 
+        items={[
+          { label: "Home", href: "#home", isActive: true },
+          { label: "Markets", href: "#markets" },
+          { label: "Orders", href: "#orders", badge: "2" },
+          { label: "More", href: "#more" }
+        ]} 
+      />
     </>
   )
 }

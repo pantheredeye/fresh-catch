@@ -16,13 +16,16 @@ export {
   MarketActions,
   PinButton 
 } from './components/MarketCard'
+export { QuickActions } from './components/QuickActions'
+export { BottomNav } from './components/BottomNav'
+export { Badge, NotificationBadge } from './components/Badge'
+export { SpecialEvents, SpecialEventCard } from './components/SpecialEvents'
 
 // Design System Styles
 // Import tokens.css in your main app file or Document.tsx:
 // import './design-system/tokens.css'
 
 // TODO: Export additional components as they're created:
-// - Button variants
-// - QuickActions
-// - Navigation
 // - Fish icons
+// - Forms and inputs
+// - Loading states
