@@ -56,6 +56,7 @@ export function Header({ title, action, children }: HeaderProps) {
         {action && (
           <a
             href={action.href}
+            className="header-action"
             style={{
               padding: 'var(--space-xs) var(--space-md)',
               background: 'var(--coral-gradient)',
@@ -66,15 +67,6 @@ export function Header({ title, action, children }: HeaderProps) {
               textDecoration: 'none',
               boxShadow: 'var(--shadow-coral)',
               transition: 'all 0.3s ease'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.95)'
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = ''
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = ''
             }}
           >
             {action.label}

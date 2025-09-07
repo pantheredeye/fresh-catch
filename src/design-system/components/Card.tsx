@@ -34,15 +34,6 @@ export function Card({ children, isFavorite = false, className = '', onClick }: 
     <div 
       className={`card ${className}`}
       style={cardStyle}
-      onClick={onClick}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = 'var(--shadow-lg)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = 'var(--shadow-md)'
-      }}
     >
       {isFavorite && (
         <span

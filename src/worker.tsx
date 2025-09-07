@@ -2,6 +2,7 @@ import { defineApp, ErrorResponse } from "rwsdk/worker";
 import { route, render, prefix } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
+import { DesignTest } from "@/app/pages/DesignTest";
 import { setCommonHeaders } from "@/app/headers";
 import { userRoutes } from "@/app/pages/user/routes";
 import { sessions, setupSessionStore } from "./session/store";
@@ -47,6 +48,7 @@ export default defineApp([
   },
   render(Document, [
     route("/", () => new Response("Hello, World!")),
+    route("/design-test", DesignTest),
     route("/protected", [
       ({ ctx }) => {
         if (!ctx.user) {

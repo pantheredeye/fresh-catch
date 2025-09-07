@@ -59,6 +59,84 @@ with Instagram-ready modern appeal for broader demographics
   --shadow-gold: 0 8px 24px rgba(245,158,11,0.2);   /* Favorite/special items */
 }
 
+/* Component Styles - RSC Compatible */
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.header-action:active {
+  transform: scale(0.95);
+}
+
+/* Button Styles */
+.btn {
+  transition: all 0.3s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn--primary:hover:not(:disabled) {
+  box-shadow: 0 12px 32px rgba(0,102,204,0.3) !important;
+}
+
+.btn--secondary:hover:not(:disabled) {
+  box-shadow: 0 12px 32px rgba(255,107,107,0.3) !important;
+}
+
+.btn--outline:hover:not(:disabled) {
+  background: rgba(0,102,204,0.05);
+  border-color: var(--ocean-blue);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(0,102,204,0.08);
+}
+
+/* Animations */
+@keyframes fresh-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translate(0, 0) rotate(0deg); 
+  }
+  50% { 
+    transform: translate(-30px, -30px) rotate(180deg); 
+  }
+}
+
 /* Semantic Usage - Modern Fresh Guidelines */
 /*
 PRIMARY ACTIONS: 

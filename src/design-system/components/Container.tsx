@@ -21,7 +21,8 @@ export function Container({ children, className = '' }: ContainerProps) {
         maxWidth: '500px',
         margin: '0 auto',
         padding: 'var(--space-md)',
-        width: '100%'
+        width: '100%',
+        minWidth: '0' // Prevents flex/grid from enforcing min-width
       }}
     >
       {children}
