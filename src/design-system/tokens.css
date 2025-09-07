@@ -104,6 +104,27 @@ with Instagram-ready modern appeal for broader demographics
   background: rgba(0,102,204,0.08);
 }
 
+/* Fresh Hero Background Pattern - using CSS shapes instead of data URL */
+// TODO: Replace with SVG background when SVG works
+/* url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><circle cx="200" cy="200" r="80" fill="white" opacity="0.05"/><circle cx="100" cy="100" r="40" fill="white" opacity="0.03"/><circle cx="300" cy="300" r="60" fill="white" opacity="0.04"/></svg>') */
+
+.fresh-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(160px circle at 200px 200px, rgba(255,255,255,0.05) 50%, transparent 50%),
+    radial-gradient(80px circle at 100px 100px, rgba(255,255,255,0.03) 50%, transparent 50%),
+    radial-gradient(120px circle at 300px 300px, rgba(255,255,255,0.04) 50%, transparent 50%);
+  background-size: 400px 400px;
+  animation: float 20s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Animations */
 @keyframes fresh-bounce {
   0%, 20%, 50%, 80%, 100% {

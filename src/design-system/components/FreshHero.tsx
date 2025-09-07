@@ -32,17 +32,6 @@ export function FreshHero({
     color: 'white'
   }
 
-  const backgroundPatternStyle: React.CSSProperties = {
-    content: '""',
-    position: 'absolute',
-    top: '-50%',
-    right: '-50%',
-    width: '200%',
-    height: '200%',
-    backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><circle cx="200" cy="200" r="80" fill="white" opacity="0.05"/><circle cx="100" cy="100" r="40" fill="white" opacity="0.03"/><circle cx="300" cy="300" r="60" fill="white" opacity="0.04"/></svg>')`,
-    animation: 'float 20s ease-in-out infinite',
-    pointerEvents: 'none'
-  }
 
   const headerStyle: React.CSSProperties = {
     position: 'relative',
@@ -74,8 +63,6 @@ export function FreshHero({
 
   return (
     <div className={`fresh-section ${className}`} style={heroStyle}>
-      <div style={backgroundPatternStyle} />
-      
       <div className="fresh-header" style={headerStyle}>
         <div className="fresh-label" style={labelStyle}>{label}</div>
         <h2 className="fresh-title" style={titleStyle}>{title}</h2>
@@ -144,6 +131,10 @@ export function FreshItem({ emoji, children, className = '' }: FreshItemProps) {
   )
 }
 
-// TODO: Add floating animation keyframes to tokens.css
+// TODO: Debug FreshHero background pattern not showing - bubbles not visible
+// TODO: Check if SVG data URL is being encoded properly in .fresh-pattern
+// TODO: Verify float animation keyframes are working - should be 20s infinite
+// TODO: Test if background pattern div is positioned correctly with overflow:hidden
+// TODO: Compare with working customer.html implementation - white circles should float
 // TODO: Add wave pattern background option
 // TODO: Add photo background overlay option for hero
