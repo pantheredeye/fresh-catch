@@ -1,6 +1,8 @@
 import { route } from "rwsdk/router";
 import { SetupPage } from "./SetupPage";
+import { MarketConfigPage } from "./MarketConfigPage";
 
 export const adminRoutes = [
-  route("/admin/setup", SetupPage),
+  route("/setup", SetupPage),
+  route("/config", MarketConfigPage),
 ];

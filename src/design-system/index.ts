@@ -22,11 +22,25 @@ export { Badge, NotificationBadge } from './components/Badge'
 export { SpecialEvents, SpecialEventCard } from './components/SpecialEvents'
 export { LoginForm } from './components/LoginForm'
 
+// Form & Input Components
+export {
+  TextInput,
+  Textarea,
+  TimeInput,
+  TimeRow
+} from './components/Input'
+export {
+  Select,
+  InlineSelect,
+  RadioGroup,
+  ToggleSwitch
+} from './components/FormControls'
+
 // Design System Styles
 // Import tokens.css in your main app file or Document.tsx:
 // import './design-system/tokens.css'
 
 // TODO: Export additional components as they're created:
 // - Fish icons
-// - Forms and inputs
+// - Checkbox, Search input, Number input
 // - Loading states

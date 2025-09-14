@@ -41,15 +41,54 @@ border: 1px solid rgba(255, 255, 255, 0.2);
 - **Ghost**: `variant="ghost"` - Subtle background, low priority
 - **Outline**: `variant="outline"` - Transparent with ocean border
 
+### Input Components
+- **TextInput**: Standard text inputs with warm glassomorphism
+- **Textarea**: Multi-line inputs with auto-resize
+- **TimeInput**: Specialized for time values (center-aligned)
+- **TimeRow**: Start/end time pairs ("8:00 AM to 2:00 PM")
+- **Select**: Custom dropdown with ocean blue styling
+- **InlineSelect**: Compact selects within text ("Every [Saturday]")
+- **RadioGroup**: Custom radio buttons with descriptions
+- **ToggleSwitch**: iOS-style toggles for settings
+
 ### Form Styling
+
+#### Standard Inputs (TextInput, Textarea)
 ```jsx
-// Input styles
+// Base input pattern - warm glassomorphism
+border: '2px solid #e0e0e0',
+borderRadius: 'var(--radius-sm)',
+background: 'var(--warm-white)',
+color: 'var(--deep-navy)',
 padding: 'var(--space-md)',
+fontSize: '16px',
+transition: 'all 0.3s ease'
+
+// Focus state
+':focus': {
+  borderColor: 'var(--ocean-blue)',
+  boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
+  background: 'white'
+}
+```
+
+#### Auth Form Inputs (LoginForm style)
+```jsx
+// Glass effect for auth pages over gradients
 border: '1px solid rgba(255, 255, 255, 0.3)',
 borderRadius: 'var(--radius-md)',
 background: 'rgba(255, 255, 255, 0.1)',
 color: 'white',
 backdropFilter: 'blur(5px)'
+```
+
+#### Input Labels
+```jsx
+fontSize: '12px',
+fontWeight: 600,
+color: 'var(--deep-navy)', // or white on auth pages
+textTransform: 'uppercase',
+letterSpacing: '1px'
 ```
 
 ### Typography Hierarchy

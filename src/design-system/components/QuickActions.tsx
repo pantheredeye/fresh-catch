@@ -28,7 +28,7 @@ export function QuickActions({ items, className = '' }: QuickActionsProps) {
         </a>
       ))}
       
-      <style jsx>{`
+      <style>{`
         .quick-actions {
           padding: 0 var(--space-md) var(--space-xl);
           display: grid;

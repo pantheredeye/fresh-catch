@@ -102,6 +102,39 @@ export async function finishPasskeyRegistration(
     },
   });
 
+  // Create individual organization for the customer
+  const customerOrg = await db.organization.create({
+    data: {
+      name: `${username}'s Account`,
+      type: "individual",
+    },
+  });
+
+  // Make them a member of their own organization
+  await db.membership.create({
+    data: {
+      userId: user.id,
+      organizationId: customerOrg.id,
+      role: "owner",
+    },
+  });
+
+  // Link customer to Evan's business (Fresh Catch Seafood Markets) as a customer
+  const evanBusiness = await db.organization.findFirst({
+    where: { name: "Fresh Catch Seafood Markets" },
+  });
+
+  if (evanBusiness) {
+    await db.membership.create({
+      data: {
+        userId: user.id,
+        organizationId: evanBusiness.id,
+        role: "customer",
+      },
+    });
+  }
+
+  console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
   return true;
 }
 

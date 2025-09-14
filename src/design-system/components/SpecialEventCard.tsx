@@ -62,7 +62,7 @@ export function SpecialEventCard({
         />
       </div>
       
-      <style jsx>{`
+      <style>{`
         .special-event-card {
           border-radius: var(--radius-md);
           padding: var(--space-md);
