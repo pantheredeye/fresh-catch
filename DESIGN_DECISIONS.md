@@ -60,6 +60,7 @@
 ### Phase 1 Boundaries (2024-11-13)
 **IN SCOPE:**
 - Evan admin login & authentication
+- Customer registration (individual + business customers)
 - Market setup & management (9 markets on 2-week rotation)
 - Daily schedule management (cancel markets, add special events)
 - Customer market display (read-only)
@@ -68,10 +69,10 @@
 
 **OUT OF SCOPE (Phase 2):**
 - Customer ordering & payment
-- User registration for customers
-- Business customer organizations
+- Business customer employee invitations
 - Order management
 - Advanced scheduling (recurring patterns)
+- Multi-vendor platform features
 
 ### Routing Strategy (2024-11-13)
 **Decision:** Role-based UI on shared pages vs separate admin routes
@@ -104,6 +105,21 @@
 **Context:** Customers need immediate value without friction
 **Rationale:** Removes registration barrier, provides instant utility, easy Phase 2 upgrade path
 
+### Phase 1 Authentication Strategy (2024-11-14)
+**Decision:** Context-aware LoginForm with business-scoped customer registration
+**Context:** Two user types - Business Owners (create markets) vs Customers (buy from businesses)
+**Registration Flows:**
+- **Business Context:** Customers on Evan's portal register as his customers automatically
+- **Platform Context:** Future business owners register to create their own markets (Phase 2)
+**User Types:**
+- **Evan (Admin):** Owner of "Fresh Catch Seafood Markets" with automatic admin context
+- **Evan's Customers:** Register via his portal, auto-linked to his business
+- **Individual Customers:** Auto-create "individual" organization
+- **Business Customers:** Create "business" organization for bulk ordering
+**Implementation:** Single LoginForm component that's context-aware (knows which business)
+**Future Path:** Same component scales to multi-business platform via domain/route context
+**Rationale:** Seamless customer experience, scalable architecture, no "shared" complexity
+
 ---
 
 ## Technical Implementation Decisions
@@ -112,6 +128,16 @@
 **Decision:** Import tokens.css in each page, use existing components
 **Context:** Design system is complete, components tested, need consistency
 **Rationale:** Proven design system, fast implementation, visual cohesion
+
+### Glassmorphism Pattern Consistency (2024-11-13)
+**Decision:** Use consistent glassmorphism pattern across all UI elements
+**Context:** Bottom nav, hero sections, header all use glass effects
+**Implementation Pattern:**
+- Semi-transparent white backgrounds (`rgba(255,255,255,0.1)`)
+- White borders with subtle opacity (`rgba(255,255,255,0.2)`)
+- Blur effects (`backdropFilter: blur(10px)`)
+- Maintain pattern for inactive states while active states use solid gradients
+**Rationale:** Visual cohesion, modern premium feel, Instagram-ready aesthetic
 
 ### RWSDK Patterns (2024-11-13)
 **Decision:** Follow co-located routes pattern, middleware for auth
@@ -162,5 +188,14 @@
 
 ---
 
-*Last Updated: 2024-11-13*
+*Last Updated: 2024-11-14*
 *Next Review: Phase 1 completion*
+
+## Implementation Progress
+
+### CustomerHome.tsx Foundation (2024-11-14)
+**Completed:** Full customer homepage with mocked data
+**Components:** Header, LiveBanner, FreshHero, MarketsSection, QuickActions, BottomNavigation
+**Data Strategy:** Mock data for immediate visual feedback and development
+**Design Integration:** All design tokens implemented, glassmorphism pattern applied consistently
+**Status:** ✅ Ready for responsive testing and data integration

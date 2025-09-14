@@ -28,8 +28,7 @@ export function BulkActionBar({
   const barStyle: React.CSSProperties = {
     position: 'fixed',
     bottom: 'var(--space-md)',
-    left: 'var(--space-md)',
-    right: 'var(--space-md)',
+    left: '50%',
     background: 'var(--deep-navy)',
     color: 'white',
     padding: 'var(--space-sm) var(--space-md)',
@@ -40,16 +39,13 @@ export function BulkActionBar({
     boxShadow: 'var(--shadow-lg)',
     zIndex: 150,
     fontFamily: 'var(--font-display)',
-    transform: visible ? 'translateY(0)' : 'translateY(100px)',
     transition: 'transform 0.3s ease',
     gap: 'var(--space-md)',
     // Ensure it works on mobile
     maxWidth: '500px',
     margin: '0 auto',
-    left: '50%',
-    right: 'auto',
-    transform: visible 
-      ? 'translateX(-50%) translateY(0)' 
+    transform: visible
+      ? 'translateX(-50%) translateY(0)'
       : 'translateX(-50%) translateY(100px)'
   }
 

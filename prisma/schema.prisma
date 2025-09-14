@@ -27,6 +27,7 @@ model User {
   createdAt   DateTime    @default(now())
 
   credentials Credential[] // Relationship: One user can have many credentials
+  memberships Membership[] // Relationship: User can belong to multiple organizations
 }
 
 model Credential {
@@ -37,7 +38,32 @@ model Credential {
   credentialId  String   @unique // WebAuthn credential identifier
   publicKey     Bytes
   counter       Int      @default(0)
-  
+
   @@index([credentialId])
   @@index([userId])
+}
+
+model Organization {
+  id          String      @id @default(uuid())
+  name        String
+  type        String      // 'individual' or 'business'
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  memberships Membership[] // Relationship: Organization can have multiple members
+}
+
+model Membership {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           String       // 'owner', 'admin', 'member', etc.
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId]) // Prevent duplicate memberships
+  @@index([userId])
+  @@index([organizationId])
 }

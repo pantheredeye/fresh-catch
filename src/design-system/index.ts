@@ -20,6 +20,7 @@ export { QuickActions } from './components/QuickActions'
 export { BottomNav } from './components/BottomNav'
 export { Badge, NotificationBadge } from './components/Badge'
 export { SpecialEvents, SpecialEventCard } from './components/SpecialEvents'
+export { LoginForm } from './components/LoginForm'
 
 // Design System Styles
 // Import tokens.css in your main app file or Document.tsx:
