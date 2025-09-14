@@ -232,3 +232,36 @@
 - Consistent design system usage across all authentication flows
 
 **Status:** ✅ Production-ready authentication system with professional UX
+
+### Role-Based Session Management & Organization Context (2024-11-14)
+**Completed:** Full multi-tenant session architecture with automatic organization context
+**Implementation:** Extended RWSDK sessions with organization-aware middleware
+**Key Features:**
+- **Extended Session Model:** Added `currentOrganizationId` and `role` to session storage
+- **Auto-Context Detection:** Middleware automatically sets organization context from user memberships
+- **AppContext Integration:** Full organization details (id, name, type) and user role available in all components
+- **Multi-Tenant Security:** Organization-scoped queries and role-based access built into request context
+- **Default Organization Logic:** Smart defaults to first membership when session lacks org context
+
+**Architecture Benefits:**
+- **Server Components:** Access role via `ctx.currentOrganization.role` prop
+- **Server Functions:** Access role via `requestInfo.ctx.currentOrganization.role`
+- **Role-Based UI:** Components can conditionally render based on user role (owner/manager/customer)
+- **Future-Proof:** Supports organization switching for users with multiple memberships
+
+**Technical Implementation:**
+```tsx
+// AppContext type with full organization context
+export type AppContext = {
+  session: Session | null;
+  user: UserWithMemberships | null;
+  currentOrganization: {
+    id: string;
+    name: string;
+    type: string;
+    role: string;
+  } | null;
+};
+```
+
+**Status:** ✅ Complete multi-tenant session architecture ready for role-based UI

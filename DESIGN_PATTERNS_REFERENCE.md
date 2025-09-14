@@ -138,7 +138,9 @@ borderRadius: 'var(--radius-lg)'
 ### Context-Aware Components
 - Components know which business context they're in
 - Single components handle multiple user types via props
-- Role-based UI via `adminMode={user.isAdmin}` pattern
+- Role-based UI via `ctx.currentOrganization?.role` pattern
+- Server components access context via `ctx` prop: `{ ctx }: { ctx: AppContext }`
+- Server functions access context via `requestInfo.ctx.currentOrganization`
 
 ### Multi-Tenant Data
 - Every user belongs to organizations via Membership table
