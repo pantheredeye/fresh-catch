@@ -111,6 +111,33 @@ Previous conversions created "fake phone containers" - HTML that simulated mobil
 - **Cards**: Market cards, fresh badges, navigation
 - **Layout**: Container, Header, responsive patterns
 
+### ✅ Role-Based UI System
+- **Permission Utilities**: Role checking functions (`hasAdminAccess`, `isOwner`, etc.)
+- **Context-Aware Components**: Components adapt UI based on user role
+- **Admin Controls**: Conditional admin features in shared components
+- **Role Hierarchy**: Owner → Manager → Customer permission levels
+
+**Implementation Pattern:**
+```tsx
+// Import permissions utility
+import { hasAdminAccess } from '@/utils/permissions';
+
+// Component with role-based UI
+function MarketCard({ market, ctx }) {
+  const isAdmin = hasAdminAccess(ctx);
+
+  return (
+    <div>
+      {/* Customer view - always visible */}
+      <MarketInfo />
+
+      {/* Admin controls - conditional */}
+      {isAdmin && <AdminControls />}
+    </div>
+  );
+}
+```
+
 ### 🚧 In Progress
 - **Forms**: Comprehensive form validation and error states
 - **Admin Interface**: Extended input patterns for business configuration
@@ -129,6 +156,24 @@ Previous conversions created "fake phone containers" - HTML that simulated mobil
 - Consistent spacing for screenshot consistency
 - Bold, recognizable brand elements
 - Share-worthy gradient backgrounds
+
+#### Role-Based UI Patterns
+**Current Roles:**
+- `owner` (Evan) - Full admin access
+- `manager` (Future employees) - Admin access
+- `customer` (Buyers) - Customer-only access
+
+**Permission Functions:**
+- `hasAdminAccess()` - Owner + Manager
+- `isOwner()` - Owner only
+- `canModifyMarkets()` - Market configuration access
+- `canManageSchedules()` - Daily operations access
+
+**UI Adaptations:**
+- Button text changes: "Order Fish" vs "Manage Market"
+- Button colors: Ocean (customer) vs Coral (admin)
+- Additional admin controls: Settings gear, quick actions
+- Conditional features: Market editing, schedule management
 
 #### Additional Input Components
 - Checkbox with custom styling

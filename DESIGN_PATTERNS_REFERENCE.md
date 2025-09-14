@@ -135,17 +135,56 @@ borderRadius: 'var(--radius-lg)'
 
 ## Business Logic Patterns
 
-### Context-Aware Components
+### Role-Based UI System
+
+#### Permission Utilities (`/src/utils/permissions.ts`)
+```tsx
+import { hasAdminAccess, isOwner, canModifyMarkets } from '@/utils/permissions';
+
+// Role checking in components
+const isAdmin = hasAdminAccess(ctx);
+const canEdit = canModifyMarkets(ctx);
+```
+
+#### Context-Aware Components
 - Components know which business context they're in
 - Single components handle multiple user types via props
-- Role-based UI via `ctx.currentOrganization?.role` pattern
+- Role-based UI via permission utilities pattern
 - Server components access context via `ctx` prop: `{ ctx }: { ctx: AppContext }`
 - Server functions access context via `requestInfo.ctx.currentOrganization`
+
+#### Role Hierarchy
+- **Owner** (`owner`): Evan - Full admin access to markets and schedules
+- **Manager** (`manager`): Future employees - Admin access to schedules
+- **Customer** (`customer`): Buyers - Customer-only access
+
+#### Implementation Pattern
+```tsx
+function MarketCard({ market, ctx }) {
+  const isAdmin = hasAdminAccess(ctx);
+
+  return (
+    <div>
+      {/* Customer view - always visible */}
+      <button style={{
+        background: isAdmin ? 'var(--coral-gradient)' : 'var(--ocean-gradient)'
+      }}>
+        {isAdmin ? 'Manage Market' : 'Order Fish'}
+      </button>
+
+      {/* Admin-only controls */}
+      {isAdmin && <AdminControls />}
+    </div>
+  );
+}
+```
 
 ### Multi-Tenant Data
 - Every user belongs to organizations via Membership table
 - Individual customers get auto-created "individual" organizations
 - Business customers get shared "business" organizations
+- Role-based access via Membership.role field (`owner`/`manager`/`customer`)
+- Organization context automatically available in all components via AppContext
 
 ## File Organization
 - Design system components: `/src/design-system/components/`

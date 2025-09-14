@@ -1,4 +1,6 @@
 import { RequestInfo } from "rwsdk/worker";
+import { hasAdminAccess } from "@/utils/permissions";
+import type { AppContext } from "@/worker";
 
 // Mock data for development - TODO: Replace with real data from context/API
 const MOCK_USER = {
@@ -79,7 +81,7 @@ export function CustomerHome({ ctx }: RequestInfo) {
       <FreshHero />
 
       {/* Markets Section */}
-      <MarketsSection markets={MOCK_MARKETS} />
+      <MarketsSection markets={MOCK_MARKETS} ctx={ctx} />
 
       {/* Quick Actions */}
       <QuickActions />
@@ -239,7 +241,7 @@ function FreshHero() {
   );
 }
 
-function MarketsSection({ markets }: { markets: typeof MOCK_MARKETS }) {
+function MarketsSection({ markets, ctx }: { markets: typeof MOCK_MARKETS, ctx?: AppContext }) {
   return (
     <div style={{
       padding: 'var(--space-lg) var(--space-md)',
@@ -272,13 +274,14 @@ function MarketsSection({ markets }: { markets: typeof MOCK_MARKETS }) {
       </div>
 
       {markets.map(market => (
-        <MarketCard key={market.id} market={market} />
+        <MarketCard key={market.id} market={market} ctx={ctx} />
       ))}
     </div>
   );
 }
 
-function MarketCard({ market }: { market: typeof MOCK_MARKETS[0] }) {
+function MarketCard({ market, ctx }: { market: typeof MOCK_MARKETS[0], ctx?: AppContext }) {
+  const isAdmin = ctx ? hasAdminAccess(ctx) : false;
   return (
     <div style={{
       background: market.isFavorite ? 'var(--surface-favorite)' : 'white',
@@ -351,10 +354,11 @@ function MarketCard({ market }: { market: typeof MOCK_MARKETS[0] }) {
         display: 'flex',
         gap: 'var(--space-sm)'
       }}>
+        {/* Customer action - always visible */}
         <a href={`#order-${market.id}`} style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: 'var(--ocean-gradient)',
+          background: isAdmin ? 'var(--coral-gradient)' : 'var(--ocean-gradient)',
           color: 'white',
           border: 'none',
           borderRadius: 'var(--radius-md)',
@@ -365,8 +369,28 @@ function MarketCard({ market }: { market: typeof MOCK_MARKETS[0] }) {
           boxShadow: 'var(--shadow-md)',
           transition: 'all 0.3s ease'
         }} className="btn btn--primary">
-          Order Fish
+          {isAdmin ? 'Manage Market' : 'Order Fish'}
         </a>
+
+        {/* Admin-only quick actions */}
+        {isAdmin && (
+          <a href={`/admin/config?market=${market.id}`} style={{
+            width: '56px',
+            height: '56px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--mint-fresh)',
+            color: 'var(--deep-navy)',
+            borderRadius: 'var(--radius-md)',
+            textDecoration: 'none',
+            boxShadow: 'var(--shadow-sm)',
+            fontSize: '18px',
+            transition: 'all 0.3s ease'
+          }} title="Edit Market">
+            ⚙️
+          </a>
+        )}
         <a href={`#directions-${market.id}`} style={{
           width: '56px',
           height: '56px',
