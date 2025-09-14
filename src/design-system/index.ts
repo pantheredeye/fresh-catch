@@ -19,7 +19,8 @@ export {
 export { QuickActions } from './components/QuickActions'
 export { BottomNav } from './components/BottomNav'
 export { Badge, NotificationBadge } from './components/Badge'
-export { SpecialEvents, SpecialEventCard } from './components/SpecialEvents'
+export { SpecialEvents } from './components/SpecialEvents'
+export { SpecialEventCard } from './components/SpecialEventCard'
 export { LoginForm } from './components/LoginForm'
 
 // Form & Input Components

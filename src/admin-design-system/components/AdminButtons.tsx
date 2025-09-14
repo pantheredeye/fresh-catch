@@ -94,6 +94,7 @@ export function AdminButton({
     transition: 'all 0.3s ease',
     userSelect: 'none',
     width: fullWidth ? '100%' : 'auto',
+    boxSizing: 'border-box',
     fontFamily: 'var(--font-display)',
     ...sizeStyles[size],
     ...variantStyles[variant],

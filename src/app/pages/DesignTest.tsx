@@ -334,14 +334,16 @@ export function DesignTest() {
               Toggle Switches
             </h3>
             
-            <div style={{ 
+            <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: 'var(--space-md)',
               marginBottom: 'var(--space-lg)',
               padding: 'var(--space-md)',
               background: 'var(--light-gray)',
-              borderRadius: 'var(--radius-md)'
+              borderRadius: 'var(--radius-md)',
+              width: '100%',
+              maxWidth: '100%'
             }}>
               <div>
                 <h4 style={{ color: 'var(--cool-gray)', fontSize: '14px', marginBottom: 'var(--space-sm)' }}>
@@ -540,17 +542,26 @@ export function DesignTest() {
               Admin Button System
             </h3>
             
-            <div style={{ 
+            <div style={{
               display: 'grid',
               gap: 'var(--space-lg)',
-              marginBottom: 'var(--space-lg)'
+              marginBottom: 'var(--space-lg)',
+              width: '100%',
+              maxWidth: '100%',
+              overflow: 'hidden'
             }}>
               {/* Small Action Buttons */}
               <div>
                 <h4 style={{ color: 'var(--cool-gray)', fontSize: '14px', marginBottom: 'var(--space-sm)' }}>
                   Small Action Buttons (for inline use)
                 </h4>
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: 'var(--space-sm)',
+                  flexWrap: 'wrap',
+                  width: '100%',
+                  maxWidth: '100%'
+                }}>
                   <CancelButton />
                   <AdminButton variant="cancel" size="sm">Edit</AdminButton>
                   <AdminButton variant="cancel" size="sm">Details</AdminButton>
@@ -562,7 +573,13 @@ export function DesignTest() {
                 <h4 style={{ color: 'var(--cool-gray)', fontSize: '14px', marginBottom: 'var(--space-sm)' }}>
                   Primary Admin Actions
                 </h4>
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: 'var(--space-sm)',
+                  flexWrap: 'wrap',
+                  width: '100%',
+                  maxWidth: '100%'
+                }}>
                   <AddEventButton fullWidth={false} />
                   <AdminButton variant="add-event" size="md">Save Changes</AdminButton>
                   <AdminButton variant="add-event" size="lg">Complete Setup</AdminButton>
@@ -771,8 +788,10 @@ export function DesignTest() {
             
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: 'var(--space-lg)'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 'var(--space-lg)',
+              width: '100%',
+              maxWidth: '100%'
             }}>
               {/* Customer Market Card */}
               <div>

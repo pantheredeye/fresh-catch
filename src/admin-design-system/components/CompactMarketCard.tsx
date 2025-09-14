@@ -16,6 +16,8 @@ interface CompactMarketCardProps {
   disabled?: boolean
   /** Market is paused (visual styling) */
   paused?: boolean
+  /** Click handler for editing market */
+  onEdit?: () => void
 }
 
 /**
@@ -32,7 +34,8 @@ export function CompactMarketCard({
   children,
   className = '',
   disabled = false,
-  paused = false
+  paused = false,
+  onEdit
 }: CompactMarketCardProps) {
 
   const cardStyle: React.CSSProperties = {
@@ -92,10 +95,10 @@ export function CompactMarketCard({
         <div>
           <div style={nameStyle}>{name}</div>
           {children && (
-            <div style={{ 
-              fontSize: '12px', 
-              color: 'var(--cool-gray)', 
-              marginTop: '2px' 
+            <div style={{
+              fontSize: '12px',
+              color: 'var(--cool-gray)',
+              marginTop: '2px'
             }}>
               {children}
             </div>
@@ -103,10 +106,42 @@ export function CompactMarketCard({
         </div>
       </div>
 
-      {/* Right section: Schedule */}
+      {/* Middle section: Schedule */}
       <div style={scheduleStyle}>
         {schedule}
       </div>
+
+      {/* Right section: Edit button */}
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 'var(--space-xs)',
+            color: 'var(--cool-gray)',
+            cursor: 'pointer',
+            borderRadius: 'var(--radius-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            fontSize: '16px',
+            flexShrink: 0
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'var(--light-gray)';
+            e.currentTarget.style.color = 'var(--deep-navy)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'none';
+            e.currentTarget.style.color = 'var(--cool-gray)';
+          }}
+          title="Edit market settings"
+        >
+          ⚙️
+        </button>
+      )}
     </div>
   )
 }
@@ -127,6 +162,8 @@ interface CompactMarketListProps {
   loading?: boolean
   /** CSS class name */
   className?: string
+  /** Click handler for editing a market */
+  onEditMarket?: (marketId: string) => void
 }
 
 /**
@@ -138,7 +175,8 @@ interface CompactMarketListProps {
 export function CompactMarketList({
   markets,
   loading = false,
-  className = ''
+  className = '',
+  onEditMarket
 }: CompactMarketListProps) {
 
   const listStyle: React.CSSProperties = {
@@ -194,6 +232,7 @@ export function CompactMarketList({
           schedule={market.schedule}
           active={market.active}
           paused={market.paused}
+          onEdit={onEditMarket ? () => onEditMarket(market.id) : undefined}
         >
           {market.subtitle}
         </CompactMarketCard>

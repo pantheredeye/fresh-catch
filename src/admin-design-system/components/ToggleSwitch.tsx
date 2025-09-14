@@ -11,6 +11,8 @@ interface ToggleSwitchProps {
   label?: ReactNode
   /** Disabled state */
   disabled?: boolean
+  /** Click handler */
+  onClick?: () => void
 }
 
 /**
@@ -20,12 +22,13 @@ interface ToggleSwitchProps {
  * Uses existing design tokens for visual consistency with customer components.
  * Compact variant for space-efficient layouts.
  */
-export function ToggleSwitch({ 
-  active = false, 
+export function ToggleSwitch({
+  active = false,
   size = 'default',
   className = '',
   label,
-  disabled = false
+  disabled = false,
+  onClick
 }: ToggleSwitchProps) {
   
   const sizeStyles = {
@@ -53,11 +56,12 @@ export function ToggleSwitch({
     background: active ? 'var(--mint-fresh)' : 'var(--light-gray)',
     borderRadius: 'var(--radius-full)',
     position: 'relative',
-    cursor: 'default',
+    cursor: disabled ? 'not-allowed' : (onClick ? 'pointer' : 'default'),
     transition: 'all 0.3s ease',
     flexShrink: 0,
     opacity: disabled ? 0.5 : 1,
-    boxShadow: active ? '0 4px 12px rgba(0, 217, 177, 0.2)' : 'none'
+    boxShadow: active ? '0 4px 12px rgba(0, 217, 177, 0.2)' : 'none',
+    border: active ? 'none' : '1px solid rgba(100, 116, 139, 0.2)'
   }
 
   const knobStyle: React.CSSProperties = {
@@ -85,6 +89,7 @@ export function ToggleSwitch({
     <div
       className={`toggle-switch ${active ? 'active' : ''} ${className}`}
       style={toggleStyle}
+      onClick={disabled ? undefined : onClick}
     >
       <div style={knobStyle} />
     </div>
@@ -123,6 +128,8 @@ interface MarketToggleProps {
   marketName?: string
   /** Disabled state */
   disabled?: boolean
+  /** Click handler */
+  onClick?: () => void
 }
 
 /**
@@ -130,16 +137,18 @@ interface MarketToggleProps {
  * 
  * WHY: Common pattern in admin interface, adds proper accessibility labels
  */
-export function MarketToggle({ 
-  active = false, 
+export function MarketToggle({
+  active = false,
   marketName = 'market',
-  disabled = false 
+  disabled = false,
+  onClick
 }: MarketToggleProps) {
   return (
     <ToggleSwitch
       active={active}
       size="compact"
       disabled={disabled}
+      onClick={onClick}
       className="market-toggle"
     />
   )
