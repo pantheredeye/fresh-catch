@@ -8,6 +8,6 @@ import { Login } from "./Login";
  * - LoginPage is a server component (can receive RequestInfo props)
  * - Login is a client component (handles interactivity)
  */
-export function LoginPage({ ctx }: RequestInfo) {
-  return <Login ctx={ctx} />;
+export function LoginPage(requestInfo: RequestInfo) {
+  return <Login ctx={requestInfo.ctx} />;
 }

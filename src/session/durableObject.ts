@@ -5,6 +5,8 @@ export interface Session {
   userId?: string | null;
   challenge?: string | null;
   createdAt: number;
+  currentOrganizationId?: string | null;
+  role?: string | null;
 }
 
 export class SessionDurableObject extends DurableObject {
@@ -17,14 +19,20 @@ export class SessionDurableObject extends DurableObject {
   async saveSession({
     userId = null,
     challenge = null,
+    currentOrganizationId = null,
+    role = null,
   }: {
     userId?: string | null;
     challenge?: string | null;
+    currentOrganizationId?: string | null;
+    role?: string | null;
   }): Promise<Session> {
     const session: Session = {
       userId,
       challenge,
       createdAt: Date.now(),
+      currentOrganizationId,
+      role,
     };
 
     await this.ctx.storage.put<Session>("session", session);

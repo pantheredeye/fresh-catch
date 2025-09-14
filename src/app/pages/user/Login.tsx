@@ -18,7 +18,7 @@ import "@/design-system/tokens.css";
 // TODO: Get business context from environment or route
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
-export function Login({ ctx }: RequestInfo) {
+export function Login({ ctx }: { ctx: any }) {
   const [result, setResult] = useState("");
 
   const handleLogin = async (username: string) => {

@@ -120,6 +120,16 @@
 **Future Path:** Same component scales to multi-business platform via domain/route context
 **Rationale:** Seamless customer experience, scalable architecture, no "shared" complexity
 
+### Session Management & Organization Context (2024-11-14)
+**Decision:** Extend RWSDK sessions with organization context for multi-tenant support
+**Context:** Users can belong to multiple organizations, need current org context throughout app
+**Implementation:**
+- Session interface includes `currentOrganizationId` and `role`
+- Middleware auto-loads user memberships and sets default organization
+- AppContext provides `currentOrganization` with full org details and user's role
+- Organization switching available for users with multiple memberships
+**Rationale:** Built-in multi-tenant security, role-based UI becomes simple, organization-scoped queries automatic
+
 ---
 
 ## Technical Implementation Decisions
