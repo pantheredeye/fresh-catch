@@ -10,6 +10,8 @@ The user prefers small, conversational interactions rather than large sweeping c
 
 This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, WebAuthn authentication, and Prisma ORM with D1 database.
 
+rwsdk rules and patterns are located in `@.cursor/rules/`
+
 ## Common Commands
 
 ### Development
@@ -86,11 +88,12 @@ pnpm run clean          # Clean Vite cache
 - Embrace duplication over complex, configurable components
 
 ### Design System Approach
-- **Master Design Reference**: `design-artifacts/customer.html` contains the complete design system
+- **Master Design Reference**: `@src/design-system/patterns.md` contains the complete design system
 - Extract CSS custom properties as design tokens for consistency
 - Mobile-first approach with careful attention to container behavior
 - Use the existing design system (colors, spacing, typography, shadows) across all components
 - Other design artifacts should be stripped to components and rebuilt with master styles
+- Reference `@DESIGN_PATTERNS_REFERENCE.md` for understanding our implementation 
 
 ## Development Notes
 
