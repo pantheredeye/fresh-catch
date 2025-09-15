@@ -61,7 +61,8 @@ export function ToggleSwitch({
     flexShrink: 0,
     opacity: disabled ? 0.5 : 1,
     boxShadow: active ? '0 4px 12px rgba(0, 217, 177, 0.2)' : 'none',
-    border: active ? 'none' : '1px solid rgba(100, 116, 139, 0.2)'
+    border: active ? 'none' : '1px solid rgba(100, 116, 139, 0.2)',
+    transform: 'scale(1)'
   }
 
   const knobStyle: React.CSSProperties = {
@@ -90,6 +91,32 @@ export function ToggleSwitch({
       className={`toggle-switch ${active ? 'active' : ''} ${className}`}
       style={toggleStyle}
       onClick={disabled ? undefined : onClick}
+      onMouseEnter={(e) => {
+        if (!disabled && onClick) {
+          e.currentTarget.style.transform = 'scale(1.05)'
+          if (active) {
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 217, 177, 0.3)'
+          }
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!disabled) {
+          e.currentTarget.style.transform = 'scale(1)'
+          if (active) {
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 217, 177, 0.2)'
+          }
+        }
+      }}
+      onMouseDown={(e) => {
+        if (!disabled && onClick) {
+          e.currentTarget.style.transform = 'scale(0.95)'
+        }
+      }}
+      onMouseUp={(e) => {
+        if (!disabled && onClick) {
+          e.currentTarget.style.transform = 'scale(1.05)'
+        }
+      }}
     >
       <div style={knobStyle} />
     </div>

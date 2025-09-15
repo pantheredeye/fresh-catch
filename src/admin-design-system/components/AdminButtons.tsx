@@ -158,6 +158,7 @@ interface AddEventButtonProps {
   children?: ReactNode
   className?: string
   fullWidth?: boolean
+  onClick?: () => void
 }
 
 /**
@@ -165,20 +166,23 @@ interface AddEventButtonProps {
  * 
  * WHY: From schedule wireframes - prominent button for adding special events
  */
-export function AddEventButton({ 
-  children = '+ Add Special Event', 
+export function AddEventButton({
+  children = '+ Add Special Event',
   className = '',
-  fullWidth = true
+  fullWidth = true,
+  onClick
 }: AddEventButtonProps) {
   return (
-    <AdminButton
-      variant="add-event"
-      size="md"
-      fullWidth={fullWidth}
-      className={`add-event-button ${className}`}
-    >
-      {children}
-    </AdminButton>
+    <div onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
+      <AdminButton
+        variant="add-event"
+        size="md"
+        fullWidth={fullWidth}
+        className={`add-event-button ${className}`}
+      >
+        {children}
+      </AdminButton>
+    </div>
   )
 }
 

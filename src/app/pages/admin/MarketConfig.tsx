@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Container } from "@/design-system";
-import { SectionHeader, CompactMarketList, AddEventButton, MarketToggle, AdminButton } from "@/admin-design-system";
+import { Button, Container, QuickAction } from "@/design-system";
+import {
+  SectionHeader,
+  CompactMarketList,
+  AddEventButton,
+  MarketToggle,
+  AdminButton,
+  MarketFormModal,
+} from "@/admin-design-system";
 import "@/design-system/tokens.css";
 
 /**
@@ -22,108 +29,139 @@ import "@/design-system/tokens.css";
  * Priority 4: Overview - Active/inactive grouping
  */
 export function MarketConfig({ ctx }: { ctx: any }) {
-
   // State for managing market data
   const [markets, setMarkets] = useState([
     {
-      id: '1',
-      name: 'Hernando',
-      schedule: 'Sat 8-2',
-      active: true
+      id: "1",
+      name: "Hernando",
+      schedule: "Sat 8-2",
+      active: true,
     },
     {
-      id: '2',
-      name: 'Oxford City',
-      schedule: 'Tue 3-6:30',
-      active: true
+      id: "2",
+      name: "Oxford City",
+      schedule: "Tue 3-6:30",
+      active: true,
     },
     {
-      id: '3',
-      name: 'Olive Branch',
-      schedule: 'Sat 9-1',
-      active: true
+      id: "3",
+      name: "Olive Branch",
+      schedule: "Sat 9-1",
+      active: true,
     },
     {
-      id: '4',
-      name: 'Adobe Farmers',
-      schedule: 'Fri 4-7',
-      active: true
+      id: "4",
+      name: "Adobe Farmers",
+      schedule: "Fri 4-7",
+      active: true,
     },
     {
-      id: '5',
-      name: 'Senatobia Sunday',
-      schedule: 'Sun 9-2',
+      id: "5",
+      name: "Senatobia Sunday",
+      schedule: "Sun 9-2",
       active: false,
       paused: true,
-      subtitle: 'Paused until March'
+      subtitle: "Paused until March",
     },
     {
-      id: '6',
-      name: 'Holly Springs Night',
-      schedule: 'Fri 5-9',
+      id: "6",
+      name: "Holly Springs Night",
+      schedule: "Fri 5-9",
       active: false,
       paused: true,
-      subtitle: 'Winter break'
-    }
+      subtitle: "Winter break",
+    },
   ]);
 
   // Handler functions
   const handleAddNewMarket = () => {
-    // TODO: Navigate to new market form
-    console.log('Add new market clicked');
+    setEditingMarket(undefined);
+    setIsModalOpen(true);
   };
 
   const handleEditMarket = (marketId: string) => {
-    // TODO: Navigate to market edit form
-    console.log('Edit market:', marketId);
+    const market = markets.find((m) => m.id === marketId);
+    setEditingMarket(market);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveMarket = (marketData: any) => {
+    if (editingMarket) {
+      // Update existing market
+      setMarkets((prev) =>
+        prev.map((market) =>
+          market.id === editingMarket.id
+            ? { ...marketData, id: editingMarket.id }
+            : market
+        )
+      );
+    } else {
+      // Add new market
+      const newMarket = {
+        ...marketData,
+        id: Date.now().toString(), // Simple ID generation for now
+      };
+      setMarkets((prev) => [...prev, newMarket]);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingMarket(undefined);
   };
 
   const handleToggleMarket = (marketId: string) => {
-    setMarkets(prevMarkets =>
-      prevMarkets.map(market =>
-        market.id === marketId
-          ? { ...market, active: !market.active }
-          : market
+    setMarkets((prevMarkets) =>
+      prevMarkets.map((market) =>
+        market.id === marketId ? { ...market, active: !market.active } : market
       )
     );
   };
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMarket, setEditingMarket] = useState<
+    (typeof markets)[0] | undefined
+  >(undefined);
+
   // Filter markets by active status
-  const activeMarkets = markets.filter(market => market.active);
-  const inactiveMarkets = markets.filter(market => !market.active);
+  const activeMarkets = markets.filter((market) => market.active);
+  const inactiveMarkets = markets.filter((market) => !market.active);
 
   const headerStyle: React.CSSProperties = {
-    background: 'var(--surface-primary)',
-    borderRadius: 'var(--radius-lg)',
-    padding: 'var(--space-lg) var(--space-md)',
-    marginBottom: 'var(--space-lg)',
-    boxShadow: 'var(--shadow-sm)',
-    border: '1px solid rgba(100, 116, 139, 0.1)'
+    background: "var(--surface-primary)",
+    borderRadius: "var(--radius-lg)",
+    padding: "var(--space-lg) var(--space-md)",
+    marginBottom: "var(--space-lg)",
+    boxShadow: "var(--shadow-sm)",
+    border: "1px solid rgba(100, 116, 139, 0.1)",
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '24px',
+    fontSize: "24px",
     fontWeight: 700,
-    color: 'var(--deep-navy)',
-    fontFamily: 'var(--font-display)',
-    marginBottom: 'var(--space-xs)',
-    textAlign: 'left'
+    color: "var(--deep-navy)",
+    fontFamily: "var(--font-display)",
+    marginBottom: "var(--space-xs)",
+    textAlign: "left",
   };
 
   const subtitleStyle: React.CSSProperties = {
-    fontSize: '14px',
-    color: 'var(--cool-gray)',
+    fontSize: "14px",
+    color: "var(--cool-gray)",
     margin: 0,
-    lineHeight: 1.5
+    lineHeight: 1.5,
   };
 
   return (
     <Container>
-      <div style={{
-        padding: 'var(--space-md)',
-        maxWidth: '600px',
-        margin: '0 auto'
-      }}>
+      <div
+        style={{
+          padding: "var(--space-md)",
+          maxWidth: "600px",
+          margin: "0 auto",
+        }}
+      >
         {/* Header */}
         <div style={headerStyle}>
           <h1 style={titleStyle}>Market Settings</h1>
@@ -133,48 +171,67 @@ export function MarketConfig({ ctx }: { ctx: any }) {
         </div>
 
         {/* Add New Market Button */}
-        <div style={{ marginBottom: 'var(--space-lg)' }}>
-          <AddEventButton onClick={handleAddNewMarket} fullWidth={true}>+ Add New Market</AddEventButton>
+        <div style={{ marginBottom: "var(--space-lg)" }}>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={handleAddNewMarket}
+          >
+            + Add New Market
+          </Button>
         </div>
 
         {/* Combined Markets List */}
         {(activeMarkets.length > 0 || inactiveMarkets.length > 0) && (
-          <div style={{
-            background: 'var(--surface-primary)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(100, 116, 139, 0.1)',
-            overflow: 'hidden',
-            marginBottom: 'var(--space-lg)',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
+          <div
+            style={{
+              background: "var(--surface-primary)",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid rgba(100, 116, 139, 0.1)",
+              overflow: "hidden",
+              marginBottom: "var(--space-lg)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
             {/* Active Markets Section */}
             {activeMarkets.length > 0 && (
               <>
-                <SectionHeader>Active Markets ({activeMarkets.length})</SectionHeader>
+                <SectionHeader>
+                  Active Markets ({activeMarkets.length})
+                </SectionHeader>
                 {activeMarkets.map((market, index) => (
                   <div
                     key={market.id}
                     style={{
-                      padding: 'var(--space-sm) var(--space-md)',
-                      borderBottom: index < activeMarkets.length - 1 || inactiveMarkets.length > 0 ? '1px solid rgba(100, 116, 139, 0.1)' : 'none',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: market.active ? 'var(--surface-primary)' : 'var(--light-gray)',
-                      transition: 'all 0.2s ease',
-                      cursor: 'default',
-                      minHeight: '60px',
-                      gap: 'var(--space-sm)'
+                      padding: "var(--space-sm) var(--space-md)",
+                      borderBottom:
+                        index < activeMarkets.length - 1 ||
+                        inactiveMarkets.length > 0
+                          ? "1px solid rgba(100, 116, 139, 0.1)"
+                          : "none",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: market.active
+                        ? "var(--surface-primary)"
+                        : "var(--light-gray)",
+                      transition: "all 0.2s ease",
+                      cursor: "default",
+                      minHeight: "60px",
+                      gap: "var(--space-sm)",
                     }}
                   >
                     {/* Left section: Toggle + Market Name */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-sm)',
-                      flex: 1,
-                      minWidth: 0
-                    }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--space-sm)",
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
                       <MarketToggle
                         active={market.active}
                         marketName={market.name}
@@ -182,35 +239,39 @@ export function MarketConfig({ ctx }: { ctx: any }) {
                         onClick={() => handleToggleMarket(market.id)}
                       />
                       <div>
-                        <div style={{
-                          fontSize: '15px',
-                          fontWeight: 500,
-                          color: 'var(--deep-navy)',
-                          fontFamily: 'var(--font-display)',
-                          margin: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
+                        <div
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: 500,
+                            color: "var(--deep-navy)",
+                            fontFamily: "var(--font-display)",
+                            margin: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {market.name}
                         </div>
                       </div>
                     </div>
 
                     {/* Middle section: Schedule */}
-                    <div style={{
-                      fontSize: '13px',
-                      color: 'var(--cool-gray)',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 500,
-                      flexShrink: 0
-                    }}>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "var(--cool-gray)",
+                        fontFamily: "var(--font-mono)",
+                        fontWeight: 500,
+                        flexShrink: 0,
+                      }}
+                    >
                       {market.schedule}
                     </div>
 
                     {/* Right section: Edit button */}
                     <div onClick={() => handleEditMarket(market.id)}>
-                      <AdminButton variant="cancel" size="sm">Edit</AdminButton>
+                      <QuickAction>Edit</QuickAction>
                     </div>
                   </div>
                 ))}
@@ -220,32 +281,42 @@ export function MarketConfig({ ctx }: { ctx: any }) {
             {/* Inactive Markets Section */}
             {inactiveMarkets.length > 0 && (
               <>
-                <SectionHeader>Inactive Markets ({inactiveMarkets.length})</SectionHeader>
+                <SectionHeader>
+                  Inactive Markets ({inactiveMarkets.length})
+                </SectionHeader>
                 {inactiveMarkets.map((market, index) => (
                   <div
                     key={market.id}
                     style={{
-                      padding: 'var(--space-sm) var(--space-md)',
-                      borderBottom: index < inactiveMarkets.length - 1 ? '1px solid rgba(100, 116, 139, 0.1)' : 'none',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: (!market.active || market.paused) ? 'var(--light-gray)' : 'var(--surface-primary)',
-                      opacity: (!market.active || market.paused) ? 0.7 : 1,
-                      transition: 'all 0.2s ease',
-                      cursor: 'default',
-                      minHeight: '60px',
-                      gap: 'var(--space-sm)'
+                      padding: "var(--space-sm) var(--space-md)",
+                      borderBottom:
+                        index < inactiveMarkets.length - 1
+                          ? "1px solid rgba(100, 116, 139, 0.1)"
+                          : "none",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background:
+                        !market.active || market.paused
+                          ? "var(--light-gray)"
+                          : "var(--surface-primary)",
+                      opacity: !market.active || market.paused ? 0.7 : 1,
+                      transition: "all 0.2s ease",
+                      cursor: "default",
+                      minHeight: "60px",
+                      gap: "var(--space-sm)",
                     }}
                   >
                     {/* Left section: Toggle + Market Name */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-sm)',
-                      flex: 1,
-                      minWidth: 0
-                    }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--space-sm)",
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
                       <MarketToggle
                         active={market.active}
                         marketName={market.name}
@@ -253,24 +324,28 @@ export function MarketConfig({ ctx }: { ctx: any }) {
                         onClick={() => handleToggleMarket(market.id)}
                       />
                       <div>
-                        <div style={{
-                          fontSize: '15px',
-                          fontWeight: 500,
-                          color: 'var(--deep-navy)',
-                          fontFamily: 'var(--font-display)',
-                          margin: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
+                        <div
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: 500,
+                            color: "var(--deep-navy)",
+                            fontFamily: "var(--font-display)",
+                            margin: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {market.name}
                         </div>
                         {market.subtitle && (
-                          <div style={{
-                            fontSize: '12px',
-                            color: 'var(--cool-gray)',
-                            marginTop: '2px'
-                          }}>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "var(--cool-gray)",
+                              marginTop: "2px",
+                            }}
+                          >
                             {market.subtitle}
                           </div>
                         )}
@@ -278,19 +353,21 @@ export function MarketConfig({ ctx }: { ctx: any }) {
                     </div>
 
                     {/* Middle section: Schedule */}
-                    <div style={{
-                      fontSize: '13px',
-                      color: 'var(--cool-gray)',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 500,
-                      flexShrink: 0
-                    }}>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "var(--cool-gray)",
+                        fontFamily: "var(--font-mono)",
+                        fontWeight: 500,
+                        flexShrink: 0,
+                      }}
+                    >
                       {market.schedule}
                     </div>
 
                     {/* Right section: Edit button */}
                     <div onClick={() => handleEditMarket(market.id)}>
-                      <AdminButton variant="cancel" size="sm">Edit</AdminButton>
+                      <QuickAction>Edit</QuickAction>
                     </div>
                   </div>
                 ))}
@@ -301,36 +378,54 @@ export function MarketConfig({ ctx }: { ctx: any }) {
 
         {/* Empty State - Only shows when no markets exist */}
         {activeMarkets.length === 0 && inactiveMarkets.length === 0 && (
-          <div style={{
-            background: 'var(--surface-primary)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-2xl)',
-            textAlign: 'center',
-            border: '2px dashed rgba(100, 116, 139, 0.2)',
-            color: 'var(--cool-gray)'
-          }}>
-            <div style={{
-              fontSize: '48px',
-              marginBottom: 'var(--space-md)'
-            }}>🏪</div>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--deep-navy)',
-              marginBottom: 'var(--space-sm)',
-              fontFamily: 'var(--font-display)'
-            }}>
+          <div
+            style={{
+              background: "var(--surface-primary)",
+              borderRadius: "var(--radius-lg)",
+              padding: "var(--space-2xl)",
+              textAlign: "center",
+              border: "2px dashed rgba(100, 116, 139, 0.2)",
+              color: "var(--cool-gray)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "48px",
+                marginBottom: "var(--space-md)",
+              }}
+            >
+              🏪
+            </div>
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "var(--deep-navy)",
+                marginBottom: "var(--space-sm)",
+                fontFamily: "var(--font-display)",
+              }}
+            >
               No Markets Configured
             </h3>
-            <p style={{
-              fontSize: '14px',
-              lineHeight: 1.5,
-              marginBottom: 'var(--space-lg)'
-            }}>
+            <p
+              style={{
+                fontSize: "14px",
+                lineHeight: 1.5,
+                marginBottom: "var(--space-lg)",
+              }}
+            >
               Get started by adding your first market location
             </p>
           </div>
         )}
+
+        {/* Market Form Modal */}
+        <MarketFormModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSaveMarket}
+          market={editingMarket}
+        />
       </div>
     </Container>
   );
