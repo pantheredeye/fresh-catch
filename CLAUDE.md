@@ -6,6 +6,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The user prefers small, conversational interactions rather than large sweeping code changes. Engage in dialog, ask clarifying questions, and make incremental changes after discussion. Break down complex tasks into smaller steps and confirm approaches before implementation.
 
+## Git Workflow
+
+**IMPORTANT: Always work on feature branches, never commit directly to main.**
+
+### Before Starting Any Feature Work
+1. **Create a feature branch** before making any code changes
+2. Use branch naming convention: `bbb-<descriptive-name>` (e.g., `bbb-customer-real-data`, `bbb-auth-fix`, `bbb-market-cards`)
+3. Alternative prefixes for different work types as needed
+
+### During Development
+1. Make **incremental commits** as you complete each logical piece
+2. Commit messages should be descriptive and clear
+3. Keep commits atomic (one logical change per commit)
+
+### When Feature is Complete
+1. Ensure all tests pass and feature works as expected
+2. Create a pull request to merge into `main`
+3. Clean up branch after merge (optional)
+
+### Example Workflow
+```bash
+# Start new feature
+git checkout -b bbb-new-feature
+
+# Make changes, test, then commit
+git add .
+git commit -m "Add feature description"
+
+# When ready, push and create PR
+git push -u origin bbb-new-feature
+```
+
+**Why this matters:** Working on branches keeps main stable, allows for code review, and makes it easier to experiment without breaking the working codebase.
+
 ## Project Overview
 
 This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, WebAuthn authentication, and Prisma ORM with D1 database.
@@ -80,12 +114,57 @@ pnpm run clean          # Clean Vite cache
 ### Addon Pattern
 - Each addon is a self-contained folder containing:
   - Pages and routes
-  - Server logic and client components  
+  - Server logic and client components
   - Database migrations if needed
   - All related styles and logic
 - Addons are fully pluggable and require no additional configuration
 - Can be easily shared, copied, forked, and customized
 - Embrace duplication over complex, configurable components
+
+### RWSDK Data Fetching Pattern
+**Server Components + Server Functions (NOT JSON APIs)**
+- **Server Components** (Page.tsx): Fetch data directly with async/await, pass to client components as props
+- **Client Components** (UI.tsx): Handle interactivity, call server functions for mutations
+- **Server Functions** (functions.ts): Mark with "use server", handle CRUD operations, use revalidatePath()
+- **JSON APIs**: Only create for external clients (mobile apps, webhooks), NOT for internal UI
+
+**File Structure:**
+```
+src/app/pages/feature/
+  ├── FeaturePage.tsx      # Server component (fetches data)
+  ├── FeatureUI.tsx        # Client component ("use client")
+  ├── functions.ts         # Server functions ("use server")
+  └── routes.ts            # Route definitions
+```
+
+**Example Pattern:**
+```tsx
+// FeaturePage.tsx (server component)
+export async function FeaturePage({ ctx }) {
+  const data = await db.model.findMany({ where: { orgId: ctx.currentOrganization.id }});
+  return <FeatureUI data={data} />
+}
+
+// FeatureUI.tsx (client component)
+"use client";
+import { createItem, updateItem } from "./functions";
+export function FeatureUI({ data }) {
+  const handleSave = async () => {
+    await createItem({ name: "..." });
+  };
+  return <div>...</div>
+}
+
+// functions.ts (server functions)
+"use server";
+import { requestInfo } from "rwsdk/worker";
+import { revalidatePath } from "rwsdk/cache";
+export async function createItem(data) {
+  const { ctx } = requestInfo;
+  await db.model.create({ data: { ...data, organizationId: ctx.currentOrganization.id }});
+  revalidatePath("/feature");
+}
+```
 
 ### Design System Approach
 - **Master Design Reference**: `@src/design-system/patterns.md` contains the complete design system
