@@ -1,12 +1,31 @@
 import { RequestInfo } from "rwsdk/worker";
-import { MarketConfig } from "./MarketConfig";
+import { db } from "@/db";
+import { MarketConfigUI } from "./MarketConfigUI";
 
 /**
- * MarketConfigPage - Server component wrapper for admin market configuration
+ * MarketConfigPage - Server component for admin market configuration
  *
- * This allows Evan to configure his 9 markets on the 2-week rotation schedule.
- * Will handle market setup, location details, scheduling patterns, and special events.
+ * RWSDK Pattern: Server Component + Server Functions
+ * - Fetches market data directly in server component
+ * - Passes data as props to client component (MarketConfigUI)
+ * - Client component calls server functions for mutations
+ *
+ * This allows Evan to configure his markets for the 2-week rotation schedule.
  */
-export function MarketConfigPage(requestInfo: RequestInfo) {
-  return <MarketConfig ctx={requestInfo.ctx} />;
+export async function MarketConfigPage(requestInfo: RequestInfo) {
+  const { ctx } = requestInfo;
+
+  if (!ctx.currentOrganization) {
+    return <div>No organization context</div>;
+  }
+
+  // Fetch markets directly in server component
+  const markets = await db.market.findMany({
+    where: {
+      organizationId: ctx.currentOrganization.id,
+    },
+    orderBy: [{ active: "desc" }, { name: "asc" }],
+  });
+
+  return <MarketConfigUI markets={markets} />;
 }

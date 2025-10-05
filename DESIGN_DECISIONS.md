@@ -105,6 +105,57 @@
 **Context:** Customers need immediate value without friction
 **Rationale:** Removes registration barrier, provides instant utility, easy Phase 2 upgrade path
 
+### Customer Market Display Approach (2025-01-04)
+**Decision:** Simplified schedule display with two-section discovery pattern
+**Context:** Balance between simplicity (Phase 1) and user discovery needs
+**Market Data Fields:**
+- ✅ Keep: `name`, `schedule` (e.g., "Sat 8-2"), `subtitle` (optional)
+- ❌ Defer: Specific dates, calculated "days away" status, live indicators
+**Display Strategy:**
+1. **"Your Markets"** section - Shows favorited markets (from localStorage)
+2. **"All Markets"** section - Shows all active markets for discovery
+**Rationale:**
+- Admin controls schedule as simple text (no date calculations needed)
+- Two sections solve discovery problem for older adults (60+)
+- Favorites reduce cognitive load for repeat users
+- All Markets ensures new location awareness
+**Deferred to Future Phases:**
+- Date calculations and "3 days away" status indicators
+- "Live now" indicators (requires Evan manual toggle or geofencing)
+- Time-based automatic status detection
+
+**Technical Implementation (RWSDK Pattern):**
+```tsx
+// CustomerHome.tsx (Server Component)
+export async function CustomerHome({ ctx }) {
+  const orgId = getPublicOrganizationId(); // Hardcoded for Phase 1
+  const markets = await db.market.findMany({
+    where: { organizationId: orgId, active: true },
+    orderBy: { name: 'asc' }
+  });
+  return <CustomerHomeUI markets={markets} />
+}
+
+// CustomerHomeUI.tsx (Client Component - "use client")
+export function CustomerHomeUI({ markets }) {
+  const [favorites, setFavorites] = useFavorites(); // localStorage hook
+  const favoriteMarkets = markets.filter(m => favorites.includes(m.id));
+  const allMarkets = markets;
+
+  return (
+    <>
+      {favoriteMarkets.length > 0 && <YourMarkets markets={favoriteMarkets} />}
+      <AllMarkets markets={allMarkets} favorites={favorites} onToggleFavorite={...} />
+    </>
+  );
+}
+```
+
+**Organization Context for Phase 1:**
+- Hardcode Evan's organization ID in utility function
+- Future: Replace with subdomain detection, route params, or env var
+- Single source of truth for easy migration to multi-tenant
+
 ### Phase 1 Authentication Strategy (2024-11-14)
 **Decision:** Context-aware LoginForm with business-scoped customer registration
 **Context:** Two user types - Business Owners (create markets) vs Customers (buy from businesses)
@@ -156,6 +207,45 @@
 - `/user/routes.ts` for auth
 - `/admin/routes.ts` for admin functions
 - Middleware for session + role context
+
+### RWSDK Data Fetching Pattern (2025-01-04)
+**Decision:** Server Components + Server Functions (not JSON APIs)
+**Context:** Need data fetching pattern for market CRUD operations
+**Options Considered:**
+1. Traditional JSON API routes with fetch() in client components
+2. Server Components that fetch data + Server Functions for mutations
+**Decision:** Option 2 - Server Components + Server Functions
+**Implementation Pattern:**
+```tsx
+// Page.tsx (server component) - fetches data
+export async function MarketConfigPage({ ctx }) {
+  const markets = await db.market.findMany({ where: { organizationId: ctx.currentOrganization.id }});
+  return <MarketConfigUI markets={markets} />
+}
+
+// UI.tsx ("use client") - receives data, calls server functions
+"use client";
+import { createMarket, updateMarket } from "./functions";
+export function MarketConfigUI({ markets }) {
+  // Interactive UI, calls server functions for mutations
+}
+
+// functions.ts ("use server") - mutations
+"use server";
+export async function createMarket(data) {
+  const { ctx } = requestInfo;
+  await db.market.create({ data: { ...data, organizationId: ctx.currentOrganization.id }});
+  revalidatePath("/admin/config");
+}
+```
+**Rationale:**
+- More idiomatic to rwsdk's React Server Components architecture
+- Eliminates need for JSON API layer and fetch() calls
+- Server components have direct database access
+- Server functions automatically have request context
+- Simpler data flow: Server → Props → Client → Server Functions
+- Better performance (no extra network hop for initial data)
+**When to use JSON APIs:** Only for external clients (mobile apps, webhooks, third-party integrations)
 
 ---
 
