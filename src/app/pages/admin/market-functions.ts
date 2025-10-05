@@ -2,7 +2,6 @@
 
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
-import { revalidatePath } from "rwsdk/cache";
 
 /**
  * Server functions for market CRUD operations
@@ -31,7 +30,6 @@ export async function createMarket(data: {
     },
   });
 
-  revalidatePath("/admin/config");
   return market;
 }
 
@@ -72,7 +70,6 @@ export async function updateMarket(
     },
   });
 
-  revalidatePath("/admin/config");
   return market;
 }
 
@@ -99,7 +96,6 @@ export async function deleteMarket(id: string) {
     where: { id },
   });
 
-  revalidatePath("/admin/config");
   return { success: true };
 }
 
@@ -129,6 +125,5 @@ export async function toggleMarketActive(id: string) {
     },
   });
 
-  revalidatePath("/admin/config");
   return market;
 }
