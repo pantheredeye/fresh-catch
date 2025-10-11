@@ -76,7 +76,7 @@ export async function finishBusinessOwnerRegistration(
   businessName: string,
   registration: RegistrationResponseJSON,
 ) {
-  const { request, headers } = requestInfo;
+  const { request, response } = requestInfo;
   const { origin } = new URL(request.url);
 
   const session = await sessions.load(request);
@@ -97,7 +97,7 @@ export async function finishBusinessOwnerRegistration(
     return false;
   }
 
-  await sessions.save(headers, { challenge: null });
+  await sessions.save(response.headers, { challenge: null });
 
   // Look for existing user with this username
   let user = await db.user.findUnique({
@@ -175,7 +175,7 @@ export async function finishBusinessOwnerRegistration(
   }
 
   // Auto-login: Create session with user and organization context
-  await sessions.save(headers, {
+  await sessions.save(response.headers, {
     userId: user.id,
     currentOrganizationId: organization.id,
     role: existingMembership?.role || "owner",
