@@ -2,6 +2,7 @@ import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { getPublicOrganizationId } from "@/utils/organization";
 import { CustomerHomeUI } from "./CustomerHomeUI";
+import { BusinessNotFound } from "./BusinessNotFound";
 
 // Mock data for sections not yet converted to real data
 const MOCK_FRESH_CATCH = [
@@ -43,12 +44,7 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
     });
 
     if (!org) {
-      return (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h1>Business Not Found</h1>
-          <p>We couldn't find a business with the identifier "{businessSlug}".</p>
-        </div>
-      );
+      return <BusinessNotFound businessSlug={businessSlug} />;
     }
 
     orgId = org.id;
