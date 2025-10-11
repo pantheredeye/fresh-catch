@@ -12,7 +12,7 @@ import {
 import { TextInput } from "@/design-system/components/Input";
 import { Button } from "@/design-system/components/Button";
 import { Container } from "@/design-system/components/Container";
-import "@/design-system/tokens.css";
+import "@/admin-design-system/admin-auth.css";
 
 /**
  * Business Owner Setup - Admin registration flow with enhanced UX
@@ -132,46 +132,13 @@ export function Setup({ ctx }: { ctx: any }) {
 
   return (
     <Container>
-      <div style={{
-        colorScheme: 'light', // Force light mode rendering
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--space-md)',
-        background: 'var(--warm-white, #FFFCF8)',
-      }}>
-        <div style={{
-          background: 'white',
-          background: 'var(--surface-primary, white)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-2xl)',
-          maxWidth: '480px',
-          width: '100%',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--soft-gray, #E0E0E0)'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: 'var(--space-xl)'
-          }}>
-            <h1 style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: '#1A1A2E',
-              color: 'var(--deep-navy, #1A1A2E)',
-              fontFamily: 'var(--font-display)',
-              marginBottom: 'var(--space-sm)'
-            }}>
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-header">
+            <h1 className="auth-title">
               Business Owner Setup
             </h1>
-            <p style={{
-              fontSize: '16px',
-              color: '#6B7280',
-              color: 'var(--cool-gray, #6B7280)',
-              margin: 0,
-              lineHeight: 1.5
-            }}>
+            <p className="auth-subtitle">
               Register your business owner account with secure passkey authentication
             </p>
           </div>
@@ -179,11 +146,7 @@ export function Setup({ ctx }: { ctx: any }) {
           <form onSubmit={(e) => {
             e.preventDefault();
             handleBusinessOwnerSetup();
-          }} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-lg)'
-          }}>
+          }} className="auth-form">
             <TextInput
               label="Username"
               placeholder="e.g., evan"
@@ -218,28 +181,12 @@ export function Setup({ ctx }: { ctx: any }) {
           </form>
 
           {message && (
-            <div style={{
-              marginTop: 'var(--space-lg)',
-              padding: 'var(--space-md)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '14px',
-              textAlign: 'center',
+            <div className="auth-status" style={{
               background: getStatusColor(),
               color: getStatusTextColor(),
-              border: `1px solid ${getStatusColor()}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 'var(--space-xs)'
+              border: `1px solid ${getStatusColor()}`
             }}>
-              {status === 'loading' && <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid currentColor',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />}
+              {status === 'loading' && <div className="auth-spinner" />}
               <span>
                 {message}
                 {status === 'success' && countdown > 0 && (
@@ -250,33 +197,14 @@ export function Setup({ ctx }: { ctx: any }) {
           )}
 
           {status === 'success' && (
-            <div style={{
-              marginTop: 'var(--space-md)',
-              textAlign: 'center'
-            }}>
-              <a
-                href="/admin"
-                style={{
-                  color: '#0066CC',
-                  color: 'var(--ocean-blue, #0066CC)',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
+            <div className="auth-success-link">
+              <a href="/admin">
                 Go to dashboard now →
               </a>
             </div>
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </Container>
   );
 }
