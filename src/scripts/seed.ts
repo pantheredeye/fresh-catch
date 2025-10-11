@@ -24,6 +24,7 @@ export default defineScript(async ({ env }) => {
   const evanOrg = await db.organization.create({
     data: {
       name: "Fresh Catch Seafood Markets",
+      slug: "evan",
       type: "business",
     },
   });

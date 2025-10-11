@@ -103,7 +103,7 @@ export function Setup({ ctx }: { ctx: any }) {
     if (status === 'success' && countdown > 0) {
       const timer = setTimeout(() => {
         if (countdown === 1) {
-          window.location.href = '/user/login';
+          window.location.href = '/admin';
         } else {
           setCountdown(countdown - 1);
         }
@@ -250,7 +250,7 @@ export function Setup({ ctx }: { ctx: any }) {
               textAlign: 'center'
             }}>
               <a
-                href="/user/login"
+                href="/admin"
                 style={{
                   color: 'var(--ocean-blue)',
                   textDecoration: 'none',
@@ -258,7 +258,7 @@ export function Setup({ ctx }: { ctx: any }) {
                   fontWeight: 500
                 }}
               >
-                Go to login now →
+                Go to dashboard now →
               </a>
             </div>
           )}

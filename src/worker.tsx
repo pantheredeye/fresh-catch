@@ -105,8 +105,12 @@ export default defineApp([
     }
   },
   render(Document, [
-    route("/", () => new Response("Hello, World!")),
-    route("/customer", CustomerHome),
+    // Root route shows customer home (Evan's markets for now)
+    // TODO (Phase 2): Add smart logic for multi-tenant:
+    //   - If ?b= param exists, show that business's markets
+    //   - If only 1 business total, auto-show it
+    //   - If multiple businesses, show directory
+    route("/", CustomerHome),
     route("/design-test", DesignTest),
     route("/protected", [
       ({ ctx }) => {

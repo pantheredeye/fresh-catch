@@ -24,12 +24,38 @@ const MOCK_QUICK_ACTIONS = [
  * CustomerHome - Server Component
  *
  * RWSDK Pattern: Server Component that fetches real data
+ * - Supports ?b= query param for multi-tenant (e.g., /?b=evan)
  * - Fetches active markets from database
- * - Gets organization ID from utility function
+ * - Falls back to getPublicOrganizationId() if no param
  * - Passes all data to CustomerHomeUI client component
  */
-export async function CustomerHome({ ctx }: RequestInfo) {
-  const orgId = getPublicOrganizationId();
+export async function CustomerHome({ ctx, request }: RequestInfo) {
+  // Get business slug from query param (e.g., ?b=evan)
+  const url = new URL(request.url);
+  const businessSlug = url.searchParams.get('b');
+
+  let orgId: string;
+
+  if (businessSlug) {
+    // Look up business by slug
+    const org = await db.organization.findFirst({
+      where: { slug: businessSlug, type: 'business' }
+    });
+
+    if (!org) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h1>Business Not Found</h1>
+          <p>We couldn't find a business with the identifier "{businessSlug}".</p>
+        </div>
+      );
+    }
+
+    orgId = org.id;
+  } else {
+    // Default: Use getPublicOrganizationId (current behavior)
+    orgId = getPublicOrganizationId();
+  }
 
   // Fetch active markets from database
   const markets = await db.market.findMany({

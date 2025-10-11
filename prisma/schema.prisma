@@ -46,6 +46,7 @@ model Credential {
 model Organization {
   id          String      @id @default(uuid())
   name        String
+  slug        String      @unique // URL-friendly identifier for business (e.g., 'evan', 'joes-farm')
   type        String      // 'individual' or 'business'
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

@@ -138,9 +138,16 @@ export async function finishBusinessOwnerRegistration(
 
   // If organization doesn't exist, create it
   if (!organization) {
+    // Generate slug from business name (lowercase, replace spaces/special chars with dashes)
+    const slug = businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
+
     organization = await db.organization.create({
       data: {
         name: businessName,
+        slug: slug,
         type: "business",
       },
     });
@@ -166,6 +173,13 @@ export async function finishBusinessOwnerRegistration(
       },
     });
   }
+
+  // Auto-login: Create session with user and organization context
+  await sessions.save(headers, {
+    userId: user.id,
+    currentOrganizationId: organization.id,
+    role: existingMembership?.role || "owner",
+  });
 
   console.log(`✅ Business owner setup complete for ${username} at ${businessName}`);
   return true;
