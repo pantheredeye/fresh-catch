@@ -1,3 +1,5 @@
+"use client";
+
 import { Container } from "@/design-system/components/Container";
 import { Button } from "@/design-system/components/Button";
 import "@/admin-design-system/admin-auth.css";
