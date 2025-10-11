@@ -133,20 +133,23 @@ export function Setup({ ctx }: { ctx: any }) {
   return (
     <Container>
       <div style={{
+        colorScheme: 'light', // Force light mode rendering
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 'var(--space-md)',
+        background: 'var(--warm-white, #FFFCF8)',
       }}>
         <div style={{
-          background: 'var(--surface-primary)',
+          background: 'white',
+          background: 'var(--surface-primary, white)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-2xl)',
           maxWidth: '480px',
           width: '100%',
           boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--soft-gray)'
+          border: '1px solid var(--soft-gray, #E0E0E0)'
         }}>
           <div style={{
             textAlign: 'center',
@@ -155,7 +158,8 @@ export function Setup({ ctx }: { ctx: any }) {
             <h1 style={{
               fontSize: '28px',
               fontWeight: 700,
-              color: 'var(--deep-navy)',
+              color: '#1A1A2E',
+              color: 'var(--deep-navy, #1A1A2E)',
               fontFamily: 'var(--font-display)',
               marginBottom: 'var(--space-sm)'
             }}>
@@ -163,7 +167,8 @@ export function Setup({ ctx }: { ctx: any }) {
             </h1>
             <p style={{
               fontSize: '16px',
-              color: 'var(--cool-gray)',
+              color: '#6B7280',
+              color: 'var(--cool-gray, #6B7280)',
               margin: 0,
               lineHeight: 1.5
             }}>
@@ -252,7 +257,8 @@ export function Setup({ ctx }: { ctx: any }) {
               <a
                 href="/admin"
                 style={{
-                  color: 'var(--ocean-blue)',
+                  color: '#0066CC',
+                  color: 'var(--ocean-blue, #0066CC)',
                   textDecoration: 'none',
                   fontSize: '14px',
                   fontWeight: 500
