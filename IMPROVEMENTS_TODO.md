@@ -13,11 +13,14 @@
 
 ## Color System & Theming
 
-- [ ] Audit which CSS variables get overridden by system themes
-- [ ] Add explicit background fallbacks to critical surfaces (white cards, etc.)
+- [x] Audit which CSS variables get overridden by system themes - DONE: All of them!
+- [x] Add explicit background fallbacks to critical surfaces - DONE: Used !important + explicit hex
 - [ ] Design dark mode color palette - if we ever want to support it properly
 - [ ] Document which components handle dark mode vs which don't
 - [ ] Test gradients in dark mode environments
+- [ ] **LEARNING:** CSS var fallback syntax `var(--name, fallback)` only works if variable is UNDEFINED, not if redefined by system theme
+- [ ] **LEARNING:** Inline style duplicate properties don't work in React (last one wins, first is ignored)
+- [ ] **LEARNING:** System dark mode can redefine ALL CSS custom properties - use `!important` for critical UI
 
 ## Admin Experience
 
