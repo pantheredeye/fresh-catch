@@ -87,6 +87,16 @@ export async function finishPasskeyRegistration(
 
   await sessions.save(response.headers, { challenge: null });
 
+  // Check if username already exists
+  const existingUser = await db.user.findUnique({
+    where: { username },
+  });
+
+  if (existingUser) {
+    console.log(`Registration failed: Username '${username}' already exists`);
+    return false;
+  }
+
   const user = await db.user.create({
     data: {
       username,
@@ -103,9 +113,12 @@ export async function finishPasskeyRegistration(
   });
 
   // Create individual organization for the customer
+  // Use UUID for slug - customer orgs are private and never shared publicly
+  // Only business orgs need readable slugs like ?b=evan for public sharing
   const customerOrg = await db.organization.create({
     data: {
       name: `${username}'s Account`,
+      slug: crypto.randomUUID(),
       type: "individual",
     },
   });
@@ -189,16 +202,39 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     where: {
       id: credential.userId,
     },
+    include: {
+      memberships: {
+        include: {
+          organization: true,
+        },
+      },
+    },
   });
 
   if (!user) {
-    return false;
+    return { success: false, isAdmin: false };
   }
 
-  await sessions.save(response.headers, {
-    userId: user.id,
-    challenge: null,
-  });
+  // Check if user has admin access (owner or manager role in any organization)
+  const isAdmin = user.memberships.some(
+    (m) => m.role === "owner" || m.role === "manager"
+  );
 
-  return true;
+  // Set default organization context if user has memberships
+  if (user.memberships.length > 0) {
+    const defaultMembership = user.memberships[0];
+    await sessions.save(response.headers, {
+      userId: user.id,
+      currentOrganizationId: defaultMembership.organizationId,
+      role: defaultMembership.role,
+      challenge: null,
+    });
+  } else {
+    await sessions.save(response.headers, {
+      userId: user.id,
+      challenge: null,
+    });
+  }
+
+  return { success: true, isAdmin };
 }

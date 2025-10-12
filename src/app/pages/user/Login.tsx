@@ -15,13 +15,13 @@ import {
 import { TextInput } from "@/design-system/components/Input";
 import { Button } from "@/design-system/components/Button";
 import { Container } from "@/design-system/components/Container";
-import "@/design-system/tokens.css";
+import "@/admin-design-system/admin-auth.css";
 
 // TODO: Get business context from environment or route
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
 /**
- * Customer/Admin Login - Modern design with enhanced UX
+ * Customer/Admin Login - Unified authentication with defensive CSS
  *
  * DESIGN DECISIONS:
  *
@@ -36,17 +36,23 @@ const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
  *    - Implementation: Loading states, step-by-step messages, success/error handling
  *    - Rationale: Professional feel, consistent with admin setup experience
  *
- * 3. **Modern Design System Integration**
- *    - Decision: Replace LoginForm component with direct design system components
- *    - Context: Match the styling from admin setup page
- *    - Implementation: TextInput, Button, Container components with glassmorphism
- *    - Rationale: Visual consistency, maintainability, modern look
+ * 3. **Defensive CSS Pattern** (vs design system tokens)
+ *    - Decision: Use admin-auth.css with explicit color values and !important
+ *    - Context: System dark mode was overriding token-based styling
+ *    - Implementation: auth-page, auth-card CSS classes with forced light mode
+ *    - Rationale: Consistent rendering regardless of system theme settings
  *
  * 4. **Dual Authentication Mode**
  *    - Decision: Support both login and registration in same interface
  *    - Context: Customers need to register, admins need to login
  *    - Implementation: Mode switching with different button text and behavior
  *    - Rationale: Flexible UX, single page for all authentication needs
+ *
+ * 5. **Smart Redirect After Login**
+ *    - Decision: Role-based redirect (admin → /admin, customer → /)
+ *    - Context: Multi-tenant SaaS where users can be both admin and customer
+ *    - Implementation: finishPasskeyLogin returns isAdmin flag, redirect accordingly
+ *    - Rationale: Takes users directly to their relevant destination
  */
 export function Login({ ctx }: { ctx: any }) {
   const [username, setUsername] = useState("");
@@ -54,6 +60,8 @@ export function Login({ ctx }: { ctx: any }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+
+  const [redirectUrl, setRedirectUrl] = useState('/');
 
   const handleLogin = async () => {
     if (!username.trim()) {
@@ -76,11 +84,15 @@ export function Login({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the login process
       setMessage('Verifying authentication...');
-      const success = await finishPasskeyLogin(login);
+      const result = await finishPasskeyLogin(login);
 
-      if (!success) {
+      if (!result.success) {
         throw new Error("Login failed. Please check your credentials.");
       }
+
+      // Smart redirect: admin users go to dashboard, customers go to home
+      const destination = result.isAdmin ? '/admin' : '/';
+      setRedirectUrl(destination);
 
       setStatus('success');
       setMessage(`Welcome back! Redirecting to your dashboard...`);
@@ -116,7 +128,7 @@ export function Login({ ctx }: { ctx: any }) {
       const success = await finishPasskeyRegistration(username, registration);
 
       if (!success) {
-        throw new Error("Registration failed. Username may already exist.");
+        throw new Error(`Username '${username}' is already taken. Please try a different username.`);
       }
 
       setStatus('success');
@@ -136,14 +148,14 @@ export function Login({ ctx }: { ctx: any }) {
     if (status === 'success' && countdown > 0) {
       const timer = setTimeout(() => {
         if (countdown === 1) {
-          window.location.href = '/';
+          window.location.href = redirectUrl;
         } else {
           setCountdown(countdown - 1);
         }
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [status, countdown]);
+  }, [status, countdown, redirectUrl]);
 
   const getStatusColor = () => {
     switch (status) {
@@ -165,41 +177,13 @@ export function Login({ ctx }: { ctx: any }) {
 
   return (
     <Container>
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--space-md)',
-      }}>
-        <div style={{
-          background: 'var(--surface-primary)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-2xl)',
-          maxWidth: '480px',
-          width: '100%',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--soft-gray)'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: 'var(--space-xl)'
-          }}>
-            <h1 style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
-              fontFamily: 'var(--font-display)',
-              marginBottom: 'var(--space-sm)'
-            }}>
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-header">
+            <h1 className="auth-title">
               {mode === 'login' ? 'Welcome Back' : 'Join Us'}
             </h1>
-            <p style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
-              margin: 0,
-              lineHeight: 1.5
-            }}>
+            <p className="auth-subtitle">
               {mode === 'login'
                 ? `Sign in to ${BUSINESS_CONTEXT}`
                 : `Create your account with ${BUSINESS_CONTEXT}`
@@ -210,11 +194,7 @@ export function Login({ ctx }: { ctx: any }) {
           <form onSubmit={(e) => {
             e.preventDefault();
             mode === 'login' ? handleLogin() : handleRegister();
-          }} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-lg)'
-          }}>
+          }} className="auth-form">
             <TextInput
               label="Username"
               placeholder="Enter your username"
@@ -238,9 +218,12 @@ export function Login({ ctx }: { ctx: any }) {
             </Button>
           </form>
 
+          {/* Mode Toggle */}
           <div style={{
-            marginTop: 'var(--space-lg)',
-            textAlign: 'center'
+            marginTop: '20px',
+            textAlign: 'center',
+            paddingTop: '20px',
+            borderTop: '1px solid #E0E0E0'
           }}>
             <button
               onClick={() => {
@@ -252,40 +235,25 @@ export function Login({ ctx }: { ctx: any }) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--ocean-blue)',
+                color: '#0066CC',
                 fontSize: '14px',
                 textDecoration: 'underline',
                 cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-body)'
+                fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
               }}
             >
               {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
             </button>
           </div>
 
+          {/* Status Message */}
           {message && (
-            <div style={{
-              marginTop: 'var(--space-lg)',
-              padding: 'var(--space-md)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '14px',
-              textAlign: 'center',
+            <div className="auth-status" style={{
               background: getStatusColor(),
               color: getStatusTextColor(),
-              border: `1px solid ${getStatusColor()}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 'var(--space-xs)'
+              border: `1px solid ${getStatusColor()}`
             }}>
-              {status === 'loading' && <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid currentColor',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />}
+              {status === 'loading' && <div className="auth-spinner" />}
               <span>
                 {message}
                 {status === 'success' && countdown > 0 && (
@@ -295,33 +263,16 @@ export function Login({ ctx }: { ctx: any }) {
             </div>
           )}
 
+          {/* Success Link */}
           {status === 'success' && (
-            <div style={{
-              marginTop: 'var(--space-md)',
-              textAlign: 'center'
-            }}>
-              <a
-                href="/"
-                style={{
-                  color: 'var(--ocean-blue)',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
+            <div className="auth-success-link">
+              <a href={redirectUrl}>
                 Go to dashboard now →
               </a>
             </div>
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </Container>
   );
 }

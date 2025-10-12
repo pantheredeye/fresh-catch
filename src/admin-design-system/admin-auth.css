@@ -191,6 +191,76 @@ Ensures proper rendering regardless of system dark mode settings
   }
 }
 
+/* Admin Dashboard Navigation Cards */
+/* WHY: Big button-style cards for admin navigation - clear, tap-friendly, mobile-first */
+
+.admin-nav-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Mobile: 1 column */
+  gap: 16px;
+  margin-top: 24px;
+}
+
+/* Desktop: 2 columns side-by-side */
+@media (min-width: 640px) {
+  .admin-nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.admin-nav-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  min-height: 120px;
+  background: #FFFFFF !important;
+  border: 2px solid #E0E0E0 !important;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.admin-nav-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border-color: #0066CC !important; /* Ocean blue */
+}
+
+.admin-nav-card:active {
+  transform: translateY(0);
+}
+
+.admin-nav-card__icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.admin-nav-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-nav-card__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1A1A2E !important; /* Deep navy */
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+.admin-nav-card__description {
+  font-size: 14px;
+  color: #6B7280 !important; /* Cool gray */
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* Future: Dark Mode Support */
 /* Uncomment when ready to support dark mode:
 @media (prefers-color-scheme: dark) {
@@ -213,6 +283,19 @@ Ensures proper rendering regardless of system dark mode settings
 
   .auth-subtitle,
   .error-description {
+    color: #B0B0C0 !important;
+  }
+
+  .admin-nav-card {
+    background: #2D2D3F !important;
+    border-color: #404050 !important;
+  }
+
+  .admin-nav-card__title {
+    color: #FFFFFF !important;
+  }
+
+  .admin-nav-card__description {
     color: #B0B0C0 !important;
   }
 }

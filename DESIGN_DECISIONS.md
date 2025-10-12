@@ -247,6 +247,49 @@ export async function createMarket(data) {
 - Better performance (no extra network hop for initial data)
 **When to use JSON APIs:** Only for external clients (mobile apps, webhooks, third-party integrations)
 
+### Admin Dashboard Design (2025-10-11)
+**Decision:** Minimal dashboard with equal-priority navigation cards using responsive grid
+**Context:** Need `/admin` landing page that serves as control center for daily operations (inventory and orders features coming soon). Primary users are farmers, merchants, carpenters at different skill levels - simplicity is critical.
+**Options Considered:**
+1. Comprehensive dashboard with stats, charts, and navigation
+2. Minimal navigation-only dashboard with big button cards
+3. Skip dashboard entirely, redirect `/admin` directly to `/admin/config`
+**Rationale:**
+- **Industrial design principles:** Form follows function, clarity of purpose over decoration
+- **Big button approach:** No ambiguity about clickability, reduced cognitive load, faster visual processing
+- **Equal visual weight:** Right now both actions (Markets, View Site) are high priority; future cards (Inventory, Orders) will naturally integrate into grid
+- **Mobile-first responsive grid:** 1 column mobile, 2 columns desktop, grows naturally as features added
+- **Control center concept:** Central hub for daily admin tasks (managing inventory/orders will be daily, markets weekly)
+**Implementation:**
+- Reuses admin-auth.css structure (proven, consistent styling)
+- CSS Grid with automatic responsiveness (no complex breakpoint logic)
+- Button-style cards (~120px height minimum for tap-friendliness)
+- Icon → Title → Description hierarchy for clarity
+**Future Growth Path:** Add Inventory and Orders cards as top row priority when features launch, Markets and View Site move to secondary positions
+
+### Unified Authentication Routes (2025-10-11)
+**Decision:** Use `/login` and `/logout` (not `/user/login` and `/user/logout`)
+**Context:** Multi-tenant SaaS where users can have multiple roles across different organizations. Evan (admin) will also browse other businesses as a customer. Separating "user" vs "admin" login creates confusion about which to use.
+**Options Considered:**
+1. Keep separate routes: `/user/login` for customers, `/admin/login` for business owners
+2. Unified route: `/login` for everyone, role-based redirect after authentication
+**Rationale:**
+- **One account, multiple contexts:** Users have single login but different roles in different organizations
+- **Simpler mental model:** "Where do I login?" → "Just /login" (not "Am I a user or admin?")
+- **Multi-tenant architecture:** Session already tracks `currentOrganizationId` and `role`, middleware handles context switching
+- **Smart redirect logic:** After login, check user's roles and redirect appropriately (admin → `/admin`, customer → `/`)
+**Implementation:**
+- Moved userRoutes from `prefix("/user")` to root level in worker.tsx
+- Updated all redirect locations from `/user/login` → `/login`
+- Enhanced `finishPasskeyLogin` to return `{ success: boolean, isAdmin: boolean }`
+- Login component uses `isAdmin` flag for smart redirect
+- Session now includes organization context immediately after login (no second request needed)
+**Benefits:**
+- Consistent with multi-tenant mental model
+- One less decision point for users
+- Scales naturally when users belong to multiple organizations
+- Simpler URL structure
+
 ---
 
 ## Pending Decisions

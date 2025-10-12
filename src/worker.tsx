@@ -45,7 +45,7 @@ export default defineApp([
     } catch (error) {
       if (error instanceof ErrorResponse && error.code === 401) {
         await sessions.remove(request, response.headers);
-        response.headers.set("Location", "/user/login");
+        response.headers.set("Location", "/login");
 
         return new Response(null, {
           status: 302,
@@ -117,13 +117,13 @@ export default defineApp([
         if (!ctx.user) {
           return new Response(null, {
             status: 302,
-            headers: { Location: "/user/login" },
+            headers: { Location: "/login" },
           });
         }
       },
       Home,
     ]),
-    prefix("/user", userRoutes),
+    ...userRoutes,  // /login, /logout (unified auth)
     prefix("/admin", adminRoutes),
   ]),
 ]);

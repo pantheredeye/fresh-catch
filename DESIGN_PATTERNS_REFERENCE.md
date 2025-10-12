@@ -186,8 +186,77 @@ function MarketCard({ market, ctx }) {
 - Role-based access via Membership.role field (`owner`/`manager`/`customer`)
 - Organization context automatically available in all components via AppContext
 
+## Admin Dashboard Navigation Pattern
+
+### Responsive Grid Layout
+Mobile-first design that grows naturally as features are added.
+
+**Mobile:** 1 column stacked
+```
+[📍 Markets               ]
+[Manage market locations  ]
+
+[👁️ View Site             ]
+[See customer view        ]
+```
+
+**Desktop:** 2 columns side-by-side
+```
+[📍 Markets       ]  [👁️ View Site      ]
+[Manage markets   ]  [See customer view ]
+```
+
+**Future (4+ features):** Maintains 2-column desktop, 1-column mobile
+```
+[📍 Markets   ]  [📦 Inventory  ]
+[📋 Orders    ]  [👁️ View Site  ]
+```
+
+### Admin Nav Card Component
+```tsx
+// AdminDashboardUI.tsx structure
+<div className="admin-nav-grid">
+  <a href="/admin/config" className="admin-nav-card">
+    <div className="admin-nav-card__icon">📍</div>
+    <div className="admin-nav-card__content">
+      <h3 className="admin-nav-card__title">Markets</h3>
+      <p className="admin-nav-card__description">
+        Manage market locations and schedules
+      </p>
+    </div>
+  </a>
+</div>
+```
+
+### CSS Classes (admin-auth.css)
+- `.admin-nav-grid` - Responsive grid container (1 col mobile, 2 col desktop)
+- `.admin-nav-card` - Button-style card with hover effects
+- `.admin-nav-card__icon` - Large emoji icon (48px)
+- `.admin-nav-card__title` - Bold card title (20px)
+- `.admin-nav-card__description` - Helper text (14px)
+
+### Usage Guidelines
+- **Big tap targets:** Minimum 120px height for accessibility
+- **Clear hierarchy:** Icon → Title → Description
+- **Equal visual weight:** All cards same size/prominence
+- **Button-style over decorative:** Clarity of purpose, no ambiguity
+- **Industrial design:** Form follows function, obvious interactions
+
+### When to Add Cards
+Add new cards when:
+1. New admin feature launches (inventory, orders, etc.)
+2. Feature is daily-use (not settings/one-time setup)
+3. Feature deserves top-level navigation prominence
+
+Don't add cards for:
+- Infrequent settings (put in existing section)
+- Sub-features (make them tabs/sections within parent)
+- External links (use different UI pattern)
+
 ## File Organization
 - Design system components: `/src/design-system/components/`
+- Admin design system: `/src/admin-design-system/`
 - Export all components from `/src/design-system/index.ts`
 - Import tokens: `import "@/design-system/tokens.css"`
+- Import admin auth styles: `import "@/admin-design-system/admin-auth.css"`
 - Co-locate related logic in same files/folders
