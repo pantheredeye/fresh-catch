@@ -6,6 +6,7 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 import {
+  createBusinessForLoggedInUser,
   finishBusinessOwnerRegistration,
   startBusinessOwnerRegistration,
 } from "./functions";
@@ -55,14 +56,55 @@ import "@/admin-design-system/admin-auth.css";
  * - Business logo upload during setup
  */
 export function Setup({ ctx }: { ctx: any }) {
+  const isLoggedIn = !!ctx.user;
   const [username, setUsername] = useState("evan");
   const [businessName, setBusinessName] = useState("Fresh Catch Seafood Markets");
+  const [slug, setSlug] = useState("fresh-catch-seafood-markets");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
 
+  // Auto-generate slug from business name
+  useEffect(() => {
+    const autoSlug = businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
+    setSlug(autoSlug);
+  }, [businessName]);
+
   const handleBusinessOwnerSetup = async () => {
-    if (!username.trim() || !businessName.trim()) {
+    // If logged in, use simpler flow (no WebAuthn)
+    if (isLoggedIn) {
+      if (!businessName.trim() || !slug.trim()) {
+        setStatus('error');
+        setMessage('Please fill in all fields');
+        return;
+      }
+
+      setStatus('loading');
+      setMessage('Creating your business...');
+
+      try {
+        const result = await createBusinessForLoggedInUser(businessName, slug);
+
+        if (!result.success) {
+          throw new Error(result.error || "Business creation failed");
+        }
+
+        setStatus('success');
+        setMessage(`Success! Your business "${businessName}" is ready.`);
+        setCountdown(3);
+
+      } catch (error) {
+        setStatus('error');
+        setMessage(error instanceof Error ? error.message : "Business creation failed. Please try again.");
+      }
+      return;
+    }
+
+    // If not logged in, use full WebAuthn registration flow
+    if (!username.trim() || !businessName.trim() || !slug.trim()) {
       setStatus('error');
       setMessage('Please fill in all fields');
       return;
@@ -82,7 +124,7 @@ export function Setup({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing setup...');
-      const success = await finishBusinessOwnerRegistration(username, businessName, registration);
+      const success = await finishBusinessOwnerRegistration(username, businessName, slug, registration);
 
       if (!success) {
         throw new Error("Business owner setup failed. User may already have credentials.");
@@ -136,10 +178,12 @@ export function Setup({ ctx }: { ctx: any }) {
         <div className="auth-card">
           <div className="auth-header">
             <h1 className="auth-title">
-              Business Owner Setup
+              {isLoggedIn ? 'Create Your Business' : 'Business Owner Setup'}
             </h1>
             <p className="auth-subtitle">
-              Register your business owner account with secure passkey authentication
+              {isLoggedIn
+                ? `Logged in as ${ctx.user?.username}. Set up your business below.`
+                : 'Register your business owner account with secure passkey authentication'}
             </p>
           </div>
 
@@ -147,15 +191,17 @@ export function Setup({ ctx }: { ctx: any }) {
             e.preventDefault();
             handleBusinessOwnerSetup();
           }} className="auth-form">
-            <TextInput
-              label="Username"
-              placeholder="e.g., evan"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={status === 'loading' || status === 'success'}
-              size="lg"
-            />
+            {!isLoggedIn && (
+              <TextInput
+                label="Username"
+                placeholder="e.g., evan"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={status === 'loading' || status === 'success'}
+                size="lg"
+              />
+            )}
 
             <TextInput
               label="Business Name"
@@ -167,6 +213,17 @@ export function Setup({ ctx }: { ctx: any }) {
               size="lg"
             />
 
+            <TextInput
+              label="URL Slug"
+              placeholder="e.g., evan or fresh-catch"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              required
+              disabled={status === 'loading' || status === 'success'}
+              size="lg"
+              helpText={`Your customer page: yoursite.com/?b=${slug || 'your-slug'}`}
+            />
+
             <Button
               type="submit"
               variant="primary"
@@ -174,9 +231,11 @@ export function Setup({ ctx }: { ctx: any }) {
               fullWidth
               disabled={status === 'loading' || status === 'success'}
             >
-              {status === 'loading' ? 'Setting up...' :
-               status === 'success' ? '✓ Setup Complete' :
-               'Setup Business Account'}
+              {status === 'loading'
+                ? (isLoggedIn ? 'Creating Business...' : 'Setting up...')
+                : status === 'success'
+                  ? '✓ Setup Complete'
+                  : (isLoggedIn ? 'Create Business' : 'Setup Business Account')}
             </Button>
           </form>
 

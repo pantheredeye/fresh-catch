@@ -50,6 +50,71 @@ function getWebAuthnConfig(request: Request) {
   };
 }
 
+/**
+ * Create business for an already logged-in user
+ * (No WebAuthn registration needed - user already has credentials)
+ */
+export async function createBusinessForLoggedInUser(
+  businessName: string,
+  slug: string
+) {
+  const { ctx, response } = requestInfo;
+
+  // Must be logged in
+  if (!ctx.user) {
+    return { success: false, error: "You must be logged in to create a business" };
+  }
+
+  // Check if slug is already taken
+  const existingOrg = await db.organization.findFirst({
+    where: { slug }
+  });
+
+  if (existingOrg) {
+    return { success: false, error: `The slug "${slug}" is already taken. Please choose another.` };
+  }
+
+  // Create the business organization
+  const organization = await db.organization.create({
+    data: {
+      name: businessName,
+      slug: slug,
+      type: "business",
+    },
+  });
+
+  // Check if user is already a member
+  const existingMembership = await db.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: ctx.user.id,
+        organizationId: organization.id,
+      },
+    },
+  });
+
+  // Make them the owner
+  if (!existingMembership) {
+    await db.membership.create({
+      data: {
+        userId: ctx.user.id,
+        organizationId: organization.id,
+        role: "owner",
+      },
+    });
+  }
+
+  // Update session with organization context
+  await sessions.save(response.headers, {
+    userId: ctx.user.id,
+    currentOrganizationId: organization.id,
+    role: "owner",
+  });
+
+  console.log(`✅ Business created for ${ctx.user.username}: ${businessName}`);
+  return { success: true };
+}
+
 export async function startBusinessOwnerRegistration(username: string) {
   const { rpName, rpID } = getWebAuthnConfig(requestInfo.request);
   const { response } = requestInfo;
@@ -74,6 +139,7 @@ export async function startBusinessOwnerRegistration(username: string) {
 export async function finishBusinessOwnerRegistration(
   username: string,
   businessName: string,
+  slug: string,
   registration: RegistrationResponseJSON,
 ) {
   const { request, response } = requestInfo;
@@ -131,19 +197,18 @@ export async function finishBusinessOwnerRegistration(
     },
   });
 
-  // Look for existing organization with this business name
+  // Look for existing organization with this business name or slug
   let organization = await db.organization.findFirst({
-    where: { name: businessName },
+    where: {
+      OR: [
+        { name: businessName },
+        { slug: slug }
+      ]
+    },
   });
 
-  // If organization doesn't exist, create it
+  // If organization doesn't exist, create it with the provided slug
   if (!organization) {
-    // Generate slug from business name (lowercase, replace spaces/special chars with dashes)
-    const slug = businessName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
-
     organization = await db.organization.create({
       data: {
         name: businessName,

@@ -131,12 +131,12 @@ export function Login({ ctx }: { ctx: any }) {
         throw new Error(`Username '${username}' is already taken. Please try a different username.`);
       }
 
-      setStatus('success');
-      setMessage(`Welcome to ${BUSINESS_CONTEXT}! Registration complete.`);
-      setCountdown(3);
+      // Redirect to business setup page after registration
+      setRedirectUrl('/admin/setup');
 
-      // TODO: Create organization for customer based on customerType
-      // TODO: Link customer to business context (Evan's organization)
+      setStatus('success');
+      setMessage(`Welcome! Let's set up your business.`);
+      setCountdown(3);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : "Registration failed. Please try again.");

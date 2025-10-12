@@ -147,6 +147,13 @@ export async function finishPasskeyRegistration(
     });
   }
 
+  // Auto-login: Create session with user context
+  await sessions.save(response.headers, {
+    userId: user.id,
+    currentOrganizationId: customerOrg.id,
+    role: "owner",
+  });
+
   console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
   return true;
 }

@@ -1,23 +1,32 @@
 /**
  * Organization context utilities
  *
- * Phase 1: Hardcoded for Evan's organization
- * Future: Can be replaced with subdomain detection, route params, or env var
+ * Automatically detects which business to show on customer-facing pages
  */
+
+import { db } from "@/db";
 
 /**
  * Get the public-facing organization ID for customer views
  *
- * Phase 1: Returns hardcoded org ID for Evan
- * Phase 2+: Could detect from:
- * - Subdomain (evan.freshcatch.com)
- * - Route parameter (/business/fresh-catch-seafood)
- * - Environment variable
+ * Logic:
+ * - If exactly 1 business exists: return its ID
+ * - If 0 businesses exist: return null (will show "no businesses" page)
+ * - If multiple businesses: return first one (TODO: show directory in future)
  */
-export function getPublicOrganizationId(): string {
-  // TODO: Replace with actual Evan's org ID after seeding
-  // For now, this will be set once we know the org ID from the database
-  return process.env.PUBLIC_ORG_ID || "fresh-catch-seafood-org-id";
+export async function getPublicOrganizationId(): Promise<string | null> {
+  const businesses = await db.organization.findMany({
+    where: { type: 'business' },
+    orderBy: { createdAt: 'asc' }
+  });
+
+  if (businesses.length === 0) {
+    return null;
+  }
+
+  // For now, return the first business (usually Evan's)
+  // Future: This could show a directory page if multiple businesses exist
+  return businesses[0].id;
 }
 
 /**

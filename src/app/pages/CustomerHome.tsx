@@ -49,8 +49,14 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
 
     orgId = org.id;
   } else {
-    // Default: Use getPublicOrganizationId (current behavior)
-    orgId = getPublicOrganizationId();
+    // Default: Auto-detect first/only business
+    const detectedOrgId = await getPublicOrganizationId();
+
+    if (!detectedOrgId) {
+      return <BusinessNotFound businessSlug={null} />;
+    }
+
+    orgId = detectedOrgId;
   }
 
   // Fetch active markets from database
