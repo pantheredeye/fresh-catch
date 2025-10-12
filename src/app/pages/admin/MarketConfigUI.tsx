@@ -10,12 +10,12 @@ import {
   AdminButton,
   MarketFormModal,
 } from "@/admin-design-system";
-import "@/design-system/tokens.css";
 import {
   createMarket,
   updateMarket,
   toggleMarketActive,
 } from "./market-functions";
+import "@/admin-design-system/admin-components.css";
 
 type Market = {
   id: string;
@@ -99,50 +99,19 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
   const activeMarkets = markets.filter((market) => market.active);
   const inactiveMarkets = markets.filter((market) => !market.active);
 
-  const headerStyle: React.CSSProperties = {
-    background: "var(--surface-primary)",
-    borderRadius: "var(--radius-lg)",
-    padding: "var(--space-lg) var(--space-md)",
-    marginBottom: "var(--space-lg)",
-    boxShadow: "var(--shadow-sm)",
-    border: "1px solid rgba(100, 116, 139, 0.1)",
-  };
-
-  const titleStyle: React.CSSProperties = {
-    fontSize: "24px",
-    fontWeight: 700,
-    color: "var(--deep-navy)",
-    fontFamily: "var(--font-display)",
-    marginBottom: "var(--space-xs)",
-    textAlign: "left",
-  };
-
-  const subtitleStyle: React.CSSProperties = {
-    fontSize: "14px",
-    color: "var(--cool-gray)",
-    margin: 0,
-    lineHeight: 1.5,
-  };
-
   return (
     <Container>
-      <div
-        style={{
-          padding: "var(--space-md)",
-          maxWidth: "600px",
-          margin: "0 auto",
-        }}
-      >
+      <div className="config-page">
         {/* Header */}
-        <div style={headerStyle}>
-          <h1 style={titleStyle}>Market Settings</h1>
-          <p style={subtitleStyle}>
+        <div className="config-header">
+          <h1 className="config-title">Market Settings</h1>
+          <p className="config-subtitle">
             Manage your markets and their active status
           </p>
         </div>
 
         {/* Add New Market Button */}
-        <div style={{ marginBottom: "var(--space-lg)" }}>
+        <div className="config-actions">
           <Button
             variant="primary"
             size="lg"
@@ -155,16 +124,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
 
         {/* Combined Markets List */}
         {(activeMarkets.length > 0 || inactiveMarkets.length > 0) && (
-          <div
-            style={{
-              background: "var(--surface-primary)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid rgba(100, 116, 139, 0.1)",
-              overflow: "hidden",
-              marginBottom: "var(--space-lg)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
+          <div className="markets-list-container">
             {/* Active Markets Section */}
             {activeMarkets.length > 0 && (
               <>
@@ -174,69 +134,32 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
                 {activeMarkets.map((market, index) => (
                   <div
                     key={market.id}
+                    className="market-item"
                     style={{
-                      padding: "var(--space-sm) var(--space-md)",
                       borderBottom:
                         index < activeMarkets.length - 1 ||
                         inactiveMarkets.length > 0
-                          ? "1px solid rgba(100, 116, 139, 0.1)"
+                          ? undefined
                           : "none",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      background: market.active
-                        ? "var(--surface-primary)"
-                        : "var(--light-gray)",
-                      transition: "all 0.2s ease",
-                      cursor: "default",
-                      minHeight: "60px",
-                      gap: "var(--space-sm)",
                     }}
                   >
                     {/* Left section: Toggle + Market Name */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "var(--space-sm)",
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
+                    <div className="market-item__left">
                       <MarketToggle
                         active={market.active}
                         marketName={market.name}
                         disabled={false}
                         onClick={() => handleToggleMarket(market.id)}
                       />
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 500,
-                            color: "var(--deep-navy)",
-                            fontFamily: "var(--font-display)",
-                            margin: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                      <div className="market-item__info">
+                        <div className="market-item__name">
                           {market.name}
                         </div>
                       </div>
                     </div>
 
                     {/* Middle section: Schedule */}
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        color: "var(--cool-gray)",
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 500,
-                        flexShrink: 0,
-                      }}
-                    >
+                    <div className="market-item__schedule">
                       {market.schedule}
                     </div>
 
@@ -258,65 +181,28 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
                 {inactiveMarkets.map((market, index) => (
                   <div
                     key={market.id}
+                    className={`market-item market-item--inactive`}
                     style={{
-                      padding: "var(--space-sm) var(--space-md)",
                       borderBottom:
                         index < inactiveMarkets.length - 1
-                          ? "1px solid rgba(100, 116, 139, 0.1)"
+                          ? undefined
                           : "none",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      background:
-                        !market.active || market.paused
-                          ? "var(--light-gray)"
-                          : "var(--surface-primary)",
-                      opacity: !market.active || market.paused ? 0.7 : 1,
-                      transition: "all 0.2s ease",
-                      cursor: "default",
-                      minHeight: "60px",
-                      gap: "var(--space-sm)",
                     }}
                   >
                     {/* Left section: Toggle + Market Name */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "var(--space-sm)",
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
+                    <div className="market-item__left">
                       <MarketToggle
                         active={market.active}
                         marketName={market.name}
                         disabled={false}
                         onClick={() => handleToggleMarket(market.id)}
                       />
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 500,
-                            color: "var(--deep-navy)",
-                            fontFamily: "var(--font-display)",
-                            margin: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                      <div className="market-item__info">
+                        <div className="market-item__name">
                           {market.name}
                         </div>
                         {market.subtitle && (
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "var(--cool-gray)",
-                              marginTop: "2px",
-                            }}
-                          >
+                          <div className="market-item__subtitle">
                             {market.subtitle}
                           </div>
                         )}
@@ -324,15 +210,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
                     </div>
 
                     {/* Middle section: Schedule */}
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        color: "var(--cool-gray)",
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 500,
-                        flexShrink: 0,
-                      }}
-                    >
+                    <div className="market-item__schedule">
                       {market.schedule}
                     </div>
 
@@ -349,42 +227,14 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
 
         {/* Empty State - Only shows when no markets exist */}
         {activeMarkets.length === 0 && inactiveMarkets.length === 0 && (
-          <div
-            style={{
-              background: "var(--surface-primary)",
-              borderRadius: "var(--radius-lg)",
-              padding: "var(--space-2xl)",
-              textAlign: "center",
-              border: "2px dashed rgba(100, 116, 139, 0.2)",
-              color: "var(--cool-gray)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "48px",
-                marginBottom: "var(--space-md)",
-              }}
-            >
+          <div className="config-empty-state">
+            <div className="config-empty-state__icon">
               🏪
             </div>
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: 600,
-                color: "var(--deep-navy)",
-                marginBottom: "var(--space-sm)",
-                fontFamily: "var(--font-display)",
-              }}
-            >
+            <h3 className="config-empty-state__title">
               No Markets Configured
             </h3>
-            <p
-              style={{
-                fontSize: "14px",
-                lineHeight: 1.5,
-                marginBottom: "var(--space-lg)",
-              }}
-            >
+            <p className="config-empty-state__description">
               Get started by adding your first market location
             </p>
           </div>

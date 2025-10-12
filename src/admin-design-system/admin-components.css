@@ -492,3 +492,187 @@ Uses same design tokens for visual cohesion while adding management functionalit
 /* TODO: Add inline edit states for quick changes */
 /* TODO: Add loading states for async operations */
 /* TODO: Consider adding admin-specific animations (more subtle than customer bounce) */
+
+/* ========================================
+   DEFENSIVE CSS FOR DARK MODE
+   WHY: System dark mode overrides CSS variables
+   Uses explicit fallbacks to ensure visibility
+   ======================================== */
+
+/* Config Page Container - Defensive Pattern */
+.config-page {
+  color-scheme: light; /* Tell browser to prefer light mode */
+  padding: var(--space-md);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Config Header Card - Defensive Pattern */
+.config-header {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg) var(--space-md);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #E8EFF5; /* Explicit fallback */
+  border-color: rgba(100, 116, 139, 0.1);
+}
+
+.config-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1A1A2E; /* Explicit fallback */
+  color: var(--deep-navy);
+  font-family: var(--font-display);
+  margin-bottom: var(--space-xs);
+  text-align: left;
+  margin: 0;
+  margin-bottom: var(--space-xs);
+}
+
+.config-subtitle {
+  font-size: 14px;
+  color: #6B7280; /* Explicit fallback */
+  color: var(--cool-gray);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.config-actions {
+  margin-bottom: var(--space-lg);
+}
+
+/* Markets List Container - Defensive Pattern */
+.markets-list-container {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid #E8EFF5; /* Explicit fallback */
+  border-color: rgba(100, 116, 139, 0.1);
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Market Item Row - Defensive Pattern */
+.market-item {
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  cursor: default;
+  min-height: 60px;
+  gap: var(--space-sm);
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary);
+}
+
+.market-item--inactive {
+  background: #F3F4F6; /* Explicit fallback */
+  background: var(--light-gray);
+  opacity: 0.7;
+}
+
+.market-item:not(:last-child) {
+  border-bottom: 1px solid #E8EFF5; /* Explicit fallback */
+  border-bottom-color: rgba(100, 116, 139, 0.1);
+}
+
+.market-item__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.market-item__info {
+  min-width: 0;
+}
+
+.market-item__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1A1A2E; /* Explicit fallback */
+  color: var(--deep-navy);
+  font-family: var(--font-display);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-item__subtitle {
+  font-size: 12px;
+  color: #6B7280; /* Explicit fallback */
+  color: var(--cool-gray);
+  margin-top: 2px;
+}
+
+.market-item__schedule {
+  font-size: 13px;
+  color: #6B7280; /* Explicit fallback */
+  color: var(--cool-gray);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Empty State - Defensive Pattern */
+.config-empty-state {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  border: 2px dashed #CBD5E1; /* Explicit fallback */
+  border-color: rgba(100, 116, 139, 0.2);
+  color: #6B7280; /* Explicit fallback */
+  color: var(--cool-gray);
+}
+
+.config-empty-state__icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+}
+
+.config-empty-state__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1A1A2E; /* Explicit fallback */
+  color: var(--deep-navy);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-display);
+}
+
+.config-empty-state__description {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: var(--space-lg);
+}
+
+/* Responsive behavior for config pages */
+@media (max-width: 640px) {
+  .config-page {
+    padding: var(--space-sm);
+  }
+
+  .config-header {
+    padding: var(--space-md);
+  }
+
+  .config-title {
+    font-size: 20px;
+  }
+
+  .market-item {
+    padding: var(--space-xs) var(--space-sm);
+    min-height: 50px;
+  }
+
+  .market-item__schedule {
+    font-size: 12px;
+  }
+}
