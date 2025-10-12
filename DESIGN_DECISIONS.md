@@ -290,6 +290,145 @@ export async function createMarket(data) {
 - Scales naturally when users belong to multiple organizations
 - Simpler URL structure
 
+### Dark Mode Defensive CSS Pattern (2025-10-11)
+**Decision:** Use CSS classes with defensive fallback pattern (NOT inline styles) for admin pages
+**Context:** System dark mode (Ubuntu, macOS, etc.) overrides CSS variables, making text invisible on admin pages. Need resilient styling that works across all system themes.
+**Problem:**
+- User's OS dark mode overrides `var(--surface-primary)` → card becomes dark
+- User's OS dark mode overrides `var(--deep-navy)` → text becomes light
+- Result: Light text on light background = invisible
+- `color-scheme: light` meta tag is NOT enough (some systems ignore it)
+
+**Why Inline Styles Don't Work:**
+```tsx
+// ❌ DOESN'T WORK - JavaScript objects can't have duplicate keys
+style={{
+  background: 'white',  // This gets overwritten
+  background: 'var(--surface-primary)', // Only this is used
+}}
+// The second property overwrites the first, no fallback!
+```
+
+**Solution:** Move to CSS files where fallback pattern works:
+```css
+/* ✅ WORKS - CSS supports this pattern */
+.auth-card {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary); /* Variable */
+}
+/* Browser uses variable if available, falls back to explicit value if overridden */
+```
+
+**How to Fix Any Page with This Issue:**
+
+**Step 1: Create or use existing CSS file in `/admin-design-system/`**
+```bash
+# Use existing: admin-auth.css (for auth/error pages)
+# Or create new: admin-forms.css, admin-dashboard.css, etc.
+```
+
+**Step 2: Add defensive classes with explicit fallbacks**
+```css
+@import '../design-system/tokens.css';
+
+/* Container - Force Light Mode */
+.admin-page {
+  color-scheme: light; /* Tell browser to prefer light mode */
+  min-height: 100vh;
+  background: #FFFCF8; /* Explicit fallback */
+  background: var(--warm-white); /* Variable */
+}
+
+/* Card/Surface */
+.admin-card {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary); /* Variable */
+  border: 1px solid #E0E0E0; /* Explicit fallback */
+  border-color: var(--soft-gray); /* Variable */
+}
+
+/* Text */
+.admin-title {
+  color: #1A1A2E; /* Explicit fallback */
+  color: var(--deep-navy); /* Variable */
+  font-family: var(--font-display);
+}
+
+.admin-subtitle {
+  color: #6B7280; /* Explicit fallback */
+  color: var(--cool-gray); /* Variable */
+}
+```
+
+**Step 3: Update component to use classes**
+```tsx
+// BEFORE (inline styles - breaks in dark mode)
+export function MyAdminPage() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--warm-white)'
+    }}>
+      <div style={{
+        background: 'var(--surface-primary)',
+        color: 'var(--deep-navy)'
+      }}>
+        <h1>Title</h1>
+      </div>
+    </div>
+  );
+}
+
+// AFTER (CSS classes - works in dark mode)
+import "@/admin-design-system/admin-auth.css";
+
+export function MyAdminPage() {
+  return (
+    <div className="admin-page">
+      <div className="admin-card">
+        <h1 className="admin-title">Title</h1>
+      </div>
+    </div>
+  );
+}
+```
+
+**Reference Implementation:**
+- See `src/admin-design-system/admin-auth.css` for complete example
+- Used in: `Setup.tsx`, `BusinessNotFound.tsx`
+- Pattern: explicit value first, then variable with same property
+
+**Why This Works:**
+1. CSS files support multiple declarations of same property (fallback pattern)
+2. Browser uses first value as fallback, second as preferred
+3. If system theme overrides variable, explicit value is used
+4. Maintains design system consistency (variables still used)
+5. Future dark mode ready (just add `@media (prefers-color-scheme: dark)` block)
+
+**Common Pitfall:**
+Don't try to use duplicate properties in inline styles - JavaScript objects don't support this!
+
+**Future: Proper Dark Mode Support**
+When ready to support dark mode, add this to CSS file:
+```css
+@media (prefers-color-scheme: dark) {
+  .admin-page { background: #1A1A2E; }
+  .admin-card { background: #2D2D3F; }
+  .admin-title { color: #FFFFFF; }
+}
+```
+
+**Files Using This Pattern:**
+- `src/admin-design-system/admin-auth.css` (auth pages)
+- `src/app/pages/admin/Setup.tsx`
+- `src/app/pages/BusinessNotFound.tsx`
+
+**To Fix /admin/config or other pages:**
+1. Create CSS file with defensive classes
+2. Import in component
+3. Replace inline styles with className
+4. Test in system dark mode
+
 ---
 
 ## Pending Decisions
@@ -331,7 +470,7 @@ export async function createMarket(data) {
 
 ---
 
-*Last Updated: 2024-11-14*
+*Last Updated: 2025-10-11*
 *Next Review: Phase 1 completion*
 
 ## Implementation Progress
