@@ -24,7 +24,11 @@ export function UserMenu({
     );
   }
 
-  const isAdmin = currentOrganization?.role && ['owner', 'manager'].includes(currentOrganization.role);
+  // Admin = owner/manager of a BUSINESS org (not individual customer org)
+  const isAdmin =
+    currentOrganization?.type === 'business' &&
+    currentOrganization?.role &&
+    ['owner', 'manager'].includes(currentOrganization.role);
 
   return (
     <Menu.Root>
