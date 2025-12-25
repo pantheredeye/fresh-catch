@@ -222,9 +222,10 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     return { success: false, isAdmin: false };
   }
 
-  // Check if user has admin access (owner or manager role in any organization)
+  // Check if user has admin access (owner or manager role in a BUSINESS organization)
+  // Note: Everyone is "owner" of their individual org, so we must check org type
   const isAdmin = user.memberships.some(
-    (m) => m.role === "owner" || m.role === "manager"
+    (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
   );
 
   // Set default organization context if user has memberships
