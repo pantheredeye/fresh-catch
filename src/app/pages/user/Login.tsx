@@ -125,17 +125,21 @@ export function Login({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing registration...');
-      const success = await finishPasskeyRegistration(username, registration);
+      const result = await finishPasskeyRegistration(username, registration);
 
-      if (!success) {
+      if (!result.success) {
         throw new Error(`Username '${username}' is already taken. Please try a different username.`);
       }
 
-      // Redirect to business setup page after registration
-      setRedirectUrl('/admin/setup');
+      // Smart redirect: admin users go to setup, customers go to home
+      const destination = result.isAdmin ? '/admin/setup' : '/';
+      setRedirectUrl(destination);
 
       setStatus('success');
-      setMessage(`Welcome! Let's set up your business.`);
+      const welcomeMessage = result.isAdmin
+        ? `Welcome! Let's set up your business.`
+        : `Welcome to Fresh Catch! Check out our markets.`;
+      setMessage(welcomeMessage);
       setCountdown(3);
     } catch (error) {
       setStatus('error');

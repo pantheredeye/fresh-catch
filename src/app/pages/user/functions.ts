@@ -155,7 +155,9 @@ export async function finishPasskeyRegistration(
   });
 
   console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
-  return true;
+
+  // Customers are NOT admins (they're owner of individual org, not business org)
+  return { success: true, isAdmin: false };
 }
 
 export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
