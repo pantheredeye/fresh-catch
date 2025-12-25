@@ -4,6 +4,7 @@ import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/CustomerHome";
 import { DesignTest } from "@/app/pages/DesignTest";
+import { BaseUITest } from "@/app/pages/BaseUITest";
 import { setCommonHeaders } from "@/app/headers";
 import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
@@ -120,6 +121,7 @@ export default defineApp([
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
       route("/design-test", DesignTest),
+      route("/base-ui-test", BaseUITest),
       route("/protected", [
         ({ ctx }) => {
           if (!ctx.user) {
