@@ -1,0 +1,77 @@
+/* Auth Layout */
+
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(41, 128, 185, 0.05) 0%,
+    rgba(255, 127, 80, 0.05) 100%
+  );
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 450px;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.auth-logo {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.auth-logo-text {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  background: var(--ocean-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-main {
+  /* The login form will be styled in its own component */
+}
+
+.auth-footer {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.auth-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.auth-footer-link:hover {
+  color: var(--color-ocean-vivid);
+  transform: translateX(-2px);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .auth-layout {
+    padding: var(--space-md);
+  }
+
+  .auth-logo-text {
+    font-size: var(--text-2xl);
+  }
+
+  .auth-header {
+    margin-bottom: var(--space-lg);
+  }
+}

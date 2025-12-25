@@ -1,5 +1,5 @@
 import { defineApp, ErrorResponse } from "rwsdk/worker";
-import { route, render, prefix } from "rwsdk/router";
+import { route, render, prefix, layout } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/CustomerHome";
@@ -7,6 +7,9 @@ import { DesignTest } from "@/app/pages/DesignTest";
 import { setCommonHeaders } from "@/app/headers";
 import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
+import { CustomerLayout } from "@/layouts/CustomerLayout";
+import { AdminLayout } from "@/layouts/AdminLayout";
+import { AuthLayout } from "@/layouts/AuthLayout";
 import { sessions, setupSessionStore } from "./session/store";
 import { Session } from "./session/durableObject";
 import { type User, type Prisma, db, setupDb } from "@/db";
@@ -105,25 +108,32 @@ export default defineApp([
     }
   },
   render(Document, [
-    // Root route shows customer home (Evan's markets for now)
-    // TODO (Phase 2): Add smart logic for multi-tenant:
-    //   - If ?b= param exists, show that business's markets
-    //   - If only 1 business total, auto-show it
-    //   - If multiple businesses, show directory
-    route("/", CustomerHome),
-    route("/design-test", DesignTest),
-    route("/protected", [
-      ({ ctx }) => {
-        if (!ctx.user) {
-          return new Response(null, {
-            status: 302,
-            headers: { Location: "/login" },
-          });
-        }
-      },
-      Home,
+    // Auth routes with minimal layout
+    ...layout(AuthLayout, userRoutes),  // /login, /logout
+
+    // Customer routes with header + user menu
+    ...layout(CustomerLayout, [
+      // Root route shows customer home (Evan's markets for now)
+      // TODO (Phase 2): Add smart logic for multi-tenant:
+      //   - If ?b= param exists, show that business's markets
+      //   - If only 1 business total, auto-show it
+      //   - If multiple businesses, show directory
+      route("/", CustomerHome),
+      route("/design-test", DesignTest),
+      route("/protected", [
+        ({ ctx }) => {
+          if (!ctx.user) {
+            return new Response(null, {
+              status: 302,
+              headers: { Location: "/login" },
+            });
+          }
+        },
+        Home,
+      ]),
     ]),
-    ...userRoutes,  // /login, /logout (unified auth)
-    prefix("/admin", adminRoutes),
+
+    // Admin routes with admin header + nav
+    prefix("/admin", layout(AdminLayout, adminRoutes)),
   ]),
 ]);

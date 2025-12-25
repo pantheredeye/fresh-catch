@@ -3,7 +3,9 @@
   "name": "fresh-catch-evan-prod",
   "main": "src/worker.tsx",
   "compatibility_date": "2025-08-21",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "binding": "ASSETS"
   },
@@ -19,13 +21,15 @@
     ]
   },
   "vars": {
-    "WEBAUTHN_APP_NAME": "Fresh Catch Seafood",
+    "WEBAUTHN_APP_NAME": "fresh-catch-evan-prod",
     "WEBAUTHN_RP_ID": "evan.digitalglue.dev"
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["SessionDurableObject"]
+      "new_sqlite_classes": [
+        "SessionDurableObject"
+      ]
     }
   ],
   "d1_databases": [
