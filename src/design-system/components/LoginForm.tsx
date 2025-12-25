@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "./Button";
+import { Button } from "../Button";
 
 interface LoginFormProps {
   onLogin?: (username: string) => Promise<void>;

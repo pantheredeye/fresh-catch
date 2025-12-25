@@ -2,7 +2,7 @@ import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { getPublicOrganizationId } from "@/utils/organization";
 import { CustomerHomeUI } from "./CustomerHomeUI";
-import { BusinessNotFound } from "./BusinessNotFound";
+import { BusinessNotFound } from "../BusinessNotFound";
 
 // Mock data for sections not yet converted to real data
 const MOCK_FRESH_CATCH = [

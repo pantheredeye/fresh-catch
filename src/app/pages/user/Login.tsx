@@ -13,7 +13,7 @@ import {
   startPasskeyRegistration,
 } from "./functions";
 import { TextInput } from "@/design-system/components/Input";
-import { Button } from "@/design-system/components/Button";
+import { Button } from "@/design-system";
 import { Container } from "@/design-system/components/Container";
 import "@/admin-design-system/admin-auth.css";
 

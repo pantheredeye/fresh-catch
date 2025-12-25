@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { TextInput, Textarea, TimeInput, TimeRow } from "./Input";
 import { Select, InlineSelect, RadioGroup, ToggleSwitch } from "./FormControls";
-import { Button } from "./Button";
+import { Button } from "../Button";
 import { Container } from "./Container";
 
 /**

@@ -175,12 +175,111 @@ export async function createItem(data) {
 }
 ```
 
-### Design System Approach
+### Component Organization System
+
+**CRITICAL: Follow this pattern for all new features. Updated 2025-12-25.**
+
+#### Philosophy: Primitives in Design System, Compositions in Pages
+
+**Design System (`/src/design-system/`)** - Primitives only:
+- Atoms: Button, Input, Badge, Container, Card, Toggle
+- Shared across 3+ pages OR needed in Figma library
+- No page-specific logic or business rules
+- Import: `import { Button, Container } from '@/design-system'`
+
+**Page Components (`/src/app/pages/[feature]/components/`)** - Feature-specific:
+- Compositions built from design system primitives
+- Live alongside the page that uses them
+- Can duplicate if needed (two different MarketCards OK)
+- Import: `import { Header, MarketCard } from './components'`
+
+#### When Building New Features:
+
+1. **Start with inline components** in your page's UI file
+2. **Extract to `/components/` subfolder** when they get large (>50 lines)
+3. **Only move to design system** if used on 3+ pages
+4. **Use design tokens** (`var(--ocean-blue)`, `var(--space-md)`) everywhere
+
+#### Example Structure:
+
+```
+src/
+├── design-system/              # Primitives only
+│   ├── Button.tsx              # All button variants (customer + admin)
+│   ├── components/
+│   │   ├── Container.tsx
+│   │   ├── Card.tsx
+│   │   ├── Input.tsx
+│   │   ├── Badge.tsx
+│   │   └── FormControls.tsx
+│   ├── tokens.css              # Design tokens (colors, spacing, etc)
+│   └── index.ts                # Barrel export
+│
+├── app/pages/
+│   ├── home/                   # Home page feature
+│   │   ├── CustomerHome.tsx    # Server component (data fetching)
+│   │   ├── CustomerHomeUI.tsx  # Client component (just wiring)
+│   │   └── components/         # Home-specific components
+│   │       ├── Header.tsx
+│   │       ├── MarketCard.tsx  # Customer-facing version
+│   │       ├── FreshHero.tsx
+│   │       ├── QuickActions.tsx
+│   │       ├── BottomNavigation.tsx
+│   │       └── index.ts
+│   │
+│   └── admin/
+│       ├── dashboard/
+│       │   ├── AdminDashboard.tsx
+│       │   ├── AdminDashboardUI.tsx
+│       │   └── components/     # Admin-specific components
+│       │       └── CompactMarketCard.tsx  # Admin version
+│       └── markets/
+│           └── MarketConfigUI.tsx
+```
+
+#### Rules for Component Placement:
+
+**Move to design-system IF:**
+- Used on 3+ different pages, OR
+- Needs to be in Figma library, OR
+- Is a true primitive (Button, Input, Badge, etc)
+
+**Keep in page components IF:**
+- Used on 1-2 pages
+- Contains page-specific business logic
+- Frequently changes with page features
+
+**Duplication is OK:**
+- Different `MarketCard` for customer vs admin = GOOD
+- Lets each evolve independently
+- Follows colocation principle
+
+#### Import Patterns:
+
+```tsx
+// ✅ GOOD - Design system primitives
+import { Button, Container, Card, TextInput } from '@/design-system'
+
+// ✅ GOOD - Page-specific components
+import { Header, MarketCard, QuickActions } from './components'
+
+// ❌ BAD - Don't import from other pages
+import { MarketCard } from '@/app/pages/home/components'  // NO!
+
+// ❌ BAD - Don't put page-specific components in design-system
+// If it's only used on one page, it belongs in that page's /components/ folder
+```
+
+#### Testing Design System:
+
+Visit `/design-test` to see all design system primitives.
+Page-specific components are tested on their actual pages.
+
+### Design System Tokens
 - **Master Design Reference**: `@src/design-system/patterns.md` contains the complete design system
 - Extract CSS custom properties as design tokens for consistency
 - Mobile-first approach with careful attention to container behavior
 - Use the existing design system (colors, spacing, typography, shadows) across all components
-- Other design artifacts should be stripped to components and rebuilt with master styles
 - Reference `@DESIGN_PATTERNS_REFERENCE.md` for understanding our implementation 
 
 ## Development Notes

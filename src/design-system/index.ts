@@ -1,26 +1,19 @@
-// Design System Components
+// Design System - Primitives Only
+// Page-specific components live in their page directories (e.g., src/app/pages/home/components/)
+
+// Layout Primitives
 export { Container } from './components/Container'
-export { Header } from './components/Header'
 export { Card, CardTitle, CardContent } from './components/Card'
+
+// Button Primitives (all variants: customer + admin)
+export { Button, OrderButton, QuickAction, CancelButton, AddEventButton, PauseSeasonButton, DeleteMarketButton } from './Button'
+
+// Badge Primitives
 export { FreshBadge, LiveBadge, AvailableBadge } from './components/FreshBadge'
-export { Button, OrderButton, QuickAction } from './components/Button'
-export { FreshHero, FreshGrid, FreshItem } from './components/FreshHero'
-export { TodayBanner, LiveDot } from './components/TodayBanner'
-export { 
-  MarketCard, 
-  MarketName, 
-  MarketDetails, 
-  MarketDate, 
-  MarketTime, 
-  MarketDistance, 
-  MarketActions,
-  PinButton 
-} from './components/MarketCard'
-export { QuickActions } from './components/QuickActions'
-export { BottomNav } from './components/BottomNav'
 export { Badge, NotificationBadge } from './components/Badge'
-export { SpecialEvents } from './components/SpecialEvents'
-export { SpecialEventCard } from './components/SpecialEventCard'
+
+// Composition Components (used on multiple pages)
+export { FreshHero, FreshGrid, FreshItem } from './components/FreshHero'
 export { LoginForm } from './components/LoginForm'
 
 // Form & Input Components

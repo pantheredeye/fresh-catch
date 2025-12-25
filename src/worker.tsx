@@ -2,7 +2,7 @@ import { defineApp, ErrorResponse } from "rwsdk/worker";
 import { route, render, prefix, layout } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
-import { CustomerHome } from "@/app/pages/CustomerHome";
+import { CustomerHome } from "@/app/pages/home/CustomerHome";
 import { DesignTest } from "@/app/pages/DesignTest";
 import { BaseUITest } from "@/app/pages/BaseUITest";
 import { setCommonHeaders } from "@/app/headers";
