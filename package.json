@@ -31,10 +31,11 @@
     "@prisma/client": "~6.8.2",
     "@simplewebauthn/browser": "^13.1.0",
     "@simplewebauthn/server": "^13.1.1",
+    "capnweb": "~0.2.0",
     "react": "19.3.0-canary-06fcc8f3-20251009",
     "react-dom": "19.3.0-canary-06fcc8f3-20251009",
     "react-server-dom-webpack": "19.3.0-canary-06fcc8f3-20251009",
-    "rwsdk": "1.0.0-beta.9"
+    "rwsdk": "1.0.0-beta.42"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.13.12",
