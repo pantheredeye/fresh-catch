@@ -56,16 +56,18 @@ model Organization {
 }
 
 model Market {
-  id             String       @id @default(uuid())
-  organizationId String
-  name           String
-  schedule       String       // Free-form schedule description (e.g., "Sat 8-2")
-  subtitle       String?      // Optional subtitle (e.g., "Paused until March")
-  active         Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  organizationId  String
+  name            String
+  schedule        String       // Free-form schedule description (e.g., "Sat 8-2")
+  subtitle        String?      // Optional subtitle (e.g., "Paused until March")
+  locationDetails String?      // Vendor-facing: booth location, setup notes, parking info
+  customerInfo    String?      // Customer-facing: payment methods, what to bring, best times
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization    Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([active])

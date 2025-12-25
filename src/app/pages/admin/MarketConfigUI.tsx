@@ -22,6 +22,8 @@ type Market = {
   name: string;
   schedule: string;
   subtitle: string | null;
+  locationDetails: string | null;
+  customerInfo: string | null;
   active: boolean;
 };
 
@@ -70,7 +72,9 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
   const handleSaveMarket = async (marketData: {
     name: string;
     schedule: string;
-    subtitle?: string;
+    subtitle?: string | null;
+    locationDetails?: string | null;
+    customerInfo?: string | null;
     active?: boolean;
   }) => {
     startTransition(async () => {

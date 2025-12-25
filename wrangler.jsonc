@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "__change_me__",
+  "name": "fresh-catch-evan-prod",
   "main": "src/worker.tsx",
   "compatibility_date": "2025-08-21",
   "compatibility_flags": ["nodejs_compat"],
@@ -19,7 +19,8 @@
     ]
   },
   "vars": {
-    "WEBAUTHN_APP_NAME": "__change_me__"
+    "WEBAUTHN_APP_NAME": "Fresh Catch Seafood",
+    "WEBAUTHN_RP_ID": "evan.digitalglue.dev"
   },
   "migrations": [
     {
@@ -30,8 +31,14 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "__change_me__",
-      "database_id": "__change_me__"
+      "database_name": "fresh-catch-evan-prod",
+      "database_id": "71d2e8c4-b9a8-48ea-9fc5-550a9206ea61"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "evan.digitalglue.dev",
+      "custom_domain": true
     }
   ]
 }

@@ -11,7 +11,9 @@ import { db } from "@/db";
 export async function createMarket(data: {
   name: string;
   schedule: string;
-  subtitle?: string;
+  subtitle?: string | null;
+  locationDetails?: string | null;
+  customerInfo?: string | null;
   active?: boolean;
 }) {
   const { ctx } = requestInfo;
@@ -26,6 +28,8 @@ export async function createMarket(data: {
       name: data.name,
       schedule: data.schedule,
       subtitle: data.subtitle || null,
+      locationDetails: data.locationDetails || null,
+      customerInfo: data.customerInfo || null,
       active: data.active ?? true,
     },
   });
@@ -38,7 +42,9 @@ export async function updateMarket(
   data: {
     name?: string;
     schedule?: string;
-    subtitle?: string;
+    subtitle?: string | null;
+    locationDetails?: string | null;
+    customerInfo?: string | null;
     active?: boolean;
   }
 ) {
@@ -66,6 +72,8 @@ export async function updateMarket(
       ...(data.name !== undefined && { name: data.name }),
       ...(data.schedule !== undefined && { schedule: data.schedule }),
       ...(data.subtitle !== undefined && { subtitle: data.subtitle || null }),
+      ...(data.locationDetails !== undefined && { locationDetails: data.locationDetails || null }),
+      ...(data.customerInfo !== undefined && { customerInfo: data.customerInfo || null }),
       ...(data.active !== undefined && { active: data.active }),
     },
   });

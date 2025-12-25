@@ -8,6 +8,7 @@ interface AdminButtonProps {
   className?: string
   href?: string
   disabled?: boolean
+  onClick?: () => void
 }
 
 /**
@@ -17,14 +18,15 @@ interface AdminButtonProps {
  * Uses same design tokens and patterns but adds admin-focused styling
  * like cancel (coral), danger (coral), and add-event (primary) variants.
  */
-export function AdminButton({ 
-  children, 
-  variant = 'cancel', 
-  size = 'md', 
+export function AdminButton({
+  children,
+  variant = 'cancel',
+  size = 'md',
   fullWidth = false,
   className = '',
   href,
-  disabled = false
+  disabled = false,
+  onClick
 }: AdminButtonProps) {
   
   const sizeStyles = {
@@ -90,7 +92,7 @@ export function AdminButton({
     gap: 'var(--space-xs)',
     borderRadius: 'var(--radius-md)',
     textDecoration: 'none',
-    cursor: 'default',
+    cursor: onClick && !disabled ? 'pointer' : 'default',
     transition: 'all 0.3s ease',
     userSelect: 'none',
     width: fullWidth ? '100%' : 'auto',
@@ -119,6 +121,7 @@ export function AdminButton({
     <div
       className={`admin-btn admin-btn--${variant} admin-btn--${size} ${className}`}
       style={baseStyles}
+      onClick={onClick && !disabled ? onClick : undefined}
     >
       {children}
     </div>

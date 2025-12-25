@@ -6,15 +6,9 @@ interface Market {
   name: string
   schedule: string
   active: boolean
-  paused?: boolean
-  subtitle?: string
-  // Additional fields for form
-  location?: string
-  setupNotes?: string
-  parkingInfo?: string
-  paymentMethods?: string
-  whatToBring?: string
-  bestTimes?: string
+  subtitle?: string | null
+  locationDetails?: string | null
+  customerInfo?: string | null
 }
 
 interface MarketFormModalProps {
@@ -23,7 +17,14 @@ interface MarketFormModalProps {
   /** Function to close modal */
   onClose: () => void
   /** Function to save market */
-  onSave: (market: Market) => void
+  onSave: (market: {
+    name: string;
+    schedule: string;
+    subtitle?: string | null;
+    locationDetails?: string | null;
+    customerInfo?: string | null;
+    active?: boolean;
+  }) => void | Promise<void>
   /** Existing market data for editing (undefined for new market) */
   market?: Market
 }
@@ -83,7 +84,9 @@ export function MarketFormModal({
       return
     }
 
-    onSave(formData)
+    // Extract only the fields needed for save
+    const { id, ...saveData } = formData
+    onSave(saveData)
     onClose()
   }
 
@@ -176,7 +179,7 @@ export function MarketFormModal({
 
   const textareaStyle: React.CSSProperties = {
     ...inputStyle,
-    minHeight: '80px',
+    minHeight: '140px',
     resize: 'vertical',
     fontFamily: 'var(--font-modern)'
   }

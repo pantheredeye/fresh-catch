@@ -6,12 +6,13 @@ export const Document: React.FC<{ children: React.ReactNode }> = ({
       <meta charSet="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="color-scheme" content="light" />
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       <title>@redwoodjs/starter-standard</title>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
       <link rel="modulepreload" href="/src/client.tsx" />
-      <link rel="stylesheet" href="/src/design-system/tokens.css" />
+      <link rel="stylesheet" href="/tokens.css" />
     </head>
     <body style={{
       fontFamily: 'var(--font-modern)',
