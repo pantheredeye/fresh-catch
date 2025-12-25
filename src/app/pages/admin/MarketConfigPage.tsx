@@ -2,8 +2,7 @@ import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { MarketConfigUI } from "./MarketConfigUI";
-import { Container } from "@/design-system/components/Container";
-import "@/admin-design-system/admin-auth.css";
+import { Container } from "@/design-system";
 
 /**
  * MarketConfigPage - Server component for admin market configuration

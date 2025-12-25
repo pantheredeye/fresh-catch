@@ -10,10 +10,7 @@ import {
   finishBusinessOwnerRegistration,
   startBusinessOwnerRegistration,
 } from "./functions";
-import { TextInput } from "@/design-system/components/Input";
-import { Button } from "@/design-system";
-import { Container } from "@/design-system/components/Container";
-import "@/admin-design-system/admin-auth.css";
+import { TextInput, Button, Container, Card } from "@/design-system";
 
 /**
  * Business Owner Setup - Admin registration flow with enhanced UX
@@ -173,24 +170,45 @@ export function Setup({ ctx }: { ctx: any }) {
   };
 
   return (
-    <Container>
-      <div className="auth-page">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h1 className="auth-title">
-              {isLoggedIn ? 'Create Your Business' : 'Business Owner Setup'}
-            </h1>
-            <p className="auth-subtitle">
-              {isLoggedIn
-                ? `Logged in as ${ctx.user?.username}. Set up your business below.`
-                : 'Register your business owner account with secure passkey authentication'}
-            </p>
-          </div>
+    <Container size="sm">
+      <Card variant="centered" maxWidth="480px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+          <h1
+            style={{
+              fontSize: '28px',
+              fontWeight: 700,
+              color: 'var(--deep-navy)',
+              fontFamily: 'var(--font-display)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            {isLoggedIn ? 'Create Your Business' : 'Business Owner Setup'}
+          </h1>
+          <p
+            style={{
+              fontSize: '16px',
+              color: 'var(--cool-gray)',
+              margin: 0,
+              lineHeight: 1.5
+            }}
+          >
+            {isLoggedIn
+              ? `Logged in as ${ctx.user?.username}. Set up your business below.`
+              : 'Register your business owner account with secure passkey authentication'}
+          </p>
+        </div>
 
-          <form onSubmit={(e) => {
+        <form
+          onSubmit={(e) => {
             e.preventDefault();
             handleBusinessOwnerSetup();
-          }} className="auth-form">
+          }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-md)'
+          }}
+        >
             {!isLoggedIn && (
               <TextInput
                 label="Username"
@@ -236,34 +254,63 @@ export function Setup({ ctx }: { ctx: any }) {
                 : status === 'success'
                   ? '✓ Setup Complete'
                   : (isLoggedIn ? 'Create Business' : 'Setup Business Account')}
-            </Button>
-          </form>
+          </Button>
+        </form>
 
-          {message && (
-            <div className="auth-status" style={{
+        {message && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
+              padding: 'var(--space-md)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '14px',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-xs)',
               background: getStatusColor(),
               color: getStatusTextColor(),
               border: `1px solid ${getStatusColor()}`
-            }}>
-              {status === 'loading' && <div className="auth-spinner" />}
-              <span>
-                {message}
-                {status === 'success' && countdown > 0 && (
-                  <> Redirecting in {countdown}...</>
-                )}
-              </span>
-            </div>
-          )}
+            }}
+          >
+            {status === 'loading' && (
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid currentColor',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}
+              />
+            )}
+            <span>
+              {message}
+              {status === 'success' && countdown > 0 && (
+                <> Redirecting in {countdown}...</>
+              )}
+            </span>
+          </div>
+        )}
 
-          {status === 'success' && (
-            <div className="auth-success-link">
-              <a href="/admin">
-                Go to dashboard now →
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
+        {status === 'success' && (
+          <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+            <a
+              href="/admin"
+              style={{
+                color: 'var(--ocean-blue)',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 500
+              }}
+            >
+              Go to dashboard now →
+            </a>
+          </div>
+        )}
+      </Card>
     </Container>
   );
 }

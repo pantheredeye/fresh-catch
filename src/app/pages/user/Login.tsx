@@ -12,10 +12,7 @@ import {
   startPasskeyLogin,
   startPasskeyRegistration,
 } from "./functions";
-import { TextInput } from "@/design-system/components/Input";
-import { Button } from "@/design-system";
-import { Container } from "@/design-system/components/Container";
-import "@/admin-design-system/admin-auth.css";
+import { TextInput, Button, Container, Card } from "@/design-system";
 
 // TODO: Get business context from environment or route
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
@@ -180,25 +177,46 @@ export function Login({ ctx }: { ctx: any }) {
   };
 
   return (
-    <Container>
-      <div className="auth-page">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h1 className="auth-title">
-              {mode === 'login' ? 'Welcome Back' : 'Join Us'}
-            </h1>
-            <p className="auth-subtitle">
-              {mode === 'login'
-                ? `Sign in to ${BUSINESS_CONTEXT}`
-                : `Create your account with ${BUSINESS_CONTEXT}`
-              }
-            </p>
-          </div>
+    <Container size="sm">
+      <Card variant="centered" maxWidth="450px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+          <h1
+            style={{
+              fontSize: '28px',
+              fontWeight: 700,
+              color: 'var(--deep-navy)',
+              fontFamily: 'var(--font-display)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            {mode === 'login' ? 'Welcome Back' : 'Join Us'}
+          </h1>
+          <p
+            style={{
+              fontSize: '16px',
+              color: 'var(--cool-gray)',
+              margin: 0,
+              lineHeight: 1.5
+            }}
+          >
+            {mode === 'login'
+              ? `Sign in to ${BUSINESS_CONTEXT}`
+              : `Create your account with ${BUSINESS_CONTEXT}`
+            }
+          </p>
+        </div>
 
-          <form onSubmit={(e) => {
+        <form
+          onSubmit={(e) => {
             e.preventDefault();
             mode === 'login' ? handleLogin() : handleRegister();
-          }} className="auth-form">
+          }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-md)'
+          }}
+        >
             <TextInput
               label="Username"
               placeholder="Enter your username"
@@ -219,45 +237,69 @@ export function Login({ ctx }: { ctx: any }) {
               {status === 'loading' ? (mode === 'login' ? 'Signing in...' : 'Creating Account...') :
                status === 'success' ? '✓ Success' :
                mode === 'login' ? 'Sign In with Passkey' : 'Create Account with Passkey'}
-            </Button>
-          </form>
+          </Button>
+        </form>
 
-          {/* Mode Toggle */}
-          <div style={{
-            marginTop: '20px',
+        {/* Mode Toggle */}
+        <div
+          style={{
+            marginTop: 'var(--space-md)',
             textAlign: 'center',
-            paddingTop: '20px',
-            borderTop: '1px solid #E0E0E0'
-          }}>
-            <button
-              onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login');
-                setStatus('idle');
-                setMessage('');
-              }}
-              disabled={status === 'loading' || status === 'success'}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#0066CC',
-                fontSize: '14px',
-                textDecoration: 'underline',
-                cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
-                fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
-              }}
-            >
-              {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-            </button>
-          </div>
+            paddingTop: 'var(--space-md)',
+            borderTop: '1px solid rgba(100, 116, 139, 0.1)'
+          }}
+        >
+          <button
+            onClick={() => {
+              setMode(mode === 'login' ? 'register' : 'login');
+              setStatus('idle');
+              setMessage('');
+            }}
+            disabled={status === 'loading' || status === 'success'}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--ocean-blue)',
+              fontSize: '14px',
+              textDecoration: 'underline',
+              cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-display)'
+            }}
+          >
+            {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+          </button>
+        </div>
 
-          {/* Status Message */}
-          {message && (
-            <div className="auth-status" style={{
+        {/* Status Message */}
+        {message && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
+              padding: 'var(--space-md)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '14px',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-xs)',
               background: getStatusColor(),
               color: getStatusTextColor(),
               border: `1px solid ${getStatusColor()}`
-            }}>
-              {status === 'loading' && <div className="auth-spinner" />}
+            }}
+          >
+            {status === 'loading' && (
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid currentColor',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}
+              />
+            )}
               <span>
                 {message}
                 {status === 'success' && countdown > 0 && (
@@ -267,16 +309,23 @@ export function Login({ ctx }: { ctx: any }) {
             </div>
           )}
 
-          {/* Success Link */}
-          {status === 'success' && (
-            <div className="auth-success-link">
-              <a href={redirectUrl}>
-                Go to dashboard now →
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
+        {/* Success Link */}
+        {status === 'success' && (
+          <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+            <a
+              href={redirectUrl}
+              style={{
+                color: 'var(--ocean-blue)',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 500
+              }}
+            >
+              Go to dashboard now →
+            </a>
+          </div>
+        )}
+      </Card>
     </Container>
   );
 }

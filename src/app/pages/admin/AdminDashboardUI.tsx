@@ -1,8 +1,8 @@
 "use client";
 
-import { Container } from "@/design-system/components/Container";
+import { Container, Card } from "@/design-system";
 import { AppContext } from "@/worker";
-import "@/admin-design-system/admin-auth.css";
+import "./admin.css";
 
 interface AdminDashboardUIProps {
   ctx: AppContext;
@@ -31,45 +31,60 @@ interface AdminDashboardUIProps {
  */
 export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
   return (
-    <Container>
-      <div className="auth-page">
-        <div className="auth-card" style={{ maxWidth: '800px' }}>
-          <div className="auth-header">
-            <h1 className="auth-title">Admin Dashboard</h1>
-            <p className="auth-subtitle">
-              Welcome back! Manage your business operations below.
-            </p>
-          </div>
-
-          {/* Navigation Cards Grid */}
-          <div className="admin-nav-grid">
-            {/* Markets Card */}
-            <a href="/admin/config" className="admin-nav-card">
-              <div className="admin-nav-card__icon">📍</div>
-              <div className="admin-nav-card__content">
-                <h3 className="admin-nav-card__title">Markets</h3>
-                <p className="admin-nav-card__description">
-                  Manage market locations and schedules
-                </p>
-              </div>
-            </a>
-
-            {/* View Site Card */}
-            <a href="/" className="admin-nav-card">
-              <div className="admin-nav-card__icon">👁️</div>
-              <div className="admin-nav-card__content">
-                <h3 className="admin-nav-card__title">View Site</h3>
-                <p className="admin-nav-card__description">
-                  See what customers see
-                </p>
-              </div>
-            </a>
-          </div>
-
-          {/* Future: More cards will be added here as features arrive */}
-          {/* Example: Inventory, Orders, etc. */}
+    <Container size="md">
+      <Card variant="centered" maxWidth="800px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
+          <h1
+            style={{
+              fontSize: '32px',
+              fontWeight: 700,
+              color: 'var(--deep-navy)',
+              fontFamily: 'var(--font-display)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            Admin Dashboard
+          </h1>
+          <p
+            style={{
+              fontSize: '16px',
+              color: 'var(--cool-gray)',
+              margin: 0,
+              lineHeight: 1.5
+            }}
+          >
+            Welcome back! Manage your business operations below.
+          </p>
         </div>
-      </div>
+
+        {/* Navigation Cards Grid */}
+        <div className="admin-nav-grid">
+          {/* Markets Card */}
+          <a href="/admin/config" className="admin-nav-card">
+            <div className="admin-nav-card__icon">📍</div>
+            <div className="admin-nav-card__content">
+              <h3 className="admin-nav-card__title">Markets</h3>
+              <p className="admin-nav-card__description">
+                Manage market locations and schedules
+              </p>
+            </div>
+          </a>
+
+          {/* View Site Card */}
+          <a href="/" className="admin-nav-card">
+            <div className="admin-nav-card__icon">👁️</div>
+            <div className="admin-nav-card__content">
+              <h3 className="admin-nav-card__title">View Site</h3>
+              <p className="admin-nav-card__description">
+                See what customers see
+              </p>
+            </div>
+          </a>
+        </div>
+
+        {/* Future: More cards will be added here as features arrive */}
+        {/* Example: Inventory, Orders, etc. */}
+      </Card>
     </Container>
   );
 }

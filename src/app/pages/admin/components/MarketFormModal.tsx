@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AdminButton } from './AdminButtons'
+import { Button } from '@/design-system'
 
 interface Market {
   id?: string
@@ -288,31 +288,31 @@ export function MarketFormModal({
 
         {/* Priority 4: Management Actions */}
         <div style={buttonRowStyle}>
-          <AdminButton
+          <Button
             variant="add-event"
             size="md"
             fullWidth={true}
             onClick={handleSave}
           >
             {isEditing ? 'Update Market' : 'Save Market'}
-          </AdminButton>
+          </Button>
 
-          <AdminButton
+          <Button
             variant="cancel"
             size="md"
             onClick={handleCancel}
           >
             Cancel
-          </AdminButton>
+          </Button>
 
           {isEditing && (
-            <AdminButton
+            <Button
               variant="danger"
               size="md"
               onClick={handleDelete}
             >
               Delete
-            </AdminButton>
+            </Button>
           )}
         </div>
 

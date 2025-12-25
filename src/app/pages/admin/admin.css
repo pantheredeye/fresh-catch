@@ -1,0 +1,277 @@
+/* Admin Page Styles */
+/* WHY: Page-specific CSS for admin interfaces (dashboard + market config) */
+/* Uses design tokens with defensive fallbacks for dark mode */
+
+/* ======================
+   ADMIN DASHBOARD NAV
+   ====================== */
+
+/* Admin Navigation Grid */
+/* WHY: Big button cards for primary admin actions, mobile-first responsive */
+.admin-nav-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+@media (min-width: 640px) {
+  .admin-nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Admin Navigation Cards */
+/* WHY: Big, tap-friendly cards (~120px) with clear visual hierarchy */
+.admin-nav-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: white;
+  background: var(--surface-primary);
+  border: 2px solid rgba(0, 102, 204, 0.1);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  min-height: 120px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-nav-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--ocean-blue);
+  background: linear-gradient(135deg, white, rgba(0,102,204,0.02));
+}
+
+.admin-nav-card:active {
+  transform: translateY(-2px);
+}
+
+.admin-nav-card__icon {
+  font-size: 48px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.admin-nav-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-nav-card__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1A1A2E;
+  color: var(--deep-navy);
+  font-family: var(--font-display);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.admin-nav-card__description {
+  font-size: 14px;
+  color: #6B7280;
+  color: var(--cool-gray);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .admin-nav-card {
+    min-height: 100px;
+    padding: var(--space-md);
+  }
+
+  .admin-nav-card__icon {
+    font-size: 40px;
+  }
+
+  .admin-nav-card__title {
+    font-size: 18px;
+  }
+}
+
+/* ======================
+   MARKET CONFIGURATION
+   ====================== */
+
+/* Config Page Container */
+.config-page {
+  color-scheme: light;
+  padding: var(--space-md);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Config Header Card */
+.config-header {
+  background: white;
+  background: var(--surface-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg) var(--space-md);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #E8EFF5;
+  border-color: rgba(100, 116, 139, 0.1);
+}
+
+.config-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1A1A2E;
+  color: var(--deep-navy);
+  font-family: var(--font-display);
+  margin-bottom: var(--space-xs);
+  text-align: left;
+  margin: 0;
+  margin-bottom: var(--space-xs);
+}
+
+.config-subtitle {
+  font-size: 14px;
+  color: #6B7280;
+  color: var(--cool-gray);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.config-actions {
+  margin-bottom: var(--space-lg);
+}
+
+/* Markets List Container */
+.markets-list-container {
+  background: white;
+  background: var(--surface-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid #E8EFF5;
+  border-color: rgba(100, 116, 139, 0.1);
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Market Item Row */
+.market-item {
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  cursor: default;
+  min-height: 60px;
+  gap: var(--space-sm);
+  background: white;
+  background: var(--surface-primary);
+}
+
+.market-item--inactive {
+  background: #F3F4F6;
+  background: var(--light-gray);
+  opacity: 0.7;
+}
+
+.market-item:not(:last-child) {
+  border-bottom: 1px solid #E8EFF5;
+  border-bottom-color: rgba(100, 116, 139, 0.1);
+}
+
+.market-item__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.market-item__info {
+  min-width: 0;
+}
+
+.market-item__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1A1A2E;
+  color: var(--deep-navy);
+  font-family: var(--font-display);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-item__subtitle {
+  font-size: 12px;
+  color: #6B7280;
+  color: var(--cool-gray);
+  margin-top: 2px;
+}
+
+.market-item__schedule {
+  font-size: 13px;
+  color: #6B7280;
+  color: var(--cool-gray);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.config-empty-state {
+  background: white;
+  background: var(--surface-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  border: 2px dashed #CBD5E1;
+  border-color: rgba(100, 116, 139, 0.2);
+  color: #6B7280;
+  color: var(--cool-gray);
+}
+
+.config-empty-state__icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+}
+
+.config-empty-state__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1A1A2E;
+  color: var(--deep-navy);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-display);
+}
+
+.config-empty-state__description {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: var(--space-lg);
+}
+
+/* Responsive behavior */
+@media (max-width: 640px) {
+  .config-page {
+    padding: var(--space-sm);
+  }
+
+  .config-header {
+    padding: var(--space-md);
+  }
+
+  .config-title {
+    font-size: 20px;
+  }
+
+  .market-item {
+    padding: var(--space-xs) var(--space-sm);
+    min-height: 50px;
+  }
+
+  .market-item__schedule {
+    font-size: 12px;
+  }
+}

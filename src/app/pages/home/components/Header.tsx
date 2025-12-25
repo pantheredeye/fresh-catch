@@ -1,9 +1,3 @@
-/**
- * Header - Customer home page header with branding and quick order CTA
- *
- * WHY: Sticky glassmorphic header for brand consistency and quick access.
- * Uses ocean gradient for brand name, coral gradient for CTA button.
- */
 export function Header() {
   return (
     <header style={{

@@ -2,7 +2,7 @@ import { RequestInfo } from "rwsdk/worker";
 import { hasAdminAccess } from "@/utils/permissions";
 import { AdminDashboardUI } from "./AdminDashboardUI";
 import { Login } from "../user/Login";
-import { Container } from "@/design-system/components/Container";
+import { Container } from "@/design-system";
 
 /**
  * AdminDashboard - Server component for /admin landing page

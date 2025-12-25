@@ -1,8 +1,6 @@
 "use client";
 
-import { Container } from "@/design-system/components/Container";
-import { Button } from "@/design-system";
-import "@/admin-design-system/admin-auth.css";
+import { Container, Button } from "@/design-system";
 
 /**
  * BusinessNotFound - Error page for invalid business slugs or no businesses

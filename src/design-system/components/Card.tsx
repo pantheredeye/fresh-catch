@@ -1,40 +1,66 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, type CSSProperties } from 'react'
 
 interface CardProps {
   children: ReactNode
   isFavorite?: boolean
   className?: string
   onClick?: () => void
+  variant?: 'default' | 'centered'
+  maxWidth?: string
 }
 
 /**
- * Card - Market card with glassmorphism and proper spacing
- * 
- * WHY: From customer.html - cards with colored shadows feel premium.
- * Single drop shadow feels grounded (not floating).
- * Favorite indicator adds market personality.
+ * Card - Flexible card component for design system
+ *
+ * WHY: Used across app for market cards, auth forms, centered content
+ *
+ * VARIANTS:
+ * - default: Market card with margins (list items)
+ * - centered: Auth/form card, vertically centered on page
+ *
+ * PROPS:
+ * - isFavorite: Adds star indicator (market cards)
+ * - maxWidth: Custom max-width (auth cards)
+ * - onClick: Makes card clickable
  */
-export function Card({ children, isFavorite = false, className = '', onClick }: CardProps) {
-  const cardStyle: React.CSSProperties = {
-    background: isFavorite 
+export function Card({
+  children,
+  isFavorite = false,
+  className = '',
+  onClick,
+  variant = 'default',
+  maxWidth
+}: CardProps) {
+  const cardStyle: CSSProperties = {
+    background: isFavorite
       ? 'var(--surface-favorite)'
       : 'var(--surface-primary)',
     borderRadius: 'var(--radius-lg)',
-    padding: 'var(--space-lg)',
-    marginBottom: 'var(--space-md)',
-    boxShadow: 'var(--shadow-md)',
-    border: '1px solid rgba(0,102,204,0.08)',
+    padding: variant === 'centered' ? 'var(--space-xl)' : 'var(--space-lg)',
+    marginBottom: variant === 'default' ? 'var(--space-md)' : '0',
+    boxShadow: variant === 'centered' ? 'var(--shadow-lg)' : 'var(--shadow-md)',
+    border: '1px solid rgba(100, 116, 139, 0.1)',
     position: 'relative',
     overflow: 'hidden',
     transition: 'all 0.3s ease',
-    cursor: onClick ? 'pointer' : 'default'
+    cursor: onClick ? 'pointer' : 'default',
+    width: '100%',
+    maxWidth: maxWidth || '100%'
   }
 
-  return (
-    <div 
-      className={`card ${className}`}
-      style={cardStyle}
-    >
+  const wrapperStyle: CSSProperties =
+    variant === 'centered'
+      ? {
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 'var(--space-lg)'
+        }
+      : {}
+
+  const cardContent = (
+    <div className={`card ${className}`} style={cardStyle} onClick={onClick}>
       {isFavorite && (
         <span
           style={{
@@ -50,6 +76,12 @@ export function Card({ children, isFavorite = false, className = '', onClick }: 
       {children}
     </div>
   )
+
+  if (variant === 'centered') {
+    return <div style={wrapperStyle}>{cardContent}</div>
+  }
+
+  return cardContent
 }
 
 interface CardTitleProps {

@@ -15,6 +15,7 @@ export { Badge, NotificationBadge } from './components/Badge'
 // Composition Components (used on multiple pages)
 export { FreshHero, FreshGrid, FreshItem } from './components/FreshHero'
 export { LoginForm } from './components/LoginForm'
+export { SectionHeader, DateHeader } from './components/SectionHeader'
 
 // Form & Input Components
 export {
@@ -27,7 +28,8 @@ export {
   Select,
   InlineSelect,
   RadioGroup,
-  ToggleSwitch
+  ToggleSwitch,
+  MarketToggle
 } from './components/FormControls'
 
 // Design System Styles

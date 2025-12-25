@@ -1,36 +1,51 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, type CSSProperties } from 'react'
 
 interface ContainerProps {
   children: ReactNode
   className?: string
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  noPadding?: boolean
 }
 
 /**
  * Container - Mobile-first wrapper component
- * 
- * WHY: Solves the "fake phone container" problem by using natural responsive design.
- * - Mobile-first: Full width on mobile with padding
- * - Desktop: Max-width centered to prevent card stretching
- * - No artificial phone boundaries or constraints
+ *
+ * WHY: Consistent max-widths across app, full mobile, constrained desktop
+ *
+ * SIZES:
+ * - sm (450px): Auth forms, focused single-task flows
+ * - md (800px): Content pages, readable line length
+ * - lg (1200px): Dashboards, admin/customer layouts (default)
+ * - xl (1400px): Wide layouts, data tables
+ *
+ * BEHAVIOR:
+ * - Mobile: Full width with padding (responsive)
+ * - Desktop: Max-width centered to prevent stretching
  */
-export function Container({ children, className = '' }: ContainerProps) {
+export function Container({
+  children,
+  className = '',
+  size = 'lg',
+  noPadding = false
+}: ContainerProps) {
+  const maxWidth = {
+    sm: 'var(--width-sm)',
+    md: 'var(--width-md)',
+    lg: 'var(--width-lg)',
+    xl: 'var(--width-xl)'
+  }[size]
+
+  const style: CSSProperties = {
+    maxWidth,
+    margin: '0 auto',
+    padding: noPadding ? '0' : 'var(--space-md)',
+    width: '100%',
+    minWidth: '0' // Prevents flex/grid from enforcing min-width
+  }
+
   return (
-    <div 
-      className={`container ${className}`}
-      style={{
-        maxWidth: '500px',
-        margin: '0 auto',
-        padding: 'var(--space-md)',
-        width: '100%',
-        minWidth: '0' // Prevents flex/grid from enforcing min-width
-      }}
-    >
+    <div className={`container ${className}`} style={style}>
       {children}
     </div>
   )
 }
-
-// TODO: Add responsive breakpoints if needed:
-// - Mobile: full width with padding
-// - Tablet: max-width 768px
-// - Desktop: max-width 500px (keeps mobile-first feel)

@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { MarketToggle } from './ToggleSwitch'
+import { SectionHeader, MarketToggle } from '@/design-system'
 
 interface CompactMarketCardProps {
   /** Market name (short version for compact display) */

@@ -17,7 +17,7 @@
 }
 
 .header-content {
-  max-width: var(--width-max);
+  max-width: var(--width-lg);
   margin: 0 auto;
   padding: 0 var(--space-md);
   display: flex;
@@ -56,7 +56,7 @@
 .customer-main {
   flex: 1;
   width: 100%;
-  max-width: var(--width-max);
+  max-width: var(--width-lg);
   margin: 0 auto;
   padding: var(--space-lg) var(--space-md);
 }

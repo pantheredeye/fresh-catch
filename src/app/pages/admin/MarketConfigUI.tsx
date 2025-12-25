@@ -1,19 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Container, QuickAction, AddEventButton } from "@/design-system";
-import {
-  SectionHeader,
-  CompactMarketList,
-  MarketToggle,
-  MarketFormModal,
-} from "@/admin-design-system";
+import { Button, Container, QuickAction, AddEventButton, SectionHeader, MarketToggle } from "@/design-system";
+import { CompactMarketList, MarketFormModal } from "./components";
 import {
   createMarket,
   updateMarket,
   toggleMarketActive,
 } from "./market-functions";
-import "@/admin-design-system/admin-components.css";
+import "./admin.css";
 
 type Market = {
   id: string;

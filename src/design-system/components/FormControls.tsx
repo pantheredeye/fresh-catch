@@ -563,6 +563,42 @@ const visuallyHiddenStyles: React.CSSProperties = {
   border: '0',
 };
 
+// Specialized Variants
+
+interface MarketToggleProps {
+  /** Market active state */
+  active?: boolean;
+  /** Market name for accessibility */
+  marketName?: string;
+  /** Disabled state */
+  disabled?: boolean;
+  /** Click handler */
+  onClick?: () => void;
+}
+
+/**
+ * MarketToggle - Specialized toggle for market active/paused states
+ *
+ * WHY: Common pattern in admin interface for toggling markets on/off.
+ * Adapts active/onClick API to ToggleSwitch checked/onChange API.
+ */
+export function MarketToggle({
+  active = false,
+  marketName = 'market',
+  disabled = false,
+  onClick
+}: MarketToggleProps) {
+  return (
+    <ToggleSwitch
+      checked={active}
+      onChange={onClick}
+      disabled={disabled}
+      size="sm"
+      className="market-toggle"
+    />
+  );
+}
+
 // TODO: Add these additional form controls:
 // - Checkbox
 // - Search input with search icon

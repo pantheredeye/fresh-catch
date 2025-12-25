@@ -45,6 +45,13 @@ with Instagram-ready modern appeal for broader demographics
   --space-lg: 28px;  /* Section spacing */
   --space-xl: 40px;  /* Major section breaks */
   --space-2xl: 56px; /* Hero/feature spacing */
+
+  /* Width System - Mobile-First Responsive */
+  /* WHY: Consistent max-widths across app, full mobile, constrained desktop */
+  --width-sm: 450px;   /* Auth forms, focused single-task flows */
+  --width-md: 800px;   /* Content pages, readable line length */
+  --width-lg: 1200px;  /* Dashboards, admin/customer layouts */
+  --width-xl: 1400px;  /* Wide layouts, data tables */
   
   /* Border Radii - Bold but Not Excessive */
   /* WHY: 12px base radius = confident but not over-designed, feels premium */
@@ -154,11 +161,20 @@ with Instagram-ready modern appeal for broader demographics
 }
 
 @keyframes float {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg); 
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
   }
-  50% { 
-    transform: translate(-30px, -30px) rotate(180deg); 
+  50% {
+    transform: translate(-30px, -30px) rotate(180deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
