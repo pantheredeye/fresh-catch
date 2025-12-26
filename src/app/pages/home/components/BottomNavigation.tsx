@@ -28,7 +28,7 @@ export function BottomNavigation() {
       }}>
         <NavItem label="Home" active />
         <NavItem label="Markets" />
-        <NavItem label="Orders" badge="2" />
+        <NavItem label="Orders" badge="3" />
         <NavItem label="More" />
       </div>
     </nav>

@@ -90,6 +90,14 @@
   justify-content: center;
 }
 
+/* Medium+ screens: match BottomNavigation width */
+@media (min-width: 769px) {
+  .unified-header__content {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+
 /* Mobile responsive (768px breakpoint) */
 @media (max-width: 768px) {
   .unified-header {
