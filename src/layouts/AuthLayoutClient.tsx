@@ -1,5 +1,6 @@
 "use client";
 
+import { Header } from "@/components/Header";
 import "./AuthLayout.css";
 
 export function AuthLayoutClient({
@@ -10,11 +11,7 @@ export function AuthLayoutClient({
   return (
     <div className="auth-layout">
       <div className="auth-container">
-        <header className="auth-header">
-          <a href="/" className="auth-logo">
-            <span className="auth-logo-text">Evan's Fresh Catch</span>
-          </a>
-        </header>
+        <Header variant="auth" user={null} currentOrganization={null} />
 
         <main className="auth-main">{children}</main>
 

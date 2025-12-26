@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useFavorites } from "@/hooks/useFavorites";
 import type { AppContext } from "@/worker";
 import {
-  Header,
   LiveBanner,
   FreshHero,
   MarketCard,
@@ -78,9 +77,6 @@ export function CustomerHomeUI({
         pointerEvents: 'none',
         zIndex: 0
       }} />
-
-      {/* Header */}
-      <Header />
 
       {/* Live Indicator - TODO: Show only when actually live */}
       <LiveBanner />

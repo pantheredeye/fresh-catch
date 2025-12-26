@@ -1,5 +1,4 @@
 // Home page components - colocated with the home page feature
-export { Header } from './Header';
 export { LiveBanner } from './LiveBanner';
 export { FreshHero } from './FreshHero';
 export { MarketCard } from './MarketCard';

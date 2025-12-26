@@ -1,6 +1,6 @@
 "use client";
 
-import { UserMenu } from "@/components/UserMenu";
+import { Header } from "@/components/Header";
 import type { User } from "@/db";
 import "./CustomerLayout.css";
 import "@/components/UserMenu.css";
@@ -21,17 +21,11 @@ export function CustomerLayoutClient({
 }) {
   return (
     <div className="customer-layout">
-      <header className="customer-header">
-        <div className="header-content">
-          <a href="/" className="business-name">
-            <span className="business-name-text">Evan's Fresh Catch</span>
-          </a>
-
-          <div className="header-actions">
-            <UserMenu user={user} currentOrganization={currentOrganization} />
-          </div>
-        </div>
-      </header>
+      <Header
+        variant="customer"
+        user={user}
+        currentOrganization={currentOrganization}
+      />
 
       <main className="customer-main">{children}</main>
     </div>

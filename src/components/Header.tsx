@@ -1,0 +1,73 @@
+"use client";
+
+import { UserMenu } from "./UserMenu";
+import type { User } from "@/db";
+import "./Header.css";
+
+interface HeaderProps {
+  user: User | null;
+  currentOrganization: {
+    id: string;
+    name: string;
+    type: string;
+    role: string;
+  } | null;
+  variant?: "customer" | "admin" | "auth";
+}
+
+export function Header({
+  user,
+  currentOrganization,
+  variant = "customer",
+}: HeaderProps) {
+  // Auth variant: centered logo only
+  if (variant === "auth") {
+    return (
+      <header className="unified-header unified-header--auth">
+        <div className="unified-header__content">
+          <a href="/" className="unified-header__logo">
+            <span className="unified-header__logo-text">Evan's Fresh Catch</span>
+          </a>
+        </div>
+      </header>
+    );
+  }
+
+  // Admin variant: logo + ADMIN badge + UserMenu
+  if (variant === "admin") {
+    return (
+      <header className="unified-header unified-header--admin">
+        <div className="unified-header__content">
+          <div className="unified-header__left">
+            <a href="/" className="unified-header__logo">
+              <span className="unified-header__logo-text">
+                Evan's Fresh Catch
+              </span>
+            </a>
+            <div className="admin-badge">ADMIN</div>
+          </div>
+          <div className="unified-header__right">
+            <UserMenu user={user} currentOrganization={currentOrganization} />
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Customer variant (default): logo + Quick Order + UserMenu
+  return (
+    <header className="unified-header unified-header--customer">
+      <div className="unified-header__content">
+        <a href="/" className="unified-header__logo">
+          <span className="unified-header__logo-text">Evan's Fresh Catch</span>
+        </a>
+        <div className="unified-header__actions">
+          <a href="#quick-order" className="quick-order-button">
+            + Quick Order
+          </a>
+          <UserMenu user={user} currentOrganization={currentOrganization} />
+        </div>
+      </div>
+    </header>
+  );
+}

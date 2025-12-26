@@ -18,27 +18,9 @@
   max-width: var(--width-sm);
 }
 
-.auth-header {
-  text-align: center;
-  margin-bottom: var(--space-xl);
-}
-
-.auth-logo {
-  text-decoration: none;
-  display: inline-block;
-}
-
-.auth-logo-text {
-  font-size: var(--text-3xl);
-  font-weight: 700;
-  background: var(--ocean-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 .auth-main {
   /* The login form will be styled in its own component */
+  margin-top: var(--space-xl);
 }
 
 .auth-footer {
@@ -65,13 +47,5 @@
 @media (max-width: 768px) {
   .auth-layout {
     padding: var(--space-md);
-  }
-
-  .auth-logo-text {
-    font-size: var(--text-2xl);
-  }
-
-  .auth-header {
-    margin-bottom: var(--space-lg);
   }
 }

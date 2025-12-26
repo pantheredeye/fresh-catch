@@ -1,6 +1,6 @@
 "use client";
 
-import { UserMenu } from "@/components/UserMenu";
+import { Header } from "@/components/Header";
 import type { User } from "@/db";
 import "./AdminLayout.css";
 import "@/components/UserMenu.css";
@@ -38,23 +38,24 @@ export function AdminLayoutClient({
   return (
     <div className="admin-layout">
       <header className="admin-header">
-        <div className="admin-header-content">
-          <div className="admin-header-left">
+        {/* Exit Admin section - above unified header */}
+        <div className="admin-exit-section">
+          <div className="admin-exit-content">
             <a href="/" className="exit-admin-button" title="Back to Customer View">
               <span className="back-arrow">←</span>
               <span className="exit-text">Exit Admin</span>
             </a>
-            <div className="admin-badge">ADMIN</div>
-          </div>
-
-          <div className="admin-header-right">
-            <UserMenu
-              user={user}
-              currentOrganization={currentOrganization}
-            />
           </div>
         </div>
 
+        {/* Unified Header */}
+        <Header
+          variant="admin"
+          user={user}
+          currentOrganization={currentOrganization}
+        />
+
+        {/* Admin nav tabs - below unified header */}
         <nav className="admin-nav">
           <a href="/admin" className="admin-nav-item">
             Markets
