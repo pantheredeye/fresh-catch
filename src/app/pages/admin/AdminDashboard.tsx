@@ -2,7 +2,6 @@ import { RequestInfo } from "rwsdk/worker";
 import { hasAdminAccess } from "@/utils/permissions";
 import { AdminDashboardUI } from "./AdminDashboardUI";
 import { Login } from "../user/Login";
-import { Container } from "@/design-system";
 
 /**
  * AdminDashboard - Server component for /admin landing page
@@ -33,22 +32,20 @@ export function AdminDashboard({ ctx }: RequestInfo) {
   // Logged in but not admin - show access denied
   if (!hasAdminAccess(ctx)) {
     return (
-      <Container>
-        <div className="error-page">
-          <div className="error-card">
-            <div className="error-icon">🔒</div>
-            <h1 className="error-title">Admin Access Required</h1>
-            <p className="error-description">
-              You don't have permission to access admin tools.
-            </p>
-            <div className="error-actions">
-              <a href="/" className="error-secondary-link">
-                ← Back to Customer Portal
-              </a>
-            </div>
+      <div className="error-page">
+        <div className="error-card">
+          <div className="error-icon">🔒</div>
+          <h1 className="error-title">Admin Access Required</h1>
+          <p className="error-description">
+            You don't have permission to access admin tools.
+          </p>
+          <div className="error-actions">
+            <a href="/" className="error-secondary-link">
+              ← Back to Customer Portal
+            </a>
           </div>
         </div>
-      </Container>
+      </div>
     );
   }
 

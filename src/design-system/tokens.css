@@ -1,8 +1,37 @@
 /* Design Tokens - Modern Fresh System */
-/* 
-WHY: Evolved from "Market Fresh Hybrid" - balances authentic seafood market feel 
+/*
+WHY: Evolved from "Market Fresh Hybrid" - balances authentic seafood market feel
 with Instagram-ready modern appeal for broader demographics
 */
+
+/* Global Resets - Prevent Horizontal Scroll */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+}
+
+/* Content Width Constraint - Single Source of Truth */
+/* WHY: Ensures all content (header, nav, main) aligns perfectly */
+.content-wrapper {
+  max-width: var(--width-lg);
+  margin: 0 auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+}
 
 :root {
   /* Colors - Vibrant Ocean Theme with Market Authenticity */

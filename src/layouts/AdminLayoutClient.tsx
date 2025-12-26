@@ -40,7 +40,7 @@ export function AdminLayoutClient({
       <header className="admin-header">
         {/* Exit Admin section - above unified header */}
         <div className="admin-exit-section">
-          <div className="admin-exit-content">
+          <div className="admin-exit-content content-wrapper">
             <a href="/" className="exit-admin-button" title="Back to Customer View">
               <span className="back-arrow">←</span>
               <span className="exit-text">Exit Admin</span>
@@ -56,7 +56,7 @@ export function AdminLayoutClient({
         />
 
         {/* Admin nav tabs - below unified header */}
-        <nav className="admin-nav">
+        <nav className="admin-nav content-wrapper">
           <a href="/admin" className="admin-nav-item">
             Markets
           </a>
@@ -69,7 +69,7 @@ export function AdminLayoutClient({
         </nav>
       </header>
 
-      <main className="admin-main">{children}</main>
+      <main className="admin-main content-wrapper">{children}</main>
     </div>
   );
 }

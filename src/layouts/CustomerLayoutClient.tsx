@@ -27,7 +27,7 @@ export function CustomerLayoutClient({
         currentOrganization={currentOrganization}
       />
 
-      <main className="customer-main">{children}</main>
+      <main className="customer-main content-wrapper">{children}</main>
     </div>
   );
 }

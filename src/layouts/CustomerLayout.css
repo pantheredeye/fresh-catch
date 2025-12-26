@@ -8,15 +8,14 @@
 
 .customer-main {
   flex: 1;
-  width: 100%;
-  max-width: var(--width-lg);
-  margin: 0 auto;
-  padding: var(--space-lg) var(--space-md);
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .customer-main {
-    padding: var(--space-md) var(--space-sm);
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-md);
   }
 }

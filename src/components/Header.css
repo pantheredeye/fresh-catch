@@ -11,9 +11,6 @@
 }
 
 .unified-header__content {
-  max-width: var(--width-lg);
-  margin: 0 auto;
-  padding: 0 var(--space-md);
   display: flex;
   align-items: center;
   justify-content: space-between;

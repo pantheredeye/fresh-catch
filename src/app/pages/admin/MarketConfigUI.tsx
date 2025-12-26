@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Container, QuickAction, AddEventButton, SectionHeader, MarketToggle } from "@/design-system";
+import { Button, QuickAction, AddEventButton, SectionHeader, MarketToggle } from "@/design-system";
 import { CompactMarketList, MarketFormModal } from "./components";
 import {
   createMarket,
@@ -97,8 +97,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
   const inactiveMarkets = markets.filter((market) => !market.active);
 
   return (
-    <Container>
-      <div className="config-page">
+    <div className="config-page">
         {/* Header */}
         <div className="config-header">
           <h1 className="config-title">Market Settings</h1>
@@ -244,7 +243,6 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
           onSave={handleSaveMarket}
           market={editingMarket}
         />
-      </div>
-    </Container>
+    </div>
   );
 }

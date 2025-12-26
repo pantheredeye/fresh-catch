@@ -24,7 +24,7 @@ export function Header({
   if (variant === "auth") {
     return (
       <header className="unified-header unified-header--auth">
-        <div className="unified-header__content">
+        <div className="unified-header__content content-wrapper">
           <a href="/" className="unified-header__logo">
             <span className="unified-header__logo-text">Evan's Fresh Catch</span>
           </a>
@@ -37,7 +37,7 @@ export function Header({
   if (variant === "admin") {
     return (
       <header className="unified-header unified-header--admin">
-        <div className="unified-header__content">
+        <div className="unified-header__content content-wrapper">
           <div className="unified-header__left">
             <a href="/" className="unified-header__logo">
               <span className="unified-header__logo-text">
@@ -57,7 +57,7 @@ export function Header({
   // Customer variant (default): logo + Quick Order + UserMenu
   return (
     <header className="unified-header unified-header--customer">
-      <div className="unified-header__content">
+      <div className="unified-header__content content-wrapper">
         <a href="/" className="unified-header__logo">
           <span className="unified-header__logo-text">Evan's Fresh Catch</span>
         </a>

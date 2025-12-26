@@ -60,11 +60,12 @@ export function CustomerHomeUI({
       background: 'var(--warm-white)',
       minHeight: '100vh',
       paddingBottom: '80px', // Space for bottom nav
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden' // Contain 200% background
     }}>
       {/* Mesh Gradient Background */}
       <div style={{
-        position: 'fixed',
+        position: 'absolute',
         top: '-50%',
         right: '-50%',
         width: '200%',

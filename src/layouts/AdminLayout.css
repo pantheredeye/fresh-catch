@@ -45,9 +45,7 @@
 }
 
 .admin-exit-content {
-  max-width: var(--width-lg);
-  margin: 0 auto;
-  padding: 0 var(--space-md);
+  /* Uses .content-wrapper class in component */
 }
 
 .exit-admin-button {
@@ -82,9 +80,7 @@
 }
 
 .admin-nav {
-  max-width: var(--width-lg);
-  margin: 0 auto;
-  padding: 0 var(--space-md) var(--space-md);
+  padding-bottom: var(--space-md);
   display: flex;
   gap: var(--space-sm);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -126,24 +122,17 @@
 
 .admin-main {
   flex: 1;
-  width: 100%;
-  max-width: var(--width-lg);
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-md);
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-  .admin-exit-content {
-    padding: 0 var(--space-sm);
-  }
-
   .exit-admin-button .exit-text {
     display: none;
   }
 
   .admin-nav {
-    padding: 0 var(--space-sm) var(--space-sm);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -153,6 +142,7 @@
   }
 
   .admin-main {
-    padding: var(--space-md) var(--space-sm);
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-md);
   }
 }
