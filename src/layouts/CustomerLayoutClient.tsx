@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import type { User } from "@/db";
 import "./CustomerLayout.css";
 import "@/components/UserMenu.css";
+import "@/design-system/tokens.css";
 
 export function CustomerLayoutClient({
   user,

@@ -2,6 +2,7 @@
 
 import { Header } from "@/components/Header";
 import "./AuthLayout.css";
+import "@/design-system/tokens.css";
 
 export function AuthLayoutClient({
   children,

@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import type { User } from "@/db";
 import "./AdminLayout.css";
 import "@/components/UserMenu.css";
+import "@/design-system/tokens.css";
 
 export function AdminLayoutClient({
   user,
