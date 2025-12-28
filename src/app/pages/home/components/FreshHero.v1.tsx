@@ -14,7 +14,7 @@ interface FreshHeroProps {
  * Ocean gradient background with glassmorphic cards for premium feel.
  * Grid layout for easy scanning of available fish.
  */
-export function FreshHero({ freshCatch }: FreshHeroProps) {
+export function FreshHeroV1({ freshCatch }: FreshHeroProps) {
   return (
     <div style={{
       width: 'calc(100% - var(--space-md) * 2)',

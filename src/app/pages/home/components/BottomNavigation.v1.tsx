@@ -10,7 +10,7 @@ import { NavItem } from './NavItem';
  * Floating pill design with glassmorphism for modern aesthetic.
  * Lifts up when footer is visible to prevent overlap.
  */
-export function BottomNavigation() {
+export function BottomNavigationV1() {
   const [footerVisible, setFooterVisible] = useState(false);
 
   useEffect(() => {
