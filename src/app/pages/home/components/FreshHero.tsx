@@ -17,7 +17,7 @@ interface FreshHeroProps {
 export function FreshHero({ freshCatch }: FreshHeroProps) {
   return (
     <div style={{
-      width: '100%',
+      width: 'calc(100% - var(--space-md) * 2)',
       maxWidth: 'var(--width-md)',
       margin: 'var(--space-md) auto',
       borderRadius: 'var(--radius-xl)',

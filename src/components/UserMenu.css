@@ -26,11 +26,10 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 102, 204, 0.04);
+  border: 1.5px solid rgba(0, 102, 204, 0.15);
   border-radius: var(--radius-md);
-  color: var(--color-text-primary);
+  color: var(--deep-navy);
   font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
@@ -38,9 +37,10 @@
 }
 
 .user-menu-trigger:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 102, 204, 0.08);
+  border-color: var(--ocean-blue);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-menu-trigger .user-email {
