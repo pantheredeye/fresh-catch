@@ -57,9 +57,8 @@ export function CustomerHomeUI({
 
   return (
     <div style={{
-      background: 'var(--warm-white)',
+      background: 'var(--page-background)',
       minHeight: '100vh',
-      paddingBottom: '80px', // Space for bottom nav
       position: 'relative',
       overflow: 'hidden' // Contain 200% background
     }}>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Card } from "@/design-system";
+import { Card, NavGrid } from "@/design-system";
+import type { NavGridItem } from "@/design-system";
 import { AppContext } from "@/worker";
 import "./admin.css";
 
@@ -32,6 +33,21 @@ interface AdminDashboardUIProps {
  * NOTE: No Container needed - AdminLayout's content-wrapper handles constraints
  */
 export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
+  const navItems: NavGridItem[] = [
+    {
+      icon: '📍',
+      title: 'Markets',
+      description: 'Manage market locations and schedules',
+      href: '/admin/config'
+    },
+    {
+      icon: '👁️',
+      title: 'View Site',
+      description: 'See what customers see',
+      href: '/'
+    }
+  ]
+
   return (
     <Card variant="centered" maxWidth="800px">
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
@@ -59,29 +75,11 @@ export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
       </div>
 
       {/* Navigation Cards Grid */}
-      <div className="admin-nav-grid">
-        {/* Markets Card */}
-        <a href="/admin/config" className="admin-nav-card">
-          <div className="admin-nav-card__icon">📍</div>
-          <div className="admin-nav-card__content">
-            <h3 className="admin-nav-card__title">Markets</h3>
-            <p className="admin-nav-card__description">
-              Manage market locations and schedules
-            </p>
-          </div>
-        </a>
-
-        {/* View Site Card */}
-        <a href="/" className="admin-nav-card">
-          <div className="admin-nav-card__icon">👁️</div>
-          <div className="admin-nav-card__content">
-            <h3 className="admin-nav-card__title">View Site</h3>
-            <p className="admin-nav-card__description">
-              See what customers see
-            </p>
-          </div>
-        </a>
-      </div>
+      <NavGrid
+        items={navItems}
+        columns={2}
+        variant="detailed"
+      />
 
       {/* Future: More cards will be added here as features arrive */}
       {/* Example: Inventory, Orders, etc. */}

@@ -83,7 +83,7 @@ export function Login({ ctx }: { ctx: any }) {
       setMessage('Verifying authentication...');
       const result = await finishPasskeyLogin(login);
 
-      if (!result.success) {
+      if (!result || !result.success) {
         throw new Error("Login failed. Please check your credentials.");
       }
 
@@ -124,7 +124,7 @@ export function Login({ ctx }: { ctx: any }) {
       setMessage('Finalizing registration...');
       const result = await finishPasskeyRegistration(username, registration);
 
-      if (!result.success) {
+      if (!result || !result.success) {
         throw new Error(`Username '${username}' is already taken. Please try a different username.`);
       }
 
@@ -177,7 +177,7 @@ export function Login({ ctx }: { ctx: any }) {
   };
 
   return (
-    <Container size="sm">
+    <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
           <h1

@@ -9,14 +9,25 @@ import {
 import { TextInput, Button, Container, Card } from "@/design-system";
 
 export function JoinUI({ code, role, roleLabel }: {
-  code: string;
-  role: string;
-  roleLabel: string;
-}) {
+  code?: string;
+  role?: string;
+  roleLabel?: string;
+} = {}) {
+  const [enteredCode, setEnteredCode] = useState("");
   const [username, setUsername] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+
+  // If no code provided via URL, show code entry form
+  if (!code) {
+    return <CodeEntryForm
+      enteredCode={enteredCode}
+      setEnteredCode={setEnteredCode}
+      status={status}
+      message={message}
+    />;
+  }
 
   const handleRegister = async () => {
     if (!username.trim()) {
@@ -214,6 +225,79 @@ export function JoinUI({ code, role, roleLabel }: {
             </a>
           </div>
         )}
+      </Card>
+    </Container>
+  );
+}
+
+function CodeEntryForm({ enteredCode, setEnteredCode, status, message }: {
+  enteredCode: string;
+  setEnteredCode: (code: string) => void;
+  status: string;
+  message: string;
+}) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredCode.trim()) {
+      // Redirect to /join with code parameter for server-side validation
+      window.location.href = `/join?code=${encodeURIComponent(enteredCode.trim())}`;
+    }
+  };
+
+  return (
+    <Container size="sm">
+      <Card variant="centered" maxWidth="450px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+          <h1
+            style={{
+              fontSize: '28px',
+              fontWeight: 700,
+              color: 'var(--deep-navy)',
+              fontFamily: 'var(--font-display)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            Join Fresh Catch Team
+          </h1>
+          <p
+            style={{
+              fontSize: '16px',
+              color: 'var(--cool-gray)',
+              margin: 0,
+              lineHeight: 1.5
+            }}
+          >
+            Enter your invite code to get started
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-md)'
+          }}
+        >
+          <TextInput
+            label="Invite Code"
+            placeholder="Enter your invite code"
+            value={enteredCode}
+            onChange={(e) => setEnteredCode(e.target.value)}
+            required
+            size="lg"
+            helperText="Ask your admin for an invite code"
+          />
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            fullWidth
+          >
+            Continue
+          </Button>
+        </form>
       </Card>
     </Container>
   );

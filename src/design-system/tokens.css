@@ -14,6 +14,7 @@ html, body {
   max-width: 100vw;
   margin: 0;
   padding: 0;
+  background: var(--page-background);
 }
 
 /* Content Width Constraint - Single Source of Truth */
@@ -52,8 +53,10 @@ html, body {
   --light-gray: #F1F5F9;        /* WHY: Subtle backgrounds that don't compete */
   
   /* Adaptive Surface Colors - Dark Mode Compatible */
+  --page-background: var(--warm-white);  /* Page background */
   --surface-primary: white;     /* Cards, main surfaces - adapts in dark mode */
   --surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03)); /* Favorite cards with mint tint */
+  --footer-background: linear-gradient(135deg, rgba(0,102,204,0.03), rgba(0,169,150,0.03)); /* Footer gradient */
   
   /* Glass Effects - Modern Premium Feel */
   /* WHY: Glassmorphism feels Instagram-ready and premium like high-end seafood markets */
@@ -241,7 +244,16 @@ SPECIAL TOUCHES:
 /* Dark Mode Overrides */
 @media (prefers-color-scheme: dark) {
   :root {
+    --page-background: #111827;  /* Dark page background */
     --surface-primary: #1f2937;  /* Dark surface that's lighter than black background */
     --surface-favorite: #1f2937; /* No gradient in dark mode - just solid surface */
+    --footer-background: linear-gradient(135deg, rgba(0,102,204,0.08), rgba(0,169,150,0.08)); /* Stronger gradient for dark mode */
+
+    /* Glass effects - dark glass for dark mode */
+    --glass-white: rgba(31, 41, 55, 0.8);  /* Dark glass instead of light */
+
+    /* Text only - light text for dark backgrounds */
+    --deep-navy: #E2E8F0;
+    --cool-gray: #94A3B8;
   }
 }

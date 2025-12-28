@@ -16,6 +16,8 @@ export { Badge, NotificationBadge } from './components/Badge'
 export { FreshHero, FreshGrid, FreshItem } from './components/FreshHero'
 export { LoginForm } from './components/LoginForm'
 export { SectionHeader, DateHeader } from './components/SectionHeader'
+export { NavGrid } from './components/NavGrid'
+export type { NavGridItem } from './components/NavGrid'
 
 // Form & Input Components
 export {

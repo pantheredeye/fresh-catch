@@ -19,8 +19,7 @@ export const Document: React.FC<{ children: React.ReactNode }> = ({
       color: 'var(--dark)',
       lineHeight: 1.6,
       margin: 0,
-      padding: 0,
-      paddingBottom: '80px'
+      padding: 0
     }}>
       <div id="root">{children}</div>
       <script>import("/src/client.tsx")</script>

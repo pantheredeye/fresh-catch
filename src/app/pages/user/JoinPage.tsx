@@ -1,16 +1,19 @@
 import { RequestInfo } from "rwsdk/worker";
 import { JoinUI } from "./JoinUI";
 import { env } from "cloudflare:workers";
-import { Container, Card, Button } from "@/design-system";
+import { Container, Card } from "@/design-system";
 
 export function JoinPage(requestInfo: RequestInfo) {
   const url = new URL(requestInfo.request.url);
   const code = url.searchParams.get('code');
 
+  // If no code, show code entry form
+  if (!code) {
+    return <JoinUI />;
+  }
+
   // Server-side validation
-  const isValidCode = code && (
-    code === env.ADMIN_CODE || code === env.MANAGER_CODE
-  );
+  const isValidCode = code === env.ADMIN_CODE || code === env.MANAGER_CODE;
 
   if (!isValidCode) {
     return <InvalidCodeError />;
@@ -40,12 +43,21 @@ function InvalidCodeError() {
           }}>
             The invite code in your URL is invalid or missing.
           </p>
-          <Button
-            variant="primary"
-            onClick={() => window.location.href = '/login'}
+          <a
+            href="/login"
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: 'var(--ocean-blue)',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 600,
+              fontSize: '16px'
+            }}
           >
             Go to Login
-          </Button>
+          </a>
         </div>
       </Card>
     </Container>

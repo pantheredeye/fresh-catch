@@ -46,6 +46,6 @@
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .auth-layout {
-    padding: var(--space-md);
+    padding: 0;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, ReactNode } from "react";
+import { forwardRef, ReactNode, useId } from "react";
 
 // Base Input Types
 export interface BaseInputProps {
@@ -10,6 +10,7 @@ export interface BaseInputProps {
   disabled?: boolean;
   className?: string;
   helperText?: string;
+  style?: React.CSSProperties;
 }
 
 // Text Input
@@ -47,9 +48,10 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(({
   onFocus,
   icon,
   size = 'md',
+  style,
   ...props
 }, ref) => {
-  const inputId = `input-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = useId();
 
   return (
     <div className={`input-group ${className}`} style={inputGroupStyles}>
@@ -79,7 +81,8 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(({
             ...sizeStyles[size],
             ...(icon ? { paddingLeft: '44px' } : {}),
             ...(error ? errorInputStyles : {}),
-            ...(disabled ? disabledStyles : {})
+            ...(disabled ? disabledStyles : {}),
+            ...style
           }}
           {...props}
         />
@@ -127,7 +130,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
   resize = 'vertical',
   ...props
 }, ref) => {
-  const inputId = `textarea-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = useId();
 
   return (
     <div className={`input-group ${className}`} style={inputGroupStyles}>
@@ -291,19 +294,6 @@ const inputBaseStyles: React.CSSProperties = {
   fontFamily: 'var(--font-modern)',
   transition: 'all 0.3s ease',
   outline: 'none',
-
-  // Focus states
-  ':focus': {
-    borderColor: 'var(--ocean-blue)',
-    boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
-    background: 'white',
-  },
-
-  // Placeholder
-  '::placeholder': {
-    color: 'var(--cool-gray)',
-    opacity: 0.7,
-  },
 };
 
 const sizeStyles = {
@@ -336,7 +326,7 @@ const errorInputStyles: React.CSSProperties = {
 const disabledStyles: React.CSSProperties = {
   opacity: 0.6,
   cursor: 'not-allowed',
-  backgroundColor: '#f8f8f8',
+  background: '#f8f8f8',
 };
 
 const errorTextStyles: React.CSSProperties = {

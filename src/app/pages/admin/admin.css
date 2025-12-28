@@ -28,7 +28,6 @@
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-lg);
-  background: white;
   background: var(--surface-primary);
   border: 2px solid rgba(0, 102, 204, 0.1);
   border-radius: var(--radius-md);
@@ -43,7 +42,6 @@
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: var(--ocean-blue);
-  background: linear-gradient(135deg, white, rgba(0,102,204,0.02));
 }
 
 .admin-nav-card:active {

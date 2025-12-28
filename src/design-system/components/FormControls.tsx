@@ -395,12 +395,6 @@ const selectBaseStyles: React.CSSProperties = {
   appearance: 'none',
   cursor: 'pointer',
   paddingRight: '40px',
-
-  ':focus': {
-    borderColor: 'var(--ocean-blue)',
-    boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
-    background: 'white',
-  },
 };
 
 const selectArrowStyles: React.CSSProperties = {
