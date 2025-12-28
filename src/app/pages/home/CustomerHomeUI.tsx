@@ -7,7 +7,6 @@ import {
   LiveBanner,
   FreshHero,
   MarketCard,
-  QuickActions,
   BottomNavigation
 } from "./components";
 
@@ -82,7 +81,7 @@ export function CustomerHomeUI({
       <LiveBanner />
 
       {/* Fresh Hero Section */}
-      <FreshHero freshCatch={freshCatch} />
+      <FreshHero freshCatch={freshCatch} actions={quickActions} />
 
       {/* Your Markets Section - Only show if user has favorites */}
       {favoriteMarkets.length > 0 && (
@@ -101,9 +100,6 @@ export function CustomerHomeUI({
         onToggleFavorite={toggleFavorite}
         ctx={ctx}
       />
-
-      {/* Quick Actions */}
-      <QuickActions actions={quickActions} />
 
       {/* Bottom Navigation */}
       <BottomNavigation />
