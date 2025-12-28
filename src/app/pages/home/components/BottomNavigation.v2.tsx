@@ -44,29 +44,29 @@ export function BottomNavigationV2() {
         justifyContent: 'space-around',
         alignItems: 'center',
         padding: 'var(--space-sm)',
-        gap: 'var(--space-xs)'
+        gap: 'var(--space-sm)'
       }}>
         <NavItem label="Home" active />
 
-        {/* Quick Order - Prominent CTA */}
-        <button style={{
-          background: 'var(--ocean-blue)',
+        {/* Quick Order - Matches header button style */}
+        <a href="#quick-order" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: 'var(--space-xs) var(--space-md)',
+          background: 'var(--coral-gradient)',
           color: 'white',
-          border: 'none',
           borderRadius: 'var(--radius-full)',
-          padding: 'var(--space-sm) var(--space-lg)',
-          fontWeight: 600,
           fontSize: '15px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,102,204,0.3)',
+          fontWeight: 600,
+          textDecoration: 'none',
+          boxShadow: 'var(--shadow-coral)',
           transition: 'all 0.2s ease',
-          flex: '1',
-          maxWidth: '140px'
+          border: 'none',
+          cursor: 'pointer'
         }}>
-          🛒 Quick Order
-        </button>
+          + Quick Order
+        </a>
 
-        <NavItem label="Markets" />
         <NavItem label="More" />
       </div>
     </nav>

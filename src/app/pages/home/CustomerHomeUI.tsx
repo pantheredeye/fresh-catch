@@ -81,7 +81,7 @@ export function CustomerHomeUI({
       <LiveBanner />
 
       {/* Fresh Hero Section */}
-      <FreshHero freshCatch={freshCatch} actions={quickActions} />
+      <FreshHero actions={quickActions} />
 
       {/* Your Markets Section - Only show if user has favorites */}
       {favoriteMarkets.length > 0 && (
