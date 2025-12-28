@@ -32,7 +32,7 @@ export function BottomNavigation() {
       bottom: footerVisible ? '100px' : 'var(--space-md)',
       left: 'var(--space-md)',
       right: 'var(--space-md)',
-      background: 'white',
+      background: 'var(--surface-primary)',
       borderRadius: 'var(--radius-full)',
       boxShadow: 'var(--shadow-lg)',
       zIndex: 200,

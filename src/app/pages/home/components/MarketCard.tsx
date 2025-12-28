@@ -33,7 +33,7 @@ export function MarketCard({
 
   return (
     <div style={{
-      background: isFavorite ? 'var(--surface-favorite)' : 'white',
+      background: isFavorite ? 'var(--surface-favorite)' : 'var(--surface-primary)',
       borderRadius: 'var(--radius-lg)',
       padding: 'var(--space-lg)',
       marginBottom: 'var(--space-md)',

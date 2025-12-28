@@ -173,7 +173,7 @@ export function MarketFormModal({
   const inputFocusStyle: React.CSSProperties = {
     borderColor: 'var(--ocean-blue)',
     boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
-    background: 'white',
+    background: 'var(--surface-primary)',
     outline: 'none'
   }
 

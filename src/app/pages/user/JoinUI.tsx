@@ -98,7 +98,7 @@ export function JoinUI({ code, role, roleLabel }: {
   };
 
   return (
-    <Container size="sm">
+    <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
           <h1
@@ -245,7 +245,7 @@ function CodeEntryForm({ enteredCode, setEnteredCode, status, message }: {
   };
 
   return (
-    <Container size="sm">
+    <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
           <h1

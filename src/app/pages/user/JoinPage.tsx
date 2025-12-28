@@ -27,7 +27,7 @@ export function JoinPage(requestInfo: RequestInfo) {
 
 function InvalidCodeError() {
   return (
-    <Container size="sm">
+    <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
         <div style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>
           <h1 style={{
