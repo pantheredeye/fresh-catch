@@ -275,6 +275,22 @@ import { MarketCard } from '@/app/pages/home/components'  // NO!
 Visit `/design-test` to see all design system primitives.
 Page-specific components are tested on their actual pages.
 
+### Component Variants Pattern
+
+For A/B testing or preserving alternate designs:
+- File naming: `Component.v1.tsx`, `Component.v2.tsx`
+- Export naming: `ComponentV1`, `ComponentV2`
+- Swap in barrel export: `export { ComponentV2 as Component } from './Component.v2'`
+- No runtime feature flags - swap in code, one line change
+- Delete old variants when decision made
+
+**Example:**
+```tsx
+// index.ts - single source of truth
+export { FreshHeroV2 as FreshHero } from './FreshHero.v2';  // Change to .v1 to revert
+export { BottomNavigationV2 as BottomNavigation } from './BottomNavigation.v2';
+```
+
 ### Design System Tokens
 - **Master Design Reference**: `@src/design-system/patterns.md` contains the complete design system
 - Extract CSS custom properties as design tokens for consistency
