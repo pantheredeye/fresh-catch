@@ -3,18 +3,21 @@
 import { useState, useEffect } from "react";
 import { startRegistration } from "@simplewebauthn/browser";
 import {
+  addMembershipWithJoinCode,
   finishJoinCodeRegistration,
   startPasskeyRegistration,
 } from "./functions";
 import { TextInput, Button, Container, Card } from "@/design-system";
 
-export function JoinUI({ code, role, roleLabel }: {
+export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
   code?: string;
   role?: string;
   roleLabel?: string;
+  isLoggedIn?: boolean;
 } = {}) {
   const [enteredCode, setEnteredCode] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
@@ -29,10 +32,21 @@ export function JoinUI({ code, role, roleLabel }: {
     />;
   }
 
+  // If logged in with valid code, show confirmation to add membership
+  if (isLoggedIn && code && role && roleLabel) {
+    return <AddMembershipConfirm code={code} role={role} roleLabel={roleLabel} />;
+  }
+
   const handleRegister = async () => {
     if (!username.trim()) {
       setStatus('error');
       setMessage('Please enter a username');
+      return;
+    }
+
+    if (!email.trim() || !email.includes('@')) {
+      setStatus('error');
+      setMessage('Please enter a valid email');
       return;
     }
 
@@ -50,7 +64,7 @@ export function JoinUI({ code, role, roleLabel }: {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing registration...');
-      const result = await finishJoinCodeRegistration(username, code, registration);
+      const result = await finishJoinCodeRegistration(username, email, code, registration);
 
       if (!result.success) {
         throw new Error(`Username '${username}' is already taken or registration failed.`);
@@ -155,6 +169,18 @@ export function JoinUI({ code, role, roleLabel }: {
             required
             disabled={status === 'loading' || status === 'success'}
             size="lg"
+          />
+
+          <TextInput
+            label="Email"
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={status === 'loading' || status === 'success'}
+            size="lg"
+            helperText="For order notifications and account recovery"
           />
 
           <Button
@@ -298,6 +324,178 @@ function CodeEntryForm({ enteredCode, setEnteredCode, status, message }: {
             Continue
           </Button>
         </form>
+      </Card>
+    </Container>
+  );
+}
+
+function AddMembershipConfirm({ code, role, roleLabel }: {
+  code: string;
+  role: string;
+  roleLabel: string;
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState("");
+  const [countdown, setCountdown] = useState(0);
+
+  const handleAddMembership = async () => {
+    setStatus('loading');
+    setMessage('Adding you to Fresh Catch team...');
+
+    try {
+      const result = await addMembershipWithJoinCode(code);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to add membership");
+      }
+
+      setStatus('success');
+      setMessage(`Success! You're now a ${roleLabel} at Fresh Catch.`);
+      setCountdown(3);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : "Failed to add membership. Please try again.");
+    }
+  };
+
+  // Countdown and redirect on success
+  useEffect(() => {
+    if (status === 'success' && countdown > 0) {
+      const timer = setTimeout(() => {
+        if (countdown === 1) {
+          window.location.href = '/admin';
+        } else {
+          setCountdown(countdown - 1);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [status, countdown]);
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'success': return 'var(--mint-green)';
+      case 'error': return 'var(--coral)';
+      case 'loading': return 'var(--sky-blue)';
+      default: return 'var(--soft-gray)';
+    }
+  };
+
+  const getStatusTextColor = () => {
+    switch (status) {
+      case 'success': return 'var(--deep-navy)';
+      case 'error': return 'white';
+      case 'loading': return 'var(--deep-navy)';
+      default: return 'var(--deep-navy)';
+    }
+  };
+
+  return (
+    <Container size="sm">
+      <Card variant="centered" maxWidth="450px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+          <h1
+            style={{
+              fontSize: '28px',
+              fontWeight: 700,
+              color: 'var(--deep-navy)',
+              fontFamily: 'var(--font-display)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            Join Fresh Catch Team
+          </h1>
+          <div style={{
+            display: 'inline-block',
+            padding: '6px 14px',
+            background: 'var(--mint-green)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--deep-navy)',
+            marginBottom: 'var(--space-sm)'
+          }}>
+            {roleLabel}
+          </div>
+          <p
+            style={{
+              fontSize: '16px',
+              color: 'var(--cool-gray)',
+              margin: 0,
+              lineHeight: 1.5
+            }}
+          >
+            Your invite code has been verified. Click below to become a {roleLabel}.
+          </p>
+        </div>
+
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          onClick={handleAddMembership}
+          disabled={status === 'loading' || status === 'success'}
+        >
+          {status === 'loading' ? 'Adding...' :
+           status === 'success' ? '✓ Success' :
+           `Join as ${roleLabel}`}
+        </Button>
+
+        {/* Status Message */}
+        {message && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
+              padding: 'var(--space-md)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '14px',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-xs)',
+              background: getStatusColor(),
+              color: getStatusTextColor(),
+              border: `1px solid ${getStatusColor()}`
+            }}
+          >
+            {status === 'loading' && (
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid currentColor',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}
+              />
+            )}
+            <span>
+              {message}
+              {status === 'success' && countdown > 0 && (
+                <> Redirecting in {countdown}...</>
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Success Link */}
+        {status === 'success' && (
+          <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+            <a
+              href="/admin"
+              style={{
+                color: 'var(--ocean-blue)',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 500
+              }}
+            >
+              Go to dashboard now →
+            </a>
+          </div>
+        )}
       </Card>
     </Container>
   );

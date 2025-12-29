@@ -15,10 +15,10 @@ const MOCK_FRESH_CATCH = [
 ];
 
 const MOCK_QUICK_ACTIONS = [
-  { icon: "📅", title: "All Markets", href: "#markets" },
-  { icon: "🍳", title: "Recipes", href: "#recipes" },
-  { icon: "💬", title: "Text Evan", href: "#text" },
-  { icon: "📞", title: "Call", href: "#call" }
+  { icon: "🐟", title: "Quick Order", href: "/orders/new" },
+  { icon: "📋", title: "My Orders", href: "/orders" },
+  { icon: "📍", title: "Markets", href: "#markets" },
+  { icon: "💬", title: "Contact", href: "#text" }
 ];
 
 /**

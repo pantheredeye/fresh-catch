@@ -23,8 +23,10 @@
   "vars": {
     "WEBAUTHN_APP_NAME": "fresh-catch-evan-prod",
     "WEBAUTHN_RP_ID": "evan.digitalglue.dev",
-    "ADMIN_CODE": "seafood-owner-2024",
-    "MANAGER_CODE": "seafood-manager-2024"
+    "ADMIN_CODE": "seafood-owner-2025",
+    "MANAGER_CODE": "seafood-manager-2025",
+    "RESEND_API_KEY": "",
+    "ADMIN_EMAIL": "barrett@digitalglue.dev"
   },
   "migrations": [
     {

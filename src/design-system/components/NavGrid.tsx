@@ -35,10 +35,12 @@ export function NavGrid({ items, columns = 2, variant = 'compact' }: NavGridProp
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        gridTemplateColumns: '1fr',
         gap: 'var(--space-md)',
         width: '100%'
       }}
+      className="nav-grid"
+      data-columns={columns}
     >
       {items.map((item, index) => (
         <a

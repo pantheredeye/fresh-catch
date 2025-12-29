@@ -19,7 +19,7 @@ interface ContainerProps {
  * - xl (1400px): Wide layouts, data tables
  *
  * BEHAVIOR:
- * - Mobile: Full width with padding (responsive)
+ * - Mobile: Minimal padding (8px) for max usable space
  * - Desktop: Max-width centered to prevent stretching
  */
 export function Container({
@@ -38,7 +38,7 @@ export function Container({
   const style: CSSProperties = {
     maxWidth,
     margin: '0 auto',
-    padding: noPadding ? '0' : 'var(--space-md)',
+    padding: noPadding ? '0' : 'var(--space-xs)',
     width: '100%',
     minWidth: '0' // Prevents flex/grid from enforcing min-width
   }

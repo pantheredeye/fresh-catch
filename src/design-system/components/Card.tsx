@@ -36,7 +36,7 @@ export function Card({
       ? 'var(--surface-favorite)'
       : 'var(--surface-primary)',
     borderRadius: 'var(--radius-lg)',
-    padding: variant === 'centered' ? 'var(--space-xl)' : 'var(--space-lg)',
+    padding: variant === 'centered' ? 'var(--space-md)' : 'var(--space-lg)',
     marginBottom: variant === 'default' ? 'var(--space-md)' : '0',
     boxShadow: variant === 'centered' ? 'var(--shadow-lg)' : 'var(--shadow-md)',
     border: '1px solid rgba(100, 116, 139, 0.1)',
@@ -55,7 +55,7 @@ export function Card({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 'var(--space-lg)'
+          padding: 'var(--space-sm)'
         }
       : {}
 

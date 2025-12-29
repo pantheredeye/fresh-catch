@@ -29,8 +29,8 @@ html, body {
 
 @media (max-width: 768px) {
   .content-wrapper {
-    padding-left: var(--space-sm);
-    padding-right: var(--space-sm);
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
   }
 }
 
@@ -241,6 +241,30 @@ SPECIAL TOUCHES:
 - Handwriting font for "Evan's notes"
 */
 
+/* NavGrid Responsive Layout */
+/* Mobile: Stack vertically, Medium+: Use column count */
+.nav-grid {
+  grid-template-columns: 1fr !important;
+}
+
+@media (min-width: 768px) {
+  .nav-grid[data-columns="2"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .nav-grid[data-columns="3"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Input Placeholder Styling - Contrast System */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--cool-gray);
+  opacity: 1;
+}
+
 /* Dark Mode Overrides */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -255,5 +279,13 @@ SPECIAL TOUCHES:
     /* Text only - light text for dark backgrounds */
     --deep-navy: #E2E8F0;
     --cool-gray: #94A3B8;
+  }
+
+  /* Placeholder text visibility in dark mode */
+  input::placeholder,
+  textarea::placeholder,
+  select::placeholder {
+    color: var(--cool-gray);
+    opacity: 0.7;
   }
 }

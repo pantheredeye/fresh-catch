@@ -30,12 +30,15 @@
     "@base-ui/react": "^1.0.0",
     "@prisma/adapter-d1": "~6.8.2",
     "@prisma/client": "~6.8.2",
+    "@react-email/components": "^1.0.2",
     "@simplewebauthn/browser": "^13.1.0",
     "@simplewebauthn/server": "^13.1.1",
     "capnweb": "~0.2.0",
     "react": "19.3.0-canary-06fcc8f3-20251009",
     "react-dom": "19.3.0-canary-06fcc8f3-20251009",
+    "react-email": "^5.1.0",
     "react-server-dom-webpack": "19.3.0-canary-06fcc8f3-20251009",
+    "resend": "^6.6.0",
     "rwsdk": "1.0.0-beta.42"
   },
   "devDependencies": {

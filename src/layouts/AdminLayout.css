@@ -142,7 +142,7 @@
   }
 
   .admin-main {
-    padding-top: var(--space-md);
-    padding-bottom: var(--space-md);
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
   }
 }

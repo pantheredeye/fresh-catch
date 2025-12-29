@@ -53,6 +53,7 @@ const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
  */
 export function Login({ ctx }: { ctx: any }) {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
@@ -108,6 +109,12 @@ export function Login({ ctx }: { ctx: any }) {
       return;
     }
 
+    if (!email.trim() || !email.includes('@')) {
+      setStatus('error');
+      setMessage('Please enter a valid email');
+      return;
+    }
+
     setStatus('loading');
     setMessage('Creating your account...');
 
@@ -122,7 +129,7 @@ export function Login({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing registration...');
-      const result = await finishPasskeyRegistration(username, registration);
+      const result = await finishPasskeyRegistration(username, email, registration);
 
       if (!result || !result.success) {
         throw new Error(`Username '${username}' is already taken. Please try a different username.`);
@@ -226,6 +233,20 @@ export function Login({ ctx }: { ctx: any }) {
               disabled={status === 'loading' || status === 'success'}
               size="lg"
             />
+
+            {mode === 'register' && (
+              <TextInput
+                label="Email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={status === 'loading' || status === 'success'}
+                size="lg"
+                helperText="For order confirmations and account recovery"
+              />
+            )}
 
             <Button
               type="submit"

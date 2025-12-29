@@ -62,6 +62,7 @@ export async function startPasskeyLogin() {
 
 export async function finishPasskeyRegistration(
   username: string,
+  email: string,
   registration: RegistrationResponseJSON,
 ) {
   const { request, response } = requestInfo;
@@ -100,6 +101,9 @@ export async function finishPasskeyRegistration(
   const user = await db.user.create({
     data: {
       username,
+      email: email,
+      name: username,
+      phone: null,
     },
   });
 
@@ -147,16 +151,16 @@ export async function finishPasskeyRegistration(
     });
   }
 
-  // Auto-login: Create session with user context
+  // Auto-login: Create session with Fresh Catch business context
   await sessions.save(response.headers, {
     userId: user.id,
-    currentOrganizationId: customerOrg.id,
-    role: "owner",
+    currentOrganizationId: evanBusiness?.id || customerOrg.id,  // Fresh Catch business, or fallback to personal org
+    role: "customer",  // Customer role at Fresh Catch
   });
 
   console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
 
-  // Customers are NOT admins (they're owner of individual org, not business org)
+  // Customers are NOT admins (they're customers of business org, not owners)
   return { success: true, isAdmin: false };
 }
 
@@ -249,8 +253,81 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
   return { success: true, isAdmin };
 }
 
+export async function addMembershipWithJoinCode(code: string) {
+  const { ctx, response } = requestInfo;
+
+  // Must be logged in
+  if (!ctx.user) {
+    return { success: false, error: "You must be logged in" };
+  }
+
+  // Validate code & determine role
+  const role = code === env.ADMIN_CODE ? "owner" :
+               code === env.MANAGER_CODE ? "manager" : null;
+  if (!role) {
+    return { success: false, error: "Invalid join code" };
+  }
+
+  // Find Fresh Catch organization
+  const freshCatchOrg = await db.organization.findFirst({
+    where: { name: "Fresh Catch Seafood Markets" },
+  });
+
+  if (!freshCatchOrg) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  // Check if already a member
+  const existingMembership = await db.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: ctx.user.id,
+        organizationId: freshCatchOrg.id,
+      },
+    },
+  });
+
+  if (existingMembership) {
+    // Already a member - update role if different
+    if (existingMembership.role !== role) {
+      await db.membership.update({
+        where: {
+          userId_organizationId: {
+            userId: ctx.user.id,
+            organizationId: freshCatchOrg.id,
+          },
+        },
+        data: { role },
+      });
+      console.log(`✅ Updated ${ctx.user.username}'s role to ${role}`);
+    } else {
+      console.log(`User ${ctx.user.username} already has ${role} role`);
+    }
+  } else {
+    // Add new membership
+    await db.membership.create({
+      data: {
+        userId: ctx.user.id,
+        organizationId: freshCatchOrg.id,
+        role: role,
+      },
+    });
+    console.log(`✅ Added ${ctx.user.username} as ${role}`);
+  }
+
+  // Update session to Fresh Catch org context
+  await sessions.save(response.headers, {
+    userId: ctx.user.id,
+    currentOrganizationId: freshCatchOrg.id,
+    role: role,
+  });
+
+  return { success: true, role };
+}
+
 export async function finishJoinCodeRegistration(
   username: string,
+  email: string,
   code: string,
   registration: RegistrationResponseJSON,
 ) {
@@ -292,7 +369,12 @@ export async function finishJoinCodeRegistration(
 
   // 4. Create User + Credential
   const user = await db.user.create({
-    data: { username },
+    data: {
+      username,
+      email: email,
+      name: username,
+      phone: null,
+    },
   });
 
   await db.credential.create({
