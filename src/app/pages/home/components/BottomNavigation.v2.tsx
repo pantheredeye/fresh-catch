@@ -46,7 +46,18 @@ export function BottomNavigationV2() {
         padding: 'var(--space-sm)',
         gap: 'var(--space-sm)'
       }}>
-        <NavItem label="Home" active />
+        <a href="/" style={{
+          padding: 'var(--space-sm) var(--space-md)',
+          textDecoration: 'none',
+          color: 'white',
+          fontSize: '13px',
+          fontWeight: 600,
+          borderRadius: 'var(--radius-full)',
+          background: 'var(--ocean-gradient)',
+          boxShadow: 'var(--shadow-md)'
+        }}>
+          Home
+        </a>
 
         {/* Quick Order - Matches header button style */}
         <a href="#quick-order" style={{
@@ -67,7 +78,19 @@ export function BottomNavigationV2() {
           + Quick Order
         </a>
 
-        <NavItem label="More" />
+        <a href="/profile" style={{
+          padding: 'var(--space-sm) var(--space-md)',
+          textDecoration: 'none',
+          color: 'var(--cool-gray)',
+          fontSize: '13px',
+          fontWeight: 600,
+          borderRadius: 'var(--radius-full)',
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          backdropFilter: 'blur(10px)'
+        }}>
+          Profile
+        </a>
       </div>
     </nav>
   );

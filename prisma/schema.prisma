@@ -24,10 +24,23 @@ datasource db {
 model User {
   id          String      @id @default(uuid()) // User ID (UUID-based)
   username    String      @unique
+  email       String?     // Email for notifications and account recovery
+  name        String?     // Full name for orders
+  phone       String?     // Contact phone
+
+  // Delivery address
+  deliveryStreet String?
+  deliveryCity   String?
+  deliveryState  String?
+  deliveryZip    String?
+  deliveryNotes  String?  // Special instructions
+
+  deletedAt   DateTime?   // Soft delete timestamp
   createdAt   DateTime    @default(now())
 
   credentials Credential[] // Relationship: One user can have many credentials
   memberships Membership[] // Relationship: User can belong to multiple organizations
+  orders      Order[]      // Relationship: User can have many orders
 }
 
 model Credential {
@@ -53,6 +66,7 @@ model Organization {
 
   memberships Membership[] // Relationship: Organization can have multiple members
   markets     Market[]     // Relationship: Organization can have multiple markets
+  orders      Order[]      // Relationship: Organization can have multiple orders
 }
 
 model Market {
@@ -86,4 +100,46 @@ model Membership {
   @@unique([userId, organizationId]) // Prevent duplicate memberships
   @@index([userId])
   @@index([organizationId])
+}
+
+model Order {
+  id             String       @id @default(uuid())
+  orderNumber    Int          // Friendly order number (per org, app-managed)
+  userId         String
+  organizationId String
+
+  // Contact snapshot (captured at order time)
+  contactName    String
+  contactEmail   String?
+  contactPhone   String?
+
+  // Order details
+  items          String       // Free-form text describing items
+  preferredDate  DateTime?    // Customer's preferred pickup date
+  notes          String?      // Customer notes
+
+  // Admin fields
+  status         String       @default("pending") // pending | confirmed | completed | cancelled
+  price          String?      // Admin sets price (e.g., "$45-50" or "Market price")
+  adminNotes     String?      // Internal notes for Evan
+
+  // Payment tracking
+  paymentStatus  String       @default("unpaid") // unpaid | paid | refunded
+  paymentMethod  String?      // "cash" | "venmo" | "zelle" | "card" | etc
+  paymentNotes   String?      // "Venmo: @evan | Paid $45 on 12/29"
+  paidAt         DateTime?    // When payment was marked as received
+
+  // Timestamps
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([orderNumber])
 }

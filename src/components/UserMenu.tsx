@@ -41,15 +41,9 @@ export function UserMenu({
           <Menu.Popup className="user-menu-popup glass-card">
             <Menu.Item
               className="user-menu-item"
-              render={<a href="/account" />}
+              render={<a href="/profile" />}
             >
-              My Account
-            </Menu.Item>
-            <Menu.Item
-              className="user-menu-item"
-              render={<a href="/favorites" />}
-            >
-              Favorites
+              Profile
             </Menu.Item>
             <Menu.Item
               className="user-menu-item"

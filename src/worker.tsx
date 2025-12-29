@@ -8,6 +8,8 @@ import { DesignTest } from "@/app/pages/DesignTest";
 import { setCommonHeaders } from "@/app/headers";
 import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
+import { orderRoutes } from "@/app/pages/orders/routes";
+import { profileRoutes } from "@/app/pages/profile/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -74,6 +76,17 @@ export default defineApp([
         },
       });
 
+      // Check if user is soft deleted
+      if (ctx.user?.deletedAt) {
+        await sessions.remove(request, response.headers);
+        response.headers.set("Location", "/");
+
+        return new Response(null, {
+          status: 302,
+          headers: response.headers,
+        });
+      }
+
       // If session lacks organization context, set it from user's memberships
       if (ctx.user && ctx.user.memberships.length > 0 && !ctx.session.currentOrganizationId) {
         // Default to first membership (could be enhanced with user preference later)
@@ -134,6 +147,12 @@ export default defineApp([
         Home,
       ]),
     ]),
+
+    // Order routes with customer layout
+    prefix("/orders", layout(CustomerLayout, orderRoutes)),
+
+    // Profile routes with customer layout
+    prefix("/profile", layout(CustomerLayout, profileRoutes)),
 
     // Admin routes with admin header + nav
     prefix("/admin", layout(AdminLayout, adminRoutes)),
