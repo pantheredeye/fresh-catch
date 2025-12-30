@@ -7,6 +7,7 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 import {
+  checkEmailExists,
   finishPasskeyLogin,
   finishPasskeyRegistration,
   startPasskeyLogin,
@@ -53,12 +54,43 @@ const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
  */
 export function Login({ ctx }: { ctx: any }) {
   const [email, setEmail] = useState("");
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [flow, setFlow] = useState<'initial' | 'login' | 'register' | 'confirm-register'>('initial');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
 
   const [redirectUrl, setRedirectUrl] = useState('/');
+
+  const handleContinue = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      setStatus('error');
+      setMessage('Please enter a valid email');
+      return;
+    }
+
+    setStatus('loading');
+    setMessage('Checking account...');
+
+    try {
+      const result = await checkEmailExists(email);
+
+      if (result.exists) {
+        // Existing user - proceed to login
+        setFlow('login');
+        setStatus('idle');
+        setMessage('');
+        handleLogin();
+      } else {
+        // New user - ask if they want to create account
+        setFlow('confirm-register');
+        setStatus('idle');
+        setMessage('');
+      }
+    } catch (error) {
+      setStatus('error');
+      setMessage('Unable to check account. Please try again.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !email.includes('@')) {
@@ -189,7 +221,10 @@ export function Login({ ctx }: { ctx: any }) {
               margin: '0 0 var(--space-xs) 0'
             }}
           >
-            {mode === 'login' ? 'Welcome Back' : 'Join Us'}
+            {flow === 'confirm-register' ? 'Create Account' :
+             flow === 'register' ? 'Create Account' :
+             flow === 'login' ? 'Welcome Back' :
+             'Welcome'}
           </h1>
           <p
             style={{
@@ -199,24 +234,74 @@ export function Login({ ctx }: { ctx: any }) {
               lineHeight: 1.5
             }}
           >
-            {mode === 'login'
+            {flow === 'confirm-register'
+              ? `Create a new account with ${BUSINESS_CONTEXT}`
+              : flow === 'register'
+              ? `Create your account with ${BUSINESS_CONTEXT}`
+              : flow === 'login'
               ? `Sign in to ${BUSINESS_CONTEXT}`
-              : `Create your account with ${BUSINESS_CONTEXT}`
+              : `Sign in or create an account`
             }
           </p>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            mode === 'login' ? handleLogin() : handleRegister();
-          }}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-md)'
-          }}
-        >
+        {flow === 'confirm-register' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div
+              style={{
+                padding: 'var(--space-md)',
+                background: 'var(--sky-blue)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '14px',
+                color: 'var(--deep-navy)',
+                textAlign: 'center'
+              }}
+            >
+              No account found for <strong>{email}</strong>
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--cool-gray)', textAlign: 'center', margin: 0 }}>
+              Would you like to create a new account?
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onClick={() => {
+                  setFlow('initial');
+                  setEmail('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onClick={handleRegister}
+              >
+                Create Account
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (flow === 'initial') {
+                handleContinue();
+              } else if (flow === 'login') {
+                handleLogin();
+              } else {
+                handleRegister();
+              }
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-md)'
+            }}
+          >
             <TextInput
               label="Email"
               type="email"
@@ -235,41 +320,76 @@ export function Login({ ctx }: { ctx: any }) {
               fullWidth
               disabled={status === 'loading' || status === 'success'}
             >
-              {status === 'loading' ? (mode === 'login' ? 'Signing in...' : 'Creating Account...') :
+              {status === 'loading' ? (flow === 'login' ? 'Signing in...' : flow === 'register' ? 'Creating Account...' : 'Checking...') :
                status === 'success' ? '✓ Success' :
-               mode === 'login' ? 'Sign In with Passkey' : 'Create Account with Passkey'}
-          </Button>
-        </form>
+               flow === 'initial' ? 'Continue' :
+               flow === 'login' ? 'Sign In with Passkey' :
+               'Create Account with Passkey'}
+            </Button>
+          </form>
+        )}
 
-        {/* Mode Toggle */}
-        <div
-          style={{
-            marginTop: 'var(--space-md)',
-            textAlign: 'center',
-            paddingTop: 'var(--space-md)',
-            borderTop: '1px solid rgba(100, 116, 139, 0.1)'
-          }}
-        >
-          <button
-            onClick={() => {
-              setMode(mode === 'login' ? 'register' : 'login');
-              setStatus('idle');
-              setMessage('');
-            }}
-            disabled={status === 'loading' || status === 'success'}
+        {/* Manual Toggle - for users who prefer explicit choice */}
+        {flow === 'initial' && (
+          <div
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--ocean-blue)',
-              fontSize: '14px',
-              textDecoration: 'underline',
-              cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
-              fontFamily: 'var(--font-display)'
+              marginTop: 'var(--space-md)',
+              textAlign: 'center',
+              paddingTop: 'var(--space-md)',
+              borderTop: '1px solid rgba(100, 116, 139, 0.1)'
             }}
           >
-            {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </button>
-        </div>
+            <button
+              onClick={() => {
+                setFlow('register');
+                setStatus('idle');
+                setMessage('');
+              }}
+              disabled={status === 'loading' || status === 'success'}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--ocean-blue)',
+                fontSize: '14px',
+                textDecoration: 'underline',
+                cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-display)'
+              }}
+            >
+              I want to create a new account
+            </button>
+          </div>
+        )}
+        {(flow === 'register' || flow === 'confirm-register') && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
+              textAlign: 'center',
+              paddingTop: 'var(--space-md)',
+              borderTop: '1px solid rgba(100, 116, 139, 0.1)'
+            }}
+          >
+            <button
+              onClick={() => {
+                setFlow('initial');
+                setStatus('idle');
+                setMessage('');
+              }}
+              disabled={status === 'loading' || status === 'success'}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--ocean-blue)',
+                fontSize: '14px',
+                textDecoration: 'underline',
+                cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-display)'
+              }}
+            >
+              Back to sign in
+            </button>
+          </div>
+        )}
 
         {/* Status Message */}
         {message && (

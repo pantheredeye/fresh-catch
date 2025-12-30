@@ -45,6 +45,13 @@ export async function startPasskeyRegistration(username: string) {
   return options;
 }
 
+export async function checkEmailExists(email: string) {
+  const user = await db.user.findUnique({
+    where: { username: email },
+  });
+  return { exists: !!user };
+}
+
 export async function startPasskeyLogin(email: string) {
   const { rpID } = getWebAuthnConfig(requestInfo.request);
   const { response } = requestInfo;
