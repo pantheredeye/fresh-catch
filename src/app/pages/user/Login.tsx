@@ -52,7 +52,6 @@ const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
  *    - Rationale: Takes users directly to their relevant destination
  */
 export function Login({ ctx }: { ctx: any }) {
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -62,9 +61,9 @@ export function Login({ ctx }: { ctx: any }) {
   const [redirectUrl, setRedirectUrl] = useState('/');
 
   const handleLogin = async () => {
-    if (!username.trim()) {
+    if (!email.trim() || !email.includes('@')) {
       setStatus('error');
-      setMessage('Please enter a username');
+      setMessage('Please enter a valid email');
       return;
     }
 
@@ -74,7 +73,7 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       // 1. Get a challenge from the worker
       setMessage('Generating authentication challenge...');
-      const options = await startPasskeyLogin();
+      const options = await startPasskeyLogin(email);
 
       // 2. Ask the browser to sign the challenge
       setMessage('Please complete passkey authentication...');
@@ -103,12 +102,6 @@ export function Login({ ctx }: { ctx: any }) {
   };
 
   const handleRegister = async () => {
-    if (!username.trim()) {
-      setStatus('error');
-      setMessage('Please enter a username');
-      return;
-    }
-
     if (!email.trim() || !email.includes('@')) {
       setStatus('error');
       setMessage('Please enter a valid email');
@@ -121,7 +114,7 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       // 1. Get a challenge from the worker
       setMessage('Generating registration challenge...');
-      const options = await startPasskeyRegistration(username);
+      const options = await startPasskeyRegistration(email);
 
       // 2. Ask the browser to sign the challenge
       setMessage('Please complete passkey setup...');
@@ -129,10 +122,10 @@ export function Login({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing registration...');
-      const result = await finishPasskeyRegistration(username, email, registration);
+      const result = await finishPasskeyRegistration(email, email, registration);
 
       if (!result || !result.success) {
-        throw new Error(`Username '${username}' is already taken. Please try a different username.`);
+        throw new Error(`Email '${email}' is already registered. Please sign in instead.`);
       }
 
       // Smart redirect: admin users go to setup, customers go to home
@@ -225,28 +218,15 @@ export function Login({ ctx }: { ctx: any }) {
           }}
         >
             <TextInput
-              label="Username"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              label="Email"
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={status === 'loading' || status === 'success'}
               size="lg"
             />
-
-            {mode === 'register' && (
-              <TextInput
-                label="Email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={status === 'loading' || status === 'success'}
-                size="lg"
-                helperText="For order confirmations and account recovery"
-              />
-            )}
 
             <Button
               type="submit"

@@ -45,14 +45,26 @@ export async function startPasskeyRegistration(username: string) {
   return options;
 }
 
-export async function startPasskeyLogin() {
+export async function startPasskeyLogin(email: string) {
   const { rpID } = getWebAuthnConfig(requestInfo.request);
   const { response } = requestInfo;
+
+  // Look up user by email (stored in username field)
+  const user = await db.user.findUnique({
+    where: { username: email },
+    include: { credentials: true },
+  });
+
+  // If user not found, return empty allowCredentials (WebAuthn will fail gracefully)
+  const allowCredentials = user?.credentials.map((cred) => ({
+    id: cred.credentialId,
+    type: "public-key" as const,
+  })) || [];
 
   const options = await generateAuthenticationOptions({
     rpID,
     userVerification: "preferred",
-    allowCredentials: [],
+    allowCredentials,
   });
 
   await sessions.save(response.headers, { challenge: options.challenge });
