@@ -98,7 +98,6 @@
 
 /* Config Page Container */
 .config-page {
-  color-scheme: light;
   padding: var(--space-md);
   max-width: 600px;
   margin: 0 auto;

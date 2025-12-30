@@ -36,7 +36,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
 
   const statusConfig = {
-    pending: { label: 'Pending', color: '#e0f2fe', textColor: 'var(--deep-navy)' },
+    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--deep-navy)' },
     confirmed: { label: 'Confirmed', color: 'var(--mint-fresh)', textColor: 'var(--deep-navy)' },
     completed: { label: 'Completed', color: 'var(--cool-gray)', textColor: 'white' },
     cancelled: { label: 'Cancelled', color: 'var(--coral)', textColor: 'white' }
@@ -78,7 +78,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
 
   return (
     <div style={{
-      border: '2px solid #e0e0e0',
+      border: '2px solid var(--border-light)',
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden'
     }}>
@@ -232,7 +232,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
         <div style={{
           marginTop: 'var(--space-md)',
           padding: 'var(--space-md)',
-          background: '#e0f2fe',
+          background: 'var(--sky-blue-light)',
           borderRadius: 'var(--radius-sm)'
         }}>
           <h3 style={{
@@ -271,7 +271,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid #e0e0e0',
+                border: '2px solid var(--border-light)',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--warm-white)',
                 color: 'var(--deep-navy)',

@@ -1,7 +1,10 @@
 "use client";
 
-import { Card } from "@/design-system";
+import { useEffect, useState } from "react";
+import { Card, ShareModal } from "@/design-system";
 import { AppContext } from "@/worker";
+import { getCurrentOrgShareUrl } from "@/utils/share";
+import { trackShare } from "../home/share-functions";
 import "./admin.css";
 
 interface AdminDashboardUIProps {
@@ -32,28 +35,21 @@ interface AdminDashboardUIProps {
  * NOTE: No Container needed - AdminLayout's content-wrapper handles constraints
  */
 export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+
+  // Fetch share URL on mount
+  useEffect(() => {
+    getCurrentOrgShareUrl().then(url => setShareUrl(url)).catch(err => console.error('Failed to get share URL:', err));
+  }, []);
+
   return (
     <Card variant="centered" maxWidth="800px">
-      <div style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
-        <h1
-          style={{
-            fontSize: '32px',
-            fontWeight: 700,
-            color: 'var(--deep-navy)',
-            fontFamily: 'var(--font-display)',
-            margin: '0 0 var(--space-xs) 0'
-          }}
-        >
+      <div className="text-centered-section" style={{ marginBottom: 'var(--space-xl)' }}>
+        <h1 className="heading-4xl">
           Admin Dashboard
         </h1>
-        <p
-          style={{
-            fontSize: '16px',
-            color: 'var(--cool-gray)',
-            margin: 0,
-            lineHeight: 1.5
-          }}
-        >
+        <p className="text-subheading">
           Welcome back! Manage your business operations below.
         </p>
       </div>
@@ -81,10 +77,35 @@ export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
             </p>
           </div>
         </a>
+
+        {/* Share Business Card */}
+        <button
+          onClick={() => setShareModalOpen(true)}
+          className="admin-nav-card"
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="admin-nav-card__icon">🔗</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Share Business</h3>
+            <p className="admin-nav-card__description">
+              Get link, QR code, social media
+            </p>
+          </div>
+        </button>
       </div>
 
       {/* Future: More cards will be added here as features arrive */}
       {/* Example: Inventory, Orders, etc. */}
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        shareUrl={shareUrl}
+        title="Fresh Catch Seafood Markets"
+        description="Share your business marketplace"
+        onShareAction={(shareType) => trackShare(shareType)}
+      />
     </Card>
   );
 }

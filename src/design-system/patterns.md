@@ -182,3 +182,110 @@ function MarketCard({ market, ctx }) {
 - File upload with drag & drop
 - Date/time pickers
 - Multi-select dropdown
+
+## Design Token System
+
+### Token Usage Requirements
+
+**CRITICAL: All new components MUST use design tokens**
+
+#### Required Token Usage:
+1. **Colors**: ALWAYS use tokens (`var(--text-primary)`, `var(--surface-primary)`)
+2. **Spacing**: ALWAYS use tokens (`var(--space-md)`, `var(--space-lg)`)
+3. **Typography**: ALWAYS use tokens or utility classes (`var(--font-size-md)`, `.heading-xl`)
+4. **Borders**: ALWAYS use tokens (`var(--border-light)`, `var(--radius-md)`)
+
+#### NEVER:
+- Hardcode hex colors (`#1A2B3D`)
+- Hardcode pixel values for spacing (`20px`)
+- Hardcode font sizes (`16px`)
+- Use `rgba()` without tokens (`rgba(255,255,255,0.1)`)
+
+#### Pattern:
+```tsx
+// ✅ GOOD
+const styles: CSSProperties = {
+  background: 'var(--surface-primary)',  // Auto-adapts to dark mode
+  color: 'var(--text-primary)',
+  padding: 'var(--space-md)',
+  fontSize: 'var(--font-size-md)',
+  borderRadius: 'var(--radius-md)',
+};
+
+// ❌ BAD
+const styles: CSSProperties = {
+  background: 'white',      // Breaks in dark mode
+  color: '#1A2B3D',         // Breaks in dark mode
+  padding: '20px',          // No token
+  fontSize: '16px',         // No token
+};
+```
+
+### Dark Mode Compatibility
+
+**All components MUST work in both light and dark modes**
+
+#### Dark Mode Testing Checklist:
+- [ ] Test with browser DevTools dark mode emulation
+- [ ] All text has sufficient contrast (use `/dark-mode-test` page)
+- [ ] Borders are visible
+- [ ] Glass effects are visible (not invisible white)
+- [ ] Input states are distinguishable
+- [ ] Focus states are visible
+- [ ] Disabled states are clear
+
+#### Browser Testing:
+```
+Chrome/Edge: DevTools > Rendering > prefers-color-scheme: dark
+Firefox: DevTools > Settings > prefers-color-scheme: dark
+Safari: Develop > Experimental > Dark Mode Override
+```
+
+#### Auto-Adapting Tokens:
+These tokens automatically change in dark mode:
+- `--text-primary`: Dark navy → Light gray
+- `--text-secondary`: Cool gray → Lighter gray
+- `--surface-primary`: White → Dark gray (#1f2937)
+- `--page-background`: Warm white → Very dark gray (#111827)
+- `--border-light`: Subtle blue → Visible tinted
+- `--glass-light`: Light glass → Dark glass
+- `--input-border`: Light gray → Tinted green
+
+### Component Enforcement
+
+#### For New Components:
+1. **Start with template**: Copy `src/design-system/COMPONENT_TEMPLATE.tsx`
+2. **Use utility classes**: Typography, layout, common patterns
+3. **Use tokens in styles**: ALL colors, spacing, typography
+4. **Test in dark mode**: Before committing
+
+#### For Modified Components:
+1. **Only fix if broken**: Don't refactor working components for token purity
+2. **Fix dark mode issues**: Replace hardcoded values causing dark mode bugs
+3. **Opportunistic replacement**: If editing a component, replace nearby hardcoded values
+
+#### Resources:
+- **Quick Reference**: `src/design-system/README.md`
+- **Template**: `src/design-system/COMPONENT_TEMPLATE.tsx`
+- **All Tokens**: `src/design-system/tokens.css`
+- **Test Page**: `/dark-mode-test`
+
+### Figma Integration
+
+#### Export Tokens to Figma:
+```bash
+pnpm run tokens:export
+```
+
+Generates `src/design-system/tokens.json` compatible with Figma Tokens plugin.
+
+#### Token Structure:
+- **66 light mode tokens**: Colors, spacing, typography, shadows
+- **20 dark mode overrides**: Surfaces, borders, glass effects
+- **Categories**: color, spacing, sizing, typography, shadows
+
+#### Workflow:
+1. Design in Figma using exported tokens
+2. Import tokens.json to Figma Tokens plugin
+3. Build components referencing same token names
+4. Two-way consistency maintained

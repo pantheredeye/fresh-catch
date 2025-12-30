@@ -42,7 +42,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [paymentNotes, setPaymentNotes] = useState('');
 
   const statusConfig = {
-    pending: { label: 'Pending', color: '#e0f2fe', textColor: 'var(--deep-navy)' },
+    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--deep-navy)' },
     confirmed: { label: 'Confirmed', color: 'var(--mint-fresh)', textColor: 'var(--deep-navy)' },
     completed: { label: 'Completed', color: 'var(--cool-gray)', textColor: 'white' },
     cancelled: { label: 'Cancelled', color: 'var(--coral)', textColor: 'white' }
@@ -109,7 +109,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
   return (
     <div style={{
-      border: order.status === 'pending' ? '3px solid var(--ocean-blue)' : '2px solid #e0e0e0',
+      border: order.status === 'pending' ? '3px solid var(--ocean-blue)' : '2px solid var(--border-light)',
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden'
     }}>
@@ -144,7 +144,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             <div style={{
               display: 'inline-block',
               padding: '4px 12px',
-              background: order.paymentStatus === 'paid' ? 'var(--mint-fresh)' : '#fef3c7',
+              background: order.paymentStatus === 'paid' ? 'var(--mint-fresh)' : 'var(--amber-light)',
               color: 'var(--deep-navy)',
               borderRadius: 'var(--radius-sm)',
               fontSize: '12px',
@@ -423,7 +423,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       {showPaymentModal && (
         <div style={{
           padding: 'var(--space-md)',
-          background: '#fef3c7',
+          background: 'var(--amber-light)',
           borderRadius: 'var(--radius-sm)',
           marginTop: 'var(--space-md)'
         }}>
@@ -452,7 +452,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
                 width: '100%',
                 padding: 'var(--space-sm)',
                 borderRadius: 'var(--radius-sm)',
-                border: '2px solid #e0e0e0',
+                border: '2px solid var(--border-light)',
                 fontSize: '16px',
                 fontFamily: 'inherit'
               }}

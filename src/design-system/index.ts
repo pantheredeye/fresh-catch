@@ -34,6 +34,11 @@ export {
   MarketToggle
 } from './components/FormControls'
 
+// Share Components
+export { QRCodeGenerator } from './components/QRCodeGenerator'
+export { ShareModal } from './components/ShareModal'
+export { ShareButton } from './components/ShareButton'
+
 // Design System Styles
 // Import tokens.css in your main app file or Document.tsx:
 // import './design-system/tokens.css'

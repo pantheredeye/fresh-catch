@@ -62,21 +62,13 @@ export function MarketCard({
         {isFavorite ? '⭐' : '☆'}
       </button>
 
-      <div style={{
-        fontSize: '20px',
-        fontWeight: 700,
-        color: 'var(--deep-navy)',
-        marginBottom: 'var(--space-xs)',
-        fontFamily: 'var(--font-display)',
+      <div className="heading-xl" style={{
         paddingRight: 'var(--space-xl)' // Space for favorite button
       }}>
         {market.name}
       </div>
 
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-xs)',
+      <div className="flex-col gap-xs" style={{
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
@@ -96,10 +88,7 @@ export function MarketCard({
         )}
       </div>
 
-      <div style={{
-        display: 'flex',
-        gap: 'var(--space-sm)'
-      }}>
+      <div className="flex gap-sm">
         {/* Customer action - always visible */}
         <a href={`#order-${market.id}`} style={{
           flex: 1,
@@ -120,34 +109,19 @@ export function MarketCard({
 
         {/* Admin-only quick actions */}
         {isAdmin && (
-          <a href={`/admin/config?market=${market.id}`} style={{
-            width: '56px',
-            height: '56px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+          <a href={`/admin/config?market=${market.id}`} className="icon-button-md" style={{
             background: 'var(--mint-fresh)',
             color: 'var(--deep-navy)',
-            borderRadius: 'var(--radius-md)',
             textDecoration: 'none',
-            boxShadow: 'var(--shadow-sm)',
-            fontSize: '18px',
-            transition: 'all 0.3s ease'
+            boxShadow: 'var(--shadow-sm)'
           }} title="Edit Market">
             ⚙️
           </a>
         )}
-        <a href={`#directions-${market.id}`} style={{
-          width: '56px',
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+        <a href={`#directions-${market.id}`} className="icon-button-md" style={{
           background: 'var(--light-gray)',
-          borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
-          fontSize: '24px',
-          transition: 'all 0.3s ease'
+          fontSize: '24px'
         }}>
           📍
         </a>

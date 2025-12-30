@@ -22,7 +22,7 @@ export function JoinPage(requestInfo: RequestInfo) {
   const isValidCode = code === env.ADMIN_CODE || code === env.MANAGER_CODE;
 
   if (!isValidCode) {
-    return <InvalidCodeError />;
+    return <InvalidCodeError isLoggedIn={!!ctx.user} />;
   }
 
   const role = code === env.ADMIN_CODE ? "owner" : "manager";
@@ -71,7 +71,7 @@ function PleaseLoginFirst() {
   );
 }
 
-function InvalidCodeError() {
+function InvalidCodeError({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <Container size="sm">
       <Card variant="centered" maxWidth="450px">
@@ -90,7 +90,7 @@ function InvalidCodeError() {
             The invite code in your URL is invalid or missing.
           </p>
           <a
-            href="/login"
+            href={isLoggedIn ? "/" : "/login"}
             style={{
               display: 'inline-block',
               padding: '12px 24px',
@@ -102,7 +102,7 @@ function InvalidCodeError() {
               fontSize: '16px'
             }}
           >
-            Go to Login
+            {isLoggedIn ? "Go to Home" : "Go to Login"}
           </a>
         </div>
       </Card>

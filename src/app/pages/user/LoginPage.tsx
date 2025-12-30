@@ -9,5 +9,16 @@ import { Login } from "./Login";
  * - Login is a client component (handles interactivity)
  */
 export function LoginPage(requestInfo: RequestInfo) {
+  const { ctx } = requestInfo;
+
+  // If already logged in, auto-redirect to home
+  if (ctx.user) {
+    const destination = ctx.currentOrganization ? '/admin' : '/';
+    return new Response(null, {
+      status: 302,
+      headers: { Location: destination },
+    });
+  }
+
   return <Login ctx={requestInfo.ctx} />;
 }

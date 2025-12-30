@@ -68,6 +68,29 @@ html, body {
   --font-modern: 'DM Sans', -apple-system, system-ui;  /* Body text - familiar */
   --font-display: 'DM Sans', system-ui;                /* Headers - clean but not excessive */
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace; /* Prices, times - trustworthy */
+
+  /* Typography Scale - Figma-Ready */
+  /* WHY: Single source of truth for text sizes, consistent hierarchy */
+  --font-size-xs: 12px;   /* Labels, helper text, captions */
+  --font-size-sm: 14px;   /* Secondary text, small buttons */
+  --font-size-md: 16px;   /* Body text, inputs (default) */
+  --font-size-lg: 18px;   /* Large body, section headers */
+  --font-size-xl: 20px;   /* Card titles, subsection headers */
+  --font-size-2xl: 24px;  /* Page headers */
+  --font-size-3xl: 28px;  /* Hero titles */
+  --font-size-4xl: 32px;  /* Major hero text */
+  --font-size-5xl: 40px;  /* Landing page heroes */
+
+  /* Font Weights - Semantic */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights - Readability */
+  --line-height-tight: 1.2;    /* Headers */
+  --line-height-base: 1.5;     /* Body text */
+  --line-height-relaxed: 1.6;  /* Long form content */
   
   /* Spacing System - Instagram-Ready Generous */
   /* WHY: Generous spacing feels premium and photographs well for social media */
@@ -100,6 +123,32 @@ html, body {
   --shadow-lg: 0 20px 40px rgba(0,102,204,0.15); /* Floating elements */
   --shadow-coral: 0 8px 24px rgba(255,107,107,0.2); /* Action elements */
   --shadow-gold: 0 8px 24px rgba(245,158,11,0.2);   /* Favorite/special items */
+
+  /* Semantic Input Colors - Dark Mode Compatible */
+  /* WHY: Named by purpose, auto-adapt in dark mode for accessibility */
+  --input-background: white;
+  --input-border: #e0e0e0;
+  --input-disabled-bg: #f8f8f8;
+
+  /* Glass Effects - Layered System */
+  /* WHY: Different opacity levels for different contexts, adapts to dark mode */
+  --glass-subtle: rgba(255, 252, 248, 0.05);
+  --glass-light: rgba(255, 252, 248, 0.1);
+  --glass-medium: rgba(255, 252, 248, 0.2);
+  --glass-border-light: rgba(255, 255, 255, 0.2);
+  --glass-border-medium: rgba(255, 255, 255, 0.3);
+
+  /* Border Colors - Progressive System */
+  /* WHY: Consistent borders that work in both light and dark modes */
+  --border-subtle: rgba(0, 102, 204, 0.08);
+  --border-light: rgba(0, 102, 204, 0.12);
+  --border-medium: rgba(0, 102, 204, 0.2);
+
+  /* Status Colors - Light Backgrounds */
+  /* WHY: Status badges need light background variants for dark mode compatibility */
+  --sky-blue-light: #e0f2fe;    /* Pending status light background */
+  --amber-light: #fef3c7;       /* Unpaid/warning status light background */
+  --text-inverse: white;        /* Text on dark gradients/backgrounds */
 }
 
 /* Component Styles - RSC Compatible */
@@ -279,6 +328,31 @@ select::placeholder {
     /* Text only - light text for dark backgrounds */
     --deep-navy: #E2E8F0;
     --cool-gray: #94A3B8;
+
+    /* Fix missing dark mode overrides */
+    --light-gray: #374151;  /* Was #F1F5F9, now dark gray for visibility */
+    --warm-white: #1f2937;  /* Was #FFFCF8, now dark surface */
+
+    /* Input colors for dark mode */
+    --input-background: #1f2937;
+    --input-border: rgba(0, 169, 150, 0.3);
+    --input-disabled-bg: #111827;
+
+    /* Dark glass effects */
+    --glass-subtle: rgba(31, 41, 55, 0.3);
+    --glass-light: rgba(31, 41, 55, 0.5);
+    --glass-medium: rgba(31, 41, 55, 0.7);
+    --glass-border-light: rgba(255, 255, 255, 0.1);
+    --glass-border-medium: rgba(255, 255, 255, 0.15);
+
+    /* Dark mode borders */
+    --border-subtle: rgba(0, 169, 150, 0.15);
+    --border-light: rgba(0, 169, 150, 0.25);
+    --border-medium: rgba(0, 169, 150, 0.35);
+
+    /* Status colors - dark mode backgrounds */
+    --sky-blue-light: rgba(0, 102, 204, 0.2);   /* Darker blue tint for dark mode */
+    --amber-light: rgba(245, 158, 11, 0.2);     /* Darker amber tint for dark mode */
   }
 
   /* Placeholder text visibility in dark mode */
@@ -288,4 +362,214 @@ select::placeholder {
     color: var(--cool-gray);
     opacity: 0.7;
   }
+}
+
+/* ======================
+   UTILITY CLASSES
+   ====================== */
+
+/* Typography Utilities - Figma-Aligned */
+.heading-5xl { font-size: var(--font-size-5xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--deep-navy); }
+.heading-4xl { font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--deep-navy); }
+.heading-3xl { font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--deep-navy); }
+.heading-2xl { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--deep-navy); }
+.heading-xl { font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--deep-navy); }
+.heading-lg { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--deep-navy); }
+
+.body-lg { font-size: var(--font-size-lg); line-height: var(--line-height-base); color: var(--deep-navy); }
+.body-md { font-size: var(--font-size-md); line-height: var(--line-height-base); color: var(--deep-navy); }
+.body-sm { font-size: var(--font-size-sm); line-height: var(--line-height-base); color: var(--deep-navy); }
+
+.label-lg { font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); letter-spacing: 0.5px; color: var(--deep-navy); }
+.label-md { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 1px; color: var(--deep-navy); }
+.label-sm { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 1px; color: var(--deep-navy); }
+
+.caption { font-size: var(--font-size-xs); color: var(--cool-gray); line-height: var(--line-height-base); }
+
+.mono { font-family: var(--font-mono); }
+.mono-md { font-family: var(--font-mono); font-size: var(--font-size-md); font-weight: var(--font-weight-medium); }
+.mono-sm { font-family: var(--font-mono); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+
+.text-primary { color: var(--deep-navy); }
+.text-secondary { color: var(--cool-gray); }
+
+/* Layout Utilities - Common Patterns */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-start { display: flex; align-items: flex-start; }
+.flex-end { display: flex; align-items: flex-end; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+
+.grid { display: grid; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-md); }
+
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mb-xl { margin-bottom: var(--space-xl); }
+
+.centered-section {
+  max-width: var(--width-md);
+  margin: 0 auto;
+  padding: var(--space-md);
+}
+
+.full-width { width: 100%; }
+.max-w-sm { max-width: var(--width-sm); }
+.max-w-md { max-width: var(--width-md); }
+.max-w-lg { max-width: var(--width-lg); }
+
+/* Component Pattern Classes - Reusable Compositions */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 6px 12px;
+  background: var(--light-gray);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--deep-navy);
+}
+
+.status-badge--pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warm-gold);
+}
+
+.status-badge--completed {
+  background: rgba(0, 217, 177, 0.1);
+  color: var(--mint-fresh);
+}
+
+.status-badge--cancelled {
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--coral);
+}
+
+.info-box {
+  padding: var(--space-md);
+  background: var(--surface-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-box--warning {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: var(--warm-gold);
+}
+
+.info-box--error {
+  background: rgba(255, 107, 107, 0.05);
+  border-color: var(--coral);
+}
+
+.info-box--success {
+  background: rgba(0, 217, 177, 0.05);
+  border-color: var(--mint-fresh);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.form-row {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+  }
+}
+
+.card-elevated {
+  background: var(--surface-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.card-elevated:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-glass {
+  background: var(--glass-light);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+/* Additional Typography Utilities - From Pattern Analysis */
+.text-heading-lg {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.text-subheading {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  line-height: var(--line-height-base);
+  margin: 0;
+}
+
+.text-order-number {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--ocean-blue);
+  margin-bottom: var(--space-xs);
+}
+
+.text-metadata {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+/* Additional Layout Utilities */
+.icon-button-md {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xl);
+  transition: all 0.3s ease;
+}
+
+.text-centered-section {
+  text-align: center;
+  margin-bottom: var(--space-lg);
 }

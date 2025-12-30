@@ -41,6 +41,7 @@ model User {
   credentials Credential[] // Relationship: One user can have many credentials
   memberships Membership[] // Relationship: User can belong to multiple organizations
   orders      Order[]      // Relationship: User can have many orders
+  shareEvents ShareEvent[] // Relationship: User can have many share events
 }
 
 model Credential {
@@ -67,6 +68,7 @@ model Organization {
   memberships Membership[] // Relationship: Organization can have multiple members
   markets     Market[]     // Relationship: Organization can have multiple markets
   orders      Order[]      // Relationship: Organization can have multiple orders
+  shareEvents ShareEvent[] // Relationship: Organization can have multiple share events
 }
 
 model Market {
@@ -142,4 +144,18 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([orderNumber])
+}
+
+model ShareEvent {
+  id             String       @id @default(uuid())
+  organizationId String
+  shareType      String       // 'link' | 'qr' | 'facebook' | 'twitter' | 'whatsapp'
+  sharedBy       String?      // User ID (nullable for anonymous/logged-out shares)
+  timestamp      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User?        @relation(fields: [sharedBy], references: [id])
+
+  @@index([organizationId])
+  @@index([timestamp])
 }

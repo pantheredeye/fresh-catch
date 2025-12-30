@@ -130,13 +130,7 @@ function YourMarketsSection({
         alignItems: 'center',
         marginBottom: 'var(--space-md)'
       }}>
-        <h2 style={{
-          fontSize: '24px',
-          fontWeight: 700,
-          color: 'var(--deep-navy)',
-          margin: 0,
-          fontFamily: 'var(--font-display)'
-        }}>
+        <h2 className="heading-2xl" style={{ margin: 0 }}>
           Your Markets ({markets.length})
         </h2>
       </div>
@@ -177,13 +171,7 @@ function AllMarketsSection({
         alignItems: 'center',
         marginBottom: 'var(--space-md)'
       }}>
-        <h2 style={{
-          fontSize: '24px',
-          fontWeight: 700,
-          color: 'var(--deep-navy)',
-          margin: 0,
-          fontFamily: 'var(--font-display)'
-        }}>
+        <h2 className="heading-2xl" style={{ margin: 0 }}>
           All Markets ({markets.length})
         </h2>
       </div>

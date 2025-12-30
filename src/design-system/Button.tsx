@@ -81,19 +81,19 @@ export function Button({
     },
     // Admin variants
     cancel: {
-      background: 'white',
+      background: 'var(--surface-primary)',
       color: 'var(--coral)',
       border: '2px solid var(--coral)',
       boxShadow: 'none'
     },
     danger: {
-      background: 'white',
+      background: 'var(--surface-primary)',
       color: 'var(--coral)',
       border: '2px solid var(--coral)',
       boxShadow: 'none'
     },
     'secondary-admin': {
-      background: 'white',
+      background: 'var(--surface-primary)',
       color: '#856404',
       border: '2px solid var(--warm-gold)',
       boxShadow: 'none'

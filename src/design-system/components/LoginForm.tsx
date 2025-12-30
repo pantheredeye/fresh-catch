@@ -211,9 +211,9 @@ const containerStyles: React.CSSProperties = {
 };
 
 const formStyles: React.CSSProperties = {
-  background: 'rgba(255, 252, 248, 0.1)', // Glass effect with warm white
+  background: 'var(--glass-light)',
   backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255, 255, 255, 0.2)',
+  border: '1px solid var(--glass-border-light)',
   borderRadius: 'var(--radius-lg)',
   padding: 'var(--space-xl)',
   width: '100%',
@@ -229,14 +229,14 @@ const headerStyles: React.CSSProperties = {
 const titleStyles: React.CSSProperties = {
   fontSize: '28px',
   fontWeight: 700,
-  color: 'white',
+  color: 'var(--text-inverse)',
   margin: '0 0 var(--space-sm) 0',
   fontFamily: 'var(--font-display)',
 };
 
 const subtitleStyles: React.CSSProperties = {
   fontSize: '16px',
-  color: 'rgba(255, 255, 255, 0.8)',
+  color: 'var(--text-inverse)',
   margin: 0,
   fontWeight: 400,
 };
@@ -256,7 +256,7 @@ const inputGroupStyles: React.CSSProperties = {
 const labelStyles: React.CSSProperties = {
   fontSize: '14px',
   fontWeight: 600,
-  color: 'white',
+  color: 'var(--text-inverse)',
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
 };
@@ -264,10 +264,10 @@ const labelStyles: React.CSSProperties = {
 const inputStyles: React.CSSProperties = {
   padding: 'var(--space-md)',
   fontSize: '16px',
-  border: '1px solid rgba(255, 255, 255, 0.3)',
+  border: '1px solid var(--glass-border-medium)',
   borderRadius: 'var(--radius-md)',
-  background: 'rgba(255, 255, 255, 0.1)',
-  color: 'white',
+  background: 'var(--glass-light)',
+  color: 'var(--text-inverse)',
   backdropFilter: 'blur(5px)',
   transition: 'all 0.3s ease',
   outline: 'none',
@@ -285,9 +285,9 @@ const radioLabelStyles: React.CSSProperties = {
   gap: 'var(--space-sm)',
   cursor: 'pointer',
   padding: 'var(--space-md)',
-  border: '1px solid rgba(255, 255, 255, 0.2)',
+  border: '1px solid var(--glass-border-light)',
   borderRadius: 'var(--radius-sm)',
-  background: 'rgba(255, 255, 255, 0.05)',
+  background: 'var(--glass-subtle)',
   transition: 'all 0.3s ease',
 };
 
@@ -299,11 +299,12 @@ const radioTextStyles: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '2px',
-  color: 'white',
+  color: 'var(--text-inverse)',
 };
 
 const radioSubtextStyles: React.CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.6)',
+  color: 'var(--text-inverse)',
+  opacity: 0.9,
   fontSize: '14px',
 };
 
@@ -321,7 +322,7 @@ const toggleStyles: React.CSSProperties = {
 const toggleButtonStyles: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: 'rgba(255, 255, 255, 0.8)',
+  color: 'var(--text-inverse)',
   cursor: 'pointer',
   fontSize: '14px',
   textDecoration: 'underline',

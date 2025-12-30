@@ -10,6 +10,7 @@ import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
 import { profileRoutes } from "@/app/pages/profile/routes";
+import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -134,6 +135,7 @@ export default defineApp([
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
       route("/design-test", DesignTest),
+      ...darkModeTestRoutes,
 
       route("/protected", [
         ({ ctx }) => {

@@ -286,9 +286,9 @@ const iconStyles: React.CSSProperties = {
 
 const inputBaseStyles: React.CSSProperties = {
   width: '100%',
-  border: '2px solid #e0e0e0',
+  border: '2px solid var(--input-border)',
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--warm-white)',
+  background: 'var(--surface-primary)',
   color: 'var(--deep-navy)',
   fontSize: '16px',
   fontFamily: 'var(--font-modern)',
@@ -326,7 +326,7 @@ const errorInputStyles: React.CSSProperties = {
 const disabledStyles: React.CSSProperties = {
   opacity: 0.6,
   cursor: 'not-allowed',
-  background: '#f8f8f8',
+  background: 'var(--input-disabled-bg)',
 };
 
 const errorTextStyles: React.CSSProperties = {

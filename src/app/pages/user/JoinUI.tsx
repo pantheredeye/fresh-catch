@@ -114,16 +114,8 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
   return (
     <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
-              fontFamily: 'var(--font-display)',
-              margin: '0 0 var(--space-xs) 0'
-            }}
-          >
+        <div className="text-centered-section">
+          <h1 className="text-heading-lg">
             Join Fresh Catch Team
           </h1>
           <div style={{
@@ -138,14 +130,7 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
           }}>
             {roleLabel}
           </div>
-          <p
-            style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
-              margin: 0,
-              lineHeight: 1.5
-            }}
-          >
+          <p className="text-subheading">
             Create your admin account with secure passkey authentication
           </p>
         </div>
@@ -169,6 +154,7 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
             required
             disabled={status === 'loading' || status === 'success'}
             size="lg"
+            autoFocus
           />
 
           <TextInput
@@ -273,26 +259,11 @@ function CodeEntryForm({ enteredCode, setEnteredCode, status, message }: {
   return (
     <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
-              fontFamily: 'var(--font-display)',
-              margin: '0 0 var(--space-xs) 0'
-            }}
-          >
+        <div className="text-centered-section">
+          <h1 className="text-heading-lg">
             Join Fresh Catch Team
           </h1>
-          <p
-            style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
-              margin: 0,
-              lineHeight: 1.5
-            }}
-          >
+          <p className="text-subheading">
             Enter your invite code to get started
           </p>
         </div>
@@ -313,6 +284,7 @@ function CodeEntryForm({ enteredCode, setEnteredCode, status, message }: {
             required
             size="lg"
             helperText="Ask your admin for an invite code"
+            autoFocus
           />
 
           <Button
@@ -393,16 +365,8 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
   return (
     <Container size="sm">
       <Card variant="centered" maxWidth="450px">
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
-              fontFamily: 'var(--font-display)',
-              margin: '0 0 var(--space-xs) 0'
-            }}
-          >
+        <div className="text-centered-section">
+          <h1 className="text-heading-lg">
             Join Fresh Catch Team
           </h1>
           <div style={{
@@ -417,14 +381,7 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
           }}>
             {roleLabel}
           </div>
-          <p
-            style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
-              margin: 0,
-              lineHeight: 1.5
-            }}
-          >
+          <p className="text-subheading">
             Your invite code has been verified. Click below to become a {roleLabel}.
           </p>
         </div>
