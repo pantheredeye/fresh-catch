@@ -114,7 +114,7 @@ export function ProfileUI({ user }: ProfileUIProps) {
               />
               <p style={{
                 fontSize: 'var(--font-size-sm)',
-                color: 'var(--dusty-gray)',
+                color: 'var(--soft-gray)',
                 marginTop: 'var(--space-xs)',
               }}>
                 Your email is used for passkey login
@@ -165,7 +165,7 @@ export function ProfileUI({ user }: ProfileUIProps) {
           <CardContent>
             <p style={{
               fontSize: 'var(--font-size-sm)',
-              color: 'var(--dusty-gray)',
+              color: 'var(--soft-gray)',
               marginBottom: 'var(--space-md)',
             }}>
               Optional. Save for future home delivery.
@@ -280,7 +280,7 @@ export function ProfileUI({ user }: ProfileUIProps) {
             <p style={{
               marginTop: 'var(--space-sm)',
               fontSize: 'var(--font-size-sm)',
-              color: status === 'error' ? 'var(--coral-red)' : 'var(--ocean-blue)',
+              color: status === 'error' ? 'var(--coral)' : 'var(--ocean-blue)',
               textAlign: 'center',
             }}>
               {message}
@@ -296,14 +296,14 @@ export function ProfileUI({ user }: ProfileUIProps) {
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <p style={{
               fontSize: 'var(--font-size-sm)',
-              color: 'var(--dusty-gray)',
+              color: 'var(--soft-gray)',
               marginBottom: 'var(--space-xs)',
             }}>
               Passkeys: {user.credentials.length}
             </p>
             <p style={{
               fontSize: 'var(--font-size-sm)',
-              color: 'var(--dusty-gray)',
+              color: 'var(--soft-gray)',
             }}>
               Account created: {new Date(user.credentials[0]?.createdAt || Date.now()).toLocaleDateString()}
             </p>
@@ -319,7 +319,7 @@ export function ProfileUI({ user }: ProfileUIProps) {
             <div>
               <p style={{
                 fontSize: 'var(--font-size-sm)',
-                color: 'var(--dusty-gray)',
+                color: 'var(--soft-gray)',
                 marginBottom: 'var(--space-md)',
                 textAlign: 'center',
               }}>
