@@ -2,10 +2,10 @@
 
 /* Option 1: Inverted Fresh */
 .test-card--inverted-fresh {
-  background: white;
-  border: 2px solid rgba(0,102,204,0.08);
+  background: var(--color-surface-primary);
+  border: 2px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,10 +19,10 @@
 
 /* Option 2: Ocean Night */
 .test-card--ocean-night {
-  background: white;
-  border: 1px solid rgba(0,102,204,0.08);
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,10 +36,10 @@
 
 /* Option 3: Reverse Warmth */
 .test-card--reverse-warmth {
-  background: white;
-  border: 1px solid rgba(0,102,204,0.08);
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,10 +53,10 @@
 
 /* Option 4: Glass Fresh */
 .test-card--glass-fresh {
-  background: white;
-  border: 2px solid rgba(0,102,204,0.08);
+  background: var(--color-surface-primary);
+  border: 2px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,7 +74,7 @@
 
 /* Pin button - special dark mode treatment */
 .test-card--glass-fresh .pin-button {
-  background: var(--light-gray);
+  background: var(--color-surface-secondary);
 }
 
 @media (prefers-color-scheme: dark) {

@@ -34,7 +34,7 @@ export function DarkModeTestUI({ market }: Props) {
         margin: '0 auto'
       }}>
         <h1 style={{
-          color: 'var(--deep-navy)',
+          color: 'var(--color-text-primary)',
           fontFamily: 'var(--font-display)',
           fontSize: '32px',
           marginBottom: 'var(--space-md)'
@@ -42,7 +42,7 @@ export function DarkModeTestUI({ market }: Props) {
           Dark Mode Market Card Tests
         </h1>
         <p style={{
-          color: 'var(--cool-gray)',
+          color: 'var(--color-text-secondary)',
           marginBottom: 'var(--space-xl)',
           fontSize: '16px'
         }}>
@@ -58,7 +58,7 @@ export function DarkModeTestUI({ market }: Props) {
           {/* Option 1: Inverted Fresh */}
           <div>
             <h3 style={{
-              color: 'var(--deep-navy)',
+              color: 'var(--color-text-primary)',
               fontSize: '18px',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
@@ -66,7 +66,7 @@ export function DarkModeTestUI({ market }: Props) {
               1. Inverted Fresh
             </h3>
             <p style={{
-              color: 'var(--cool-gray)',
+              color: 'var(--color-text-secondary)',
               fontSize: '14px',
               marginBottom: 'var(--space-md)'
             }}>
@@ -78,7 +78,7 @@ export function DarkModeTestUI({ market }: Props) {
           {/* Option 2: Ocean Night */}
           <div>
             <h3 style={{
-              color: 'var(--deep-navy)',
+              color: 'var(--color-text-primary)',
               fontSize: '18px',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
@@ -86,7 +86,7 @@ export function DarkModeTestUI({ market }: Props) {
               2. Ocean Night
             </h3>
             <p style={{
-              color: 'var(--cool-gray)',
+              color: 'var(--color-text-secondary)',
               fontSize: '14px',
               marginBottom: 'var(--space-md)'
             }}>
@@ -98,7 +98,7 @@ export function DarkModeTestUI({ market }: Props) {
           {/* Option 3: Reverse Warmth */}
           <div>
             <h3 style={{
-              color: 'var(--deep-navy)',
+              color: 'var(--color-text-primary)',
               fontSize: '18px',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
@@ -106,7 +106,7 @@ export function DarkModeTestUI({ market }: Props) {
               3. Reverse Warmth
             </h3>
             <p style={{
-              color: 'var(--cool-gray)',
+              color: 'var(--color-text-secondary)',
               fontSize: '14px',
               marginBottom: 'var(--space-md)'
             }}>
@@ -118,7 +118,7 @@ export function DarkModeTestUI({ market }: Props) {
           {/* Option 4: Glass Fresh */}
           <div>
             <h3 style={{
-              color: 'var(--deep-navy)',
+              color: 'var(--color-text-primary)',
               fontSize: '18px',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
@@ -126,7 +126,7 @@ export function DarkModeTestUI({ market }: Props) {
               4. Glass Fresh
             </h3>
             <p style={{
-              color: 'var(--cool-gray)',
+              color: 'var(--color-text-secondary)',
               fontSize: '14px',
               marginBottom: 'var(--space-md)'
             }}>
@@ -137,13 +137,13 @@ export function DarkModeTestUI({ market }: Props) {
         </div>
 
         <div style={{
-          background: 'var(--surface-primary)',
+          background: 'var(--color-surface-primary)',
           padding: 'var(--space-lg)',
           borderRadius: 'var(--radius-md)',
-          border: '1px solid rgba(100,116,139,0.1)'
+          border: '1px solid var(--color-border-subtle)'
         }}>
           <h3 style={{
-            color: 'var(--deep-navy)',
+            color: 'var(--color-text-primary)',
             fontSize: '18px',
             marginBottom: 'var(--space-sm)',
             fontFamily: 'var(--font-display)'
@@ -151,7 +151,7 @@ export function DarkModeTestUI({ market }: Props) {
             Current Implementation (for comparison)
           </h3>
           <p style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             fontSize: '14px',
             marginBottom: 'var(--space-md)'
           }}>
@@ -219,7 +219,7 @@ function CardBase({
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--ocean-blue)',
+          color: 'var(--color-action-primary)',
           fontWeight: 600,
           fontSize: '16px'
         }}>
@@ -227,7 +227,7 @@ function CardBase({
         </span>
         {market.subtitle && (
           <span style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             fontSize: '14px'
           }}>
             {market.subtitle}
@@ -261,7 +261,7 @@ function CardBase({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--light-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
           fontSize: '24px',
@@ -317,7 +317,7 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--ocean-blue)',
+          color: 'var(--color-action-primary)',
           fontWeight: 600,
           fontSize: '16px'
         }}>
@@ -325,7 +325,7 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
         </span>
         {market.subtitle && (
           <span style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             fontSize: '14px'
           }}>
             {market.subtitle}
@@ -359,7 +359,7 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--light-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
           fontSize: '24px',
@@ -415,7 +415,7 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--ocean-blue)',
+          color: 'var(--color-action-primary)',
           fontWeight: 600,
           fontSize: '16px'
         }}>
@@ -423,7 +423,7 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
         </span>
         {market.subtitle && (
           <span style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             fontSize: '14px'
           }}>
             {market.subtitle}
@@ -457,7 +457,7 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--light-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
           fontSize: '24px',
@@ -513,7 +513,7 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--ocean-blue)',
+          color: 'var(--color-action-primary)',
           fontWeight: 600,
           fontSize: '16px'
         }}>
@@ -521,7 +521,7 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
         </span>
         {market.subtitle && (
           <span style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             fontSize: '14px'
           }}>
             {market.subtitle}
@@ -555,7 +555,7 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--light-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
           fontSize: '24px',
@@ -611,7 +611,7 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--ocean-blue)',
+          color: 'var(--color-action-primary)',
           fontWeight: 600,
           fontSize: '16px'
         }}>
@@ -619,7 +619,7 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
         </span>
         {market.subtitle && (
           <span style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             fontSize: '14px'
           }}>
             {market.subtitle}
@@ -653,7 +653,7 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--light-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
           fontSize: '24px',
@@ -674,10 +674,10 @@ function CurrentCard({ market, isFavorite, onToggleFavorite }: any) {
       isFavorite={isFavorite}
       onToggleFavorite={onToggleFavorite}
       style={{
-        background: 'var(--surface-primary)',
+        background: 'var(--color-surface-primary)',
         boxShadow: 'var(--shadow-md)',
-        border: '1px solid rgba(0,102,204,0.08)',
-        color: 'var(--deep-navy)'
+        border: '1px solid var(--color-border-subtle)',
+        color: 'var(--color-text-primary)'
       }}
     />
   );
