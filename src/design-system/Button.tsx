@@ -57,50 +57,50 @@ export function Button({
     // Customer variants
     primary: {
       background: 'var(--ocean-gradient)',
-      color: 'white',
+      color: 'var(--color-text-inverse)',
       border: 'none',
       boxShadow: 'var(--shadow-md)',
     },
     secondary: {
       background: 'var(--coral-gradient)',
-      color: 'white',
+      color: 'var(--color-text-inverse)',
       border: 'none',
       boxShadow: 'var(--shadow-coral)'
     },
     ghost: {
-      background: 'var(--surface-primary)',
-      color: 'var(--ocean-blue)',
-      border: '1px solid rgba(0,102,204,0.08)',
+      background: 'var(--color-surface-primary)',
+      color: 'var(--color-action-primary)',
+      border: '1px solid var(--color-border-subtle)',
       boxShadow: 'var(--shadow-sm)'
     },
     outline: {
       background: 'transparent',
-      color: 'var(--ocean-blue)',
-      border: '2px solid var(--ocean-blue)',
+      color: 'var(--color-action-primary)',
+      border: '2px solid var(--color-action-primary)',
       boxShadow: 'none'
     },
     // Admin variants
     cancel: {
-      background: 'var(--surface-primary)',
-      color: 'var(--coral)',
-      border: '2px solid var(--coral)',
+      background: 'var(--color-surface-primary)',
+      color: 'var(--color-action-secondary)',
+      border: '2px solid var(--color-action-secondary)',
       boxShadow: 'none'
     },
     danger: {
-      background: 'var(--surface-primary)',
-      color: 'var(--coral)',
-      border: '2px solid var(--coral)',
+      background: 'var(--color-surface-primary)',
+      color: 'var(--color-action-secondary)',
+      border: '2px solid var(--color-action-secondary)',
       boxShadow: 'none'
     },
     'secondary-admin': {
-      background: 'var(--surface-primary)',
+      background: 'var(--color-surface-primary)',
       color: '#856404',
-      border: '2px solid var(--warm-gold)',
+      border: '2px solid var(--color-accent-gold)',
       boxShadow: 'none'
     },
     'add-event': {
-      background: 'var(--ocean-blue)',
-      color: 'white',
+      background: 'var(--color-action-primary)',
+      color: 'var(--color-text-inverse)',
       border: 'none',
       boxShadow: 'var(--shadow-md)'
     }
@@ -109,8 +109,8 @@ export function Button({
   const disabledStyles = disabled ? {
     opacity: 0.5,
     cursor: 'not-allowed',
-    background: 'var(--light-gray)',
-    color: 'var(--cool-gray)',
+    background: 'var(--color-surface-secondary)',
+    color: 'var(--color-text-secondary)',
     border: '2px solid transparent',
     boxShadow: 'none'
   } : {}

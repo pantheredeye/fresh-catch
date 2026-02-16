@@ -24,13 +24,13 @@ export function SectionHeader({
   
   const headerStyle: React.CSSProperties = {
     padding: 'var(--space-sm) var(--space-md)',
-    background: 'var(--light-gray)',
+    background: 'var(--color-surface-secondary)',
     fontSize: '12px',
-    color: 'var(--cool-gray)',
+    color: 'var(--color-text-secondary)',
     textTransform: 'uppercase',
     letterSpacing: '1px',
     fontWeight: 600,
-    borderBottom: '1px solid rgba(100, 116, 139, 0.1)',
+    borderBottom: '1px solid var(--color-border-subtle)',
     fontFamily: 'var(--font-display)',
     display: action ? 'flex' : 'block',
     justifyContent: action ? 'space-between' : 'flex-start',

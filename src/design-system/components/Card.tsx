@@ -39,7 +39,7 @@ export function Card({
     padding: variant === 'centered' ? 'var(--space-md)' : 'var(--space-lg)',
     marginBottom: variant === 'default' ? 'var(--space-md)' : '0',
     boxShadow: variant === 'centered' ? 'var(--shadow-lg)' : 'var(--shadow-md)',
-    border: '1px solid rgba(100, 116, 139, 0.1)',
+    border: '1px solid var(--color-border-subtle)',
     position: 'relative',
     overflow: 'hidden',
     transition: 'all 0.3s ease',
@@ -94,7 +94,7 @@ export function CardTitle({ children }: CardTitleProps) {
       style={{
         fontSize: '20px',
         fontWeight: 700,
-        color: 'var(--deep-navy)',
+        color: 'var(--color-text-primary)',
         marginBottom: 'var(--space-xs)',
         margin: 0
       }}

@@ -37,8 +37,8 @@ export function FreshBadge({ children = 'Fresh', size = 'md', className = '' }: 
       className={`fresh-badge fresh-badge--${size} ${className}`}
       style={{
         display: 'inline-block',
-        background: 'var(--mint-fresh)',
-        color: 'white',
+        background: 'var(--color-status-success)',
+        color: 'var(--color-text-inverse)',
         borderRadius: 'var(--radius-full)',
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
@@ -68,7 +68,7 @@ export function LiveBadge({ className = '' }: LiveBadgeProps) {
         alignItems: 'center',
         gap: 'var(--space-xs)',
         background: 'rgba(255,107,107,0.1)',
-        color: 'var(--coral)',
+        color: 'var(--color-action-secondary)',
         padding: '4px 8px',
         borderRadius: 'var(--radius-full)',
         fontSize: '11px',
@@ -83,7 +83,7 @@ export function LiveBadge({ className = '' }: LiveBadgeProps) {
         style={{
           width: '6px',
           height: '6px',
-          background: 'var(--coral)',
+          background: 'var(--color-action-secondary)',
           borderRadius: '50%',
           animation: 'live-pulse 1.5s ease-in-out infinite'
         }}
@@ -105,8 +105,8 @@ export function AvailableBadge({ timeLeft, className = '' }: AvailableBadgeProps
       className={`available-badge ${className}`}
       style={{
         display: 'inline-block',
-        background: 'var(--warm-gold)',
-        color: 'white',
+        background: 'var(--color-accent-gold)',
+        color: 'var(--color-text-inverse)',
         padding: '4px 8px',
         borderRadius: 'var(--radius-full)',
         fontSize: '11px',

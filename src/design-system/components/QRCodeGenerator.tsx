@@ -37,7 +37,7 @@ export function QRCodeGenerator({ url, size = 256 }: QRCodeGeneratorProps) {
   return (
     <div style={{ textAlign: "center" }}>
       {error ? (
-        <p style={{ color: "var(--coral)", fontSize: "14px" }}>{error}</p>
+        <p style={{ color: "var(--color-action-secondary)", fontSize: "14px" }}>{error}</p>
       ) : (
         <>
           <canvas

@@ -56,12 +56,12 @@ export function NavGrid({ items, columns = 2, variant = 'compact' }: NavGridProp
             padding: isCompact ? 'var(--space-lg) var(--space-md)' : 'var(--space-lg)',
             textAlign: isCompact ? 'center' : 'left',
             textDecoration: 'none',
-            color: 'var(--deep-navy)',
+            color: 'var(--color-text-primary)',
             boxShadow: 'var(--shadow-sm)',
             transition: 'all 0.3s ease',
             border: isCompact
               ? `2px solid ${getColorBorder(index)}`
-              : '2px solid rgba(0, 102, 204, 0.1)',
+              : '2px solid var(--color-border-subtle)',
             minHeight: isCompact ? 'auto' : '120px',
             cursor: 'pointer'
           }}
@@ -99,7 +99,7 @@ export function NavGrid({ items, columns = 2, variant = 'compact' }: NavGridProp
               <div
                 style={{
                   fontSize: '14px',
-                  color: 'var(--cool-gray)',
+                  color: 'var(--color-text-secondary)',
                   lineHeight: 1.4,
                   margin: 0
                 }}

@@ -51,9 +51,9 @@ export function ComponentName({
 // ✅ GOOD - Static styles using tokens
 const containerStyles: React.CSSProperties = {
   // Use tokens for ALL colors
-  background: 'var(--surface-primary)',     // Auto-adapts to dark mode
-  color: 'var(--text-primary)',             // Auto-adapts to dark mode
-  borderColor: 'var(--border-light)',       // Auto-adapts to dark mode
+  background: 'var(--color-surface-primary)',     // Auto-adapts to dark mode
+  color: 'var(--color-text-primary)',             // Auto-adapts to dark mode
+  borderColor: 'var(--color-border-light)',       // Auto-adapts to dark mode
 
   // Use tokens for ALL spacing
   padding: 'var(--space-md)',

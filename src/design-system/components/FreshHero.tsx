@@ -29,7 +29,7 @@ export function FreshHero({
     position: 'relative',
     overflow: 'hidden',
     boxShadow: 'var(--shadow-lg)',
-    color: 'white'
+    color: 'var(--color-text-inverse)'
   }
 
 
@@ -106,7 +106,7 @@ interface FreshItemProps {
 export function FreshItem({ emoji, children, className = '' }: FreshItemProps) {
   const itemStyle: React.CSSProperties = {
     background: 'var(--glass-white)',
-    color: 'var(--deep-navy)',
+    color: 'var(--color-text-primary)',
     padding: 'var(--space-md) var(--space-sm)',
     borderRadius: 'var(--radius-md)',
     textAlign: 'center',

@@ -81,7 +81,7 @@ export function ShareModal({
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          background: "var(--surface-primary)",
+          background: "var(--color-surface-primary)",
           borderRadius: "var(--radius-lg)",
           padding: "var(--space-xl)",
           maxWidth: "500px",
@@ -90,7 +90,7 @@ export function ShareModal({
           overflow: "auto",
           zIndex: 1001,
           boxShadow: "var(--shadow-lg)",
-          border: "1px solid rgba(0,102,204,0.1)",
+          border: "1px solid var(--color-border-subtle)",
         }}
       >
         {/* Header */}
@@ -107,7 +107,7 @@ export function ShareModal({
               style={{
                 fontSize: "24px",
                 fontWeight: 700,
-                color: "var(--deep-navy)",
+                color: "var(--color-text-primary)",
                 margin: 0,
                 fontFamily: "var(--font-display)",
               }}
@@ -121,7 +121,7 @@ export function ShareModal({
                 border: "none",
                 fontSize: "24px",
                 cursor: "pointer",
-                color: "var(--cool-gray)",
+                color: "var(--color-text-secondary)",
                 padding: 0,
                 lineHeight: 1,
               }}
@@ -133,7 +133,7 @@ export function ShareModal({
           <p
             style={{
               fontSize: "14px",
-              color: "var(--cool-gray)",
+              color: "var(--color-text-secondary)",
               margin: 0,
             }}
           >
@@ -148,7 +148,7 @@ export function ShareModal({
               display: "block",
               fontSize: "14px",
               fontWeight: 600,
-              color: "var(--deep-navy)",
+              color: "var(--color-text-primary)",
               marginBottom: "var(--space-xs)",
             }}
           >
@@ -167,11 +167,11 @@ export function ShareModal({
               style={{
                 flex: 1,
                 padding: "var(--space-sm) var(--space-md)",
-                border: "1px solid rgba(0,102,204,0.2)",
+                border: "1px solid var(--color-border-medium)",
                 borderRadius: "var(--radius-md)",
                 fontSize: "14px",
-                background: "var(--surface-secondary)",
-                color: "var(--text-primary)",
+                background: "var(--color-surface-secondary)",
+                color: "var(--color-text-primary)",
               }}
             />
             <Button onClick={handleCopyLink} variant="primary">
@@ -187,7 +187,7 @@ export function ShareModal({
               display: "block",
               fontSize: "14px",
               fontWeight: 600,
-              color: "var(--deep-navy)",
+              color: "var(--color-text-primary)",
               marginBottom: "var(--space-sm)",
             }}
           >
@@ -267,7 +267,7 @@ export function ShareModal({
               display: "block",
               fontSize: "14px",
               fontWeight: 600,
-              color: "var(--deep-navy)",
+              color: "var(--color-text-primary)",
               marginBottom: "var(--space-sm)",
             }}
           >

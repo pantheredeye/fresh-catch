@@ -229,14 +229,14 @@ const headerStyles: React.CSSProperties = {
 const titleStyles: React.CSSProperties = {
   fontSize: '28px',
   fontWeight: 700,
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
   margin: '0 0 var(--space-sm) 0',
   fontFamily: 'var(--font-display)',
 };
 
 const subtitleStyles: React.CSSProperties = {
   fontSize: '16px',
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
   margin: 0,
   fontWeight: 400,
 };
@@ -256,7 +256,7 @@ const inputGroupStyles: React.CSSProperties = {
 const labelStyles: React.CSSProperties = {
   fontSize: '14px',
   fontWeight: 600,
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
 };
@@ -267,7 +267,7 @@ const inputStyles: React.CSSProperties = {
   border: '1px solid var(--glass-border-medium)',
   borderRadius: 'var(--radius-md)',
   background: 'var(--glass-light)',
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
   backdropFilter: 'blur(5px)',
   transition: 'all 0.3s ease',
   outline: 'none',
@@ -299,11 +299,11 @@ const radioTextStyles: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '2px',
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
 };
 
 const radioSubtextStyles: React.CSSProperties = {
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
   opacity: 0.9,
   fontSize: '14px',
 };
@@ -322,7 +322,7 @@ const toggleStyles: React.CSSProperties = {
 const toggleButtonStyles: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: 'var(--text-inverse)',
+  color: 'var(--color-text-inverse)',
   cursor: 'pointer',
   fontSize: '14px',
   textDecoration: 'underline',
@@ -336,7 +336,7 @@ const resultStyles: React.CSSProperties = {
   background: 'rgba(255, 107, 107, 0.1)',
   border: '1px solid rgba(255, 107, 107, 0.3)',
   borderRadius: 'var(--radius-sm)',
-  color: 'white',
+  color: 'var(--color-text-inverse)',
   textAlign: 'center',
   fontSize: '14px',
 };

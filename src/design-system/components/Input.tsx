@@ -259,14 +259,14 @@ const inputGroupStyles: React.CSSProperties = {
 const labelStyles: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 600,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   textTransform: 'uppercase',
   letterSpacing: '1px',
   marginBottom: '4px',
 };
 
 const requiredStyles: React.CSSProperties = {
-  color: 'var(--coral)',
+  color: 'var(--color-action-secondary)',
   marginLeft: '2px',
 };
 
@@ -280,16 +280,16 @@ const iconStyles: React.CSSProperties = {
   position: 'absolute',
   left: '12px',
   zIndex: 1,
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   fontSize: '16px',
 };
 
 const inputBaseStyles: React.CSSProperties = {
   width: '100%',
-  border: '2px solid var(--input-border)',
+  border: '2px solid var(--color-border-input)',
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--surface-primary)',
-  color: 'var(--deep-navy)',
+  background: 'var(--color-surface-primary)',
+  color: 'var(--color-text-primary)',
   fontSize: '16px',
   fontFamily: 'var(--font-modern)',
   transition: 'all 0.3s ease',
@@ -319,7 +319,7 @@ const textareaStyles: React.CSSProperties = {
 };
 
 const errorInputStyles: React.CSSProperties = {
-  borderColor: 'var(--coral)',
+  borderColor: 'var(--color-action-secondary)',
   boxShadow: '0 0 0 3px rgba(255, 107, 107, 0.1)',
 };
 
@@ -331,14 +331,14 @@ const disabledStyles: React.CSSProperties = {
 
 const errorTextStyles: React.CSSProperties = {
   fontSize: '12px',
-  color: 'var(--coral)',
+  color: 'var(--color-action-secondary)',
   marginTop: '4px',
   fontWeight: 500,
 };
 
 const helperTextStyles: React.CSSProperties = {
   fontSize: '12px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   marginTop: '4px',
 };
 
@@ -351,7 +351,7 @@ const timeRowStyles: React.CSSProperties = {
 
 const timeRowLabelStyles: React.CSSProperties = {
   fontSize: '14px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   fontWeight: 500,
   minWidth: 'fit-content',
 };

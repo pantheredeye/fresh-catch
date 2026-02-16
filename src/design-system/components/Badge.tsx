@@ -23,20 +23,20 @@ export function Badge({
 }: BadgeProps) {
   const variantStyles = {
     default: {
-      background: 'var(--coral)',
-      color: 'white'
+      background: 'var(--color-action-secondary)',
+      color: 'var(--color-text-inverse)'
     },
     coral: {
-      background: 'var(--coral)',
-      color: 'white'
+      background: 'var(--color-action-secondary)',
+      color: 'var(--color-text-inverse)'
     },
     mint: {
-      background: 'var(--mint-fresh)',
-      color: 'white'
+      background: 'var(--color-status-success)',
+      color: 'var(--color-text-inverse)'
     },
     gold: {
-      background: 'var(--warm-gold)',
-      color: 'white'
+      background: 'var(--color-accent-gold)',
+      color: 'var(--color-text-inverse)'
     }
   }
 
