@@ -39,8 +39,8 @@
 }
 
 .admin-exit-section {
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--glass-subtle);
+  border-bottom: 1px solid var(--glass-subtle);
   padding: var(--space-xs) 0;
 }
 
@@ -53,8 +53,8 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-subtle);
+  border: 1px solid var(--glass-light);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -64,8 +64,8 @@
 }
 
 .exit-admin-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--glass-light);
+  border-color: var(--glass-border-light);
   color: var(--color-text-primary);
   transform: translateX(-2px);
 }
@@ -83,7 +83,7 @@
   padding-bottom: var(--space-md);
   display: flex;
   gap: var(--space-sm);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--glass-subtle);
 }
 
 .admin-nav-item {

@@ -26,10 +26,10 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(0, 102, 204, 0.04);
-  border: 1.5px solid rgba(0, 102, 204, 0.15);
+  background: var(--glass-subtle);
+  border: 1.5px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
   font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
@@ -37,8 +37,8 @@
 }
 
 .user-menu-trigger:hover {
-  background: rgba(0, 102, 204, 0.08);
-  border-color: var(--ocean-blue);
+  background: var(--glass-light);
+  border-color: var(--color-action-primary);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -106,7 +106,7 @@
 
 .user-menu-item:hover,
 .user-menu-item:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--glass-light);
   color: var(--color-ocean-vivid);
   outline: none;
 }
