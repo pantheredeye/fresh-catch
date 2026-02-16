@@ -208,6 +208,28 @@ html, body {
   --color-border-input: #E8EFF5;
   --color-border-input-disabled: #CBD5E1;
 
+  /* Backgrounds */
+  --color-bg-primary: var(--page-background);
+  --color-bg-elevated: var(--surface-primary);
+
+  /* Extra Color Aliases */
+  --color-coral: var(--coral);
+  --color-coral-vivid: #FF5252;
+  --color-danger: #EF4444;
+  --color-ocean-vivid: #0077E6;
+  --color-white: #FFFFFF;
+
+  /* Shadow - Extra */
+  --shadow-xl: 0 25px 50px rgba(0, 102, 204, 0.2);
+
+  /* Typography Shorthand Aliases */
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+
   /* Motion */
   --duration-fast: 150ms;
   --duration-normal: 300ms;
@@ -430,6 +452,14 @@ select::placeholder {
     --status-warning-border: #FBBF24;
     --status-error-bg: rgba(255, 107, 107, 0.15);
     --status-error-border: rgba(255, 107, 107, 0.5);
+
+    /* Background & surface aliases - dark mode */
+    --color-bg-primary: var(--page-background);
+    --color-bg-elevated: var(--surface-primary);
+    --color-coral-vivid: #FF6B6B;
+    --color-danger: #F87171;
+    --color-ocean-vivid: #3B9AFF;
+    --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.4);
 
     /* Semantic alias overrides - dark mode */
     --color-text-primary: var(--deep-navy);
