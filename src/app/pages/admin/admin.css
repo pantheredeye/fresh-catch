@@ -1,6 +1,6 @@
 /* Admin Page Styles */
 /* WHY: Page-specific CSS for admin interfaces (dashboard + market config) */
-/* Uses design tokens with defensive fallbacks for dark mode */
+/* Uses semantic design tokens for light/dark mode support */
 
 /* ======================
    ADMIN DASHBOARD NAV
@@ -28,8 +28,8 @@
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-lg);
-  background: var(--surface-primary);
-  border: 2px solid rgba(0, 102, 204, 0.1);
+  background: var(--color-surface-primary);
+  border: 2px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   text-decoration: none;
   transition: all 0.3s ease;
@@ -41,7 +41,7 @@
 .admin-nav-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--ocean-blue);
+  border-color: var(--color-action-primary);
 }
 
 .admin-nav-card:active {
@@ -62,16 +62,14 @@
 .admin-nav-card__title {
   font-size: 20px;
   font-weight: 700;
-  color: #1A1A2E;
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
   font-family: var(--font-display);
   margin: 0 0 var(--space-xs) 0;
 }
 
 .admin-nav-card__description {
   font-size: 14px;
-  color: #6B7280;
-  color: var(--cool-gray);
+  color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.4;
 }
@@ -105,23 +103,19 @@
 
 /* Config Header Card */
 .config-header {
-  background: white;
-  background: var(--surface-primary);
+  background: var(--color-surface-primary);
   border-radius: var(--radius-lg);
   padding: var(--space-lg) var(--space-md);
   margin-bottom: var(--space-lg);
   box-shadow: var(--shadow-sm);
-  border: 1px solid #E8EFF5;
-  border-color: rgba(100, 116, 139, 0.1);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .config-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1A1A2E;
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
   font-family: var(--font-display);
-  margin-bottom: var(--space-xs);
   text-align: left;
   margin: 0;
   margin-bottom: var(--space-xs);
@@ -129,8 +123,7 @@
 
 .config-subtitle {
   font-size: 14px;
-  color: #6B7280;
-  color: var(--cool-gray);
+  color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.5;
 }
@@ -141,11 +134,9 @@
 
 /* Markets List Container */
 .markets-list-container {
-  background: white;
-  background: var(--surface-primary);
+  background: var(--color-surface-primary);
   border-radius: var(--radius-md);
-  border: 1px solid #E8EFF5;
-  border-color: rgba(100, 116, 139, 0.1);
+  border: 1px solid var(--color-border-subtle);
   overflow: hidden;
   margin-bottom: var(--space-lg);
   box-shadow: var(--shadow-sm);
@@ -161,19 +152,16 @@
   cursor: default;
   min-height: 60px;
   gap: var(--space-sm);
-  background: white;
-  background: var(--surface-primary);
+  background: var(--color-surface-primary);
 }
 
 .market-item--inactive {
-  background: #F3F4F6;
-  background: var(--light-gray);
+  background: var(--color-surface-secondary);
   opacity: 0.7;
 }
 
 .market-item:not(:last-child) {
-  border-bottom: 1px solid #E8EFF5;
-  border-bottom-color: rgba(100, 116, 139, 0.1);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .market-item__left {
@@ -191,8 +179,7 @@
 .market-item__name {
   font-size: 15px;
   font-weight: 500;
-  color: #1A1A2E;
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
   font-family: var(--font-display);
   margin: 0;
   overflow: hidden;
@@ -202,15 +189,13 @@
 
 .market-item__subtitle {
   font-size: 12px;
-  color: #6B7280;
-  color: var(--cool-gray);
+  color: var(--color-text-secondary);
   margin-top: 2px;
 }
 
 .market-item__schedule {
   font-size: 13px;
-  color: #6B7280;
-  color: var(--cool-gray);
+  color: var(--color-text-secondary);
   font-family: var(--font-mono);
   font-weight: 500;
   flex-shrink: 0;
@@ -218,15 +203,12 @@
 
 /* Empty State */
 .config-empty-state {
-  background: white;
-  background: var(--surface-primary);
+  background: var(--color-surface-primary);
   border-radius: var(--radius-lg);
   padding: var(--space-2xl);
   text-align: center;
-  border: 2px dashed #CBD5E1;
-  border-color: rgba(100, 116, 139, 0.2);
-  color: #6B7280;
-  color: var(--cool-gray);
+  border: 2px dashed var(--color-border-medium);
+  color: var(--color-text-secondary);
 }
 
 .config-empty-state__icon {
@@ -237,8 +219,7 @@
 .config-empty-state__title {
   font-size: 18px;
   font-weight: 600;
-  color: #1A1A2E;
-  color: var(--deep-navy);
+  color: var(--color-text-primary);
   margin-bottom: var(--space-sm);
   font-family: var(--font-display);
 }
