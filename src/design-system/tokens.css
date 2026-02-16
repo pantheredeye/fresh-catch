@@ -172,6 +172,46 @@ html, body {
   --blur-sm: 5px;
   --blur-md: 10px;
   --border-strong: #1A2B3D;
+
+  /* === Semantic Color Aliases (three-tier alias layer) === */
+
+  /* Text */
+  --color-text-primary: var(--deep-navy);
+  --color-text-secondary: var(--cool-gray);
+  --color-text-tertiary: var(--soft-gray);
+  --color-text-inverse: white;
+
+  /* Actions */
+  --color-action-primary: var(--ocean-blue);
+  --color-action-primary-hover: #0052A3;
+  --color-action-secondary: var(--coral);
+  --color-action-secondary-accent: #FFB366;
+
+  /* Status */
+  --color-status-success: var(--mint-fresh);
+  --color-status-warning: var(--warm-gold);
+  --color-status-error: var(--coral);
+
+  /* Accent */
+  --color-accent-gold: var(--warm-gold);
+
+  /* Surfaces */
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--light-gray);
+  --color-surface-warm: var(--warm-white);
+  --color-surface-overlay: rgba(0,0,0,0.5);
+
+  /* Borders */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-light: var(--border-light);
+  --color-border-medium: var(--border-medium);
+  --color-border-input: #E8EFF5;
+  --color-border-input-disabled: #CBD5E1;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 /* Component Styles - RSC Compatible */
@@ -390,6 +430,19 @@ select::placeholder {
     --status-warning-border: #FBBF24;
     --status-error-bg: rgba(255, 107, 107, 0.15);
     --status-error-border: rgba(255, 107, 107, 0.5);
+
+    /* Semantic alias overrides - dark mode */
+    --color-text-primary: var(--deep-navy);
+    --color-text-secondary: var(--cool-gray);
+    --color-text-tertiary: var(--soft-gray);
+    --color-surface-primary: var(--surface-primary);
+    --color-surface-secondary: var(--light-gray);
+    --color-surface-warm: var(--warm-white);
+    --color-border-subtle: var(--border-subtle);
+    --color-border-light: var(--border-light);
+    --color-border-medium: var(--border-medium);
+    --color-border-input: rgba(0, 169, 150, 0.3);
+    --color-border-input-disabled: rgba(0, 169, 150, 0.15);
   }
 
   /* Placeholder text visibility in dark mode */
