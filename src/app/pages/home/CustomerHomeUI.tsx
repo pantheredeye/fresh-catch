@@ -56,7 +56,7 @@ export function CustomerHomeUI({
 
   return (
     <div style={{
-      background: 'var(--page-background)',
+      background: 'var(--color-bg-primary)',
       minHeight: '100vh',
       position: 'relative',
       overflow: 'hidden' // Contain 200% background

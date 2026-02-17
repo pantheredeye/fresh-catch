@@ -22,7 +22,7 @@ export function FreshHeroV1({ freshCatch }: FreshHeroProps) {
       margin: 'var(--space-md) auto',
       borderRadius: 'var(--radius-xl)',
       padding: 'var(--space-xl)',
-      background: 'var(--ocean-gradient)',
+      background: 'var(--color-gradient-primary)',
       position: 'relative',
       overflow: 'hidden',
       boxShadow: 'var(--shadow-lg)',
@@ -63,7 +63,7 @@ export function FreshHeroV1({ freshCatch }: FreshHeroProps) {
       }}>
         {freshCatch.map((item, index) => (
           <div key={index} style={{
-            background: 'var(--glass-white)',
+            background: 'var(--color-glass-base)',
             color: 'var(--color-text-primary)',
             padding: 'var(--space-md) var(--space-sm)',
             borderRadius: 'var(--radius-md)',

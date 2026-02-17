@@ -9,7 +9,7 @@ export function CustomerFooter() {
     <footer
       className="customer-footer"
       style={{
-        background: 'var(--footer-background)',
+        background: 'var(--color-bg-footer)',
         padding: 'var(--space-xl) var(--space-md)',
         textAlign: 'center',
       }}
@@ -17,7 +17,7 @@ export function CustomerFooter() {
       <p style={{
         margin: 0,
         fontSize: '14px',
-        color: 'var(--cool-gray)',
+        color: 'var(--color-text-secondary)',
       }}>
         Made by{' '}
         <a
@@ -25,7 +25,7 @@ export function CustomerFooter() {
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            color: 'var(--ocean-blue)',
+            color: 'var(--color-action-primary)',
             textDecoration: 'none',
             fontWeight: 500,
           }}

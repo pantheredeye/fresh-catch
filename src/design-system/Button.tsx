@@ -56,13 +56,13 @@ export function Button({
   const variantStyles = {
     // Customer variants
     primary: {
-      background: 'var(--ocean-gradient)',
+      background: 'var(--color-gradient-primary)',
       color: 'var(--color-text-inverse)',
       border: 'none',
       boxShadow: 'var(--shadow-md)',
     },
     secondary: {
-      background: 'var(--coral-gradient)',
+      background: 'var(--color-gradient-secondary)',
       color: 'var(--color-text-inverse)',
       border: 'none',
       boxShadow: 'var(--shadow-coral)'

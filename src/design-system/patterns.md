@@ -190,10 +190,10 @@ function MarketCard({ market, ctx }) {
 **CRITICAL: All new components MUST use design tokens**
 
 #### Required Token Usage:
-1. **Colors**: ALWAYS use tokens (`var(--text-primary)`, `var(--surface-primary)`)
+1. **Colors**: ALWAYS use tokens (`var(--color-text-primary)`, `var(--color-surface-primary)`)
 2. **Spacing**: ALWAYS use tokens (`var(--space-md)`, `var(--space-lg)`)
 3. **Typography**: ALWAYS use tokens or utility classes (`var(--font-size-md)`, `.heading-xl`)
-4. **Borders**: ALWAYS use tokens (`var(--border-light)`, `var(--radius-md)`)
+4. **Borders**: ALWAYS use tokens (`var(--color-border-light)`, `var(--radius-md)`)
 
 #### NEVER:
 - Hardcode hex colors (`#1A2B3D`)
@@ -205,8 +205,8 @@ function MarketCard({ market, ctx }) {
 ```tsx
 // ✅ GOOD
 const styles: CSSProperties = {
-  background: 'var(--surface-primary)',  // Auto-adapts to dark mode
-  color: 'var(--text-primary)',
+  background: 'var(--color-surface-primary)',  // Auto-adapts to dark mode
+  color: 'var(--color-text-primary)',
   padding: 'var(--space-md)',
   fontSize: 'var(--font-size-md)',
   borderRadius: 'var(--radius-md)',
@@ -243,13 +243,13 @@ Safari: Develop > Experimental > Dark Mode Override
 
 #### Auto-Adapting Tokens:
 These tokens automatically change in dark mode:
-- `--text-primary`: Dark navy → Light gray
-- `--text-secondary`: Cool gray → Lighter gray
-- `--surface-primary`: White → Dark gray (#1f2937)
-- `--page-background`: Warm white → Very dark gray (#111827)
-- `--border-light`: Subtle blue → Visible tinted
-- `--glass-light`: Light glass → Dark glass
-- `--input-border`: Light gray → Tinted green
+- `--color-text-primary`: Dark navy → Light gray
+- `--color-text-secondary`: Cool gray → Lighter gray
+- `--color-surface-primary`: White → Dark gray (#1f2937)
+- `--color-bg-primary`: Warm white → Very dark gray (#111827)
+- `--color-border-light`: Subtle blue → Visible tinted
+- `--color-glass-light`: Light glass → Dark glass
+- `--color-input-border`: Light gray → Tinted green
 
 ### Component Enforcement
 
@@ -277,7 +277,7 @@ These tokens automatically change in dark mode:
 pnpm run tokens:export
 ```
 
-Generates `src/design-system/tokens.json` compatible with Figma Tokens plugin.
+Generates `src/design-system/tokens-three-tier.json` compatible with Figma Tokens plugin.
 
 #### Token Structure:
 - **66 light mode tokens**: Colors, spacing, typography, shadows
@@ -286,6 +286,6 @@ Generates `src/design-system/tokens.json` compatible with Figma Tokens plugin.
 
 #### Workflow:
 1. Design in Figma using exported tokens
-2. Import tokens.json to Figma Tokens plugin
-3. Build components referencing same token names
+2. Import tokens-three-tier.json to Figma Tokens plugin
+3. Build components referencing same token names (three-tier: primitive → semantic → component)
 4. Two-way consistency maintained

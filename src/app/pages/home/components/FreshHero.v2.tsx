@@ -33,7 +33,7 @@ export function FreshHeroV2({ actions }: FreshHeroV2Props) {
       margin: 'var(--space-md) auto',
       borderRadius: 'var(--radius-xl)',
       padding: 'var(--space-xl)',
-      background: 'var(--ocean-gradient)',
+      background: 'var(--color-gradient-primary)',
       position: 'relative',
       overflow: 'hidden',
       boxShadow: 'var(--shadow-lg)',

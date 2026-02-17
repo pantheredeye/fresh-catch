@@ -129,7 +129,7 @@ export function MarketFormModal({
     maxHeight: '80vh',
     overflowY: 'auto',
     boxShadow: 'var(--shadow-lg)',
-    border: '1px solid var(--glass-border-light)',
+    border: '1px solid var(--color-glass-border-light)',
     margin: 'var(--space-md)'
   }
 

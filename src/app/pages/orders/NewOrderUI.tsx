@@ -184,7 +184,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid var(--input-border)',
+                border: '2px solid var(--color-input-border)',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--color-surface-warm)',
                 color: 'var(--color-text-primary)',
@@ -250,7 +250,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
             textAlign: 'center',
             background: status === 'success' ? 'var(--color-status-success)' :
                        status === 'error' ? 'var(--color-action-secondary)' :
-                       'var(--sky-blue)',
+                       'var(--color-status-info)',
             color: status === 'error' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)'
           }}>
             {message}

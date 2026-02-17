@@ -33,8 +33,8 @@ export function Card({
 }: CardProps) {
   const cardStyle: CSSProperties = {
     background: isFavorite
-      ? 'var(--surface-favorite)'
-      : 'var(--surface-primary)',
+      ? 'var(--color-surface-favorite)'
+      : 'var(--color-surface-primary)',
     borderRadius: 'var(--radius-lg)',
     padding: variant === 'centered' ? 'var(--space-md)' : 'var(--space-lg)',
     marginBottom: variant === 'default' ? 'var(--space-md)' : '0',

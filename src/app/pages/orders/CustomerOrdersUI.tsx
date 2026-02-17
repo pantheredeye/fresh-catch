@@ -38,7 +38,7 @@ export function CustomerOrdersUI({ orders, ctx }: CustomerOrdersUIProps) {
         <h1 style={{
           fontSize: '32px',
           fontWeight: 700,
-          color: 'var(--deep-navy)',
+          color: 'var(--color-text-primary)',
           fontFamily: 'var(--font-display)',
           margin: 0
         }}>
@@ -57,7 +57,7 @@ export function CustomerOrdersUI({ orders, ctx }: CustomerOrdersUIProps) {
           <div style={{
             textAlign: 'center',
             padding: 'var(--space-xl)',
-            color: 'var(--cool-gray)'
+            color: 'var(--color-text-secondary)'
           }}>
             <p style={{ fontSize: '18px', marginBottom: 'var(--space-md)' }}>
               You haven't placed any orders yet.

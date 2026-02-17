@@ -36,7 +36,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
 
   const statusConfig = {
-    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--color-text-primary)' },
+    pending: { label: 'Pending', color: 'var(--color-status-info-bg)', textColor: 'var(--color-text-primary)' },
     confirmed: { label: 'Confirmed', color: 'var(--color-status-success)', textColor: 'var(--color-text-primary)' },
     completed: { label: 'Completed', color: 'var(--color-text-secondary)', textColor: 'var(--color-text-inverse)' },
     cancelled: { label: 'Cancelled', color: 'var(--color-action-secondary)', textColor: 'var(--color-text-inverse)' }
@@ -232,7 +232,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
         <div style={{
           marginTop: 'var(--space-md)',
           padding: 'var(--space-md)',
-          background: 'var(--sky-blue-light)',
+          background: 'var(--color-status-info-bg)',
           borderRadius: 'var(--radius-sm)'
         }}>
           <h3 style={{

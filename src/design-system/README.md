@@ -8,9 +8,9 @@ Fresh Catch design system for consistent, dark-mode-safe components.
 
 ```tsx
 // ✅ DO - Use semantic tokens
-color: 'var(--text-primary)'        // Auto-adapts: dark navy → light gray
-background: 'var(--surface-primary)' // Auto-adapts: white → dark surface
-borderColor: 'var(--border-light)'   // Auto-adapts: light → tinted
+color: 'var(--color-text-primary)'        // Auto-adapts: dark navy → light gray
+background: 'var(--color-surface-primary)' // Auto-adapts: white → dark surface
+borderColor: 'var(--color-border-light)'   // Auto-adapts: light → tinted
 
 // ❌ DON'T - Hardcode colors
 color: '#1A2B3D'
@@ -19,12 +19,12 @@ borderColor: '#e0e0e0'
 ```
 
 **Color Tokens:**
-- `--text-primary` - Main text (dark navy → light gray in dark mode)
-- `--text-secondary` - Secondary text (cool gray → lighter gray)
-- `--surface-primary` - Card/component backgrounds (white → dark gray)
-- `--page-background` - Page background (warm white → very dark gray)
-- `--border-light/medium` - Borders (subtle → visible in dark mode)
-- `--glass-light/medium` - Glass effects (light → dark glass)
+- `--color-text-primary` - Main text (dark navy → light gray in dark mode)
+- `--color-text-secondary` - Secondary text (cool gray → lighter gray)
+- `--color-surface-primary` - Card/component backgrounds (white → dark gray)
+- `--color-bg-primary` - Page background (warm white → very dark gray)
+- `--color-border-light/medium` - Borders (subtle → visible in dark mode)
+- `--color-glass-light/medium` - Glass effects (light → dark glass)
 
 ### Typography
 
@@ -89,8 +89,8 @@ gap: '28px'
 
 ```tsx
 // ✅ AUTO-ADAPTS
-background: 'var(--surface-primary)'  // white → #1f2937
-background: 'var(--page-background)'  // #FFFCF8 → #111827
+background: 'var(--color-surface-primary)'  // white → #1f2937
+background: 'var(--color-bg-primary)'       // #FFFCF8 → #111827
 
 // ❌ BREAKS IN DARK MODE
 background: 'white'
@@ -102,8 +102,8 @@ background: 'rgba(255,255,255,0.1)'  // Invisible in dark mode
 
 ```tsx
 // ✅ AUTO-ADAPTS
-border: '1px solid var(--border-light)'
-borderColor: 'var(--input-border)'
+border: '1px solid var(--color-border-light)'
+borderColor: 'var(--color-input-border)'
 
 // ❌ BREAKS IN DARK MODE
 border: '1px solid #e0e0e0'  // Too light in dark mode
@@ -113,8 +113,8 @@ border: '1px solid #e0e0e0'  // Too light in dark mode
 
 ```tsx
 // ✅ AUTO-ADAPTS
-color: 'var(--text-primary)'    // dark → light
-color: 'var(--text-secondary)'  // gray → lighter gray
+color: 'var(--color-text-primary)'    // dark → light
+color: 'var(--color-text-secondary)'  // gray → lighter gray
 
 // ❌ BREAKS IN DARK MODE
 color: '#1A2B3D'  // Dark text on dark background
@@ -125,8 +125,8 @@ color: 'white'    // Light text on light background
 
 ```tsx
 // ✅ AUTO-ADAPTS
-background: 'var(--glass-light)'  // Light glass → dark glass
-border: '1px solid var(--glass-border-light)'
+background: 'var(--color-glass-light)'  // Light glass → dark glass
+border: '1px solid var(--color-glass-border-light)'
 backdropFilter: 'blur(10px)'
 
 // ❌ BREAKS IN DARK MODE
@@ -228,16 +228,16 @@ border: '1px solid rgba(255,255,255,0.2)'
 - ALWAYS use `var(--token-name)` for colors/spacing/typography
 
 ### Use Inline Styles (dynamic) For:
-- State-dependent values (`isActive ? 'var(--ocean-blue)' : 'var(--cool-gray)'`)
+- State-dependent values (`isActive ? 'var(--color-action-primary)' : 'var(--color-text-secondary)'`)
 - Prop-dependent values
 - Computed/calculated values
 - Transform/transition animations
 
 ### NEVER Use:
-- Hardcoded hex colors (`#1A2B3D` → use `var(--text-primary)`)
+- Hardcoded hex colors (`#1A2B3D` → use `var(--color-text-primary)`)
 - Hardcoded pixel values for spacing (`20px` → use `var(--space-md)`)
 - Hardcoded font sizes (`16px` → use `var(--font-size-md)`)
-- Hardcoded `rgba()` for glass effects (use `var(--glass-light)`)
+- Hardcoded `rgba()` for glass effects (use `var(--color-glass-light)`)
 
 ## Examples
 
@@ -251,7 +251,7 @@ export function GoodCard({ title, children }) {
       <div className="flex-col gap-sm">
         <p className="body-md text-secondary">{children}</p>
         <button style={{
-          background: 'var(--ocean-gradient)',  // ✅ Token
+          background: 'var(--color-gradient-primary)',  // ✅ Token
           color: 'white',
           padding: 'var(--space-md)',            // ✅ Token
           borderRadius: 'var(--radius-md)',      // ✅ Token
@@ -316,7 +316,7 @@ Export design tokens to Figma:
 pnpm run tokens:export
 ```
 
-This generates `src/design-system/tokens.json` compatible with Figma Tokens plugin.
+This generates `src/design-system/tokens-three-tier.json` compatible with Figma Tokens plugin.
 
 ## Resources
 

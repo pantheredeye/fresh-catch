@@ -33,7 +33,7 @@ export function ShareButton({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "var(--ocean-gradient)",
+            background: "var(--color-gradient-primary)",
             color: "white",
             border: "none",
             borderRadius: "var(--radius-md)",

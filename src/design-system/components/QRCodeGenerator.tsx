@@ -19,7 +19,7 @@ export function QRCodeGenerator({ url, size = 256 }: QRCodeGeneratorProps) {
       width: size,
       margin: 2,
       color: {
-        dark: "#0A2540", // var(--deep-navy)
+        dark: "#0A2540", // var(--color-text-primary)
         light: "#FFFFFF",
       },
     }).catch((err) => setError(err.message));

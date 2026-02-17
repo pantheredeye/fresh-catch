@@ -68,7 +68,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
             onClick={() => window.print()}
             style={{
               padding: '12px 24px',
-              background: 'var(--ocean-blue)',
+              background: 'var(--color-action-primary)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',

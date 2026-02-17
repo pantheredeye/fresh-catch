@@ -137,7 +137,7 @@ export function BottomNavigationV2() {
             fontSize: 'var(--font-size-sm)',
             fontWeight: 'var(--font-weight-semibold)',
             borderRadius: 'var(--radius-full)',
-            background: 'var(--ocean-gradient)',
+            background: 'var(--color-gradient-primary)',
             boxShadow: 'var(--shadow-md)'
           }}>
             Home
@@ -148,7 +148,7 @@ export function BottomNavigationV2() {
             display: 'inline-flex',
             alignItems: 'center',
             padding: 'var(--space-xs) var(--space-md)',
-            background: 'var(--coral-gradient)',
+            background: 'var(--color-gradient-secondary)',
             color: 'var(--color-text-inverse)',
             borderRadius: 'var(--radius-full)',
             fontSize: 'var(--font-size-md)',
@@ -172,8 +172,8 @@ export function BottomNavigationV2() {
               fontSize: 'var(--font-size-lg)',
               fontWeight: 'var(--font-weight-semibold)',
               borderRadius: 'var(--radius-full)',
-              background: 'var(--glass-light)',
-              border: '1px solid var(--glass-border-light)',
+              background: 'var(--color-glass-light)',
+              border: '1px solid var(--color-glass-border-light)',
               backdropFilter: 'blur(10px)',
               cursor: 'pointer'
             }}

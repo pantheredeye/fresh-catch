@@ -218,7 +218,7 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
           gap: 'var(--space-md)',
           marginBottom: 'var(--space-xl)'
         }}>
-          <StatusCard label="Pending" count={counts.pending} color="var(--sky-blue-light)" />
+          <StatusCard label="Pending" count={counts.pending} color="var(--color-status-info-bg)" />
           <StatusCard label="Confirmed" count={counts.confirmed} color="var(--color-status-success)" />
           <StatusCard label="Completed" count={counts.completed} color="var(--color-text-secondary)" />
           <StatusCard label="Cancelled" count={counts.cancelled} color="var(--color-status-error)" />

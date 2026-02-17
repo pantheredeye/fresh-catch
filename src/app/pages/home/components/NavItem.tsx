@@ -22,7 +22,7 @@ export function NavItem({ label, active = false, badge }: NavItemProps) {
       position: 'relative',
       transition: 'all 0.3s ease',
       borderRadius: 'var(--radius-full)',
-      background: active ? 'var(--ocean-gradient)' : 'rgba(255,255,255,0.1)',
+      background: active ? 'var(--color-gradient-primary)' : 'rgba(255,255,255,0.1)',
       border: active ? 'none' : '1px solid rgba(255,255,255,0.2)',
       backdropFilter: active ? 'none' : 'blur(10px)',
       boxShadow: active ? 'var(--shadow-md)' : 'none'

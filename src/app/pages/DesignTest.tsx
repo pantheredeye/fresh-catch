@@ -22,7 +22,7 @@ export function DesignTest() {
             fontWeight: 'var(--font-weight-bold)',
             marginBottom: 'var(--space-lg)',
             fontFamily: 'var(--font-display)',
-            background: 'var(--ocean-gradient)',
+            background: 'var(--color-gradient-primary)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',

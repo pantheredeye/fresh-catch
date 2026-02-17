@@ -5,7 +5,7 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: var(--ocean-gradient);
+  background: var(--color-gradient-primary);
   color: var(--color-white);
   border-radius: var(--radius-md);
   font-weight: 600;
@@ -26,7 +26,7 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: var(--glass-subtle);
+  background: var(--color-glass-subtle);
   border: 1.5px solid var(--color-border-light);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -37,7 +37,7 @@
 }
 
 .user-menu-trigger:hover {
-  background: var(--glass-light);
+  background: var(--color-glass-light);
   border-color: var(--color-action-primary);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
@@ -106,7 +106,7 @@
 
 .user-menu-item:hover,
 .user-menu-item:focus-visible {
-  background: var(--glass-light);
+  background: var(--color-glass-light);
   color: var(--color-ocean-vivid);
   outline: none;
 }

@@ -76,8 +76,8 @@ function dynamicStyles(variant: string): React.CSSProperties {
   return {
     // Dynamic values based on props/state
     background: variant === 'alternate'
-      ? 'var(--surface-favorite)'  // Still use tokens!
-      : 'var(--surface-primary)',
+      ? 'var(--color-surface-favorite)'  // Still use tokens!
+      : 'var(--color-surface-primary)',
 
     // Transform/animation values can be literal
     transform: 'translateY(-2px)',
@@ -87,9 +87,9 @@ function dynamicStyles(variant: string): React.CSSProperties {
 
 // ❌ BAD - Hardcoded colors (breaks dark mode)
 const badStyles: React.CSSProperties = {
-  background: 'white',              // ❌ Use var(--surface-primary)
-  color: '#1A2B3D',                 // ❌ Use var(--text-primary)
-  borderColor: '#e0e0e0',           // ❌ Use var(--border-light)
+  background: 'white',              // ❌ Use var(--color-surface-primary)
+  color: '#1A2B3D',                 // ❌ Use var(--color-text-primary)
+  borderColor: '#e0e0e0',           // ❌ Use var(--color-border-light)
   fontSize: '16px',                 // ❌ Use var(--font-size-md)
   padding: '20px',                  // ❌ Use var(--space-md)
 };

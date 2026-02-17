@@ -14,7 +14,7 @@ html, body {
   max-width: 100vw;
   margin: 0;
   padding: 0;
-  background: var(--page-background);
+  background: var(--color-bg-primary);
 }
 
 /* Content Width Constraint - Single Source of Truth */
@@ -35,34 +35,6 @@ html, body {
 }
 
 :root {
-  /* Colors - Vibrant Ocean Theme with Market Authenticity */
-  /* WHY: Ocean gradients feel fresh and premium, coral adds warmth and appetite appeal */
-  --ocean-gradient: linear-gradient(135deg, #0066CC, #00A896);
-  --coral-gradient: linear-gradient(135deg, #FF6B6B, #FFB366);
-  
-  /* Core Brand Colors */
-  --mint-fresh: #00D9B1;        /* WHY: "Fresh" badges, success states - seafoam green energy */
-  --ocean-blue: #0066CC;         /* WHY: Primary brand - trustworthy ocean blue */
-  --coral: #FF6B6B;             /* WHY: Alert/action color - warm salmon appetite appeal */
-  --warm-gold: #F59E0B;         /* WHY: Favorites, special items - market premium feel */
-  
-  /* Base System - Market Fresh Hybrid */
-  --warm-white: #FFFCF8;        /* WHY: Warm white with subtle grain feel, not clinical */
-  --deep-navy: #1A2B3D;         /* WHY: Deep navy text instead of pure black - softer, market-like */
-  --cool-gray: #64748B;         /* WHY: Muted text, professional but approachable */
-  --light-gray: #F1F5F9;        /* WHY: Subtle backgrounds that don't compete */
-  
-  /* Adaptive Surface Colors - Dark Mode Compatible */
-  --page-background: var(--warm-white);  /* Page background */
-  --surface-primary: white;     /* Cards, main surfaces - adapts in dark mode */
-  --surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03)); /* Favorite cards with mint tint */
-  --footer-background: linear-gradient(135deg, rgba(0,102,204,0.03), rgba(0,169,150,0.03)); /* Footer gradient */
-  
-  /* Glass Effects - Modern Premium Feel */
-  /* WHY: Glassmorphism feels Instagram-ready and premium like high-end seafood markets */
-  --glass-white: rgba(255,252,248,0.8);  /* Using warm white base */
-  --glass-dark: rgba(26,43,61,0.03);     /* Using deep navy base */
-  
   /* Typography Mix - Authentic but Clean */
   /* WHY: System fonts feel familiar, monospace adds market authenticity for prices/times */
   --font-modern: 'DM Sans', -apple-system, system-ui;  /* Body text - familiar */
@@ -124,96 +96,54 @@ html, body {
   --shadow-coral: 0 8px 24px rgba(255,107,107,0.2); /* Action elements */
   --shadow-gold: 0 8px 24px rgba(245,158,11,0.2);   /* Favorite/special items */
 
-  /* Semantic Input Colors - Dark Mode Compatible */
-  /* WHY: Named by purpose, auto-adapt in dark mode for accessibility */
-  --input-background: white;
-  --input-border: #e0e0e0;
-  --input-disabled-bg: #f8f8f8;
-
-  /* Glass Effects - Layered System */
-  /* WHY: Different opacity levels for different contexts, adapts to dark mode */
-  --glass-subtle: rgba(255, 252, 248, 0.05);
-  --glass-light: rgba(255, 252, 248, 0.1);
-  --glass-medium: rgba(255, 252, 248, 0.2);
-  --glass-border-light: rgba(255, 255, 255, 0.2);
-  --glass-border-medium: rgba(255, 255, 255, 0.3);
-
-  /* Border Colors - Progressive System */
-  /* WHY: Consistent borders that work in both light and dark modes */
-  --border-subtle: rgba(0, 102, 204, 0.08);
-  --border-light: rgba(0, 102, 204, 0.12);
-  --border-medium: rgba(0, 102, 204, 0.2);
-
-  /* Status Colors - Light Backgrounds */
-  /* WHY: Status badges need light background variants for dark mode compatibility */
-  --sky-blue-light: #e0f2fe;    /* Pending status light background */
-  --amber-light: #fef3c7;       /* Unpaid/warning status light background */
-  --text-inverse: white;        /* Text on dark gradients/backgrounds */
-
-  /* Extended Color Aliases */
-  --mint-green: #00D9B1;        /* Success/ready states (alias of --mint-fresh) */
-  --sky-blue: #0EA5E9;          /* Info/link states */
-  --soft-gray: #94A3B8;         /* Neutral/inactive states */
-  --text-primary: var(--deep-navy);
-  --text-secondary: var(--cool-gray);
-
-  /* Status Tokens */
-  --status-success-bg: #ECFDF5;
-  --status-success-border: #10B981;
-  --status-warning-bg: #FFFBEB;
-  --status-warning-border: #F59E0B;
-  --status-error-bg: rgba(255, 107, 107, 0.1);
-  --status-error-border: rgba(255, 107, 107, 0.3);
-
   /* Utility Tokens */
   --radius-xs: 6px;
   --letter-spacing-wide: 0.5px;
   --letter-spacing-wider: 1px;
   --blur-sm: 5px;
   --blur-md: 10px;
-  --border-strong: #1A2B3D;
 
   /* === Semantic Color Aliases (three-tier alias layer) === */
 
   /* Text */
-  --color-text-primary: var(--deep-navy);
-  --color-text-secondary: var(--cool-gray);
-  --color-text-tertiary: var(--soft-gray);
+  --color-text-primary: #1A2B3D;
+  --color-text-secondary: #64748B;
+  --color-text-tertiary: #94A3B8;
   --color-text-inverse: white;
 
   /* Actions */
-  --color-action-primary: var(--ocean-blue);
+  --color-action-primary: #0066CC;
   --color-action-primary-hover: #0052A3;
-  --color-action-secondary: var(--coral);
+  --color-action-secondary: #FF6B6B;
   --color-action-secondary-accent: #FFB366;
 
   /* Status */
-  --color-status-success: var(--mint-fresh);
-  --color-status-warning: var(--warm-gold);
-  --color-status-error: var(--coral);
+  --color-status-success: #00D9B1;
+  --color-status-warning: #F59E0B;
+  --color-status-error: #FF6B6B;
 
   /* Accent */
-  --color-accent-gold: var(--warm-gold);
+  --color-accent-gold: #F59E0B;
 
   /* Surfaces */
-  --color-surface-primary: var(--surface-primary);
-  --color-surface-secondary: var(--light-gray);
-  --color-surface-warm: var(--warm-white);
+  --color-surface-primary: white;
+  --color-surface-secondary: #F1F5F9;
+  --color-surface-warm: #FFFCF8;
   --color-surface-overlay: rgba(0,0,0,0.5);
 
   /* Borders */
-  --color-border-subtle: var(--border-subtle);
-  --color-border-light: var(--border-light);
-  --color-border-medium: var(--border-medium);
+  --color-border-subtle: rgba(0, 102, 204, 0.08);
+  --color-border-light: rgba(0, 102, 204, 0.12);
+  --color-border-medium: rgba(0, 102, 204, 0.2);
   --color-border-input: #E8EFF5;
   --color-border-input-disabled: #CBD5E1;
 
   /* Backgrounds */
-  --color-bg-primary: var(--page-background);
-  --color-bg-elevated: var(--surface-primary);
+  --color-bg-primary: #FFFCF8;
+  --color-bg-elevated: white;
 
   /* Extra Color Aliases */
-  --color-coral: var(--coral);
+  --color-coral: #FF6B6B;
   --color-coral-vivid: #FF5252;
   --color-danger: #EF4444;
   --color-ocean-vivid: #0077E6;
@@ -221,6 +151,38 @@ html, body {
 
   /* Shadow - Extra */
   --shadow-xl: 0 25px 50px rgba(0, 102, 204, 0.2);
+
+  /* Gradient Aliases */
+  --color-gradient-primary: linear-gradient(135deg, #0066CC, #00A896);
+  --color-gradient-secondary: linear-gradient(135deg, #FF6B6B, #FFB366);
+
+  /* Surface Extended */
+  --color-surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03));
+  --color-bg-footer: linear-gradient(135deg, rgba(0,102,204,0.03), rgba(0,169,150,0.03));
+
+  /* Glass Effects */
+  --color-glass-base: rgba(255,252,248,0.8);
+  --color-glass-dark: rgba(26,43,61,0.03);
+  --color-glass-subtle: rgba(255, 252, 248, 0.05);
+  --color-glass-light: rgba(255, 252, 248, 0.1);
+  --color-glass-medium: rgba(255, 252, 248, 0.2);
+  --color-glass-border-light: rgba(255, 255, 255, 0.2);
+  --color-glass-border-medium: rgba(255, 255, 255, 0.3);
+
+  /* Input Colors */
+  --color-input-bg: white;
+  --color-input-border: #e0e0e0;
+  --color-input-disabled-bg: #f8f8f8;
+
+  /* Status Extended */
+  --color-status-info: #0EA5E9;
+  --color-status-info-bg: #e0f2fe;
+  --color-status-warning-bg: #fef3c7;
+  --color-status-success-bg: #ECFDF5;
+  --color-status-success-border: #10B981;
+  --color-status-warning-border: #F59E0B;
+  --color-status-error-bg: rgba(255, 107, 107, 0.1);
+  --color-status-error-border: rgba(255, 107, 107, 0.3);
 
   /* Typography Shorthand Aliases */
   --text-xs: var(--font-size-xs);
@@ -402,77 +364,58 @@ select::placeholder {
 /* Dark Mode Overrides */
 @media (prefers-color-scheme: dark) {
   :root {
-    --page-background: #111827;  /* Dark page background */
-    --surface-primary: #1f2937;  /* Dark surface that's lighter than black background */
-    --surface-favorite: #1f2937; /* No gradient in dark mode - just solid surface */
-    --footer-background: linear-gradient(135deg, rgba(0,102,204,0.08), rgba(0,169,150,0.08)); /* Stronger gradient for dark mode */
+    /* Text */
+    --color-text-primary: #E2E8F0;
+    --color-text-secondary: #94A3B8;
+    --color-text-tertiary: #CBD5E1;
 
-    /* Glass effects - dark glass for dark mode */
-    --glass-white: rgba(31, 41, 55, 0.8);  /* Dark glass instead of light */
+    /* Surfaces */
+    --color-surface-primary: #1f2937;
+    --color-surface-secondary: #374151;
+    --color-surface-warm: #1f2937;
+    --color-surface-favorite: #1f2937;
 
-    /* Text only - light text for dark backgrounds */
-    --deep-navy: #E2E8F0;
-    --cool-gray: #94A3B8;
+    /* Backgrounds */
+    --color-bg-primary: #111827;
+    --color-bg-elevated: #1f2937;
+    --color-bg-footer: linear-gradient(135deg, rgba(0,102,204,0.08), rgba(0,169,150,0.08));
 
-    /* Fix missing dark mode overrides */
-    --light-gray: #374151;  /* Was #F1F5F9, now dark gray for visibility */
-    --warm-white: #1f2937;  /* Was #FFFCF8, now dark surface */
+    /* Borders */
+    --color-border-subtle: rgba(0, 169, 150, 0.15);
+    --color-border-light: rgba(0, 169, 150, 0.25);
+    --color-border-medium: rgba(0, 169, 150, 0.35);
+    --color-border-input: rgba(0, 169, 150, 0.3);
+    --color-border-input-disabled: rgba(0, 169, 150, 0.15);
 
-    /* Input colors for dark mode */
-    --input-background: #1f2937;
-    --input-border: rgba(0, 169, 150, 0.3);
-    --input-disabled-bg: #111827;
+    /* Glass Effects */
+    --color-glass-base: rgba(31, 41, 55, 0.8);
+    --color-glass-dark: rgba(26,43,61,0.03);
+    --color-glass-subtle: rgba(31, 41, 55, 0.3);
+    --color-glass-light: rgba(31, 41, 55, 0.5);
+    --color-glass-medium: rgba(31, 41, 55, 0.7);
+    --color-glass-border-light: rgba(255, 255, 255, 0.1);
+    --color-glass-border-medium: rgba(255, 255, 255, 0.15);
 
-    /* Dark glass effects */
-    --glass-subtle: rgba(31, 41, 55, 0.3);
-    --glass-light: rgba(31, 41, 55, 0.5);
-    --glass-medium: rgba(31, 41, 55, 0.7);
-    --glass-border-light: rgba(255, 255, 255, 0.1);
-    --glass-border-medium: rgba(255, 255, 255, 0.15);
+    /* Input Colors */
+    --color-input-bg: #1f2937;
+    --color-input-border: rgba(0, 169, 150, 0.3);
+    --color-input-disabled-bg: #111827;
 
-    /* Dark mode borders */
-    --border-subtle: rgba(0, 169, 150, 0.15);
-    --border-light: rgba(0, 169, 150, 0.25);
-    --border-medium: rgba(0, 169, 150, 0.35);
+    /* Status Extended - Dark Mode */
+    --color-status-info-bg: rgba(0, 102, 204, 0.2);
+    --color-status-warning-bg: rgba(245, 158, 11, 0.2);
+    --color-status-info: #38BDF8;
+    --color-status-success-bg: rgba(16, 185, 129, 0.15);
+    --color-status-success-border: #34D399;
+    --color-status-warning-border: #FBBF24;
+    --color-status-error-bg: rgba(255, 107, 107, 0.15);
+    --color-status-error-border: rgba(255, 107, 107, 0.5);
 
-    /* Status colors - dark mode backgrounds */
-    --sky-blue-light: rgba(0, 102, 204, 0.2);
-    --amber-light: rgba(245, 158, 11, 0.2);
-
-    /* Extended color aliases - dark mode */
-    --mint-green: #00A88A;
-    --sky-blue: #38BDF8;
-    --soft-gray: #CBD5E1;
-    --border-strong: #E2E8F0;
-
-    /* Status tokens - dark mode */
-    --status-success-bg: rgba(16, 185, 129, 0.15);
-    --status-success-border: #34D399;
-    --status-warning-bg: rgba(245, 158, 11, 0.15);
-    --status-warning-border: #FBBF24;
-    --status-error-bg: rgba(255, 107, 107, 0.15);
-    --status-error-border: rgba(255, 107, 107, 0.5);
-
-    /* Background & surface aliases - dark mode */
-    --color-bg-primary: var(--page-background);
-    --color-bg-elevated: var(--surface-primary);
+    /* Extra Colors */
     --color-coral-vivid: #FF6B6B;
     --color-danger: #F87171;
     --color-ocean-vivid: #3B9AFF;
     --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.4);
-
-    /* Semantic alias overrides - dark mode */
-    --color-text-primary: var(--deep-navy);
-    --color-text-secondary: var(--cool-gray);
-    --color-text-tertiary: var(--soft-gray);
-    --color-surface-primary: var(--surface-primary);
-    --color-surface-secondary: var(--light-gray);
-    --color-surface-warm: var(--warm-white);
-    --color-border-subtle: var(--border-subtle);
-    --color-border-light: var(--border-light);
-    --color-border-medium: var(--border-medium);
-    --color-border-input: rgba(0, 169, 150, 0.3);
-    --color-border-input-disabled: rgba(0, 169, 150, 0.15);
   }
 
   /* Placeholder text visibility in dark mode */
@@ -587,8 +530,8 @@ select::placeholder {
 
 .info-box {
   padding: var(--space-md);
-  background: var(--surface-primary);
-  border: 1px solid var(--border-light);
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
@@ -628,7 +571,7 @@ select::placeholder {
 }
 
 .card-elevated {
-  background: var(--surface-primary);
+  background: var(--color-surface-primary);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   box-shadow: var(--shadow-md);
@@ -641,9 +584,9 @@ select::placeholder {
 }
 
 .card-glass {
-  background: var(--glass-light);
+  background: var(--color-glass-light);
   backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-border-light);
+  border: 1px solid var(--color-glass-border-light);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }

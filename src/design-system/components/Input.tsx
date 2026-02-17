@@ -326,7 +326,7 @@ const errorInputStyles: React.CSSProperties = {
 const disabledStyles: React.CSSProperties = {
   opacity: 0.6,
   cursor: 'not-allowed',
-  background: 'var(--input-disabled-bg)',
+  background: 'var(--color-input-disabled-bg)',
 };
 
 const errorTextStyles: React.CSSProperties = {

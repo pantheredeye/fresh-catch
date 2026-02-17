@@ -275,7 +275,7 @@ const actionSectionStyles: React.CSSProperties = {
 const guideStyles: React.CSSProperties = {
   marginTop: 'var(--space-2xl)',
   padding: 'var(--space-xl)',
-  background: 'var(--glass-dark)',
+  background: 'var(--color-glass-dark)',
   borderRadius: 'var(--radius-lg)',
   border: '1px solid var(--color-border-subtle)',
 };

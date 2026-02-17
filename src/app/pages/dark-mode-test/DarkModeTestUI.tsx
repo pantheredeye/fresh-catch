@@ -26,7 +26,7 @@ export function DarkModeTestUI({ market }: Props) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--page-background)',
+      background: 'var(--color-bg-primary)',
       padding: 'var(--space-xl)',
     }}>
       <div style={{
@@ -242,7 +242,7 @@ function CardBase({
         <a href="#test" style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: 'var(--ocean-gradient)',
+          background: 'var(--color-gradient-primary)',
           color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
@@ -340,7 +340,7 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
         <a href="#test" style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: 'var(--ocean-gradient)',
+          background: 'var(--color-gradient-primary)',
           color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
@@ -438,7 +438,7 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
         <a href="#test" style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: 'var(--ocean-gradient)',
+          background: 'var(--color-gradient-primary)',
           color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
@@ -536,7 +536,7 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
         <a href="#test" style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: 'var(--ocean-gradient)',
+          background: 'var(--color-gradient-primary)',
           color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
@@ -634,7 +634,7 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
         <a href="#test" style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: 'var(--ocean-gradient)',
+          background: 'var(--color-gradient-primary)',
           color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',

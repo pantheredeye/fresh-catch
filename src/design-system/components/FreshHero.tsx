@@ -25,7 +25,7 @@ export function FreshHero({
     margin: 'var(--space-md)',
     borderRadius: 'var(--radius-xl)',
     padding: 'var(--space-xl)',
-    background: 'var(--ocean-gradient)',
+    background: 'var(--color-gradient-primary)',
     position: 'relative',
     overflow: 'hidden',
     boxShadow: 'var(--shadow-lg)',
@@ -105,7 +105,7 @@ interface FreshItemProps {
 
 export function FreshItem({ emoji, children, className = '' }: FreshItemProps) {
   const itemStyle: React.CSSProperties = {
-    background: 'var(--glass-white)',
+    background: 'var(--color-glass-base)',
     color: 'var(--color-text-primary)',
     padding: 'var(--space-md) var(--space-sm)',
     borderRadius: 'var(--radius-md)',

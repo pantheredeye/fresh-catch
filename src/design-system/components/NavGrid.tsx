@@ -51,7 +51,7 @@ export function NavGrid({ items, columns = 2, variant = 'compact' }: NavGridProp
             flexDirection: isCompact ? 'column' : 'row',
             alignItems: isCompact ? 'center' : 'center',
             gap: isCompact ? 'var(--space-sm)' : 'var(--space-md)',
-            background: 'var(--surface-primary)',
+            background: 'var(--color-surface-primary)',
             borderRadius: 'var(--radius-lg)',
             padding: isCompact ? 'var(--space-lg) var(--space-md)' : 'var(--space-lg)',
             textAlign: isCompact ? 'center' : 'left',

@@ -3,9 +3,13 @@
 /**
  * Figma Token Exporter
  *
- * Converts tokens.css → tokens.json for Figma Tokens plugin
+ * Converts tokens.css → tokens-export.json for Figma Tokens plugin
+ * Extracts semantic tokens (--color-*, --font-*, --space-*, --radius-*,
+ * --shadow-*, --width-*, --line-height-*, --letter-spacing-*, --blur-*,
+ * --text-*, --duration-*, --ease-*) from :root.
+ *
  * Run: node scripts/export-tokens.js
- * Output: src/design-system/tokens.json
+ * Output: src/design-system/tokens-export.json
  */
 
 import fs from 'fs';
@@ -16,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const tokensPath = path.join(__dirname, '../src/design-system/tokens.css');
-const outputPath = path.join(__dirname, '../src/design-system/tokens.json');
+const outputPath = path.join(__dirname, '../src/design-system/tokens-export.json');
 
 // Read tokens.css
 const css = fs.readFileSync(tokensPath, 'utf8');
@@ -89,14 +93,8 @@ function categorizeTokens(vars) {
     let category = 'other';
     let type = 'other';
 
-    // Color tokens
-    if (name.includes('color') || name.includes('gradient') ||
-        name.includes('blue') || name.includes('coral') ||
-        name.includes('mint') || name.includes('gold') ||
-        name.includes('navy') || name.includes('gray') ||
-        name.includes('white') || name.includes('background') ||
-        name.includes('surface') || name.includes('glass') ||
-        name.includes('border') && !name.includes('radius') && !name.includes('width')) {
+    // Color tokens (--color-* semantic tokens)
+    if (name.startsWith('color-')) {
       category = 'color';
       type = 'color';
     }
@@ -190,4 +188,4 @@ Object.entries(figmaTokens.global).forEach(([category, tokens]) => {
     console.log(`  - ${category}: ${count} tokens`);
   }
 });
-console.log('\n💡 Import tokens.json to Figma using the Figma Tokens plugin');
+console.log('\n💡 Import tokens-export.json to Figma using the Figma Tokens plugin');

@@ -42,7 +42,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [paymentNotes, setPaymentNotes] = useState('');
 
   const statusConfig = {
-    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--color-text-primary)' },
+    pending: { label: 'Pending', color: 'var(--color-status-info-bg)', textColor: 'var(--color-text-primary)' },
     confirmed: { label: 'Confirmed', color: 'var(--color-status-success)', textColor: 'var(--color-text-primary)' },
     completed: { label: 'Completed', color: 'var(--color-text-secondary)', textColor: 'var(--color-text-inverse)' },
     cancelled: { label: 'Cancelled', color: 'var(--color-status-error)', textColor: 'var(--color-text-inverse)' }
@@ -144,7 +144,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             <div style={{
               display: 'inline-block',
               padding: '4px 12px',
-              background: order.paymentStatus === 'paid' ? 'var(--color-status-success)' : 'var(--amber-light)',
+              background: order.paymentStatus === 'paid' ? 'var(--color-status-success)' : 'var(--color-status-warning-bg)',
               color: 'var(--color-text-primary)',
               borderRadius: 'var(--radius-sm)',
               fontSize: 'var(--font-size-xs)',
@@ -423,7 +423,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       {showPaymentModal && (
         <div style={{
           padding: 'var(--space-md)',
-          background: 'var(--amber-light)',
+          background: 'var(--color-status-warning-bg)',
           borderRadius: 'var(--radius-sm)',
           marginTop: 'var(--space-md)'
         }}>

@@ -33,7 +33,7 @@ export function MarketCard({
 
   return (
     <div style={{
-      background: isFavorite ? 'var(--surface-favorite)' : 'var(--surface-primary)',
+      background: isFavorite ? 'var(--color-surface-favorite)' : 'var(--color-surface-primary)',
       borderRadius: 'var(--radius-lg)',
       padding: 'var(--space-lg)',
       marginBottom: 'var(--space-md)',
@@ -93,7 +93,7 @@ export function MarketCard({
         <a href={`#order-${market.id}`} style={{
           flex: 1,
           padding: 'var(--space-md)',
-          background: isAdmin ? 'var(--coral-gradient)' : 'var(--ocean-gradient)',
+          background: isAdmin ? 'var(--color-gradient-secondary)' : 'var(--color-gradient-primary)',
           color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',

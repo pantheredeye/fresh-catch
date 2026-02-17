@@ -97,7 +97,7 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
     switch (status) {
       case 'success': return 'var(--color-status-success)';
       case 'error': return 'var(--color-action-secondary)';
-      case 'loading': return 'var(--sky-blue)';
+      case 'loading': return 'var(--color-status-info)';
       default: return 'var(--color-text-tertiary)';
     }
   };
@@ -348,7 +348,7 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
     switch (status) {
       case 'success': return 'var(--color-status-success)';
       case 'error': return 'var(--color-action-secondary)';
-      case 'loading': return 'var(--sky-blue)';
+      case 'loading': return 'var(--color-status-info)';
       default: return 'var(--color-text-tertiary)';
     }
   };

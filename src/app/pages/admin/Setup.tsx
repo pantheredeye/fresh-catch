@@ -155,7 +155,7 @@ export function Setup({ ctx }: { ctx: any }) {
     switch (status) {
       case 'success': return 'var(--color-status-success)';
       case 'error': return 'var(--color-status-error)';
-      case 'loading': return 'var(--sky-blue)';
+      case 'loading': return 'var(--color-status-info)';
       default: return 'var(--color-text-tertiary)';
     }
   };

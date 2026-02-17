@@ -194,7 +194,7 @@ export function Login({ ctx }: { ctx: any }) {
     switch (status) {
       case 'success': return 'var(--color-status-success)';
       case 'error': return 'var(--color-action-secondary)';
-      case 'loading': return 'var(--sky-blue)';
+      case 'loading': return 'var(--color-status-info)';
       default: return 'var(--color-text-tertiary)';
     }
   };
@@ -250,7 +250,7 @@ export function Login({ ctx }: { ctx: any }) {
             <div
               style={{
                 padding: 'var(--space-md)',
-                background: 'var(--sky-blue)',
+                background: 'var(--color-status-info)',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: 'var(--font-size-sm)',
                 color: 'var(--color-text-primary)',

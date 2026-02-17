@@ -206,14 +206,14 @@ const containerStyles: React.CSSProperties = {
   justifyContent: 'center',
   minHeight: '100vh',
   padding: 'var(--space-md)',
-  background: 'var(--ocean-gradient)',
+  background: 'var(--color-gradient-primary)',
   position: 'relative',
 };
 
 const formStyles: React.CSSProperties = {
-  background: 'var(--glass-light)',
+  background: 'var(--color-glass-light)',
   backdropFilter: 'blur(10px)',
-  border: '1px solid var(--glass-border-light)',
+  border: '1px solid var(--color-glass-border-light)',
   borderRadius: 'var(--radius-lg)',
   padding: 'var(--space-xl)',
   width: '100%',
@@ -264,9 +264,9 @@ const labelStyles: React.CSSProperties = {
 const inputStyles: React.CSSProperties = {
   padding: 'var(--space-md)',
   fontSize: '16px',
-  border: '1px solid var(--glass-border-medium)',
+  border: '1px solid var(--color-glass-border-medium)',
   borderRadius: 'var(--radius-md)',
-  background: 'var(--glass-light)',
+  background: 'var(--color-glass-light)',
   color: 'var(--color-text-inverse)',
   backdropFilter: 'blur(5px)',
   transition: 'all 0.3s ease',
@@ -285,9 +285,9 @@ const radioLabelStyles: React.CSSProperties = {
   gap: 'var(--space-sm)',
   cursor: 'pointer',
   padding: 'var(--space-md)',
-  border: '1px solid var(--glass-border-light)',
+  border: '1px solid var(--color-glass-border-light)',
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--glass-subtle)',
+  background: 'var(--color-glass-subtle)',
   transition: 'all 0.3s ease',
 };
 
