@@ -15,8 +15,8 @@ export const Document: React.FC<{ children: React.ReactNode }> = ({
     </head>
     <body style={{
       fontFamily: 'var(--font-modern)',
-      background: 'var(--warm-white)',
-      color: 'var(--dark)',
+      background: 'var(--color-surface-warm)',
+      color: 'var(--color-text-primary)',
       lineHeight: 1.6,
       margin: 0,
       padding: 0

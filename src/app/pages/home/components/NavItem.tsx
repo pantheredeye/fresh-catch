@@ -16,9 +16,9 @@ export function NavItem({ label, active = false, badge }: NavItemProps) {
     <a href={`#${label.toLowerCase()}`} style={{
       padding: 'var(--space-sm) var(--space-md)',
       textDecoration: 'none',
-      color: active ? 'white' : 'var(--cool-gray)',
-      fontSize: '13px',
-      fontWeight: 600,
+      color: active ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+      fontSize: 'var(--font-size-sm)',
+      fontWeight: 'var(--font-weight-semibold)',
       position: 'relative',
       transition: 'all 0.3s ease',
       borderRadius: 'var(--radius-full)',
@@ -33,12 +33,12 @@ export function NavItem({ label, active = false, badge }: NavItemProps) {
           position: 'absolute',
           top: 0,
           right: '8px',
-          background: 'var(--coral)',
-          color: 'white',
-          fontSize: '10px',
+          background: 'var(--color-action-secondary)',
+          color: 'var(--color-text-inverse)',
+          fontSize: 'var(--font-size-xs)',
           padding: '2px 6px',
           borderRadius: 'var(--radius-full)',
-          fontWeight: 700
+          fontWeight: 'var(--font-weight-bold)'
         }}>
           {badge}
         </span>

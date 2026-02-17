@@ -45,11 +45,11 @@ export function BottomNavigationV2() {
           position: 'fixed',
           bottom: footerVisible ? '160px' : 'calc(var(--space-md) + 60px)',
           right: 'var(--space-md)',
-          background: 'var(--surface-primary)',
+          background: 'var(--color-surface-primary)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-lg)',
           zIndex: 201,
-          border: '1px solid rgba(0,102,204,0.08)',
+          border: '1px solid var(--color-border-subtle)',
           minWidth: '160px',
           overflow: 'hidden',
           transition: 'bottom 0.3s ease'
@@ -58,10 +58,10 @@ export function BottomNavigationV2() {
             display: 'block',
             padding: 'var(--space-md)',
             textDecoration: 'none',
-            color: 'var(--text-primary)',
-            fontSize: '14px',
-            fontWeight: 500,
-            borderBottom: '1px solid rgba(0,102,204,0.08)'
+            color: 'var(--color-text-primary)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 'var(--font-weight-medium)',
+            borderBottom: '1px solid var(--color-border-subtle)'
           }}>
             Profile
           </a>
@@ -69,10 +69,10 @@ export function BottomNavigationV2() {
             display: 'block',
             padding: 'var(--space-md)',
             textDecoration: 'none',
-            color: 'var(--text-primary)',
-            fontSize: '14px',
-            fontWeight: 500,
-            borderBottom: '1px solid rgba(0,102,204,0.08)'
+            color: 'var(--color-text-primary)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 'var(--font-weight-medium)',
+            borderBottom: '1px solid var(--color-border-subtle)'
           }}>
             Settings
           </a>
@@ -88,9 +88,9 @@ export function BottomNavigationV2() {
               textAlign: 'left',
               background: 'none',
               border: 'none',
-              color: 'var(--text-primary)',
-              fontSize: '14px',
-              fontWeight: 500,
+              color: 'var(--color-text-primary)',
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-medium)',
               cursor: 'pointer'
             }}
           >
@@ -116,11 +116,11 @@ export function BottomNavigationV2() {
         bottom: footerVisible ? '100px' : 'var(--space-md)',
         left: 'var(--space-md)',
         right: 'var(--space-md)',
-        background: 'var(--surface-primary)',
+        background: 'var(--color-surface-primary)',
         borderRadius: 'var(--radius-full)',
         boxShadow: 'var(--shadow-lg)',
         zIndex: 200,
-        border: '1px solid rgba(0,102,204,0.08)',
+        border: '1px solid var(--color-border-subtle)',
         transition: 'bottom 0.3s ease'
       }}>
         <div style={{
@@ -133,9 +133,9 @@ export function BottomNavigationV2() {
           <a href="/" style={{
             padding: 'var(--space-sm) var(--space-md)',
             textDecoration: 'none',
-            color: 'white',
-            fontSize: '13px',
-            fontWeight: 600,
+            color: 'var(--color-text-inverse)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 'var(--font-weight-semibold)',
             borderRadius: 'var(--radius-full)',
             background: 'var(--ocean-gradient)',
             boxShadow: 'var(--shadow-md)'
@@ -149,10 +149,10 @@ export function BottomNavigationV2() {
             alignItems: 'center',
             padding: 'var(--space-xs) var(--space-md)',
             background: 'var(--coral-gradient)',
-            color: 'white',
+            color: 'var(--color-text-inverse)',
             borderRadius: 'var(--radius-full)',
-            fontSize: '15px',
-            fontWeight: 600,
+            fontSize: 'var(--font-size-md)',
+            fontWeight: 'var(--font-weight-semibold)',
             textDecoration: 'none',
             boxShadow: 'var(--shadow-coral)',
             transition: 'all 0.2s ease',
@@ -168,9 +168,9 @@ export function BottomNavigationV2() {
             style={{
               padding: 'var(--space-sm) var(--space-md)',
               textDecoration: 'none',
-              color: 'var(--cool-gray)',
-              fontSize: '18px',
-              fontWeight: 600,
+              color: 'var(--color-text-secondary)',
+              fontSize: 'var(--font-size-lg)',
+              fontWeight: 'var(--font-weight-semibold)',
               borderRadius: 'var(--radius-full)',
               background: 'var(--glass-light)',
               border: '1px solid var(--glass-border-light)',

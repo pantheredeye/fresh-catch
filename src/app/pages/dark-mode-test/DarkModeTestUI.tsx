@@ -30,13 +30,13 @@ export function DarkModeTestUI({ market }: Props) {
       padding: 'var(--space-xl)',
     }}>
       <div style={{
-        maxWidth: '1400px',
+        maxWidth: 'var(--width-xl)',
         margin: '0 auto'
       }}>
         <h1 style={{
           color: 'var(--color-text-primary)',
           fontFamily: 'var(--font-display)',
-          fontSize: '32px',
+          fontSize: 'var(--font-size-4xl)',
           marginBottom: 'var(--space-md)'
         }}>
           Dark Mode Market Card Tests
@@ -44,7 +44,7 @@ export function DarkModeTestUI({ market }: Props) {
         <p style={{
           color: 'var(--color-text-secondary)',
           marginBottom: 'var(--space-xl)',
-          fontSize: '16px'
+          fontSize: 'var(--font-size-md)'
         }}>
           Toggle your system dark mode to compare approaches. Each card shows a different design direction.
         </p>
@@ -59,7 +59,7 @@ export function DarkModeTestUI({ market }: Props) {
           <div>
             <h3 style={{
               color: 'var(--color-text-primary)',
-              fontSize: '18px',
+              fontSize: 'var(--font-size-lg)',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
             }}>
@@ -67,7 +67,7 @@ export function DarkModeTestUI({ market }: Props) {
             </h3>
             <p style={{
               color: 'var(--color-text-secondary)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               marginBottom: 'var(--space-md)'
             }}>
               Lighter cards, strong contrast, mint glow borders
@@ -79,7 +79,7 @@ export function DarkModeTestUI({ market }: Props) {
           <div>
             <h3 style={{
               color: 'var(--color-text-primary)',
-              fontSize: '18px',
+              fontSize: 'var(--font-size-lg)',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
             }}>
@@ -87,7 +87,7 @@ export function DarkModeTestUI({ market }: Props) {
             </h3>
             <p style={{
               color: 'var(--color-text-secondary)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               marginBottom: 'var(--space-md)'
             }}>
               Blue-tinted cards, ocean glow, underwater vibe
@@ -99,7 +99,7 @@ export function DarkModeTestUI({ market }: Props) {
           <div>
             <h3 style={{
               color: 'var(--color-text-primary)',
-              fontSize: '18px',
+              fontSize: 'var(--font-size-lg)',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
             }}>
@@ -107,7 +107,7 @@ export function DarkModeTestUI({ market }: Props) {
             </h3>
             <p style={{
               color: 'var(--color-text-secondary)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               marginBottom: 'var(--space-md)'
             }}>
               Warm dark tones, market stall at night feel
@@ -119,7 +119,7 @@ export function DarkModeTestUI({ market }: Props) {
           <div>
             <h3 style={{
               color: 'var(--color-text-primary)',
-              fontSize: '18px',
+              fontSize: 'var(--font-size-lg)',
               marginBottom: 'var(--space-md)',
               fontFamily: 'var(--font-display)'
             }}>
@@ -127,7 +127,7 @@ export function DarkModeTestUI({ market }: Props) {
             </h3>
             <p style={{
               color: 'var(--color-text-secondary)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               marginBottom: 'var(--space-md)'
             }}>
               Glassmorphism, translucent, bold borders
@@ -144,7 +144,7 @@ export function DarkModeTestUI({ market }: Props) {
         }}>
           <h3 style={{
             color: 'var(--color-text-primary)',
-            fontSize: '18px',
+            fontSize: 'var(--font-size-lg)',
             marginBottom: 'var(--space-sm)',
             fontFamily: 'var(--font-display)'
           }}>
@@ -152,7 +152,7 @@ export function DarkModeTestUI({ market }: Props) {
           </h3>
           <p style={{
             color: 'var(--color-text-secondary)',
-            fontSize: '14px',
+            fontSize: 'var(--font-size-sm)',
             marginBottom: 'var(--space-md)'
           }}>
             The existing dark mode style - dark navy on dark navy with subtle border
@@ -191,7 +191,7 @@ function CardBase({
           position: 'absolute',
           top: 'var(--space-md)',
           right: 'var(--space-md)',
-          fontSize: '20px',
+          fontSize: 'var(--font-size-xl)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -202,8 +202,8 @@ function CardBase({
       </button>
 
       <div style={{
-        fontSize: '20px',
-        fontWeight: 700,
+        fontSize: 'var(--font-size-xl)',
+        fontWeight: 'var(--font-weight-bold)',
         color: 'inherit',
         marginBottom: 'var(--space-xs)',
         fontFamily: 'var(--font-display)',
@@ -220,15 +220,15 @@ function CardBase({
       }}>
         <span style={{
           color: 'var(--color-action-primary)',
-          fontWeight: 600,
-          fontSize: '16px'
+          fontWeight: 'var(--font-weight-semibold)',
+          fontSize: 'var(--font-size-md)'
         }}>
           {market.schedule}
         </span>
         {market.subtitle && (
           <span style={{
             color: 'var(--color-text-secondary)',
-            fontSize: '14px'
+            fontSize: 'var(--font-size-sm)'
           }}>
             {market.subtitle}
           </span>
@@ -243,11 +243,11 @@ function CardBase({
           flex: 1,
           padding: 'var(--space-md)',
           background: 'var(--ocean-gradient)',
-          color: 'white',
+          color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
-          fontWeight: 700,
-          fontSize: '16px',
+          fontWeight: 'var(--font-weight-bold)',
+          fontSize: 'var(--font-size-md)',
           textDecoration: 'none',
           textAlign: 'center',
           boxShadow: 'var(--shadow-md)',
@@ -264,7 +264,7 @@ function CardBase({
           background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
-          fontSize: '24px',
+          fontSize: 'var(--font-size-2xl)',
           transition: 'all 0.3s ease'
         }}>
           📍
@@ -290,7 +290,7 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           position: 'absolute',
           top: 'var(--space-md)',
           right: 'var(--space-md)',
-          fontSize: '20px',
+          fontSize: 'var(--font-size-xl)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -301,8 +301,8 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
       </button>
 
       <div style={{
-        fontSize: '20px',
-        fontWeight: 700,
+        fontSize: 'var(--font-size-xl)',
+        fontWeight: 'var(--font-weight-bold)',
         marginBottom: 'var(--space-xs)',
         fontFamily: 'var(--font-display)',
         paddingRight: 'var(--space-xl)'
@@ -318,15 +318,15 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
       }}>
         <span style={{
           color: 'var(--color-action-primary)',
-          fontWeight: 600,
-          fontSize: '16px'
+          fontWeight: 'var(--font-weight-semibold)',
+          fontSize: 'var(--font-size-md)'
         }}>
           {market.schedule}
         </span>
         {market.subtitle && (
           <span style={{
             color: 'var(--color-text-secondary)',
-            fontSize: '14px'
+            fontSize: 'var(--font-size-sm)'
           }}>
             {market.subtitle}
           </span>
@@ -341,11 +341,11 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           flex: 1,
           padding: 'var(--space-md)',
           background: 'var(--ocean-gradient)',
-          color: 'white',
+          color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
-          fontWeight: 700,
-          fontSize: '16px',
+          fontWeight: 'var(--font-weight-bold)',
+          fontSize: 'var(--font-size-md)',
           textDecoration: 'none',
           textAlign: 'center',
           boxShadow: 'var(--shadow-md)',
@@ -362,7 +362,7 @@ function InvertedFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
-          fontSize: '24px',
+          fontSize: 'var(--font-size-2xl)',
           transition: 'all 0.3s ease'
         }}>
           📍
@@ -388,7 +388,7 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
           position: 'absolute',
           top: 'var(--space-md)',
           right: 'var(--space-md)',
-          fontSize: '20px',
+          fontSize: 'var(--font-size-xl)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -399,8 +399,8 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
       </button>
 
       <div style={{
-        fontSize: '20px',
-        fontWeight: 700,
+        fontSize: 'var(--font-size-xl)',
+        fontWeight: 'var(--font-weight-bold)',
         marginBottom: 'var(--space-xs)',
         fontFamily: 'var(--font-display)',
         paddingRight: 'var(--space-xl)'
@@ -416,15 +416,15 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
       }}>
         <span style={{
           color: 'var(--color-action-primary)',
-          fontWeight: 600,
-          fontSize: '16px'
+          fontWeight: 'var(--font-weight-semibold)',
+          fontSize: 'var(--font-size-md)'
         }}>
           {market.schedule}
         </span>
         {market.subtitle && (
           <span style={{
             color: 'var(--color-text-secondary)',
-            fontSize: '14px'
+            fontSize: 'var(--font-size-sm)'
           }}>
             {market.subtitle}
           </span>
@@ -439,11 +439,11 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
           flex: 1,
           padding: 'var(--space-md)',
           background: 'var(--ocean-gradient)',
-          color: 'white',
+          color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
-          fontWeight: 700,
-          fontSize: '16px',
+          fontWeight: 'var(--font-weight-bold)',
+          fontSize: 'var(--font-size-md)',
           textDecoration: 'none',
           textAlign: 'center',
           boxShadow: 'var(--shadow-md)',
@@ -460,7 +460,7 @@ function OceanNightCard({ market, isFavorite, onToggleFavorite }: any) {
           background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
-          fontSize: '24px',
+          fontSize: 'var(--font-size-2xl)',
           transition: 'all 0.3s ease'
         }}>
           📍
@@ -486,7 +486,7 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
           position: 'absolute',
           top: 'var(--space-md)',
           right: 'var(--space-md)',
-          fontSize: '20px',
+          fontSize: 'var(--font-size-xl)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -497,8 +497,8 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
       </button>
 
       <div style={{
-        fontSize: '20px',
-        fontWeight: 700,
+        fontSize: 'var(--font-size-xl)',
+        fontWeight: 'var(--font-weight-bold)',
         marginBottom: 'var(--space-xs)',
         fontFamily: 'var(--font-display)',
         paddingRight: 'var(--space-xl)'
@@ -514,15 +514,15 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
       }}>
         <span style={{
           color: 'var(--color-action-primary)',
-          fontWeight: 600,
-          fontSize: '16px'
+          fontWeight: 'var(--font-weight-semibold)',
+          fontSize: 'var(--font-size-md)'
         }}>
           {market.schedule}
         </span>
         {market.subtitle && (
           <span style={{
             color: 'var(--color-text-secondary)',
-            fontSize: '14px'
+            fontSize: 'var(--font-size-sm)'
           }}>
             {market.subtitle}
           </span>
@@ -537,11 +537,11 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
           flex: 1,
           padding: 'var(--space-md)',
           background: 'var(--ocean-gradient)',
-          color: 'white',
+          color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
-          fontWeight: 700,
-          fontSize: '16px',
+          fontWeight: 'var(--font-weight-bold)',
+          fontSize: 'var(--font-size-md)',
           textDecoration: 'none',
           textAlign: 'center',
           boxShadow: 'var(--shadow-md)',
@@ -558,7 +558,7 @@ function ReverseWarmthCard({ market, isFavorite, onToggleFavorite }: any) {
           background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
-          fontSize: '24px',
+          fontSize: 'var(--font-size-2xl)',
           transition: 'all 0.3s ease'
         }}>
           📍
@@ -584,7 +584,7 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           position: 'absolute',
           top: 'var(--space-md)',
           right: 'var(--space-md)',
-          fontSize: '20px',
+          fontSize: 'var(--font-size-xl)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -595,8 +595,8 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
       </button>
 
       <div style={{
-        fontSize: '20px',
-        fontWeight: 700,
+        fontSize: 'var(--font-size-xl)',
+        fontWeight: 'var(--font-weight-bold)',
         marginBottom: 'var(--space-xs)',
         fontFamily: 'var(--font-display)',
         paddingRight: 'var(--space-xl)'
@@ -612,15 +612,15 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
       }}>
         <span style={{
           color: 'var(--color-action-primary)',
-          fontWeight: 600,
-          fontSize: '16px'
+          fontWeight: 'var(--font-weight-semibold)',
+          fontSize: 'var(--font-size-md)'
         }}>
           {market.schedule}
         </span>
         {market.subtitle && (
           <span style={{
             color: 'var(--color-text-secondary)',
-            fontSize: '14px'
+            fontSize: 'var(--font-size-sm)'
           }}>
             {market.subtitle}
           </span>
@@ -635,11 +635,11 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           flex: 1,
           padding: 'var(--space-md)',
           background: 'var(--ocean-gradient)',
-          color: 'white',
+          color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
-          fontWeight: 700,
-          fontSize: '16px',
+          fontWeight: 'var(--font-weight-bold)',
+          fontSize: 'var(--font-size-md)',
           textDecoration: 'none',
           textAlign: 'center',
           boxShadow: 'var(--shadow-md)',
@@ -656,7 +656,7 @@ function GlassFreshCard({ market, isFavorite, onToggleFavorite }: any) {
           background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-md)',
           textDecoration: 'none',
-          fontSize: '24px',
+          fontSize: 'var(--font-size-2xl)',
           transition: 'all 0.3s ease'
         }} className="pin-button">
           📍

@@ -46,9 +46,9 @@ export function FreshHeroV2({ actions }: FreshHeroV2Props) {
         marginBottom: 'var(--space-md)'
       }}>
         <h2 style={{
-          fontSize: '32px',
-          fontWeight: 700,
-          lineHeight: 1.2,
+          fontSize: 'var(--font-size-4xl)',
+          fontWeight: 'var(--font-weight-bold)',
+          lineHeight: 'var(--line-height-tight)',
           margin: 0,
           fontFamily: 'var(--font-display)',
           textAlign: 'center'

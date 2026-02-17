@@ -32,11 +32,11 @@ export function BottomNavigationV1() {
       bottom: footerVisible ? '100px' : 'var(--space-md)',
       left: 'var(--space-md)',
       right: 'var(--space-md)',
-      background: 'var(--surface-primary)',
+      background: 'var(--color-surface-primary)',
       borderRadius: 'var(--radius-full)',
       boxShadow: 'var(--shadow-lg)',
       zIndex: 200,
-      border: '1px solid rgba(0,102,204,0.08)',
+      border: '1px solid var(--color-border-subtle)',
       transition: 'bottom 0.3s ease'
     }}>
       <div style={{

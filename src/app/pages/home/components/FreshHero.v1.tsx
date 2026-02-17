@@ -35,18 +35,18 @@ export function FreshHeroV1({ freshCatch }: FreshHeroProps) {
         marginBottom: 'var(--space-lg)'
       }}>
         <div style={{
-          fontSize: '12px',
+          fontSize: 'var(--font-size-xs)',
           textTransform: 'uppercase',
-          letterSpacing: '2px',
+          letterSpacing: 'var(--letter-spacing-wider)',
           opacity: 0.9,
           marginBottom: 'var(--space-sm)'
         }}>
           This Week's Catch
         </div>
         <h2 style={{
-          fontSize: '32px',
-          fontWeight: 700,
-          lineHeight: 1.2,
+          fontSize: 'var(--font-size-4xl)',
+          fontWeight: 'var(--font-weight-bold)',
+          lineHeight: 'var(--line-height-tight)',
           margin: 0,
           fontFamily: 'var(--font-display)'
         }}>
@@ -64,18 +64,18 @@ export function FreshHeroV1({ freshCatch }: FreshHeroProps) {
         {freshCatch.map((item, index) => (
           <div key={index} style={{
             background: 'var(--glass-white)',
-            color: 'var(--deep-navy)',
+            color: 'var(--color-text-primary)',
             padding: 'var(--space-md) var(--space-sm)',
             borderRadius: 'var(--radius-md)',
             textAlign: 'center',
-            fontWeight: 600,
-            fontSize: '14px',
+            fontWeight: 'var(--font-weight-semibold)',
+            fontSize: 'var(--font-size-sm)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255,255,255,0.3)'
           }}>
             <span style={{
               display: 'block',
-              fontSize: '28px',
+              fontSize: 'var(--font-size-3xl)',
               marginBottom: 'var(--space-xs)',
               filter: 'saturate(1.2)'
             }}>

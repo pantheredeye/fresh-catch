@@ -9,12 +9,12 @@
 export function LiveBanner() {
   return (
     <div style={{
-      background: 'var(--mint-fresh)',
-      color: 'white',
+      background: 'var(--color-status-success)',
+      color: 'var(--color-text-inverse)',
       padding: 'var(--space-sm)',
       textAlign: 'center',
-      fontSize: '14px',
-      fontWeight: 600,
+      fontSize: 'var(--font-size-sm)',
+      fontWeight: 'var(--font-weight-semibold)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
