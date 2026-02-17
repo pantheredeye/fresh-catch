@@ -111,7 +111,7 @@ export function MarketFormModal({
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0, 0, 0, 0.6)',
+    background: 'var(--color-surface-overlay)',
     backdropFilter: 'blur(4px)',
     display: 'flex',
     alignItems: 'center',
@@ -121,7 +121,7 @@ export function MarketFormModal({
   }
 
   const modalStyle: React.CSSProperties = {
-    background: 'var(--warm-white)',
+    background: 'var(--color-surface-warm)',
     borderRadius: 'var(--radius-md)',
     padding: 'var(--space-lg)',
     maxWidth: '420px',
@@ -129,14 +129,14 @@ export function MarketFormModal({
     maxHeight: '80vh',
     overflowY: 'auto',
     boxShadow: 'var(--shadow-lg)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid var(--glass-border-light)',
     margin: 'var(--space-md)'
   }
 
   const headerStyle: React.CSSProperties = {
-    fontSize: '20px',
-    fontWeight: 700,
-    color: 'var(--deep-navy)',
+    fontSize: 'var(--font-size-xl)',
+    fontWeight: 'var(--font-weight-bold)',
+    color: 'var(--color-text-primary)',
     fontFamily: 'var(--font-display)',
     marginBottom: 'var(--space-lg)',
     textAlign: 'center'
@@ -148,11 +148,11 @@ export function MarketFormModal({
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: '12px',
-    fontWeight: 600,
-    color: 'var(--deep-navy)',
+    fontSize: 'var(--font-size-xs)',
+    fontWeight: 'var(--font-weight-semibold)',
+    color: 'var(--color-text-primary)',
     textTransform: 'uppercase',
-    letterSpacing: '1px',
+    letterSpacing: 'var(--letter-spacing-wider)',
     marginBottom: 'var(--space-xs)',
     fontFamily: 'var(--font-display)'
   }
@@ -160,10 +160,10 @@ export function MarketFormModal({
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: 'var(--space-sm)',
-    border: '2px solid #e0e0e0',
+    border: '2px solid var(--color-border-input)',
     borderRadius: 'var(--radius-sm)',
-    background: 'var(--warm-white)',
-    color: 'var(--deep-navy)',
+    background: 'var(--color-surface-warm)',
+    color: 'var(--color-text-primary)',
     fontSize: '15px',
     fontFamily: 'var(--font-modern)',
     boxSizing: 'border-box',
@@ -171,9 +171,9 @@ export function MarketFormModal({
   }
 
   const inputFocusStyle: React.CSSProperties = {
-    borderColor: 'var(--ocean-blue)',
+    borderColor: 'var(--color-action-primary)',
     boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
-    background: 'var(--surface-primary)',
+    background: 'var(--color-surface-primary)',
     outline: 'none'
   }
 
@@ -191,7 +191,7 @@ export function MarketFormModal({
     padding: 'var(--space-md)',
     background: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 'var(--radius-sm)',
-    border: '1px solid rgba(100, 116, 139, 0.1)'
+    border: '1px solid var(--color-border-subtle)'
   }
 
   const buttonRowStyle: React.CSSProperties = {
@@ -251,8 +251,8 @@ export function MarketFormModal({
               onChange={(e) => handleInputChange('active', e.target.checked)}
             />
             <label htmlFor="active" style={{
-              fontSize: '16px',
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-md)',
+              color: 'var(--color-text-primary)',
               fontFamily: 'var(--font-modern)',
               margin: 0
             }}>

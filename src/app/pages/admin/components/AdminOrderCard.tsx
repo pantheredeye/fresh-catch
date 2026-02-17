@@ -42,10 +42,10 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [paymentNotes, setPaymentNotes] = useState('');
 
   const statusConfig = {
-    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--deep-navy)' },
-    confirmed: { label: 'Confirmed', color: 'var(--mint-fresh)', textColor: 'var(--deep-navy)' },
-    completed: { label: 'Completed', color: 'var(--cool-gray)', textColor: 'white' },
-    cancelled: { label: 'Cancelled', color: 'var(--coral)', textColor: 'white' }
+    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--color-text-primary)' },
+    confirmed: { label: 'Confirmed', color: 'var(--color-status-success)', textColor: 'var(--color-text-primary)' },
+    completed: { label: 'Completed', color: 'var(--color-text-secondary)', textColor: 'var(--color-text-inverse)' },
+    cancelled: { label: 'Cancelled', color: 'var(--color-status-error)', textColor: 'var(--color-text-inverse)' }
   };
 
   const config = statusConfig[order.status as keyof typeof statusConfig];
@@ -109,7 +109,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
   return (
     <div style={{
-      border: order.status === 'pending' ? '3px solid var(--ocean-blue)' : '2px solid var(--border-light)',
+      border: order.status === 'pending' ? '3px solid var(--color-action-primary)' : '2px solid var(--color-border-light)',
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden'
     }}>
@@ -124,7 +124,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
         flexWrap: 'wrap'
       }}>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ocean-blue)', marginBottom: 'var(--space-xs)' }}>
+          <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-action-primary)', marginBottom: 'var(--space-xs)' }}>
             Order #{order.orderNumber}
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap', marginBottom: 'var(--space-xs)' }}>
@@ -134,30 +134,30 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               background: config.color,
               color: config.textColor,
               borderRadius: 'var(--radius-sm)',
-              fontSize: '12px',
-              fontWeight: 600,
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
               textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              letterSpacing: 'var(--letter-spacing-wide)'
             }}>
               {config.label}
             </div>
             <div style={{
               display: 'inline-block',
               padding: '4px 12px',
-              background: order.paymentStatus === 'paid' ? 'var(--mint-fresh)' : 'var(--amber-light)',
-              color: 'var(--deep-navy)',
+              background: order.paymentStatus === 'paid' ? 'var(--color-status-success)' : 'var(--amber-light)',
+              color: 'var(--color-text-primary)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '12px',
-              fontWeight: 600,
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
               textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              letterSpacing: 'var(--letter-spacing-wide)'
             }}>
               {order.paymentStatus === 'paid' ? '✓ PAID' : 'UNPAID'}
             </div>
           </div>
           <div style={{
-            fontSize: '14px',
-            color: 'var(--cool-gray)'
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--color-text-secondary)'
           }}>
             {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
@@ -225,26 +225,26 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: 'var(--space-md)',
         padding: 'var(--space-md)',
-        background: 'var(--soft-gray)',
+        background: 'var(--color-surface-secondary)',
         borderRadius: 'var(--radius-sm)',
         marginBottom: 'var(--space-md)'
       }}>
         <div>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cool-gray)', marginBottom: '4px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
             Customer
           </div>
           <div>{order.contactName}</div>
-          <div style={{ fontSize: '12px', color: 'var(--cool-gray)' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
             @{order.user.username}
           </div>
         </div>
 
         {order.contactPhone && (
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cool-gray)', marginBottom: '4px' }}>
+            <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
               Phone
             </div>
-            <a href={`tel:${order.contactPhone}`} style={{ color: 'var(--ocean-blue)', textDecoration: 'none' }}>
+            <a href={`tel:${order.contactPhone}`} style={{ color: 'var(--color-action-primary)', textDecoration: 'none' }}>
               {order.contactPhone}
             </a>
           </div>
@@ -252,7 +252,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
         {order.preferredDate && (
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cool-gray)', marginBottom: '4px' }}>
+            <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
               Preferred Date
             </div>
             <div>{new Date(order.preferredDate).toLocaleDateString()}</div>
@@ -262,26 +262,26 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
       {/* Order Items */}
       <div style={{
-        background: 'var(--warm-white)',
+        background: 'var(--color-surface-warm)',
         padding: 'var(--space-md)',
         borderRadius: 'var(--radius-sm)',
         marginBottom: 'var(--space-md)'
       }}>
-        <div style={{ fontWeight: 600, marginBottom: 'var(--space-xs)' }}>Items Requested:</div>
-        <div style={{ whiteSpace: 'pre-wrap', fontSize: '16px' }}>{order.items}</div>
+        <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-xs)' }}>Items Requested:</div>
+        <div style={{ whiteSpace: 'pre-wrap', fontSize: 'var(--font-size-md)' }}>{order.items}</div>
       </div>
 
       {/* Customer Notes */}
       {order.notes && (
         <div style={{
           padding: 'var(--space-sm)',
-          background: 'var(--soft-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-sm)',
           marginBottom: 'var(--space-md)',
-          fontSize: '14px'
+          fontSize: 'var(--font-size-sm)'
         }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>Customer Notes:</div>
-          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--cool-gray)' }}>
+          <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>Customer Notes:</div>
+          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-secondary)' }}>
             {order.notes}
           </div>
         </div>
@@ -291,13 +291,13 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       {isEditing && order.status === 'pending' && (
         <div style={{
           padding: 'var(--space-md)',
-          background: 'var(--mint-fresh)',
+          background: 'var(--color-status-success)',
           borderRadius: 'var(--radius-sm)',
           marginTop: 'var(--space-md)'
         }}>
           <h3 style={{
-            fontSize: '16px',
-            fontWeight: 600,
+            fontSize: 'var(--font-size-md)',
+            fontWeight: 'var(--font-weight-semibold)',
             marginBottom: 'var(--space-md)'
           }}>
             Confirm Order Details
@@ -358,14 +358,14 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           {order.price && (
             <div style={{
               padding: 'var(--space-md)',
-              background: 'var(--mint-fresh)',
+              background: 'var(--color-status-success)',
               borderRadius: 'var(--radius-sm)',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>
                 Price
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--deep-navy)' }}>
+              <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
                 {order.price}
               </div>
             </div>
@@ -374,11 +374,11 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           {order.adminNotes && (
             <div style={{
               padding: 'var(--space-md)',
-              background: 'var(--soft-gray)',
+              background: 'var(--color-surface-secondary)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '14px'
+              fontSize: 'var(--font-size-sm)'
             }}>
-              <div style={{ fontWeight: 600, marginBottom: '4px' }}>Your Notes:</div>
+              <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>Your Notes:</div>
               <div style={{ whiteSpace: 'pre-wrap' }}>
                 {order.adminNotes}
               </div>
@@ -391,28 +391,28 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       {order.paymentStatus === 'paid' && (
         <div style={{
           padding: 'var(--space-md)',
-          background: 'var(--mint-fresh)',
+          background: 'var(--color-status-success)',
           borderRadius: 'var(--radius-sm)',
           marginTop: 'var(--space-md)',
-          fontSize: '14px'
+          fontSize: 'var(--font-size-sm)'
         }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--deep-navy)' }}>
+          <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px', color: 'var(--color-text-primary)' }}>
             Payment Received:
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
             <div>
-              <span style={{ color: 'var(--cool-gray)' }}>Method: </span>
-              <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{order.paymentMethod || 'N/A'}</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Method: </span>
+              <span style={{ fontWeight: 'var(--font-weight-semibold)', textTransform: 'capitalize' }}>{order.paymentMethod || 'N/A'}</span>
             </div>
             {order.paidAt && (
               <div>
-                <span style={{ color: 'var(--cool-gray)' }}>Date: </span>
-                <span style={{ fontWeight: 600 }}>{new Date(order.paidAt).toLocaleDateString()}</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Date: </span>
+                <span style={{ fontWeight: 'var(--font-weight-semibold)' }}>{new Date(order.paidAt).toLocaleDateString()}</span>
               </div>
             )}
           </div>
           {order.paymentNotes && (
-            <div style={{ marginTop: 'var(--space-xs)', color: 'var(--cool-gray)' }}>
+            <div style={{ marginTop: 'var(--space-xs)', color: 'var(--color-text-secondary)' }}>
               {order.paymentNotes}
             </div>
           )}
@@ -428,8 +428,8 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           marginTop: 'var(--space-md)'
         }}>
           <h3 style={{
-            fontSize: '16px',
-            fontWeight: 600,
+            fontSize: 'var(--font-size-md)',
+            fontWeight: 'var(--font-weight-semibold)',
             marginBottom: 'var(--space-md)'
           }}>
             Mark Order as Paid
@@ -438,10 +438,10 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{
               display: 'block',
-              fontSize: '14px',
-              fontWeight: 600,
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
               marginBottom: 'var(--space-xs)',
-              color: 'var(--deep-navy)'
+              color: 'var(--color-text-primary)'
             }}>
               Payment Method
             </label>
@@ -452,8 +452,8 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
                 width: '100%',
                 padding: 'var(--space-sm)',
                 borderRadius: 'var(--radius-sm)',
-                border: '2px solid var(--border-light)',
-                fontSize: '16px',
+                border: '2px solid var(--color-border-light)',
+                fontSize: 'var(--font-size-md)',
                 fontFamily: 'inherit'
               }}
             >

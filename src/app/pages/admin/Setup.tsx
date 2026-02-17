@@ -153,19 +153,19 @@ export function Setup({ ctx }: { ctx: any }) {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--mint-green)';
-      case 'error': return 'var(--coral)';
+      case 'success': return 'var(--color-status-success)';
+      case 'error': return 'var(--color-status-error)';
       case 'loading': return 'var(--sky-blue)';
-      default: return 'var(--soft-gray)';
+      default: return 'var(--color-text-tertiary)';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--deep-navy)';
-      case 'error': return 'white';
-      case 'loading': return 'var(--deep-navy)';
-      default: return 'var(--deep-navy)';
+      case 'success': return 'var(--color-text-primary)';
+      case 'error': return 'var(--color-text-inverse)';
+      case 'loading': return 'var(--color-text-primary)';
+      default: return 'var(--color-text-primary)';
     }
   };
 
@@ -175,9 +175,9 @@ export function Setup({ ctx }: { ctx: any }) {
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
           <h1
             style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-3xl)',
+              fontWeight: 'var(--font-weight-bold)',
+              color: 'var(--color-text-primary)',
               fontFamily: 'var(--font-display)',
               margin: '0 0 var(--space-xs) 0'
             }}
@@ -186,10 +186,10 @@ export function Setup({ ctx }: { ctx: any }) {
           </h1>
           <p
             style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
+              fontSize: 'var(--font-size-md)',
+              color: 'var(--color-text-secondary)',
               margin: 0,
-              lineHeight: 1.5
+              lineHeight: 'var(--line-height-base)'
             }}
           >
             {isLoggedIn
@@ -263,7 +263,7 @@ export function Setup({ ctx }: { ctx: any }) {
               marginTop: 'var(--space-md)',
               padding: 'var(--space-md)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               textAlign: 'center',
               display: 'flex',
               alignItems: 'center',
@@ -300,10 +300,10 @@ export function Setup({ ctx }: { ctx: any }) {
             <a
               href="/admin"
               style={{
-                color: 'var(--ocean-blue)',
+                color: 'var(--color-action-primary)',
                 textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: 500
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-medium)'
               }}
             >
               Go to dashboard now →

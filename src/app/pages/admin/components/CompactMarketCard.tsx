@@ -40,11 +40,11 @@ export function CompactMarketCard({
 
   const cardStyle: React.CSSProperties = {
     padding: 'var(--space-sm) var(--space-md)',
-    borderBottom: '1px solid rgba(100, 116, 139, 0.1)',
+    borderBottom: '1px solid var(--color-border-subtle)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    background: paused ? 'var(--light-gray)' : 'var(--surface-primary)',
+    background: paused ? 'var(--color-surface-secondary)' : 'var(--color-surface-primary)',
     opacity: paused ? 0.7 : 1,
     transition: 'all 0.2s ease',
     cursor: 'default',
@@ -62,8 +62,8 @@ export function CompactMarketCard({
 
   const nameStyle: React.CSSProperties = {
     fontSize: '15px',
-    fontWeight: 500,
-    color: 'var(--deep-navy)',
+    fontWeight: 'var(--font-weight-medium)',
+    color: 'var(--color-text-primary)',
     fontFamily: 'var(--font-display)',
     margin: 0,
     // Truncate long names on small screens
@@ -74,9 +74,9 @@ export function CompactMarketCard({
 
   const scheduleStyle: React.CSSProperties = {
     fontSize: '13px',
-    color: 'var(--cool-gray)',
+    color: 'var(--color-text-secondary)',
     fontFamily: 'var(--font-mono)', // Times feel trustworthy
-    fontWeight: 500,
+    fontWeight: 'var(--font-weight-medium)',
     flexShrink: 0 // Don't compress schedule
   }
 
@@ -96,8 +96,8 @@ export function CompactMarketCard({
           <div style={nameStyle}>{name}</div>
           {children && (
             <div style={{
-              fontSize: '12px',
-              color: 'var(--cool-gray)',
+              fontSize: 'var(--font-size-xs)',
+              color: 'var(--color-text-secondary)',
               marginTop: '2px'
             }}>
               {children}
@@ -119,23 +119,23 @@ export function CompactMarketCard({
             background: 'none',
             border: 'none',
             padding: 'var(--space-xs)',
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             cursor: 'pointer',
             borderRadius: 'var(--radius-sm)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'all 0.2s ease',
-            fontSize: '16px',
+            fontSize: 'var(--font-size-md)',
             flexShrink: 0
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.background = 'var(--light-gray)';
-            e.currentTarget.style.color = 'var(--deep-navy)';
+            e.currentTarget.style.background = 'var(--color-surface-secondary)';
+            e.currentTarget.style.color = 'var(--color-text-primary)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.background = 'none';
-            e.currentTarget.style.color = 'var(--cool-gray)';
+            e.currentTarget.style.color = 'var(--color-text-secondary)';
           }}
           title="Edit market settings"
         >
@@ -180,9 +180,9 @@ export function CompactMarketList({
 }: CompactMarketListProps) {
 
   const listStyle: React.CSSProperties = {
-    background: 'var(--surface-primary)',
+    background: 'var(--color-surface-primary)',
     borderRadius: 'var(--radius-md)',
-    border: '1px solid rgba(100, 116, 139, 0.1)',
+    border: '1px solid var(--color-border-subtle)',
     overflow: 'hidden',
     boxShadow: 'var(--shadow-sm)'
   }
@@ -193,7 +193,7 @@ export function CompactMarketList({
         <div style={{
           padding: 'var(--space-xl)',
           textAlign: 'center',
-          color: 'var(--cool-gray)'
+          color: 'var(--color-text-secondary)'
         }}>
           Loading markets...
         </div>
@@ -207,7 +207,7 @@ export function CompactMarketList({
         <div style={{
           padding: 'var(--space-xl)',
           textAlign: 'center',
-          color: 'var(--cool-gray)'
+          color: 'var(--color-text-secondary)'
         }}>
           <div style={{ fontSize: '48px', marginBottom: 'var(--space-md)', opacity: 0.3 }}>
             🏪
@@ -215,7 +215,7 @@ export function CompactMarketList({
           <div style={{ marginBottom: 'var(--space-sm)' }}>
             No markets configured yet
           </div>
-          <div style={{ fontSize: '14px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)' }}>
             Add your first market to start managing your schedule
           </div>
         </div>

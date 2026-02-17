@@ -81,9 +81,9 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
         gap: 'var(--space-md)'
       }}>
         <h1 style={{
-          fontSize: '32px',
-          fontWeight: 700,
-          color: 'var(--deep-navy)',
+          fontSize: 'var(--font-size-4xl)',
+          fontWeight: 'var(--font-weight-bold)',
+          color: 'var(--color-text-primary)',
           fontFamily: 'var(--font-display)',
           margin: 0
         }}>
@@ -111,14 +111,14 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
           gap: 'var(--space-md)',
           marginBottom: 'var(--space-lg)',
           padding: 'var(--space-md)',
-          background: 'var(--soft-gray)',
+          background: 'var(--color-surface-secondary)',
           borderRadius: 'var(--radius-sm)'
         }}>
           <div>
             <label style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
               marginBottom: 'var(--space-xs)',
               display: 'block'
             }}>
@@ -132,9 +132,9 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                border: '2px solid #e0e0e0',
+                border: '2px solid var(--color-border-input)',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '14px',
+                fontSize: 'var(--font-size-sm)',
                 fontFamily: 'inherit',
                 outline: 'none'
               }}
@@ -143,9 +143,9 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
 
           <div>
             <label style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
               marginBottom: 'var(--space-xs)',
               display: 'block'
             }}>
@@ -158,9 +158,9 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                border: '2px solid #e0e0e0',
+                border: '2px solid var(--color-border-input)',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '14px',
+                fontSize: 'var(--font-size-sm)',
                 fontFamily: 'inherit',
                 outline: 'none'
               }}
@@ -176,12 +176,12 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
                 }}
                 style={{
                   padding: '10px 16px',
-                  background: '#666',
-                  color: 'white',
+                  background: 'var(--color-text-tertiary)',
+                  color: 'var(--color-text-inverse)',
                   border: 'none',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: '14px',
-                  fontWeight: 600,
+                  fontSize: 'var(--font-size-sm)',
+                  fontWeight: 'var(--font-weight-semibold)',
                   cursor: 'pointer',
                   flex: 1
                 }}
@@ -194,12 +194,12 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
                 onClick={() => window.open(`/admin/orders/print?date=${dateFilter}`, '_blank')}
                 style={{
                   padding: '10px 16px',
-                  background: 'var(--ocean-blue)',
-                  color: 'white',
+                  background: 'var(--color-action-primary)',
+                  color: 'var(--color-text-inverse)',
                   border: 'none',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: '14px',
-                  fontWeight: 600,
+                  fontSize: 'var(--font-size-sm)',
+                  fontWeight: 'var(--font-weight-semibold)',
                   cursor: 'pointer',
                   flex: 1,
                   whiteSpace: 'nowrap'
@@ -218,10 +218,10 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
           gap: 'var(--space-md)',
           marginBottom: 'var(--space-xl)'
         }}>
-          <StatusCard label="Pending" count={counts.pending} color="#e0f2fe" />
-          <StatusCard label="Confirmed" count={counts.confirmed} color="var(--mint-fresh)" />
-          <StatusCard label="Completed" count={counts.completed} color="var(--cool-gray)" />
-          <StatusCard label="Cancelled" count={counts.cancelled} color="var(--coral)" />
+          <StatusCard label="Pending" count={counts.pending} color="var(--sky-blue-light)" />
+          <StatusCard label="Confirmed" count={counts.confirmed} color="var(--color-status-success)" />
+          <StatusCard label="Completed" count={counts.completed} color="var(--color-text-secondary)" />
+          <StatusCard label="Cancelled" count={counts.cancelled} color="var(--color-status-error)" />
         </div>
 
         {/* Orders List */}
@@ -229,9 +229,9 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
           <div style={{
             textAlign: 'center',
             padding: 'var(--space-xl)',
-            color: 'var(--cool-gray)'
+            color: 'var(--color-text-secondary)'
           }}>
-            <p style={{ fontSize: '18px' }}>
+            <p style={{ fontSize: 'var(--font-size-lg)' }}>
               No {statusFilter !== 'all' ? statusFilter : ''} orders found.
             </p>
           </div>
@@ -263,19 +263,19 @@ function StatusCard({ label, count, color }: { label: string; count: number; col
       textAlign: 'center'
     }}>
       <div style={{
-        fontSize: '32px',
-        fontWeight: 700,
-        color: label === 'Completed' || label === 'Cancelled' ? 'white' : 'var(--deep-navy)',
+        fontSize: 'var(--font-size-4xl)',
+        fontWeight: 'var(--font-weight-bold)',
+        color: label === 'Completed' || label === 'Cancelled' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
         marginBottom: 'var(--space-xs)'
       }}>
         {count}
       </div>
       <div style={{
-        fontSize: '14px',
-        fontWeight: 600,
-        color: label === 'Completed' ? 'white' : 'var(--deep-navy)',
+        fontSize: 'var(--font-size-sm)',
+        fontWeight: 'var(--font-weight-semibold)',
+        color: label === 'Completed' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
         textTransform: 'uppercase',
-        letterSpacing: '0.5px'
+        letterSpacing: 'var(--letter-spacing-wide)'
       }}>
         {label}
       </div>
