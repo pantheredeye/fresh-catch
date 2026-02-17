@@ -192,19 +192,19 @@ export function Login({ ctx }: { ctx: any }) {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--mint-green)';
-      case 'error': return 'var(--coral)';
+      case 'success': return 'var(--color-status-success)';
+      case 'error': return 'var(--color-action-secondary)';
       case 'loading': return 'var(--sky-blue)';
-      default: return 'var(--soft-gray)';
+      default: return 'var(--color-text-tertiary)';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--deep-navy)';
-      case 'error': return 'white';
-      case 'loading': return 'var(--deep-navy)';
-      default: return 'var(--deep-navy)';
+      case 'success': return 'var(--color-text-primary)';
+      case 'error': return 'var(--color-text-inverse)';
+      case 'loading': return 'var(--color-text-primary)';
+      default: return 'var(--color-text-primary)';
     }
   };
 
@@ -214,9 +214,9 @@ export function Login({ ctx }: { ctx: any }) {
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
           <h1
             style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-3xl)',
+              fontWeight: 'var(--font-weight-bold)',
+              color: 'var(--color-text-primary)',
               fontFamily: 'var(--font-display)',
               margin: '0 0 var(--space-xs) 0'
             }}
@@ -228,10 +228,10 @@ export function Login({ ctx }: { ctx: any }) {
           </h1>
           <p
             style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
+              fontSize: 'var(--font-size-md)',
+              color: 'var(--color-text-secondary)',
               margin: 0,
-              lineHeight: 1.5
+              lineHeight: 'var(--line-height-base)'
             }}
           >
             {flow === 'confirm-register'
@@ -252,14 +252,14 @@ export function Login({ ctx }: { ctx: any }) {
                 padding: 'var(--space-md)',
                 background: 'var(--sky-blue)',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '14px',
-                color: 'var(--deep-navy)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-primary)',
                 textAlign: 'center'
               }}
             >
               No account found for <strong>{email}</strong>
             </div>
-            <p style={{ fontSize: '14px', color: 'var(--cool-gray)', textAlign: 'center', margin: 0 }}>
+            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
               Would you like to create a new account?
             </p>
             <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
@@ -336,7 +336,7 @@ export function Login({ ctx }: { ctx: any }) {
               marginTop: 'var(--space-md)',
               textAlign: 'center',
               paddingTop: 'var(--space-md)',
-              borderTop: '1px solid rgba(100, 116, 139, 0.1)'
+              borderTop: '1px solid var(--color-border-subtle)'
             }}
           >
             <button
@@ -349,8 +349,8 @@ export function Login({ ctx }: { ctx: any }) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--ocean-blue)',
-                fontSize: '14px',
+                color: 'var(--color-action-primary)',
+                fontSize: 'var(--font-size-sm)',
                 textDecoration: 'underline',
                 cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-display)'
@@ -366,7 +366,7 @@ export function Login({ ctx }: { ctx: any }) {
               marginTop: 'var(--space-md)',
               textAlign: 'center',
               paddingTop: 'var(--space-md)',
-              borderTop: '1px solid rgba(100, 116, 139, 0.1)'
+              borderTop: '1px solid var(--color-border-subtle)'
             }}
           >
             <button
@@ -379,8 +379,8 @@ export function Login({ ctx }: { ctx: any }) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--ocean-blue)',
-                fontSize: '14px',
+                color: 'var(--color-action-primary)',
+                fontSize: 'var(--font-size-sm)',
                 textDecoration: 'underline',
                 cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-display)'
@@ -398,7 +398,7 @@ export function Login({ ctx }: { ctx: any }) {
               marginTop: 'var(--space-md)',
               padding: 'var(--space-md)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               textAlign: 'center',
               display: 'flex',
               alignItems: 'center',
@@ -436,10 +436,10 @@ export function Login({ ctx }: { ctx: any }) {
             <a
               href={redirectUrl}
               style={{
-                color: 'var(--ocean-blue)',
+                color: 'var(--color-action-primary)',
                 textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: 500
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-medium)'
               }}
             >
               Go to dashboard now →

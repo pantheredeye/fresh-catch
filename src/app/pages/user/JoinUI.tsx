@@ -95,19 +95,19 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--mint-green)';
-      case 'error': return 'var(--coral)';
+      case 'success': return 'var(--color-status-success)';
+      case 'error': return 'var(--color-action-secondary)';
       case 'loading': return 'var(--sky-blue)';
-      default: return 'var(--soft-gray)';
+      default: return 'var(--color-text-tertiary)';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--deep-navy)';
-      case 'error': return 'white';
-      case 'loading': return 'var(--deep-navy)';
-      default: return 'var(--deep-navy)';
+      case 'success': return 'var(--color-text-primary)';
+      case 'error': return 'var(--color-text-inverse)';
+      case 'loading': return 'var(--color-text-primary)';
+      default: return 'var(--color-text-primary)';
     }
   };
 
@@ -121,11 +121,11 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
           <div style={{
             display: 'inline-block',
             padding: '6px 14px',
-            background: 'var(--mint-green)',
+            background: 'var(--color-status-success)',
             borderRadius: 'var(--radius-sm)',
-            fontSize: '14px',
-            fontWeight: 600,
-            color: 'var(--deep-navy)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 'var(--font-weight-semibold)',
+            color: 'var(--color-text-primary)',
             marginBottom: 'var(--space-sm)'
           }}>
             {roleLabel}
@@ -189,7 +189,7 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
               marginTop: 'var(--space-md)',
               padding: 'var(--space-md)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               textAlign: 'center',
               display: 'flex',
               alignItems: 'center',
@@ -227,10 +227,10 @@ export function JoinUI({ code, role, roleLabel, isLoggedIn }: {
             <a
               href="/admin"
               style={{
-                color: 'var(--ocean-blue)',
+                color: 'var(--color-action-primary)',
                 textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: 500
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-medium)'
               }}
             >
               Go to dashboard now →
@@ -346,19 +346,19 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--mint-green)';
-      case 'error': return 'var(--coral)';
+      case 'success': return 'var(--color-status-success)';
+      case 'error': return 'var(--color-action-secondary)';
       case 'loading': return 'var(--sky-blue)';
-      default: return 'var(--soft-gray)';
+      default: return 'var(--color-text-tertiary)';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--deep-navy)';
-      case 'error': return 'white';
-      case 'loading': return 'var(--deep-navy)';
-      default: return 'var(--deep-navy)';
+      case 'success': return 'var(--color-text-primary)';
+      case 'error': return 'var(--color-text-inverse)';
+      case 'loading': return 'var(--color-text-primary)';
+      default: return 'var(--color-text-primary)';
     }
   };
 
@@ -372,11 +372,11 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
           <div style={{
             display: 'inline-block',
             padding: '6px 14px',
-            background: 'var(--mint-green)',
+            background: 'var(--color-status-success)',
             borderRadius: 'var(--radius-sm)',
-            fontSize: '14px',
-            fontWeight: 600,
-            color: 'var(--deep-navy)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 'var(--font-weight-semibold)',
+            color: 'var(--color-text-primary)',
             marginBottom: 'var(--space-sm)'
           }}>
             {roleLabel}
@@ -405,7 +405,7 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
               marginTop: 'var(--space-md)',
               padding: 'var(--space-md)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '14px',
+              fontSize: 'var(--font-size-sm)',
               textAlign: 'center',
               display: 'flex',
               alignItems: 'center',
@@ -443,10 +443,10 @@ function AddMembershipConfirm({ code, role, roleLabel }: {
             <a
               href="/admin"
               style={{
-                color: 'var(--ocean-blue)',
+                color: 'var(--color-action-primary)',
                 textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: 500
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-medium)'
               }}
             >
               Go to dashboard now →

@@ -38,7 +38,7 @@ export function MarketCard({
       padding: 'var(--space-lg)',
       marginBottom: 'var(--space-md)',
       boxShadow: 'var(--shadow-md)',
-      border: '1px solid rgba(0,102,204,0.08)',
+      border: '1px solid var(--color-border-subtle)',
       position: 'relative',
       overflow: 'hidden',
       transition: 'all 0.3s ease'
@@ -51,7 +51,7 @@ export function MarketCard({
           position: 'absolute',
           top: 'var(--space-md)',
           right: 'var(--space-md)',
-          fontSize: '20px',
+          fontSize: 'var(--font-size-xl)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -72,16 +72,16 @@ export function MarketCard({
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--ocean-blue)',
-          fontWeight: 600,
-          fontSize: '16px'
+          color: 'var(--color-action-primary)',
+          fontWeight: 'var(--font-weight-semibold)',
+          fontSize: 'var(--font-size-md)'
         }}>
           {market.schedule}
         </span>
         {market.subtitle && (
           <span style={{
-            color: 'var(--cool-gray)',
-            fontSize: '14px'
+            color: 'var(--color-text-secondary)',
+            fontSize: 'var(--font-size-sm)'
           }}>
             {market.subtitle}
           </span>
@@ -94,11 +94,11 @@ export function MarketCard({
           flex: 1,
           padding: 'var(--space-md)',
           background: isAdmin ? 'var(--coral-gradient)' : 'var(--ocean-gradient)',
-          color: 'white',
+          color: 'var(--color-text-inverse)',
           border: 'none',
           borderRadius: 'var(--radius-md)',
-          fontWeight: 700,
-          fontSize: '16px',
+          fontWeight: 'var(--font-weight-bold)',
+          fontSize: 'var(--font-size-md)',
           textDecoration: 'none',
           textAlign: 'center',
           boxShadow: 'var(--shadow-md)',
@@ -110,8 +110,8 @@ export function MarketCard({
         {/* Admin-only quick actions */}
         {isAdmin && (
           <a href={`/admin/config?market=${market.id}`} className="icon-button-md" style={{
-            background: 'var(--mint-fresh)',
-            color: 'var(--deep-navy)',
+            background: 'var(--color-status-success)',
+            color: 'var(--color-text-primary)',
             textDecoration: 'none',
             boxShadow: 'var(--shadow-sm)'
           }} title="Edit Market">
@@ -119,9 +119,9 @@ export function MarketCard({
           </a>
         )}
         <a href={`#directions-${market.id}`} className="icon-button-md" style={{
-          background: 'var(--light-gray)',
+          background: 'var(--color-surface-secondary)',
           textDecoration: 'none',
-          fontSize: '24px'
+          fontSize: 'var(--font-size-2xl)'
         }}>
           📍
         </a>

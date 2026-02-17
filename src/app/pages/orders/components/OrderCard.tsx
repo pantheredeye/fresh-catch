@@ -36,10 +36,10 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
 
   const statusConfig = {
-    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--deep-navy)' },
-    confirmed: { label: 'Confirmed', color: 'var(--mint-fresh)', textColor: 'var(--deep-navy)' },
-    completed: { label: 'Completed', color: 'var(--cool-gray)', textColor: 'white' },
-    cancelled: { label: 'Cancelled', color: 'var(--coral)', textColor: 'white' }
+    pending: { label: 'Pending', color: 'var(--sky-blue-light)', textColor: 'var(--color-text-primary)' },
+    confirmed: { label: 'Confirmed', color: 'var(--color-status-success)', textColor: 'var(--color-text-primary)' },
+    completed: { label: 'Completed', color: 'var(--color-text-secondary)', textColor: 'var(--color-text-inverse)' },
+    cancelled: { label: 'Cancelled', color: 'var(--color-action-secondary)', textColor: 'var(--color-text-inverse)' }
   };
 
   const config = statusConfig[order.status as keyof typeof statusConfig];
@@ -78,7 +78,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
 
   return (
     <div style={{
-      border: '2px solid var(--border-light)',
+      border: '2px solid var(--color-border-light)',
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden'
     }}>
@@ -93,7 +93,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
         gap: 'var(--space-sm)'
       }}>
         <div>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ocean-blue)', marginBottom: 'var(--space-xs)' }}>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-action-primary)', marginBottom: 'var(--space-xs)' }}>
             Order #{order.orderNumber}
           </div>
           <div style={{
@@ -102,17 +102,17 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
             background: config.color,
             color: config.textColor,
             borderRadius: 'var(--radius-sm)',
-            fontSize: '12px',
-            fontWeight: 600,
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: 'var(--font-weight-semibold)',
             textTransform: 'uppercase',
-            letterSpacing: '0.5px',
+            letterSpacing: 'var(--letter-spacing-wide)',
             marginBottom: 'var(--space-xs)'
           }}>
             {config.label}
           </div>
           <div style={{
-            fontSize: '12px',
-            color: 'var(--cool-gray)'
+            fontSize: 'var(--font-size-xs)',
+            color: 'var(--color-text-secondary)'
           }}>
             Ordered {new Date(order.createdAt).toLocaleDateString()}
           </div>
@@ -158,12 +158,12 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
 
       {/* Order Details */}
       <div style={{
-        background: 'var(--soft-gray)',
+        background: 'var(--color-surface-secondary)',
         padding: 'var(--space-md)',
         borderRadius: 'var(--radius-sm)',
         marginBottom: 'var(--space-md)'
       }}>
-        <div style={{ fontWeight: 600, marginBottom: 'var(--space-xs)' }}>Items:</div>
+        <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-xs)' }}>Items:</div>
         <div style={{ whiteSpace: 'pre-wrap' }}>{order.items}</div>
       </div>
 
@@ -172,11 +172,11 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: 'var(--space-md)',
-        fontSize: '14px'
+        fontSize: 'var(--font-size-sm)'
       }}>
         {order.preferredDate && (
           <div>
-            <div style={{ fontWeight: 600, color: 'var(--cool-gray)', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
               Preferred Date:
             </div>
             <div>{new Date(order.preferredDate).toLocaleDateString()}</div>
@@ -185,10 +185,10 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
 
         {order.price && (
           <div>
-            <div style={{ fontWeight: 600, color: 'var(--cool-gray)', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
               Price:
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--deep-navy)' }}>
+            <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
               {order.price}
             </div>
           </div>
@@ -200,12 +200,12 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
         <div style={{
           marginTop: 'var(--space-md)',
           padding: 'var(--space-sm)',
-          background: 'var(--warm-white)',
+          background: 'var(--color-surface-warm)',
           borderRadius: 'var(--radius-sm)',
-          fontSize: '14px'
+          fontSize: 'var(--font-size-sm)'
         }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>Your Notes:</div>
-          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--cool-gray)' }}>
+          <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>Your Notes:</div>
+          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-secondary)' }}>
             {order.notes}
           </div>
         </div>
@@ -216,11 +216,11 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
         <div style={{
           marginTop: 'var(--space-md)',
           padding: 'var(--space-sm)',
-          background: 'var(--mint-fresh)',
+          background: 'var(--color-status-success)',
           borderRadius: 'var(--radius-sm)',
-          fontSize: '14px'
+          fontSize: 'var(--font-size-sm)'
         }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>Evan's Notes:</div>
+          <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>Evan's Notes:</div>
           <div style={{ whiteSpace: 'pre-wrap' }}>
             {order.adminNotes}
           </div>
@@ -236,10 +236,10 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
           borderRadius: 'var(--radius-sm)'
         }}>
           <h3 style={{
-            fontSize: '16px',
-            fontWeight: 600,
+            fontSize: 'var(--font-size-md)',
+            fontWeight: 'var(--font-weight-semibold)',
             marginBottom: 'var(--space-md)',
-            color: 'var(--deep-navy)'
+            color: 'var(--color-text-primary)'
           }}>
             Edit Order
           </h3>
@@ -254,11 +254,11 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
 
           <div>
             <label style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: 'var(--letter-spacing-wider)',
               marginBottom: 'var(--space-sm)',
               display: 'block'
             }}>
@@ -271,11 +271,11 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid var(--border-light)',
+                border: '2px solid var(--color-border-light)',
                 borderRadius: 'var(--radius-sm)',
-                background: 'var(--warm-white)',
-                color: 'var(--deep-navy)',
-                fontSize: '16px',
+                background: 'var(--color-surface-warm)',
+                color: 'var(--color-text-primary)',
+                fontSize: 'var(--font-size-md)',
                 fontFamily: 'var(--font-modern)',
                 outline: 'none'
               }}

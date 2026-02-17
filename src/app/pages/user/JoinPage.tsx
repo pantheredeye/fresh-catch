@@ -38,14 +38,14 @@ function PleaseLoginFirst() {
       <Card variant="centered" maxWidth="450px">
         <div style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>
           <h1 style={{
-            fontSize: '24px',
-            color: 'var(--deep-navy)',
+            fontSize: 'var(--font-size-2xl)',
+            color: 'var(--color-text-primary)',
             marginBottom: 'var(--space-md)'
           }}>
             Join Fresh Catch Team
           </h1>
           <p style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             marginBottom: 'var(--space-lg)'
           }}>
             Please login or register first, then come back with your invite code.
@@ -55,12 +55,12 @@ function PleaseLoginFirst() {
             style={{
               display: 'inline-block',
               padding: '12px 24px',
-              background: 'var(--ocean-blue)',
-              color: 'white',
+              background: 'var(--color-action-primary)',
+              color: 'var(--color-text-inverse)',
               textDecoration: 'none',
               borderRadius: 'var(--radius-sm)',
-              fontWeight: 600,
-              fontSize: '16px'
+              fontWeight: 'var(--font-weight-semibold)',
+              fontSize: 'var(--font-size-md)'
             }}
           >
             Go to Login
@@ -77,14 +77,14 @@ function InvalidCodeError({ isLoggedIn }: { isLoggedIn: boolean }) {
       <Card variant="centered" maxWidth="450px">
         <div style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>
           <h1 style={{
-            fontSize: '24px',
-            color: 'var(--deep-navy)',
+            fontSize: 'var(--font-size-2xl)',
+            color: 'var(--color-text-primary)',
             marginBottom: 'var(--space-md)'
           }}>
             Invalid Invite Code
           </h1>
           <p style={{
-            color: 'var(--cool-gray)',
+            color: 'var(--color-text-secondary)',
             marginBottom: 'var(--space-lg)'
           }}>
             The invite code in your URL is invalid or missing.
@@ -94,12 +94,12 @@ function InvalidCodeError({ isLoggedIn }: { isLoggedIn: boolean }) {
             style={{
               display: 'inline-block',
               padding: '12px 24px',
-              background: 'var(--ocean-blue)',
-              color: 'white',
+              background: 'var(--color-action-primary)',
+              color: 'var(--color-text-inverse)',
               textDecoration: 'none',
               borderRadius: 'var(--radius-sm)',
-              fontWeight: 600,
-              fontSize: '16px'
+              fontWeight: 'var(--font-weight-semibold)',
+              fontSize: 'var(--font-size-md)'
             }}
           >
             {isLoggedIn ? "Go to Home" : "Go to Login"}

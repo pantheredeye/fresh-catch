@@ -84,19 +84,19 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
       <Card variant="centered" maxWidth="800px">
         <div style={{ marginBottom: 'var(--space-lg)' }}>
           <h1 style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            color: 'var(--deep-navy)',
+            fontSize: 'var(--font-size-3xl)',
+            fontWeight: 'var(--font-weight-bold)',
+            color: 'var(--color-text-primary)',
             fontFamily: 'var(--font-display)',
             marginBottom: 'var(--space-xs)'
           }}>
             Quick Order
           </h1>
           <p style={{
-            fontSize: '16px',
-            color: 'var(--cool-gray)',
+            fontSize: 'var(--font-size-md)',
+            color: 'var(--color-text-secondary)',
             margin: 0,
-            lineHeight: 1.5
+            lineHeight: 'var(--line-height-base)'
           }}>
             Tell Evan what you need and when you'd like to pick it up. He'll confirm availability, price, and pickup details.
           </p>
@@ -109,16 +109,16 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
         }}>
           {/* Contact Information */}
           <div style={{
-            background: 'var(--soft-gray)',
+            background: 'var(--color-surface-secondary)',
             padding: 'var(--space-md)',
             borderRadius: 'var(--radius-sm)'
           }}>
             <h3 style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: 'var(--letter-spacing-wider)',
               marginBottom: 'var(--space-md)'
             }}>
               Contact Information
@@ -167,11 +167,11 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
 
           <div>
             <label style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--deep-navy)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: 'var(--letter-spacing-wider)',
               marginBottom: 'var(--space-sm)',
               display: 'block'
             }}>
@@ -184,19 +184,19 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid #e0e0e0',
+                border: '2px solid var(--input-border)',
                 borderRadius: 'var(--radius-sm)',
-                background: 'var(--warm-white)',
-                color: 'var(--deep-navy)',
-                fontSize: '16px',
+                background: 'var(--color-surface-warm)',
+                color: 'var(--color-text-primary)',
+                fontSize: 'var(--font-size-md)',
                 fontFamily: 'var(--font-modern)',
                 outline: 'none',
                 transition: 'all 0.3s ease'
               }}
             />
             <div style={{
-              fontSize: '12px',
-              color: 'var(--cool-gray)',
+              fontSize: 'var(--font-size-xs)',
+              color: 'var(--color-text-secondary)',
               marginTop: '4px'
             }}>
               Optional - Evan will confirm pickup time
@@ -246,12 +246,12 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
             marginTop: 'var(--space-md)',
             padding: 'var(--space-md)',
             borderRadius: 'var(--radius-sm)',
-            fontSize: '14px',
+            fontSize: 'var(--font-size-sm)',
             textAlign: 'center',
-            background: status === 'success' ? 'var(--mint-fresh)' :
-                       status === 'error' ? 'var(--coral)' :
+            background: status === 'success' ? 'var(--color-status-success)' :
+                       status === 'error' ? 'var(--color-action-secondary)' :
                        'var(--sky-blue)',
-            color: status === 'error' ? 'white' : 'var(--deep-navy)'
+            color: status === 'error' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)'
           }}>
             {message}
           </div>
