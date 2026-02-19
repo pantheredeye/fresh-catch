@@ -74,19 +74,19 @@ Previous conversions created "fake phone containers" - HTML that simulated mobil
 
 ## Color Psychology & Usage
 
-### Ocean Theme (Trust & Freshness)
+### Ocean Theme (Trust & Freshness) → `--color-action-primary`
 - **Primary**: Ocean gradient - trustworthy, clean water association
 - **Usage**: Main CTAs, branding, primary navigation
 
-### Coral/Salmon (Appetite & Warmth)  
+### Coral/Salmon (Appetite & Warmth) → `--color-action-secondary`
 - **Secondary**: Coral gradient - warm, appetizing, alert color
 - **Usage**: Secondary actions, alerts, warm accents
 
-### Mint Fresh (Energy & Success)
+### Mint Fresh (Energy & Success) → `--color-status-success`
 - **Accent**: Seafoam green - fresh, energetic, success states
 - **Usage**: "Fresh" badges, success messages, availability indicators
 
-### Warm Gold (Premium & Special)
+### Warm Gold (Premium & Special) → `--color-accent-gold`
 - **Premium**: Market gold - special items, favorites
 - **Usage**: Star ratings, premium items, special offers
 
@@ -185,17 +185,35 @@ function MarketCard({ market, ctx }) {
 
 ## Design Token System
 
+### Three-Tier Token Architecture
+
+Tokens follow a **Brand → Alias → Component** hierarchy:
+- **Brand layer**: Raw values (`brand.color.blue.500 = #0066CC`) — defined in `tokens-three-tier.json`
+- **Alias layer**: Semantic names (`--color-action-primary`) — used in CSS
+- **Component layer**: Component-specific tokens (`component.button.primary.background`) — for Figma
+
+**All code uses the alias layer.** Brand tokens exist only as the source; component tokens exist only for Figma.
+
+### Token Naming Convention
+
+- Colors: `--color-{category}-{variant}` (e.g., `--color-text-primary`, `--color-action-primary`, `--color-surface-secondary`)
+- Font sizes: `--font-size-{scale}` (e.g., `--font-size-sm`, `--font-size-xl`)
+- Spacing: `--space-{size}` (e.g., `--space-md`, `--space-xl`)
+- Radius: `--radius-{size}` (e.g., `--radius-md`, `--radius-full`)
+- Motion: `--duration-{speed}`, `--ease-out`
+
 ### Token Usage Requirements
 
-**CRITICAL: All new components MUST use design tokens**
+**CRITICAL: All components MUST use semantic alias tokens**
 
 #### Required Token Usage:
-1. **Colors**: ALWAYS use tokens (`var(--color-text-primary)`, `var(--color-surface-primary)`)
-2. **Spacing**: ALWAYS use tokens (`var(--space-md)`, `var(--space-lg)`)
-3. **Typography**: ALWAYS use tokens or utility classes (`var(--font-size-md)`, `.heading-xl`)
-4. **Borders**: ALWAYS use tokens (`var(--color-border-light)`, `var(--radius-md)`)
+1. **Colors**: `var(--color-text-primary)`, `var(--color-surface-primary)`, etc.
+2. **Spacing**: `var(--space-md)`, `var(--space-lg)`, etc.
+3. **Typography**: `var(--font-size-md)`, `.heading-xl`, etc.
+4. **Borders**: `var(--color-border-light)`, `var(--radius-md)`, etc.
 
 #### NEVER:
+- Use old flat token names (`--deep-navy`, `--ocean-blue`, `--cool-gray`, `--coral`, `--mint-fresh`, `--warm-gold`, `--light-gray`, `--warm-white`) — these no longer exist
 - Hardcode hex colors (`#1A2B3D`)
 - Hardcode pixel values for spacing (`20px`)
 - Hardcode font sizes (`16px`)

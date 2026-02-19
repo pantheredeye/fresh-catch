@@ -308,33 +308,18 @@ html, body {
 
 /* Semantic Usage - Modern Fresh Guidelines */
 /*
-PRIMARY ACTIONS: 
-- Thick borders + ocean-gradient
-- WHY: Confidence, stands out in photos
+PRIMARY ACTIONS: --color-action-primary (ocean gradient)
+SECONDARY ACTIONS: --color-action-secondary (coral)
+SUCCESS/FRESH: --color-status-success (mint)
+WARNINGS: --color-status-warning (gold)
+ERRORS: --color-status-error (coral/red)
+PREMIUM/FAVORITES: --color-accent-gold
 
-FRESH/SUCCESS STATES:
-- mint-fresh with subtle bounce animation
-- WHY: Energy, excitement about fresh catch
+SURFACES: --color-surface-primary (cards), --color-bg-primary (page)
+TEXT: --color-text-primary (headings), --color-text-secondary (muted)
+BORDERS: --color-border-subtle, --color-border-light, --color-border-input
 
-FAVORITES/PREMIUM:
-- warm-gold accents
-- WHY: Market premium feel, special items
-
-BACKGROUNDS:
-- warm-white base (never pure white)
-- WHY: Photographs better, feels natural
-
-TEXT HIERARCHY:
-- deep-navy for headers (not black)
-- cool-gray for secondary text
-- font-mono for prices/times (trustworthy)
-
-SPECIAL TOUCHES:
-- Hand-drawn fish icons (when implemented)
-- "Fresh" badges with bounce
-- Torn-paper edges on market cards
-- Wave pattern dividers
-- Handwriting font for "Evan's notes"
+See patterns.md for full guidelines. Never use old flat names.
 */
 
 /* NavGrid Responsive Layout */

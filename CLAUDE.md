@@ -198,7 +198,7 @@ export async function createItem(data) {
 1. **Start with inline components** in your page's UI file
 2. **Extract to `/components/` subfolder** when they get large (>50 lines)
 3. **Only move to design system** if used on 3+ pages
-4. **Use design tokens** (`var(--ocean-blue)`, `var(--space-md)`) everywhere
+4. **Use semantic tokens** (`var(--color-action-primary)`, `var(--space-md)`) everywhere
 
 #### Example Structure:
 
@@ -292,11 +292,52 @@ export { BottomNavigationV2 as BottomNavigation } from './BottomNavigation.v2';
 ```
 
 ### Design System Tokens
-- **Master Design Reference**: `@src/design-system/patterns.md` contains the complete design system
-- Extract CSS custom properties as design tokens for consistency
-- Mobile-first approach with careful attention to container behavior
-- Use the existing design system (colors, spacing, typography, shadows) across all components
-- Reference `@DESIGN_PATTERNS_REFERENCE.md` for understanding our implementation 
+
+**CRITICAL: Three-tier semantic token system. Never use old flat names.**
+
+#### Token Rules
+- **ALWAYS** use semantic tokens: `var(--color-text-primary)`, `var(--color-surface-primary)`, etc.
+- **NEVER** use old flat tokens: ~~`--deep-navy`~~, ~~`--ocean-blue`~~, ~~`--cool-gray`~~, ~~`--coral`~~, ~~`--mint-fresh`~~, ~~`--warm-gold`~~, ~~`--light-gray`~~, ~~`--warm-white`~~ — these no longer exist
+- **NEVER** hardcode hex values (`#1A2B3D`, `#6B7280`, etc.) — use tokens
+- **NEVER** use raw `rgba()` — use token equivalents
+
+#### Most-Used Tokens (cheat sheet)
+```css
+/* Text */
+--color-text-primary        /* headings, body */
+--color-text-secondary      /* captions, muted */
+--color-text-tertiary       /* placeholders, disabled */
+--color-text-inverse        /* white text on colored bg */
+
+/* Actions */
+--color-action-primary      /* buttons, links (ocean blue) */
+--color-action-secondary    /* secondary CTA (coral) */
+
+/* Surfaces */
+--color-surface-primary     /* cards, panels (white / dark) */
+--color-surface-secondary   /* subtle backgrounds */
+--color-bg-primary          /* page background */
+
+/* Borders */
+--color-border-subtle       /* faint separators */
+--color-border-light        /* card borders */
+--color-border-input        /* form inputs */
+
+/* Status */
+--color-status-success      /* green/mint */
+--color-status-warning      /* gold */
+--color-status-error        /* coral/red */
+
+/* Spacing: --space-xs/sm/md/lg/xl/2xl */
+/* Radius: --radius-sm/md/lg/xl/full */
+/* Font size: --font-size-xs/sm/md/lg/xl/2xl/3xl/4xl/5xl */
+/* Shadows: --shadow-sm/md/lg */
+```
+
+#### References
+- **Full token definitions**: `src/design-system/tokens.css`
+- **Three-tier JSON (Figma source)**: `src/design-system/tokens-three-tier.json`
+- **Design patterns & guidelines**: `src/design-system/patterns.md`
 
 ## Development Notes
 
