@@ -37,6 +37,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [price, setPrice] = useState(order.price || '');
   const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
@@ -51,8 +52,9 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const config = statusConfig[order.status as keyof typeof statusConfig];
 
   const handleConfirm = async () => {
+    setErrorMessage(null);
     if (!price.trim()) {
-      alert('Please enter a price before confirming');
+      setErrorMessage('Please enter a price before confirming');
       return;
     }
 
@@ -60,9 +62,10 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
     const result = await confirmOrder(order.id, price, adminNotes);
 
     if (result.success) {
-      window.location.reload();
+      setIsEditing(false);
+      setLoading(false);
     } else {
-      alert(result.error || 'Failed to confirm order');
+      setErrorMessage(result.error || 'Failed to confirm order');
       setLoading(false);
     }
   };
@@ -70,13 +73,14 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const handleComplete = async () => {
     if (!confirm('Mark this order as completed?')) return;
 
+    setErrorMessage(null);
     setLoading(true);
     const result = await completeOrder(order.id);
 
     if (result.success) {
-      window.location.reload();
+      setLoading(false);
     } else {
-      alert(result.error || 'Failed to complete order');
+      setErrorMessage(result.error || 'Failed to complete order');
       setLoading(false);
     }
   };
@@ -84,25 +88,28 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const handleCancel = async () => {
     if (!confirm('Cancel this order? Customer will see it as cancelled.')) return;
 
+    setErrorMessage(null);
     setLoading(true);
     const result = await cancelOrderAdmin(order.id);
 
     if (result.success) {
-      window.location.reload();
+      setLoading(false);
     } else {
-      alert(result.error || 'Failed to cancel order');
+      setErrorMessage(result.error || 'Failed to cancel order');
       setLoading(false);
     }
   };
 
   const handleMarkPaid = async () => {
+    setErrorMessage(null);
     setLoading(true);
     const result = await markAsPaid(order.id, paymentMethod, paymentNotes || undefined);
 
     if (result.success) {
-      window.location.reload();
+      setShowPaymentModal(false);
+      setLoading(false);
     } else {
-      alert(result.error || 'Failed to mark as paid');
+      setErrorMessage(result.error || 'Failed to mark as paid');
       setLoading(false);
     }
   };
@@ -114,6 +121,20 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       overflow: 'hidden'
     }}>
       <Card>
+        {errorMessage && (
+          <div style={{
+            padding: 'var(--space-sm) var(--space-md)',
+            background: 'var(--color-status-error-bg)',
+            color: 'var(--color-status-error)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 'var(--font-size-sm)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 'var(--space-md)'
+          }}>
+            <span>{errorMessage}</span>
+            <button onClick={() => setErrorMessage(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--color-status-error)'}}>✕</button>
+          </div>
+        )}
         {/* Header */}
       <div style={{
         display: 'flex',
