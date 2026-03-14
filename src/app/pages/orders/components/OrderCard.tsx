@@ -27,6 +27,7 @@ interface OrderCardProps {
 
 export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const [cancelling, setCancelling] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [items, setItems] = useState(order.items);
   const [notes, setNotes] = useState(order.notes || '');
@@ -45,6 +46,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const config = statusConfig[order.status as keyof typeof statusConfig];
 
   const handleUpdate = async () => {
+    setErrorMessage(null);
     setLoading(true);
     const result = await updateOrder(order.id, {
       items,
@@ -55,9 +57,10 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
     });
 
     if (result.success) {
-      window.location.reload();
+      setIsEditing(false);
+      setLoading(false);
     } else {
-      alert(result.error || 'Failed to update order');
+      setErrorMessage(result.error || 'Failed to update order');
       setLoading(false);
     }
   };
@@ -65,13 +68,14 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const handleCancel = async () => {
     if (!confirm('Are you sure you want to cancel this order?')) return;
 
+    setErrorMessage(null);
     setCancelling(true);
     const result = await cancelOrder(order.id);
 
     if (result.success) {
-      window.location.reload(); // Refresh to show updated status
+      setCancelling(false);
     } else {
-      alert(result.error || 'Failed to cancel order');
+      setErrorMessage(result.error || 'Failed to cancel order');
       setCancelling(false);
     }
   };
@@ -83,6 +87,20 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
       overflow: 'hidden'
     }}>
       <Card>
+        {errorMessage && (
+          <div style={{
+            padding: 'var(--space-sm) var(--space-md)',
+            background: 'var(--color-status-error-bg)',
+            color: 'var(--color-status-error)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 'var(--font-size-sm)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 'var(--space-md)'
+          }}>
+            <span>{errorMessage}</span>
+            <button onClick={() => setErrorMessage(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--color-status-error)'}}>✕</button>
+          </div>
+        )}
         {/* Header */}
       <div style={{
         display: 'flex',
