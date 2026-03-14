@@ -1,6 +1,7 @@
 "use server";
 
 import { requestInfo } from "rwsdk/worker";
+
 import { db } from "@/db";
 
 /**
@@ -33,6 +34,7 @@ export async function createMarket(data: {
       active: data.active ?? true,
     },
   });
+
 
   return market;
 }
@@ -78,6 +80,7 @@ export async function updateMarket(
     },
   });
 
+
   return market;
 }
 
@@ -103,6 +106,7 @@ export async function deleteMarket(id: string) {
   await db.market.delete({
     where: { id },
   });
+
 
   return { success: true };
 }
@@ -132,6 +136,7 @@ export async function toggleMarketActive(id: string) {
       active: !existingMarket.active,
     },
   });
+
 
   return market;
 }

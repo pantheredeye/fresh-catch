@@ -6,6 +6,7 @@ import { CompactMarketList, MarketFormModal } from "./components";
 import {
   createMarket,
   updateMarket,
+  deleteMarket,
   toggleMarketActive,
 } from "./market-functions";
 import "./admin.css";
@@ -76,6 +77,14 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
       } else {
         await createMarket(marketData);
       }
+      setIsModalOpen(false);
+      setEditingMarket(undefined);
+    });
+  };
+
+  const handleDeleteMarket = async (id: string) => {
+    startTransition(async () => {
+      await deleteMarket(id);
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -241,6 +250,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSaveMarket}
+          onDelete={handleDeleteMarket}
           market={editingMarket}
         />
     </div>

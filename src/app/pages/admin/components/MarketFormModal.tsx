@@ -25,6 +25,8 @@ interface MarketFormModalProps {
     customerInfo?: string | null;
     active?: boolean;
   }) => void | Promise<void>
+  /** Function to delete market */
+  onDelete?: (id: string) => Promise<void>
   /** Existing market data for editing (undefined for new market) */
   market?: Market
 }
@@ -40,6 +42,7 @@ export function MarketFormModal({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   market
 }: MarketFormModalProps) {
 
@@ -67,6 +70,19 @@ export function MarketFormModal({
     }
   }, [market])
 
+  const [saving, setSaving] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  // Escape key to close
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   // Don't render if not open
   if (!isOpen) return null
 
@@ -77,28 +93,34 @@ export function MarketFormModal({
     }))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setValidationError(null)
     // Basic validation - only name required
     if (!formData.name.trim()) {
-      alert('Market name is required')
+      setValidationError('Market name is required')
       return
     }
 
-    // Extract only the fields needed for save
-    const { id, ...saveData } = formData
-    onSave(saveData)
-    onClose()
+    setSaving(true)
+    try {
+      // Extract only the fields needed for save
+      const { id, ...saveData } = formData
+      await onSave(saveData)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancel = () => {
     onClose()
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm(`Are you sure you want to delete "${formData.name}"?`)) {
-      // TODO: Implement delete functionality
-      console.log('Delete market:', formData.id)
-      onClose()
+      if (formData.id && onDelete) {
+        await onDelete(formData.id)
+      }
     }
   }
 
@@ -214,6 +236,21 @@ export function MarketFormModal({
           {isEditing ? `Edit ${formData.name}` : 'Add New Market'}
         </h2>
 
+        {validationError && (
+          <div style={{
+            padding: 'var(--space-sm) var(--space-md)',
+            background: 'var(--color-status-error-bg)',
+            color: 'var(--color-status-error)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 'var(--font-size-sm)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 'var(--space-md)'
+          }}>
+            <span>{validationError}</span>
+            <button onClick={() => setValidationError(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--color-status-error)'}}>✕</button>
+          </div>
+        )}
+
         {/* Priority 1: Core Configuration */}
         <div style={fieldStyle}>
           <label style={labelStyle}>Market Name *</label>
@@ -293,8 +330,9 @@ export function MarketFormModal({
             size="md"
             fullWidth={true}
             onClick={handleSave}
+            disabled={saving}
           >
-            {isEditing ? 'Update Market' : 'Save Market'}
+            {saving ? 'Saving...' : isEditing ? 'Update Market' : 'Save Market'}
           </Button>
 
           <Button
@@ -320,9 +358,3 @@ export function MarketFormModal({
     </div>
   )
 }
-
-// TODO: Add form validation with proper error messages
-// TODO: Connect to actual save/delete handlers
-// TODO: Add loading states for async operations
-// TODO: Consider adding seasonal pause functionality
-// TODO: Add escape key to close modal
