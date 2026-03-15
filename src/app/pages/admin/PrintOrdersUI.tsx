@@ -58,7 +58,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
         <div className="no-print" style={{
           marginBottom: '20px',
           padding: '16px',
-          background: '#f0f0f0',
+          background: 'var(--color-surface-secondary)',
           borderRadius: '8px',
           display: 'flex',
           justifyContent: 'space-between',
@@ -72,7 +72,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              fontSize: '16px',
+              fontSize: 'var(--font-size-lg)',
               fontWeight: 600,
               cursor: 'pointer'
             }}
@@ -83,11 +83,11 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
             onClick={() => window.history.back()}
             style={{
               padding: '12px 24px',
-              background: '#666',
+              background: 'var(--color-text-secondary)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              fontSize: '16px',
+              fontSize: 'var(--font-size-lg)',
               cursor: 'pointer'
             }}
           >
@@ -97,19 +97,19 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
 
         {/* Print header */}
         <div style={{
-          borderBottom: '3px solid #000',
+          borderBottom: '3px solid var(--color-text-primary)',
           paddingBottom: '16px',
           marginBottom: '24px'
         }}>
           <h1 style={{
-            fontSize: '28px',
+            fontSize: 'var(--font-size-4xl)',
             fontWeight: 'bold',
             margin: '0 0 8px 0'
           }}>
             {organizationName}
           </h1>
           <h2 style={{
-            fontSize: '20px',
+            fontSize: 'var(--font-size-2xl)',
             margin: '0',
             fontWeight: 'normal'
           }}>
@@ -117,8 +117,8 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
           </h2>
           <p style={{
             margin: '8px 0 0 0',
-            fontSize: '14px',
-            color: '#666'
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--color-text-secondary)'
           }}>
             Total Orders: {orders.length} | Printed: {new Date().toLocaleString()}
           </p>
@@ -129,7 +129,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
           <div style={{
             padding: '40px',
             textAlign: 'center',
-            color: '#999'
+            color: 'var(--color-text-tertiary)'
           }}>
             No confirmed orders for this date
           </div>
@@ -139,7 +139,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
               <div
                 key={order.id}
                 style={{
-                  border: '2px solid #000',
+                  border: '2px solid var(--color-text-primary)',
                   borderRadius: '8px',
                   padding: '16px',
                   marginBottom: '16px',
@@ -156,14 +156,14 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                   <div style={{
                     width: '24px',
                     height: '24px',
-                    border: '3px solid #000',
+                    border: '3px solid var(--color-text-primary)',
                     borderRadius: '4px',
                     flexShrink: 0,
                     marginTop: '2px'
                   }} />
                   <div style={{ flex: 1 }}>
                     <div style={{
-                      fontSize: '20px',
+                      fontSize: 'var(--font-size-2xl)',
                       fontWeight: 'bold',
                       marginBottom: '4px'
                     }}>
@@ -171,8 +171,8 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                     </div>
                     {order.contactPhone && (
                       <div style={{
-                        fontSize: '14px',
-                        color: '#666',
+                        fontSize: 'var(--font-size-sm)',
+                        color: 'var(--color-text-secondary)',
                         marginBottom: '8px'
                       }}>
                         {order.contactPhone}
@@ -181,20 +181,20 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                   </div>
                   <div style={{
                     textAlign: 'right',
-                    fontSize: '14px'
+                    fontSize: 'var(--font-size-sm)'
                   }}>
                     <div style={{
                       fontWeight: 'bold',
                       padding: '4px 8px',
-                      background: order.paymentStatus === 'paid' ? '#d4edda' : '#fff3cd',
-                      border: order.paymentStatus === 'paid' ? '2px solid #28a745' : '2px solid #ffc107',
+                      background: order.paymentStatus === 'paid' ? 'var(--color-status-success-bg)' : 'var(--color-status-warning-bg)',
+                      border: order.paymentStatus === 'paid' ? '2px solid var(--color-status-success-border)' : '2px solid var(--color-status-warning-border)',
                       borderRadius: '4px',
                       marginBottom: '4px'
                     }}>
                       {order.paymentStatus === 'paid' ? '✓ PAID' : 'UNPAID'}
                     </div>
                     {order.paymentMethod && (
-                      <div style={{ fontSize: '12px', color: '#666' }}>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
                         {order.paymentMethod}
                       </div>
                     )}
@@ -203,22 +203,22 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
 
                 {/* Items */}
                 <div style={{
-                  background: '#f8f9fa',
+                  background: 'var(--color-surface-secondary)',
                   padding: '12px',
                   borderRadius: '4px',
                   marginBottom: '8px'
                 }}>
                   <div style={{
-                    fontSize: '12px',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 'bold',
                     textTransform: 'uppercase',
                     marginBottom: '4px',
-                    color: '#666'
+                    color: 'var(--color-text-secondary)'
                   }}>
                     Items:
                   </div>
                   <div style={{
-                    fontSize: '16px',
+                    fontSize: 'var(--font-size-lg)',
                     whiteSpace: 'pre-wrap',
                     fontWeight: 500
                   }}>
@@ -230,7 +230,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                 <div style={{
                   display: 'flex',
                   gap: '16px',
-                  fontSize: '14px'
+                  fontSize: 'var(--font-size-sm)'
                 }}>
                   {order.price && (
                     <div>
@@ -252,9 +252,9 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
         <div style={{
           marginTop: '32px',
           paddingTop: '16px',
-          borderTop: '2px solid #ccc',
-          fontSize: '14px',
-          color: '#666'
+          borderTop: '2px solid var(--color-border-subtle)',
+          fontSize: 'var(--font-size-sm)',
+          color: 'var(--color-text-secondary)'
         }}>
           <div style={{ marginBottom: '8px' }}>
             <strong>Payment Summary:</strong>
