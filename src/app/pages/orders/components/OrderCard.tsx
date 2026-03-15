@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button, Card, Textarea, TextInput } from "@/design-system";
 import { cancelOrder, updateOrder } from "../functions";
 import type { AppContext } from "@/worker";
@@ -26,7 +26,7 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
-  const [cancelling, setCancelling] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [items, setItems] = useState(order.items);
@@ -34,7 +34,6 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const [preferredDate, setPreferredDate] = useState(
     order.preferredDate ? new Date(order.preferredDate).toISOString().split('T')[0] : ''
   );
-  const [loading, setLoading] = useState(false);
 
   const statusConfig = {
     pending: { label: 'Pending', color: 'var(--color-status-info-bg)', textColor: 'var(--color-text-primary)' },
@@ -47,37 +46,32 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
 
   const handleUpdate = async () => {
     setErrorMessage(null);
-    setLoading(true);
-    const result = await updateOrder(order.id, {
-      items,
-      notes: notes || null,
-      preferredDate: preferredDate || null,
-      contactName: order.contactName,
-      contactPhone: order.contactPhone,
+    startTransition(async () => {
+      const result = await updateOrder(order.id, {
+        items,
+        notes: notes || null,
+        preferredDate: preferredDate || null,
+        contactName: order.contactName,
+        contactPhone: order.contactPhone,
+      });
+      if (result.success) {
+        setIsEditing(false);
+      } else {
+        setErrorMessage(result.error || 'Failed to update order');
+      }
     });
-
-    if (result.success) {
-      setIsEditing(false);
-      setLoading(false);
-    } else {
-      setErrorMessage(result.error || 'Failed to update order');
-      setLoading(false);
-    }
   };
 
   const handleCancel = async () => {
     if (!confirm('Are you sure you want to cancel this order?')) return;
 
     setErrorMessage(null);
-    setCancelling(true);
-    const result = await cancelOrder(order.id);
-
-    if (result.success) {
-      setCancelling(false);
-    } else {
-      setErrorMessage(result.error || 'Failed to cancel order');
-      setCancelling(false);
-    }
+    startTransition(async () => {
+      const result = await cancelOrder(order.id);
+      if (!result.success) {
+        setErrorMessage(result.error || 'Failed to cancel order');
+      }
+    });
   };
 
   return (
@@ -149,9 +143,9 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
               variant="cancel"
               size="sm"
               onClick={handleCancel}
-              disabled={cancelling}
+              disabled={isPending}
             >
-              {cancelling ? 'Cancelling...' : 'Cancel Order'}
+              {isPending ? 'Cancelling...' : 'Cancel Order'}
             </Button>
           </div>
         )}
@@ -317,10 +311,10 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
               variant="primary"
               size="md"
               onClick={handleUpdate}
-              disabled={loading || !items.trim()}
+              disabled={isPending || !items.trim()}
               fullWidth
             >
-              {loading ? 'Saving...' : 'Save Changes'}
+              {isPending ? 'Saving...' : 'Save Changes'}
             </Button>
             <Button
               variant="cancel"
