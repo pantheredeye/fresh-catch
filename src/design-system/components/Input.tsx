@@ -320,7 +320,7 @@ const textareaStyles: React.CSSProperties = {
 
 const errorInputStyles: React.CSSProperties = {
   borderColor: 'var(--color-action-secondary)',
-  boxShadow: '0 0 0 3px rgba(255, 107, 107, 0.1)',
+  boxShadow: '0 0 0 3px var(--color-status-error-bg)',
 };
 
 const disabledStyles: React.CSSProperties = {

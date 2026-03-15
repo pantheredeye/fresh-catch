@@ -68,7 +68,7 @@ export function ShareModal({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.5)",
+          background: "var(--color-surface-overlay)",
           zIndex: 1000,
           backdropFilter: "blur(4px)",
         }}

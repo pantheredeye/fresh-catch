@@ -67,7 +67,7 @@ export function LiveBadge({ className = '' }: LiveBadgeProps) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 'var(--space-xs)',
-        background: 'rgba(255,107,107,0.1)',
+        background: 'var(--color-status-error-bg)',
         color: 'var(--color-action-secondary)',
         padding: '4px 8px',
         borderRadius: 'var(--radius-full)',
@@ -75,7 +75,7 @@ export function LiveBadge({ className = '' }: LiveBadgeProps) {
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        border: '1px solid rgba(255,107,107,0.2)'
+        border: '1px solid var(--color-status-error-border)'
       }}
     >
       <span

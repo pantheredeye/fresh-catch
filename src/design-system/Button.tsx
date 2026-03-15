@@ -94,7 +94,7 @@ export function Button({
     },
     'secondary-admin': {
       background: 'var(--color-surface-primary)',
-      color: '#856404',
+      color: 'var(--color-accent-gold)',
       border: '2px solid var(--color-accent-gold)',
       boxShadow: 'none'
     },

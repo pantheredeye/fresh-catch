@@ -333,8 +333,8 @@ const toggleButtonStyles: React.CSSProperties = {
 const resultStyles: React.CSSProperties = {
   marginTop: 'var(--space-lg)',
   padding: 'var(--space-md)',
-  background: 'rgba(255, 107, 107, 0.1)',
-  border: '1px solid rgba(255, 107, 107, 0.3)',
+  background: 'var(--color-status-error-bg)',
+  border: '1px solid var(--color-status-error-border)',
   borderRadius: 'var(--radius-sm)',
   color: 'var(--color-text-inverse)',
   textAlign: 'center',

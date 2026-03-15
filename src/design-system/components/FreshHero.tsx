@@ -113,7 +113,7 @@ export function FreshItem({ emoji, children, className = '' }: FreshItemProps) {
     fontWeight: 600,
     fontSize: '14px',
     backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255,255,255,0.3)'
+    border: '1px solid var(--color-glass-border-medium)'
   }
 
   const emojiStyle: React.CSSProperties = {
