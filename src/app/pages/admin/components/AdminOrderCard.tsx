@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button, Card, TextInput, Textarea } from "@/design-system";
 import { confirmOrder, completeOrder, cancelOrderAdmin, markAsPaid } from "../order-functions";
 import type { AppContext } from "@/worker";
@@ -36,7 +36,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [price, setPrice] = useState(order.price || '');
   const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -58,60 +58,50 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       return;
     }
 
-    setLoading(true);
-    const result = await confirmOrder(order.id, price, adminNotes);
-
-    if (result.success) {
-      setIsEditing(false);
-      setLoading(false);
-    } else {
-      setErrorMessage(result.error || 'Failed to confirm order');
-      setLoading(false);
-    }
+    startTransition(async () => {
+      const result = await confirmOrder(order.id, price, adminNotes);
+      if (result.success) {
+        setIsEditing(false);
+      } else {
+        setErrorMessage(result.error || 'Failed to confirm order');
+      }
+    });
   };
 
   const handleComplete = async () => {
     if (!confirm('Mark this order as completed?')) return;
 
     setErrorMessage(null);
-    setLoading(true);
-    const result = await completeOrder(order.id);
-
-    if (result.success) {
-      setLoading(false);
-    } else {
-      setErrorMessage(result.error || 'Failed to complete order');
-      setLoading(false);
-    }
+    startTransition(async () => {
+      const result = await completeOrder(order.id);
+      if (!result.success) {
+        setErrorMessage(result.error || 'Failed to complete order');
+      }
+    });
   };
 
   const handleCancel = async () => {
     if (!confirm('Cancel this order? Customer will see it as cancelled.')) return;
 
     setErrorMessage(null);
-    setLoading(true);
-    const result = await cancelOrderAdmin(order.id);
-
-    if (result.success) {
-      setLoading(false);
-    } else {
-      setErrorMessage(result.error || 'Failed to cancel order');
-      setLoading(false);
-    }
+    startTransition(async () => {
+      const result = await cancelOrderAdmin(order.id);
+      if (!result.success) {
+        setErrorMessage(result.error || 'Failed to cancel order');
+      }
+    });
   };
 
   const handleMarkPaid = async () => {
     setErrorMessage(null);
-    setLoading(true);
-    const result = await markAsPaid(order.id, paymentMethod, paymentNotes || undefined);
-
-    if (result.success) {
-      setShowPaymentModal(false);
-      setLoading(false);
-    } else {
-      setErrorMessage(result.error || 'Failed to mark as paid');
-      setLoading(false);
-    }
+    startTransition(async () => {
+      const result = await markAsPaid(order.id, paymentMethod, paymentNotes || undefined);
+      if (result.success) {
+        setShowPaymentModal(false);
+      } else {
+        setErrorMessage(result.error || 'Failed to mark as paid');
+      }
+    });
   };
 
   return (
@@ -199,7 +189,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
                 variant="danger"
                 size="sm"
                 onClick={handleCancel}
-                disabled={loading}
+                disabled={isPending}
               >
                 Reject
               </Button>
@@ -212,7 +202,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
                 variant="primary"
                 size="sm"
                 onClick={handleComplete}
-                disabled={loading}
+                disabled={isPending}
               >
                 Mark Complete
               </Button>
@@ -352,10 +342,10 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               variant="primary"
               size="md"
               onClick={handleConfirm}
-              disabled={loading || !price.trim()}
+              disabled={isPending || !price.trim()}
               fullWidth
             >
-              {loading ? 'Confirming...' : 'Confirm Order'}
+              {isPending ? 'Confirming...' : 'Confirm Order'}
             </Button>
             <Button
               variant="cancel"
@@ -504,10 +494,10 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               variant="primary"
               size="md"
               onClick={handleMarkPaid}
-              disabled={loading}
+              disabled={isPending}
               fullWidth
             >
-              {loading ? 'Saving...' : 'Confirm Payment'}
+              {isPending ? 'Saving...' : 'Confirm Payment'}
             </Button>
             <Button
               variant="cancel"
