@@ -25,7 +25,7 @@ export function LiveBanner() {
         height: '8px',
         background: 'white',
         borderRadius: '50%',
-        boxShadow: '0 0 0 2px rgba(255,255,255,0.3)',
+        boxShadow: '0 0 0 2px var(--color-glass-border-medium)',
         animation: 'live-pulse 2s ease-in-out infinite'
       }} />
       <span>LIVE at Livingston Market</span>

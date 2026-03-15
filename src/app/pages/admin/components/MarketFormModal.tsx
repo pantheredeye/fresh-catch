@@ -211,7 +211,7 @@ export function MarketFormModal({
     alignItems: 'center',
     gap: 'var(--space-sm)',
     padding: 'var(--space-md)',
-    background: 'rgba(255, 255, 255, 0.5)',
+    background: 'var(--color-glass-medium)',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--color-border-subtle)'
   }

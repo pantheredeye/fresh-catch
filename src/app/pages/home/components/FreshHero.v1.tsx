@@ -71,7 +71,7 @@ export function FreshHeroV1({ freshCatch }: FreshHeroProps) {
             fontWeight: 'var(--font-weight-semibold)',
             fontSize: 'var(--font-size-sm)',
             backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.3)'
+            border: '1px solid var(--color-glass-border-medium)'
           }}>
             <span style={{
               display: 'block',
