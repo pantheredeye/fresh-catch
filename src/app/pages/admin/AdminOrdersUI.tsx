@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Container, Select } from "@/design-system";
+import type { FeeModel } from "@/utils/money";
 import { AdminOrderCard } from "./components/AdminOrderCard";
 import type { AppContext } from "@/worker";
 
@@ -27,6 +28,13 @@ type Order = {
   user: {
     username: string;
     name: string | null;
+  };
+  organization?: {
+    platformFeeBps: number;
+    feeModel: FeeModel;
+    defaultDepositBps: number | null;
+    stripeAccountId: string | null;
+    stripeOnboardingComplete: boolean;
   };
 };
 

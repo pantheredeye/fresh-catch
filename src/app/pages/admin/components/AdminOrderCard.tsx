@@ -32,6 +32,9 @@ type Order = {
   organization?: {
     platformFeeBps: number;
     feeModel: FeeModel;
+    defaultDepositBps: number | null;
+    stripeAccountId: string | null;
+    stripeOnboardingComplete: boolean;
   };
 };
 
@@ -50,6 +53,11 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
 
+  const hasStripe = !!(order.organization?.stripeAccountId && order.organization?.stripeOnboardingComplete);
+  const defaultDepositBps = order.organization?.defaultDepositBps ?? null;
+  const [depositEnabled, setDepositEnabled] = useState(hasStripe && defaultDepositBps !== null);
+  const [depositInput, setDepositInput] = useState('');
+
   const feeBps = order.organization?.platformFeeBps ?? 500;
   const feeModel = order.organization?.feeModel ?? "customer";
 
@@ -63,6 +71,24 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       return null;
     }
   }, [priceInput, feeBps, feeModel]);
+
+  // Calculate deposit amount for preview
+  const depositPreview = useMemo(() => {
+    if (!depositEnabled || !feePreview) return null;
+    try {
+      const customCents = depositInput.trim() ? parseDollars(depositInput) : null;
+      if (customCents !== null && customCents > 0) {
+        return { depositAmount: customCents, remaining: feePreview.customerTotal - customCents };
+      }
+    } catch {
+      // Invalid input, fall through to default
+    }
+    if (defaultDepositBps) {
+      const defaultAmount = Math.round(feePreview.customerTotal * defaultDepositBps / 10000);
+      return { depositAmount: defaultAmount, remaining: feePreview.customerTotal - defaultAmount };
+    }
+    return null;
+  }, [depositEnabled, depositInput, feePreview, defaultDepositBps]);
 
   const paymentStatus = getPaymentStatus(order);
 
@@ -103,8 +129,23 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       return;
     }
 
+    // Build depositOverride: null = no deposit, number = override, undefined = use org default
+    let depositOverride: number | null | undefined;
+    if (!depositEnabled) {
+      depositOverride = null;
+    } else if (depositInput.trim()) {
+      try {
+        depositOverride = parseDollars(depositInput);
+      } catch {
+        setErrorMessage('Please enter a valid deposit amount');
+        return;
+      }
+    } else {
+      depositOverride = undefined; // use org default
+    }
+
     startTransition(async () => {
-      const result = await confirmOrder(order.id, priceInCents, adminNotes);
+      const result = await confirmOrder(order.id, priceInCents, adminNotes, depositOverride);
       if (result.success) {
         setIsEditing(false);
       } else {
@@ -411,6 +452,76 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               </div>
             </div>
           )}
+
+          {/* Deposit Toggle */}
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-sm)',
+              cursor: hasStripe ? 'pointer' : 'not-allowed',
+              opacity: hasStripe ? 1 : 0.5,
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-primary)',
+            }}>
+              <input
+                type="checkbox"
+                checked={depositEnabled}
+                onChange={(e) => setDepositEnabled(e.target.checked)}
+                disabled={!hasStripe}
+                style={{ width: 18, height: 18, cursor: hasStripe ? 'pointer' : 'not-allowed' }}
+              />
+              Require deposit
+              {!hasStripe && (
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', fontWeight: 'var(--font-weight-normal)' }}>
+                  (Stripe not connected)
+                </span>
+              )}
+            </label>
+
+            {depositEnabled && feePreview && (
+              <div style={{ marginTop: 'var(--space-sm)' }}>
+                <TextInput
+                  label="Deposit amount ($)"
+                  placeholder={defaultDepositBps
+                    ? `Default: ${formatCents(Math.round(feePreview.customerTotal * defaultDepositBps / 10000))}`
+                    : "Enter deposit amount"
+                  }
+                  value={depositInput}
+                  onChange={(e) => setDepositInput(e.target.value)}
+                  size="md"
+                  helperText={defaultDepositBps
+                    ? `Leave blank to use org default (${(defaultDepositBps / 100).toFixed(0)}%)`
+                    : "Enter dollar amount for deposit"
+                  }
+                />
+
+                {depositPreview && (
+                  <div style={{
+                    padding: 'var(--space-sm) var(--space-md)',
+                    background: 'var(--color-surface-primary)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginTop: 'var(--space-xs)',
+                    fontSize: 'var(--font-size-sm)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)' }}>
+                      <span>Deposit due now</span>
+                      <span style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)' }}>
+                        {formatCents(depositPreview.depositAmount)}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)', marginTop: 'var(--space-xs)' }}>
+                      <span>Remaining at pickup</span>
+                      <span style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)' }}>
+                        {formatCents(depositPreview.remaining)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <Textarea
             label="Notes to Customer"

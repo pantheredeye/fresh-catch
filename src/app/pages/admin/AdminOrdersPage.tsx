@@ -3,6 +3,7 @@ import { hasAdminAccess } from "@/utils/permissions";
 import { Login } from "../user/Login";
 import { AdminOrdersUI } from "./AdminOrdersUI";
 import { db } from "@/db";
+import type { FeeModel } from "@/utils/money";
 
 export async function AdminOrdersPage({ ctx }: RequestInfo) {
   if (!ctx.user) {
@@ -79,6 +80,15 @@ export async function AdminOrdersPage({ ctx }: RequestInfo) {
           username: true,
           name: true,
         }
+      },
+      organization: {
+        select: {
+          platformFeeBps: true,
+          feeModel: true,
+          defaultDepositBps: true,
+          stripeAccountId: true,
+          stripeOnboardingComplete: true,
+        }
       }
     },
     orderBy: [
@@ -87,5 +97,12 @@ export async function AdminOrdersPage({ ctx }: RequestInfo) {
     ]
   });
 
-  return <AdminOrdersUI orders={orders} ctx={ctx} />;
+  const typedOrders = orders.map(o => ({
+    ...o,
+    organization: o.organization
+      ? { ...o.organization, feeModel: o.organization.feeModel as FeeModel }
+      : undefined,
+  }));
+
+  return <AdminOrdersUI orders={typedOrders} ctx={ctx} />;
 }
