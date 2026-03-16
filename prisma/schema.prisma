@@ -65,6 +65,15 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Stripe Connect
+  stripeAccountId          String?
+  stripeOnboardingComplete Boolean @default(false)
+
+  // Fee configuration
+  platformFeeBps   Int     @default(500) // Platform fee in basis points (500 = 5%)
+  defaultDepositBps Int?                  // Default deposit in basis points (optional)
+  feeModel         String  @default("customer") // 'customer' | 'vendor' | 'split'
+
   memberships Membership[] // Relationship: Organization can have multiple members
   markets     Market[] // Relationship: Organization can have multiple markets
   orders      Order[] // Relationship: Organization can have multiple orders
