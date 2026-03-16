@@ -18,6 +18,7 @@ import { sessions, setupSessionStore } from "./session/store";
 import { Session } from "./session/durableObject";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
+import { handleStripeWebhook } from "@/api/stripe-webhook";
 export { SessionDurableObject } from "./session/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
@@ -42,6 +43,13 @@ export type AppContext = {
 };
 
 export default defineApp([
+  // Stripe webhook — must run before session/auth middleware to preserve raw body
+  async ({ request }) => {
+    const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/api/stripe/webhook") {
+      return handleStripeWebhook(request);
+    }
+  },
   setCommonHeaders(),
   async ({ ctx, request, response }) => {
     await setupDb(env);
