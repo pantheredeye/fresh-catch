@@ -89,6 +89,9 @@ export async function AdminOrdersPage({ ctx }: RequestInfo) {
           stripeAccountId: true,
           stripeOnboardingComplete: true,
         }
+      },
+      payments: {
+        orderBy: { createdAt: 'desc' }
       }
     },
     orderBy: [

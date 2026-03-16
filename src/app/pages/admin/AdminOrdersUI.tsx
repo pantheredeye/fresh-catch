@@ -36,6 +36,15 @@ type Order = {
     stripeAccountId: string | null;
     stripeOnboardingComplete: boolean;
   };
+  payments: {
+    id: string;
+    amount: number;
+    method: string;
+    type: string;
+    stripePaymentId: string | null;
+    notes: string | null;
+    createdAt: Date;
+  }[];
 };
 
 interface AdminOrdersUIProps {

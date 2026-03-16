@@ -36,6 +36,15 @@ type Order = {
     stripeAccountId: string | null;
     stripeOnboardingComplete: boolean;
   };
+  payments: {
+    id: string;
+    amount: number;
+    method: string;
+    type: string;
+    stripePaymentId: string | null;
+    notes: string | null;
+    createdAt: Date;
+  }[];
 };
 
 interface AdminOrderCardProps {
@@ -640,6 +649,112 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             <div style={{ marginTop: 'var(--space-xs)', color: 'var(--color-text-secondary)' }}>
               {order.paymentNotes}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Payment History */}
+      {(order.status === 'confirmed' || order.status === 'completed') && (
+        <div style={{
+          marginTop: 'var(--space-md)',
+          padding: 'var(--space-md)',
+          background: 'var(--color-surface-secondary)',
+          borderRadius: 'var(--radius-sm)',
+        }}>
+          <div style={{
+            fontWeight: 'var(--font-weight-semibold)',
+            marginBottom: 'var(--space-sm)',
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--color-text-primary)',
+          }}>
+            Payment History
+          </div>
+
+          {order.payments.length === 0 ? (
+            <div style={{
+              color: 'var(--color-text-tertiary)',
+              fontSize: 'var(--font-size-sm)',
+              fontStyle: 'italic',
+            }}>
+              No payments recorded
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                {order.payments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 'var(--space-sm)',
+                      background: 'var(--color-surface-primary)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--font-size-sm)',
+                      gap: 'var(--space-sm)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>
+                        {new Date(payment.createdAt).toLocaleDateString()}
+                      </span>
+                      <span style={{
+                        textTransform: 'capitalize',
+                        fontWeight: 'var(--font-weight-semibold)',
+                        color: 'var(--color-text-primary)',
+                      }}>
+                        {payment.type}
+                      </span>
+                      <span style={{
+                        textTransform: 'capitalize',
+                        color: 'var(--color-text-secondary)',
+                      }}>
+                        {payment.method}
+                      </span>
+                      {payment.stripePaymentId && (
+                        <span style={{
+                          padding: '2px 6px',
+                          background: 'var(--color-action-primary)',
+                          color: 'var(--color-text-inverse)',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 'var(--font-weight-semibold)',
+                        }}>
+                          Stripe
+                        </span>
+                      )}
+                      {payment.notes && (
+                        <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
+                          {payment.notes}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontWeight: 'var(--font-weight-bold)',
+                      color: payment.type === 'refund' ? 'var(--color-status-error)' : 'var(--color-text-primary)',
+                    }}>
+                      {payment.type === 'refund' ? '-' : ''}{formatCents(Math.abs(payment.amount))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Running Total */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginTop: 'var(--space-sm)',
+                paddingTop: 'var(--space-sm)',
+                borderTop: '1px solid var(--color-border-subtle)',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-semibold)',
+                color: 'var(--color-text-primary)',
+              }}>
+                Paid {formatCents(order.amountPaid)}{order.totalDue != null ? ` / ${formatCents(order.totalDue)}` : ''}
+              </div>
+            </>
           )}
         </div>
       )}
