@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Button, Badge } from "@/design-system";
+import { Button, Badge, RadioGroup, ToggleSwitch, TextInput } from "@/design-system";
 import {
   createConnectedAccount,
   getOnboardingLink,
   checkOnboardingStatus,
+  updateFeeConfig,
+  updateDepositConfig,
 } from "./stripe-functions";
 import "./admin.css";
 
@@ -28,11 +30,58 @@ export function StripeSettingsUI({
   onboardingParam: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [isFeeSaving, startFeeTransition] = useTransition();
+  const [isDepositSaving, startDepositTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [onboardingMessage, setOnboardingMessage] = useState<string | null>(
     null,
   );
   const [onboardingSuccess, setOnboardingSuccess] = useState(false);
+
+  // Fee config state
+  const [feeBps, setFeeBps] = useState(stripeStatus.platformFeeBps);
+  const [feeModel, setFeeModel] = useState(stripeStatus.feeModel);
+  const [feeSuccess, setFeeSuccess] = useState<string | null>(null);
+  const [feeError, setFeeError] = useState<string | null>(null);
+
+  // Deposit config state
+  const [depositEnabled, setDepositEnabled] = useState(
+    stripeStatus.defaultDepositBps !== null,
+  );
+  const [depositBps, setDepositBps] = useState(
+    stripeStatus.defaultDepositBps ?? 5000,
+  );
+  const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
+  const [depositError, setDepositError] = useState<string | null>(null);
+
+  const handleSaveFee = () => {
+    setFeeError(null);
+    setFeeSuccess(null);
+    startFeeTransition(async () => {
+      const result = await updateFeeConfig(orgId, feeBps, feeModel);
+      if (result.success) {
+        setFeeSuccess("Fee configuration saved");
+      } else {
+        setFeeError(result.error ?? "Failed to save fee config");
+      }
+    });
+  };
+
+  const handleSaveDeposit = () => {
+    setDepositError(null);
+    setDepositSuccess(null);
+    startDepositTransition(async () => {
+      const result = await updateDepositConfig(
+        orgId,
+        depositEnabled ? depositBps : null,
+      );
+      if (result.success) {
+        setDepositSuccess("Deposit configuration saved");
+      } else {
+        setDepositError(result.error ?? "Failed to save deposit config");
+      }
+    });
+  };
 
   useEffect(() => {
     if (!onboardingParam) return;
@@ -178,6 +227,116 @@ export function StripeSettingsUI({
         )}
         {error && <p className="stripe-error">{error}</p>}
       </div>
+
+      {stripeStatus.hasAccount && stripeStatus.onboardingComplete && (
+        <>
+          {/* Fee Configuration */}
+          <div className="stripe-config-section">
+            <h3 className="stripe-config-heading">Platform Fee</h3>
+            <p className="stripe-config-description">
+              Set the fee percentage charged on each order.
+            </p>
+
+            <div className="stripe-config-field">
+              <TextInput
+                label="Fee percentage"
+                value={String(feeBps / 100)}
+                onChange={(e) => {
+                  const val = Math.round(parseFloat(e.target.value) * 100);
+                  if (!isNaN(val) && val >= 0 && val <= 5000) setFeeBps(val);
+                }}
+                placeholder="5"
+                helperText={`${feeBps} basis points`}
+                size="md"
+              />
+            </div>
+
+            <div className="stripe-config-field">
+              <RadioGroup
+                name="feeModel"
+                label="Fee model"
+                value={feeModel}
+                onChange={(val) => setFeeModel(val)}
+                options={[
+                  {
+                    value: "customer",
+                    label: "Customer pays",
+                    description: "Fee added to customer total",
+                  },
+                  {
+                    value: "vendor",
+                    label: "Vendor absorbs",
+                    description: "Fee deducted from vendor payout",
+                  },
+                  {
+                    value: "split",
+                    label: "Split",
+                    description: "Fee split between customer and vendor",
+                  },
+                ]}
+              />
+            </div>
+
+            <Button
+              variant="primary"
+              onClick={handleSaveFee}
+              disabled={isFeeSaving}
+            >
+              {isFeeSaving ? "Saving..." : "Save Fee Config"}
+            </Button>
+
+            {feeSuccess && <p className="stripe-success">{feeSuccess}</p>}
+            {feeError && <p className="stripe-error">{feeError}</p>}
+          </div>
+
+          {/* Deposit Configuration */}
+          <div className="stripe-config-section">
+            <h3 className="stripe-config-heading">Deposit</h3>
+            <p className="stripe-config-description">
+              Require an upfront deposit when customers place orders.
+            </p>
+
+            <div className="stripe-config-field">
+              <ToggleSwitch
+                label="Require deposit"
+                description="Customers pay a percentage upfront"
+                checked={depositEnabled}
+                onChange={(checked) => setDepositEnabled(checked)}
+              />
+            </div>
+
+            {depositEnabled && (
+              <div className="stripe-config-field">
+                <TextInput
+                  label="Deposit percentage"
+                  value={String(depositBps / 100)}
+                  onChange={(e) => {
+                    const val = Math.round(parseFloat(e.target.value) * 100);
+                    if (!isNaN(val) && val >= 0 && val <= 10000)
+                      setDepositBps(val);
+                  }}
+                  placeholder="50"
+                  helperText={`${depositBps} basis points`}
+                  size="md"
+                />
+              </div>
+            )}
+
+            <Button
+              variant="primary"
+              onClick={handleSaveDeposit}
+              disabled={isDepositSaving}
+            >
+              {isDepositSaving ? "Saving..." : "Save Deposit Config"}
+            </Button>
+
+            {depositSuccess && (
+              <p className="stripe-success">{depositSuccess}</p>
+            )}
+            {depositError && <p className="stripe-error">{depositError}</p>}
+          </div>
+        </>
+      )}
 
       <div className="stripe-back-link">
         <a href="/admin">← Back to Admin</a>
