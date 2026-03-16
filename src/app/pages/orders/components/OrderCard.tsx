@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Button, Card, Textarea, TextInput } from "@/design-system";
 import { cancelOrder, updateOrder } from "../functions";
 import { getPaymentStatus } from "@/utils/payments";
+import { formatCents } from "@/utils/money";
 import type { AppContext } from "@/worker";
 
 type Order = {
@@ -220,13 +221,13 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
           </div>
         )}
 
-        {order.price && (
+        {order.price != null && (
           <div>
             <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
               Price:
             </div>
             <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-              ${(order.price / 100).toFixed(2)}
+              {formatCents(order.price)}
             </div>
           </div>
         )}
