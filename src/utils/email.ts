@@ -84,7 +84,12 @@ export async function sendOrderConfirmedEmail(data: {
   customerName: string;
   orderNumber: number;
   items: string;
-  price: string;
+  priceCents: number | null;
+  platformFeeCents?: number | null;
+  feeModel?: string | null;
+  totalDueCents?: number | null;
+  depositAmountCents?: number | null;
+  checkoutUrl?: string | null;
   adminNotes?: string;
   preferredDate?: string;
   businessName: string;
@@ -94,7 +99,12 @@ export async function sendOrderConfirmedEmail(data: {
       customerName: data.customerName,
       orderNumber: data.orderNumber,
       items: data.items,
-      price: data.price,
+      priceCents: data.priceCents,
+      platformFeeCents: data.platformFeeCents,
+      feeModel: data.feeModel as any,
+      totalDueCents: data.totalDueCents,
+      depositAmountCents: data.depositAmountCents,
+      checkoutUrl: data.checkoutUrl,
       adminNotes: data.adminNotes,
       preferredDate: data.preferredDate,
       businessName: data.businessName,

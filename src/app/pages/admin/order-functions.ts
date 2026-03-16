@@ -83,6 +83,7 @@ export async function confirmOrder(
     // Create Stripe Checkout session if org has Stripe connected
     const { stripeAccountId, stripeOnboardingComplete } = order.organization;
     const secretKey = (env as unknown as Record<string, string>).STRIPE_SECRET_KEY;
+    let checkoutUrl: string | null = null;
 
     if (stripeAccountId && stripeOnboardingComplete && secretKey) {
       try {
@@ -134,6 +135,8 @@ export async function confirmOrder(
           cancel_url: `${origin}/orders?checkout=cancel&order=${order.orderNumber}`,
         });
 
+        checkoutUrl = session.url;
+
         await db.order.update({
           where: { id: orderId },
           data: { stripeCheckoutSessionId: session.id },
@@ -153,7 +156,12 @@ export async function confirmOrder(
           customerName: order.contactName,
           orderNumber: order.orderNumber,
           items: order.items,
-          price: String(price),
+          priceCents: price,
+          platformFeeCents: platformFee,
+          feeModel: feeModel,
+          totalDueCents: customerTotal,
+          depositAmountCents: depositAmount,
+          checkoutUrl,
           adminNotes: adminNotes.trim() || undefined,
           preferredDate: order.preferredDate?.toISOString(),
           businessName: order.organization.name,
