@@ -5,6 +5,7 @@ import type Stripe from "stripe";
 import { env } from "cloudflare:workers";
 import { getStripe, getCryptoProvider } from "@/utils/stripe";
 import { db, setupDb } from "@/db";
+import { sendPaymentReceivedEmail } from "@/utils/email";
 
 /**
  * Handle incoming Stripe webhook events.
@@ -123,7 +124,10 @@ async function handleCheckoutSessionCompleted(
 
   await ensureDb();
 
-  const order = await db.order.findUnique({ where: { id: orderId } });
+  const order = await db.order.findUnique({
+    where: { id: orderId },
+    include: { organization: { select: { name: true } } },
+  });
   if (!order) {
     console.error(`Order not found for checkout session: ${orderId}`);
     return;
@@ -181,6 +185,24 @@ async function handleCheckoutSessionCompleted(
     `Payment recorded: ${paymentType} of ${amountPaidCents}c for order ${order.orderNumber}` +
       (fullyPaid ? " (fully paid)" : ""),
   );
+
+  // Send PaymentReceived email to customer
+  if (order.contactEmail) {
+    try {
+      const remainingBalance = (order.totalDue ?? 0) - newAmountPaid;
+      await sendPaymentReceivedEmail({
+        to: order.contactEmail,
+        orderNumber: order.orderNumber,
+        amountPaid: amountPaidCents,
+        totalDue: order.totalDue ?? 0,
+        remainingBalance: Math.max(0, remainingBalance),
+        paymentMethod: "Stripe",
+        businessName: order.organization.name,
+      });
+    } catch (emailError) {
+      console.error("Failed to send PaymentReceived email:", emailError);
+    }
+  }
 }
 
 /**

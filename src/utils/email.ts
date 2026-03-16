@@ -4,6 +4,7 @@ import { env } from 'cloudflare:workers';
 import { OrderConfirmation } from '@/emails/OrderConfirmation';
 import { OrderConfirmed } from '@/emails/OrderConfirmed';
 import { AdminNewOrder } from '@/emails/AdminNewOrder';
+import { PaymentReceived } from '@/emails/PaymentReceived';
 
 // Lazy-init Resend client (only when email is sent)
 let resendClient: Resend | null = null;
@@ -145,6 +146,33 @@ export async function sendAdminNewOrderEmail(data: {
   return sendEmail({
     to: data.to,
     subject: `🔔 New Order #${data.orderNumber} - ${data.businessName}`,
+    html,
+  });
+}
+
+export async function sendPaymentReceivedEmail(data: {
+  to: string;
+  orderNumber: number;
+  amountPaid: number;
+  totalDue: number;
+  remainingBalance: number;
+  paymentMethod: string;
+  businessName: string;
+}) {
+  const html = await render(
+    PaymentReceived({
+      orderNumber: data.orderNumber,
+      amountPaid: data.amountPaid,
+      totalDue: data.totalDue,
+      remainingBalance: data.remainingBalance,
+      paymentMethod: data.paymentMethod,
+      businessName: data.businessName,
+    })
+  );
+
+  return sendEmail({
+    to: data.to,
+    subject: `Payment Received - Order #${data.orderNumber} - ${data.businessName}`,
     html,
   });
 }
