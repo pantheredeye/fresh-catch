@@ -4,7 +4,7 @@ import { requestInfo } from "rwsdk/worker";
 import { env } from "cloudflare:workers";
 
 import { db } from "@/db";
-import { hasAdminAccess } from "@/utils/permissions";
+import { hasAdminAccess, isOwner } from "@/utils/permissions";
 import { getStripe } from "@/utils/stripe";
 
 function getStripeClient() {
@@ -136,8 +136,8 @@ export async function updateFeeConfig(
 ) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
-    return { success: false as const, error: "Admin access required" };
+  if (!isOwner(ctx)) {
+    return { success: false as const, error: "Owner access required" };
   }
 
   if (!Number.isInteger(feeBps) || feeBps < 0 || feeBps > 5000) {
@@ -176,8 +176,8 @@ export async function updateDepositConfig(
 ) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
-    return { success: false as const, error: "Admin access required" };
+  if (!isOwner(ctx)) {
+    return { success: false as const, error: "Owner access required" };
   }
 
   if (

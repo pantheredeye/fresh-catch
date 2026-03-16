@@ -64,7 +64,7 @@ export function AdminLayoutClient({
           <a href="/admin/orders" className="admin-nav-item">
             Orders
           </a>
-          <a href="/admin/settings" className="admin-nav-item">
+          <a href="/admin/settings/stripe" className="admin-nav-item">
             Settings
           </a>
         </nav>

@@ -25,10 +25,12 @@ export function StripeSettingsUI({
   orgId,
   stripeStatus,
   onboardingParam,
+  canEditFees,
 }: {
   orgId: string;
   stripeStatus: StripeStatus;
   onboardingParam: string | null;
+  canEditFees: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [isFeeSaving, startFeeTransition] = useTransition();
@@ -246,7 +248,7 @@ export function StripeSettingsUI({
         {error && <p className="stripe-error">{error}</p>}
       </div>
 
-      {stripeStatus.hasAccount && stripeStatus.onboardingComplete && (
+      {stripeStatus.hasAccount && stripeStatus.onboardingComplete && canEditFees && (
         <>
           {/* Fee Configuration */}
           <div className="stripe-config-section">

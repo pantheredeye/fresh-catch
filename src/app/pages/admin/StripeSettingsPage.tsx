@@ -1,6 +1,6 @@
 import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
-import { hasAdminAccess } from "@/utils/permissions";
+import { hasAdminAccess, isOwner } from "@/utils/permissions";
 import { StripeSettingsUI } from "./StripeSettingsUI";
 
 export async function StripeSettingsPage(requestInfo: RequestInfo) {
@@ -113,6 +113,7 @@ export async function StripeSettingsPage(requestInfo: RequestInfo) {
       orgId={org.id}
       stripeStatus={stripeStatus}
       onboardingParam={onboardingParam}
+      canEditFees={isOwner(ctx)}
     />
   );
 }
