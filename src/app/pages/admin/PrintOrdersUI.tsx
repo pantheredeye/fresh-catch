@@ -190,20 +190,32 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                   }}>
                     {(() => {
                       const status = getPaymentStatus(order);
-                      const isPaid = status === 'paid' || status === 'overpaid';
+                      const badgeConfig: Record<string, { label: string; bg: string; border: string }> = {
+                        unpaid: { label: 'UNPAID', bg: 'var(--color-status-error-bg)', border: 'var(--color-status-error)' },
+                        deposit: { label: 'DEPOSIT', bg: 'var(--color-status-warning-bg)', border: 'var(--color-status-warning)' },
+                        partial: { label: 'PARTIAL', bg: 'var(--color-status-warning-bg)', border: 'var(--color-status-warning)' },
+                        paid: { label: '✓ PAID', bg: 'var(--color-status-success-bg)', border: 'var(--color-status-success)' },
+                        overpaid: { label: 'OVERPAID', bg: 'var(--color-action-primary-light, #e0f0ff)', border: 'var(--color-action-primary)' },
+                      };
+                      const cfg = status ? badgeConfig[status] : badgeConfig.unpaid;
                       return (
                         <div style={{
                           fontWeight: 'bold',
                           padding: '4px 8px',
-                          background: isPaid ? 'var(--color-status-success-bg)' : 'var(--color-status-warning-bg)',
-                          border: isPaid ? '2px solid var(--color-status-success-border)' : '2px solid var(--color-status-warning-border)',
+                          background: cfg.bg,
+                          border: `2px solid ${cfg.border}`,
                           borderRadius: '4px',
                           marginBottom: '4px'
                         }}>
-                          {isPaid ? '✓ PAID' : status === 'deposit' ? 'DEPOSIT' : status === 'partial' ? 'PARTIAL' : 'UNPAID'}
+                          {cfg.label}
                         </div>
                       );
                     })()}
+                    {order.totalDue != null && (
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
+                        {formatCents(order.amountPaid)} / {formatCents(order.totalDue)}
+                      </div>
+                    )}
                     {order.paymentMethod && (
                       <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
                         {order.paymentMethod}
@@ -268,13 +280,11 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
           <div style={{ marginBottom: '8px' }}>
             <strong>Payment Summary:</strong>
           </div>
-          <div style={{ display: 'flex', gap: '32px' }}>
-            <div>
-              Paid: {orders.filter(o => { const s = getPaymentStatus(o); return s === 'paid' || s === 'overpaid'; }).length}
-            </div>
-            <div>
-              Unpaid: {orders.filter(o => { const s = getPaymentStatus(o); return s === 'unpaid' || s === null; }).length}
-            </div>
+          <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+            <div>Paid: {orders.filter(o => getPaymentStatus(o) === 'paid').length}</div>
+            <div>Overpaid: {orders.filter(o => getPaymentStatus(o) === 'overpaid').length}</div>
+            <div>Partial: {orders.filter(o => { const s = getPaymentStatus(o); return s === 'partial' || s === 'deposit'; }).length}</div>
+            <div>Unpaid: {orders.filter(o => { const s = getPaymentStatus(o); return s === 'unpaid' || s === null; }).length}</div>
           </div>
         </div>
       </div>

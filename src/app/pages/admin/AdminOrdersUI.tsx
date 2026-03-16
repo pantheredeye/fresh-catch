@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Container, Select } from "@/design-system";
 import type { FeeModel } from "@/utils/money";
+import { getPaymentStatus } from "@/utils/payments";
 import { AdminOrderCard } from "./components/AdminOrderCard";
 import type { AppContext } from "@/worker";
 
@@ -54,12 +55,22 @@ interface AdminOrdersUIProps {
 
 export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
 
   let filteredOrders = statusFilter === 'all'
     ? orders
     : orders.filter(o => o.status === statusFilter);
+
+  // Apply payment status filter
+  if (paymentFilter !== 'all') {
+    filteredOrders = filteredOrders.filter(o => {
+      const ps = getPaymentStatus(o);
+      if (paymentFilter === 'unpaid') return ps === 'unpaid' || ps === null;
+      return ps === paymentFilter;
+    });
+  }
 
   // Apply search filter
   if (searchQuery.trim()) {
@@ -109,18 +120,33 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
           Orders ({filteredOrders.length})
         </h1>
 
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={[
-              { value: 'all', label: `All Orders (${orders.length})` },
-              { value: 'pending', label: `Pending (${counts.pending})` },
-              { value: 'confirmed', label: `Confirmed (${counts.confirmed})` },
-              { value: 'completed', label: `Completed (${counts.completed})` },
-              { value: 'cancelled', label: `Cancelled (${counts.cancelled})` },
-            ]}
-            size="md"
-          />
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { value: 'all', label: `All Orders (${orders.length})` },
+                { value: 'pending', label: `Pending (${counts.pending})` },
+                { value: 'confirmed', label: `Confirmed (${counts.confirmed})` },
+                { value: 'completed', label: `Completed (${counts.completed})` },
+                { value: 'cancelled', label: `Cancelled (${counts.cancelled})` },
+              ]}
+              size="md"
+            />
+            <Select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Payments' },
+                { value: 'unpaid', label: 'Unpaid' },
+                { value: 'deposit', label: 'Deposit' },
+                { value: 'partial', label: 'Partial' },
+                { value: 'paid', label: 'Paid' },
+                { value: 'overpaid', label: 'Overpaid' },
+              ]}
+              size="md"
+            />
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -187,11 +213,12 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-xs)' }}>
-            {searchQuery || dateFilter ? (
+            {searchQuery || dateFilter || paymentFilter !== 'all' ? (
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setDateFilter('');
+                  setPaymentFilter('all');
                 }}
                 style={{
                   padding: '10px 16px',
