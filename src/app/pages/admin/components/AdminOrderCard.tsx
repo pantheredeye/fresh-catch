@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Button, Card, TextInput, Textarea } from "@/design-system";
 import { confirmOrder, completeOrder, cancelOrderAdmin, markAsPaid } from "../order-functions";
 import { getPaymentStatus, type PaymentStatus } from "@/utils/payments";
-import { formatCents } from "@/utils/money";
+import { formatCents, parseDollars, calculatePlatformFee, type FeeModel } from "@/utils/money";
 import type { AppContext } from "@/worker";
 
 type Order = {
@@ -29,6 +29,10 @@ type Order = {
     username: string;
     name: string | null;
   };
+  organization?: {
+    platformFeeBps: number;
+    feeModel: FeeModel;
+  };
 };
 
 interface AdminOrderCardProps {
@@ -45,6 +49,20 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
+
+  const feeBps = order.organization?.platformFeeBps ?? 500;
+  const feeModel = order.organization?.feeModel ?? "customer";
+
+  const feePreview = useMemo(() => {
+    try {
+      const cents = parseDollars(priceInput);
+      if (cents <= 0) return null;
+      const breakdown = calculatePlatformFee(cents, feeBps, feeModel);
+      return { ...breakdown, basePriceCents: cents };
+    } catch {
+      return null;
+    }
+  }, [priceInput, feeBps, feeModel]);
 
   const paymentStatus = getPaymentStatus(order);
 
@@ -73,8 +91,14 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       setErrorMessage('Please enter a price before confirming');
       return;
     }
-    const priceInCents = Math.round(parseFloat(priceInput) * 100);
-    if (isNaN(priceInCents) || priceInCents <= 0) {
+    let priceInCents: number;
+    try {
+      priceInCents = parseDollars(priceInput);
+    } catch {
+      setErrorMessage('Please enter a valid price (e.g. 45.50)');
+      return;
+    }
+    if (priceInCents <= 0) {
       setErrorMessage('Please enter a valid price');
       return;
     }
@@ -338,14 +362,55 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           </h3>
 
           <TextInput
-            label="Price"
-            placeholder="$45-50 or Market price"
+            label="Price ($)"
+            placeholder="45.50"
             value={priceInput}
             onChange={(e) => setPriceInput(e.target.value)}
             required
             size="md"
-            helperText="This will be visible to customer"
+            helperText="Enter dollar amount (e.g. 45.50)"
           />
+
+          {feePreview && (
+            <div style={{
+              padding: 'var(--space-sm) var(--space-md)',
+              background: 'var(--color-surface-secondary)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: 'var(--space-sm)',
+            }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-xs)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-secondary)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Items</span>
+                  <span>{formatCents(feePreview.basePriceCents)}</span>
+                </div>
+                {feePreview.platformFee > 0 && feeModel !== "vendor" && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Platform fee ({(feeBps / 100).toFixed(0)}%)</span>
+                    <span>{formatCents(feePreview.platformFee)}</span>
+                  </div>
+                )}
+                <div style={{
+                  borderTop: '1px solid var(--color-border-subtle)',
+                  marginTop: 'var(--space-xs)',
+                  paddingTop: 'var(--space-xs)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontWeight: 'var(--font-weight-bold)',
+                  fontSize: 'var(--font-size-md)',
+                  color: 'var(--color-text-primary)',
+                }}>
+                  <span>Customer total</span>
+                  <span>{formatCents(feePreview.customerTotal)}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Textarea
             label="Notes to Customer"
