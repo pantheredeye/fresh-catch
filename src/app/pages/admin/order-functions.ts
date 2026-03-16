@@ -5,6 +5,7 @@ import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { sendOrderConfirmedEmail } from "@/utils/email";
+import { calculatePlatformFee, type FeeModel } from "@/utils/money";
 
 export async function confirmOrder(orderId: string, price: number, adminNotes: string) {
   const { ctx } = requestInfo;
@@ -17,8 +18,10 @@ export async function confirmOrder(orderId: string, price: number, adminNotes: s
     const order = await db.order.findUnique({
       where: { id: orderId },
       include: {
-        organization: { select: { name: true }}
-      }
+        organization: {
+          select: { name: true, platformFeeBps: true, feeModel: true },
+        },
+      },
     });
 
     if (!order) {
@@ -29,13 +32,23 @@ export async function confirmOrder(orderId: string, price: number, adminNotes: s
       return { success: false, error: "Only pending orders can be confirmed" };
     }
 
-    const updatedOrder = await db.order.update({
+    const { platformFeeBps, feeModel } = order.organization;
+    const { customerTotal, platformFee } = calculatePlatformFee(
+      price,
+      platformFeeBps,
+      feeModel as FeeModel,
+    );
+
+    await db.order.update({
       where: { id: orderId },
       data: {
         status: 'confirmed',
-        price: price,
-        adminNotes: adminNotes.trim() || null
-      }
+        price,
+        platformFeeBps,
+        platformFee,
+        totalDue: customerTotal,
+        adminNotes: adminNotes.trim() || null,
+      },
     });
 
     // Send confirmed email to customer
