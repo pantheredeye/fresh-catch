@@ -180,13 +180,17 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
     });
   };
 
-  const handleMarkPaid = async () => {
+  const handleMarkPaid = async (overrideAmountCents?: number) => {
     let amountCents: number;
-    try {
-      amountCents = parseDollars(paymentAmountInput);
-    } catch {
-      setErrorMessage('Enter a valid payment amount');
-      return;
+    if (overrideAmountCents != null) {
+      amountCents = overrideAmountCents;
+    } else {
+      try {
+        amountCents = parseDollars(paymentAmountInput);
+      } catch {
+        setErrorMessage('Enter a valid payment amount');
+        return;
+      }
     }
     if (amountCents <= 0) {
       setErrorMessage('Amount must be greater than zero');
@@ -198,7 +202,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       if (result.success) {
         setShowPaymentModal(false);
       } else {
-        setErrorMessage(result.error || 'Failed to mark as paid');
+        setErrorMessage(result.error || 'Failed to record payment');
       }
     });
   };
@@ -313,7 +317,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
                   size="sm"
                   onClick={() => setShowPaymentModal(!showPaymentModal)}
                 >
-                  Mark as Paid
+                  Record Payment
                 </Button>
               )}
             </>
@@ -325,7 +329,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               size="sm"
               onClick={() => setShowPaymentModal(!showPaymentModal)}
             >
-              Mark as Paid
+              Record Payment
             </Button>
           )}
         </div>
@@ -640,7 +644,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
         </div>
       )}
 
-      {/* Mark as Paid Modal */}
+      {/* Record Payment Form */}
       {showPaymentModal && (
         <div style={{
           padding: 'var(--space-md)',
@@ -648,46 +652,39 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           borderRadius: 'var(--radius-sm)',
           marginTop: 'var(--space-md)'
         }}>
-          <h3 style={{
-            fontSize: 'var(--font-size-md)',
-            fontWeight: 'var(--font-weight-semibold)',
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: 'var(--space-md)'
           }}>
-            Mark Order as Paid
-          </h3>
-
-          <div style={{ marginBottom: 'var(--space-md)' }}>
-            <label style={{
-              display: 'block',
-              fontSize: 'var(--font-size-sm)',
+            <h3 style={{
+              fontSize: 'var(--font-size-md)',
               fontWeight: 'var(--font-weight-semibold)',
-              marginBottom: 'var(--space-xs)',
-              color: 'var(--color-text-primary)'
+              margin: 0
             }}>
-              Amount ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={paymentAmountInput}
-              onChange={(e) => setPaymentAmountInput(e.target.value)}
-              style={{
-                width: '100%',
-                padding: 'var(--space-sm)',
-                borderRadius: 'var(--radius-sm)',
-                border: '2px solid var(--color-border-light)',
-                fontSize: 'var(--font-size-md)',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
-              }}
-            />
+              Record Payment
+            </h3>
             {remainingDue > 0 && (
-              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginTop: 'var(--space-xs)', display: 'block' }}>
-                Remaining: {formatCents(remainingDue)}
-              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleMarkPaid(remainingDue)}
+                disabled={isPending}
+              >
+                {isPending ? 'Saving...' : `Record Full Payment (${formatCents(remainingDue)})`}
+              </Button>
             )}
           </div>
+
+          <TextInput
+            label="Amount ($)"
+            placeholder="0.00"
+            value={paymentAmountInput}
+            onChange={(e) => setPaymentAmountInput(e.target.value)}
+            size="md"
+            helperText={remainingDue > 0 ? `Remaining: ${formatCents(remainingDue)}` : undefined}
+          />
 
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{
@@ -740,7 +737,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               disabled={isPending}
               fullWidth
             >
-              {isPending ? 'Saving...' : 'Confirm Payment'}
+              {isPending ? 'Saving...' : 'Record Payment'}
             </Button>
             <Button
               variant="cancel"
