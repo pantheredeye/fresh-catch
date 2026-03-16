@@ -197,7 +197,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                         paid: { label: '✓ PAID', bg: 'var(--color-status-success-bg)', border: 'var(--color-status-success)' },
                         overpaid: { label: 'OVERPAID', bg: 'var(--color-action-primary-light, #e0f0ff)', border: 'var(--color-action-primary)' },
                       };
-                      const cfg = status ? badgeConfig[status] : badgeConfig.unpaid;
+                      const cfg = status ? badgeConfig[status] : { label: 'TBD', bg: 'var(--color-surface-secondary)', border: 'var(--color-border-light)' };
                       return (
                         <div style={{
                           fontWeight: 'bold',

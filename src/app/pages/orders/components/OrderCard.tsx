@@ -241,16 +241,14 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
           </div>
         )}
 
-        {order.price != null && (
-          <div>
-            <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
-              Price:
-            </div>
-            <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-              {formatCents(order.price)}
-            </div>
+        <div>
+          <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
+            Price:
           </div>
-        )}
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: order.price != null ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)' }}>
+            {order.price != null ? formatCents(order.price) : 'Price pending'}
+          </div>
+        </div>
       </div>
 
       {/* Customer Notes */}

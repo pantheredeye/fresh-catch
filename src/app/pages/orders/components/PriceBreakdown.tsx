@@ -18,7 +18,18 @@ export function PriceBreakdown({
   feeModel,
 }: PriceBreakdownProps) {
   if (price == null && totalDue == null) {
-    return null;
+    return (
+      <div style={{
+        padding: "var(--space-sm) var(--space-md)",
+        background: "var(--color-surface-secondary)",
+        borderRadius: "var(--radius-sm)",
+        fontSize: "var(--font-size-sm)",
+        color: "var(--color-text-tertiary)",
+        textAlign: "center",
+      }}>
+        Price pending
+      </div>
+    );
   }
 
   const showFee = platformFee != null && platformFee > 0 && feeModel !== "vendor";
