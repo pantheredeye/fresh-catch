@@ -26,7 +26,12 @@
     "ADMIN_CODE": "seafood-owner-2025",
     "MANAGER_CODE": "seafood-manager-2025",
     "RESEND_API_KEY": "",
-    "ADMIN_EMAIL": "barrett@digitalglue.dev"
+    "ADMIN_EMAIL": "barrett@digitalglue.dev",
+    // Stripe publishable key (client-side, safe to expose)
+    "STRIPE_PUBLISHABLE_KEY": ""
+    // Stripe secrets — set via `wrangler secret put`:
+    //   wrangler secret put STRIPE_SECRET_KEY
+    //   wrangler secret put STRIPE_WEBHOOK_SECRET
   },
   "migrations": [
     {
