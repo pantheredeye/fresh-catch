@@ -4,6 +4,8 @@ import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/utils/email";
+import { getStripe } from "@/utils/stripe";
+import { getPaymentStatus } from "@/utils/payments";
 import { env } from "cloudflare:workers";
 
 interface CreateOrderData {
@@ -181,6 +183,156 @@ export async function updateOrder(orderId: string, data: Partial<CreateOrderData
   } catch (error) {
     console.error('Failed to update order:', error);
     return { success: false, error: 'Failed to update order' };
+  }
+}
+
+export async function createCheckoutSession(orderId: string, tipAmount?: number) {
+  const { ctx, request } = requestInfo;
+
+  if (!ctx.user) {
+    return { success: false as const, error: "You must be logged in" };
+  }
+
+  try {
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            platformFeeBps: true,
+            feeModel: true,
+            stripeAccountId: true,
+            stripeOnboardingComplete: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return { success: false as const, error: "Order not found" };
+    }
+
+    // Only owner can pay
+    if (order.userId !== ctx.user.id) {
+      return { success: false as const, error: "Not authorized" };
+    }
+
+    // Must be confirmed
+    if (order.status !== "confirmed" && order.status !== "completed") {
+      return { success: false as const, error: "Order must be confirmed before payment" };
+    }
+
+    // Check payment status
+    const paymentStatus = getPaymentStatus(order);
+    if (paymentStatus === "paid" || paymentStatus === "overpaid") {
+      return { success: false as const, error: "Order is already fully paid" };
+    }
+
+    // Stripe must be connected
+    const { stripeAccountId, stripeOnboardingComplete } = order.organization;
+    const secretKey = (env as unknown as Record<string, string>).STRIPE_SECRET_KEY;
+
+    if (!stripeAccountId || !stripeOnboardingComplete || !secretKey) {
+      return { success: false as const, error: "Online payments are not available" };
+    }
+
+    // Determine checkout amount
+    const totalDue = order.totalDue!;
+    let checkoutAmount: number;
+    let productName: string;
+
+    if (paymentStatus === "unpaid" && order.depositAmount != null && order.depositAmount > 0) {
+      // First payment with deposit: charge deposit
+      checkoutAmount = order.depositAmount;
+      productName = `Deposit for Order #${order.orderNumber}`;
+    } else if (paymentStatus === "unpaid") {
+      // No deposit: charge full amount
+      checkoutAmount = totalDue;
+      productName = `Order #${order.orderNumber}`;
+    } else {
+      // Partial/deposit paid: charge remaining
+      checkoutAmount = totalDue - order.amountPaid;
+      productName = `Remaining Balance for Order #${order.orderNumber}`;
+    }
+
+    // Scale platform fee proportionally to checkout amount
+    const platformFee = order.platformFee ?? 0;
+    const checkoutFee = Math.round(platformFee * checkoutAmount / totalDue);
+
+    const stripe = getStripe(secretKey);
+    const origin = new URL(request.url).origin;
+
+    // Build line items — order amount + optional tip
+    const lineItems: Array<{
+      price_data: {
+        currency: string;
+        unit_amount: number;
+        product_data: { name: string };
+      };
+      quantity: number;
+    }> = [
+      {
+        price_data: {
+          currency: "usd",
+          unit_amount: checkoutAmount,
+          product_data: { name: productName },
+        },
+        quantity: 1,
+      },
+    ];
+
+    const tipCents = tipAmount && tipAmount > 0 ? tipAmount : 0;
+    if (tipCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          unit_amount: tipCents,
+          product_data: { name: "Tip" },
+        },
+        quantity: 1,
+      });
+    }
+
+    // application_fee excludes tip — only on order amount
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: lineItems,
+      payment_intent_data: {
+        application_fee_amount: checkoutFee,
+        transfer_data: {
+          destination: stripeAccountId,
+        },
+        metadata: {
+          platform: "fresh-catch",
+          orderId: order.id,
+          orderNumber: String(order.orderNumber),
+          orgId: order.organization.id,
+          ...(tipCents > 0 ? { tipAmount: String(tipCents) } : {}),
+        },
+      },
+      metadata: {
+        platform: "fresh-catch",
+        orderId: order.id,
+        orderNumber: String(order.orderNumber),
+        orgId: order.organization.id,
+        ...(tipCents > 0 ? { tipAmount: String(tipCents) } : {}),
+      },
+      success_url: `${origin}/orders?checkout=success&order=${order.orderNumber}`,
+      cancel_url: `${origin}/orders?checkout=cancel&order=${order.orderNumber}`,
+    });
+
+    // Store session ID on order
+    await db.order.update({
+      where: { id: orderId },
+      data: { stripeCheckoutSessionId: session.id },
+    });
+
+    return { success: true as const, checkoutUrl: session.url };
+  } catch (error) {
+    console.error("Failed to create checkout session:", error);
+    return { success: false as const, error: "Failed to create checkout session" };
   }
 }
 
