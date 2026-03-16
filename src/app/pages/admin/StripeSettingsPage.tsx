@@ -1,6 +1,7 @@
 import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
+import { StripeSettingsUI } from "./StripeSettingsUI";
 
 export async function StripeSettingsPage(requestInfo: RequestInfo) {
   const { ctx } = requestInfo;
@@ -104,20 +105,5 @@ export async function StripeSettingsPage(requestInfo: RequestInfo) {
     feeModel: org.feeModel,
   };
 
-  // TODO: Replace with StripeSettingsUI client component when created
-  return (
-    <div className="admin-page">
-      <h1>Stripe Settings</h1>
-      <div className="admin-card">
-        <h2>Connection Status</h2>
-        <p>
-          {stripeStatus.hasAccount
-            ? stripeStatus.onboardingComplete
-              ? "Connected and active"
-              : "Account created — onboarding incomplete"
-            : "Not connected"}
-        </p>
-      </div>
-    </div>
-  );
+  return <StripeSettingsUI orgId={org.id} stripeStatus={stripeStatus} />;
 }
