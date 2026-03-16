@@ -143,7 +143,6 @@ export async function markAsPaid(
     await db.order.update({
       where: { id: orderId },
       data: {
-        paymentStatus: 'paid',
         paymentMethod: paymentMethod,
         paymentNotes: paymentNotes || null,
         paidAt: new Date()

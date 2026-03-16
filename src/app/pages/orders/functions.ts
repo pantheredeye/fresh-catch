@@ -88,8 +88,7 @@ export async function createOrder(data: CreateOrderData) {
         items: data.items,
         preferredDate: data.preferredDate ? new Date(data.preferredDate) : null,
         notes: data.notes,
-        status: 'pending',
-        paymentStatus: 'unpaid'
+        status: 'pending'
       }
     });
 

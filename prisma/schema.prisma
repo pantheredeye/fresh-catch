@@ -147,7 +147,6 @@ model Order {
   stripePaymentIntentId   String? // Stripe PaymentIntent ID
 
   // Payment tracking
-  paymentStatus String    @default("unpaid") // unpaid | paid | refunded
   paymentMethod String? // "cash" | "venmo" | "zelle" | "card" | etc
   paymentNotes  String? // "Venmo: @evan | Paid $45 on 12/29"
   paidAt        DateTime? // When payment was marked as received
