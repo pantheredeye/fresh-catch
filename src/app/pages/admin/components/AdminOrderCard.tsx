@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button, Card, TextInput, Textarea } from "@/design-system";
 import { confirmOrder, completeOrder, cancelOrderAdmin, markAsPaid } from "../order-functions";
+import { getPaymentStatus, type PaymentStatus } from "@/utils/payments";
 import type { AppContext } from "@/worker";
 
 type Order = {
@@ -16,7 +17,9 @@ type Order = {
   status: string;
   price: number | null;
   adminNotes: string | null;
-  paymentStatus: string;
+  totalDue: number | null;
+  amountPaid: number;
+  depositAmount: number | null;
   paymentMethod: string | null;
   paymentNotes: string | null;
   paidAt: Date | null;
@@ -41,6 +44,18 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
+
+  const paymentStatus = getPaymentStatus(order);
+
+  const paymentBadgeConfig: Record<PaymentStatus, { label: string; color: string }> = {
+    unpaid: { label: 'UNPAID', color: 'var(--color-status-error)' },
+    deposit: { label: 'DEPOSIT', color: 'var(--color-status-warning-bg)' },
+    partial: { label: 'PARTIAL', color: 'var(--color-status-warning-bg)' },
+    paid: { label: '\u2713 PAID', color: 'var(--color-status-success)' },
+    overpaid: { label: 'OVERPAID', color: 'var(--color-status-success)' },
+  };
+
+  const paymentBadge = paymentStatus ? paymentBadgeConfig[paymentStatus] : null;
 
   const statusConfig = {
     pending: { label: 'Pending', color: 'var(--color-status-info-bg)', textColor: 'var(--color-text-primary)' },
@@ -157,19 +172,21 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             }}>
               {config.label}
             </div>
-            <div style={{
-              display: 'inline-block',
-              padding: '4px 12px',
-              background: order.paymentStatus === 'paid' ? 'var(--color-status-success)' : 'var(--color-status-warning-bg)',
-              color: 'var(--color-text-primary)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 'var(--font-size-xs)',
-              fontWeight: 'var(--font-weight-semibold)',
-              textTransform: 'uppercase',
-              letterSpacing: 'var(--letter-spacing-wide)'
-            }}>
-              {order.paymentStatus === 'paid' ? '✓ PAID' : 'UNPAID'}
-            </div>
+            {paymentBadge && (
+              <div style={{
+                display: 'inline-block',
+                padding: '4px 12px',
+                background: paymentBadge.color,
+                color: 'var(--color-text-primary)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 'var(--font-weight-semibold)',
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--letter-spacing-wide)'
+              }}>
+                {paymentBadge.label}
+              </div>
+            )}
           </div>
           <div style={{
             fontSize: 'var(--font-size-sm)',
@@ -211,7 +228,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               >
                 Mark Complete
               </Button>
-              {order.paymentStatus === 'unpaid' && (
+              {paymentStatus !== 'paid' && paymentStatus !== 'overpaid' && (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -223,7 +240,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             </>
           )}
 
-          {order.status === 'completed' && order.paymentStatus === 'unpaid' && (
+          {order.status === 'completed' && paymentStatus !== 'paid' && paymentStatus !== 'overpaid' && (
             <Button
               variant="secondary"
               size="sm"
@@ -404,7 +421,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       )}
 
       {/* Payment Info Display (if paid) */}
-      {order.paymentStatus === 'paid' && (
+      {(paymentStatus === 'paid' || paymentStatus === 'overpaid') && (
         <div style={{
           padding: 'var(--space-md)',
           background: 'var(--color-status-success)',
