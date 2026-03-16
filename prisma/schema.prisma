@@ -22,82 +22,82 @@ datasource db {
 }
 
 model User {
-  id          String      @id @default(uuid()) // User ID (UUID-based)
-  username    String      @unique
-  email       String?     // Email for notifications and account recovery
-  name        String?     // Full name for orders
-  phone       String?     // Contact phone
+  id       String  @id @default(uuid()) // User ID (UUID-based)
+  username String  @unique
+  email    String? // Email for notifications and account recovery
+  name     String? // Full name for orders
+  phone    String? // Contact phone
 
   // Delivery address
   deliveryStreet String?
   deliveryCity   String?
   deliveryState  String?
   deliveryZip    String?
-  deliveryNotes  String?  // Special instructions
+  deliveryNotes  String? // Special instructions
 
-  deletedAt   DateTime?   // Soft delete timestamp
-  createdAt   DateTime    @default(now())
+  deletedAt DateTime? // Soft delete timestamp
+  createdAt DateTime  @default(now())
 
   credentials Credential[] // Relationship: One user can have many credentials
   memberships Membership[] // Relationship: User can belong to multiple organizations
-  orders      Order[]      // Relationship: User can have many orders
+  orders      Order[] // Relationship: User can have many orders
   shareEvents ShareEvent[] // Relationship: User can have many share events
 }
 
 model Credential {
-  id            String   @id @default(uuid()) // Internal DB ID
-  userId        String   @unique // Every credential is linked to a specific user
-  user          User     @relation(fields: [userId], references: [id])
-  createdAt     DateTime @default(now())
-  credentialId  String   @unique // WebAuthn credential identifier
-  publicKey     Bytes
-  counter       Int      @default(0)
+  id           String   @id @default(uuid()) // Internal DB ID
+  userId       String   @unique // Every credential is linked to a specific user
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  credentialId String   @unique // WebAuthn credential identifier
+  publicKey    Bytes
+  counter      Int      @default(0)
 
   @@index([credentialId])
   @@index([userId])
 }
 
 model Organization {
-  id          String      @id @default(uuid())
-  name        String
-  slug        String      @unique // URL-friendly identifier for business (e.g., 'evan', 'joes-farm')
-  type        String      // 'individual' or 'business'
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique // URL-friendly identifier for business (e.g., 'evan', 'joes-farm')
+  type      String // 'individual' or 'business'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   memberships Membership[] // Relationship: Organization can have multiple members
-  markets     Market[]     // Relationship: Organization can have multiple markets
-  orders      Order[]      // Relationship: Organization can have multiple orders
+  markets     Market[] // Relationship: Organization can have multiple markets
+  orders      Order[] // Relationship: Organization can have multiple orders
   shareEvents ShareEvent[] // Relationship: Organization can have multiple share events
 }
 
 model Market {
-  id              String       @id @default(uuid())
+  id              String   @id @default(uuid())
   organizationId  String
   name            String
-  schedule        String       // Free-form schedule description (e.g., "Sat 8-2")
-  subtitle        String?      // Optional subtitle (e.g., "Paused until March")
-  locationDetails String?      // Vendor-facing: booth location, setup notes, parking info
-  customerInfo    String?      // Customer-facing: payment methods, what to bring, best times
-  active          Boolean      @default(true)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  schedule        String // Free-form schedule description (e.g., "Sat 8-2")
+  subtitle        String? // Optional subtitle (e.g., "Paused until March")
+  locationDetails String? // Vendor-facing: booth location, setup notes, parking info
+  customerInfo    String? // Customer-facing: payment methods, what to bring, best times
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  organization    Organization @relation(fields: [organizationId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([active])
 }
 
 model Membership {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String
-  role           String       // 'owner', 'admin', 'member', etc.
-  createdAt      DateTime     @default(now())
+  role           String // 'owner', 'admin', 'member', etc.
+  createdAt      DateTime @default(now())
 
-  user           User         @relation(fields: [userId], references: [id])
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([userId, organizationId]) // Prevent duplicate memberships
   @@index([userId])
@@ -105,39 +105,51 @@ model Membership {
 }
 
 model Order {
-  id             String       @id @default(uuid())
-  orderNumber    Int          // Friendly order number (per org, app-managed)
+  id             String @id @default(uuid())
+  orderNumber    Int // Friendly order number (per org, app-managed)
   userId         String
   organizationId String
 
   // Contact snapshot (captured at order time)
-  contactName    String
-  contactEmail   String?
-  contactPhone   String?
+  contactName  String
+  contactEmail String?
+  contactPhone String?
 
   // Order details
-  items          String       // Free-form text describing items
-  preferredDate  DateTime?    // Customer's preferred pickup date
-  notes          String?      // Customer notes
+  items         String // Free-form text describing items
+  preferredDate DateTime? // Customer's preferred pickup date
+  notes         String? // Customer notes
 
   // Admin fields
-  status         String       @default("pending") // pending | confirmed | completed | cancelled
-  price          String?      // Admin sets price (e.g., "$45-50" or "Market price")
-  adminNotes     String?      // Internal notes for Evan
+  status     String  @default("pending") // pending | confirmed | completed | cancelled
+  price      Int? // Price in cents (replaces old String? format)
+  adminNotes String? // Internal notes for Evan
+
+  // Pricing and fees
+  tipAmount      Int  @default(0) // Tip in cents
+  platformFeeBps Int? // Platform fee in basis points
+  platformFee    Int? // Calculated platform fee in cents
+  totalDue       Int? // Total amount due in cents
+  amountPaid     Int  @default(0) // Amount paid so far in cents
+  depositAmount  Int? // Deposit amount in cents
+
+  // Stripe integration
+  stripeCheckoutSessionId String? // Stripe Checkout session ID
+  stripePaymentIntentId   String? // Stripe PaymentIntent ID
 
   // Payment tracking
-  paymentStatus  String       @default("unpaid") // unpaid | paid | refunded
-  paymentMethod  String?      // "cash" | "venmo" | "zelle" | "card" | etc
-  paymentNotes   String?      // "Venmo: @evan | Paid $45 on 12/29"
-  paidAt         DateTime?    // When payment was marked as received
+  paymentStatus String    @default("unpaid") // unpaid | paid | refunded
+  paymentMethod String? // "cash" | "venmo" | "zelle" | "card" | etc
+  paymentNotes  String? // "Venmo: @evan | Paid $45 on 12/29"
+  paidAt        DateTime? // When payment was marked as received
 
   // Timestamps
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user           User         @relation(fields: [userId], references: [id])
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   @@index([userId])
   @@index([organizationId])
@@ -147,14 +159,14 @@ model Order {
 }
 
 model ShareEvent {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   organizationId String
-  shareType      String       // 'link' | 'qr' | 'facebook' | 'twitter' | 'whatsapp'
-  sharedBy       String?      // User ID (nullable for anonymous/logged-out shares)
-  timestamp      DateTime     @default(now())
+  shareType      String // 'link' | 'qr' | 'facebook' | 'twitter' | 'whatsapp'
+  sharedBy       String? // User ID (nullable for anonymous/logged-out shares)
+  timestamp      DateTime @default(now())
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  user           User?        @relation(fields: [sharedBy], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [sharedBy], references: [id])
 
   @@index([organizationId])
   @@index([timestamp])
