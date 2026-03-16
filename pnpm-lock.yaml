@@ -26,6 +26,9 @@ importers:
       '@simplewebauthn/server':
         specifier: ^13.1.1
         version: 13.1.2
+      '@stripe/stripe-js':
+        specifier: ^8.9.0
+        version: 8.9.0
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
@@ -53,6 +56,9 @@ importers:
       rwsdk:
         specifier: 1.0.0-beta.42
         version: 1.0.0-beta.42(@cloudflare/vite-plugin@1.13.12(vite@6.3.5(@types/node@22.18.0)(jiti@2.4.2)(terser@5.43.1))(workerd@1.20251008.0)(wrangler@4.42.2(@cloudflare/workers-types@4.20251011.0)))(capnweb@0.2.0)(react-dom@19.3.0-canary-06fcc8f3-20251009(react@19.3.0-canary-06fcc8f3-20251009))(react-server-dom-webpack@19.3.0-canary-06fcc8f3-20251009(react-dom@19.3.0-canary-06fcc8f3-20251009(react@19.3.0-canary-06fcc8f3-20251009))(react@19.3.0-canary-06fcc8f3-20251009)(webpack@5.101.3))(react@19.3.0-canary-06fcc8f3-20251009)(typescript@5.9.2)(vite@6.3.5(@types/node@22.18.0)(jiti@2.4.2)(terser@5.43.1))(wrangler@4.42.2(@cloudflare/workers-types@4.20251011.0))
+      stripe:
+        specifier: ^20.4.1
+        version: 20.4.1(@types/node@22.18.0)
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: 1.13.12
@@ -1149,6 +1155,10 @@ packages:
 
   '@stablelib/base64@1.0.1':
     resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
+
+  '@stripe/stripe-js@8.9.0':
+    resolution: {integrity: sha512-OJkXvUI5GAc56QdiSRimQDvWYEqn475J+oj8RzRtFTCPtkJNO2TWW619oDY+nn1ExR+2tCVTQuRQBbR4dRugww==}
+    engines: {node: '>=12.16'}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
@@ -2924,6 +2934,15 @@ packages:
     resolution: {integrity: sha512-aulFJcD6YK8V1G7iRB5tigAP4TsHBZZrOV8pjV++zdUwmeV8uzbY7yn6h9MswN62adStNZFuCIx4haBnRuMDaw==}
     engines: {node: '>=18'}
 
+  stripe@20.4.1:
+    resolution: {integrity: sha512-axCguHItc8Sxt0HC6aSkdVRPffjYPV7EQqZRb2GkIa8FzWDycE7nHJM19C6xAIynH1Qp1/BHiopSi96jGBxT0w==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   stubborn-fs@2.0.0:
     resolution: {integrity: sha512-Y0AvSwDw8y+nlSNFXMm2g6L51rBGdAQT20J3YSOqxC53Lo3bjWRtr2BKcfYoAf352WYpsZSTURrA0tqhfgudPA==}
 
@@ -4225,6 +4244,8 @@ snapshots:
   '@speed-highlight/core@1.2.7': {}
 
   '@stablelib/base64@1.0.1': {}
+
+  '@stripe/stripe-js@8.9.0': {}
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
@@ -6423,6 +6444,10 @@ snapshots:
       is-natural-number: 4.0.1
 
   strip-final-newline@4.0.0: {}
+
+  stripe@20.4.1(@types/node@22.18.0):
+    optionalDependencies:
+      '@types/node': 22.18.0
 
   stubborn-fs@2.0.0:
     dependencies:

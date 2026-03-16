@@ -12,7 +12,7 @@ let cryptoProvider: Stripe.CryptoProvider | null = null;
 export function getStripe(secretKey: string): Stripe {
   return new Stripe(secretKey, {
     httpClient: Stripe.createFetchHttpClient(),
-    apiVersion: "2025-04-30.basil",
+    apiVersion: "2026-02-25.clover",
   });
 }
 
