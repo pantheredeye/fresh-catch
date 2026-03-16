@@ -3,6 +3,7 @@
 import { Container, Button } from "@/design-system";
 import { OrderCard } from "./components/OrderCard";
 import type { AppContext } from "@/worker";
+import type { FeeModel } from "@/utils/money";
 
 type Order = {
   id: string;
@@ -18,6 +19,8 @@ type Order = {
   totalDue: number | null;
   amountPaid: number;
   depositAmount: number | null;
+  platformFee: number | null;
+  tipAmount: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -25,9 +28,10 @@ type Order = {
 interface CustomerOrdersUIProps {
   orders: Order[];
   ctx: AppContext;
+  feeModel: FeeModel;
 }
 
-export function CustomerOrdersUI({ orders, ctx }: CustomerOrdersUIProps) {
+export function CustomerOrdersUI({ orders, ctx, feeModel }: CustomerOrdersUIProps) {
   return (
     <Container size="md">
       <div style={{
@@ -85,6 +89,7 @@ export function CustomerOrdersUI({ orders, ctx }: CustomerOrdersUIProps) {
                 order={order}
                 viewMode="customer"
                 ctx={ctx}
+                feeModel={feeModel}
               />
             ))}
           </div>

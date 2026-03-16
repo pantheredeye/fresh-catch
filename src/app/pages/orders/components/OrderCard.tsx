@@ -2,10 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { Button, Card, Textarea, TextInput } from "@/design-system";
-import { cancelOrder, updateOrder } from "../functions";
+import { cancelOrder, updateOrder, createCheckoutSession } from "../functions";
 import { getPaymentStatus } from "@/utils/payments";
-import { formatCents } from "@/utils/money";
+import { formatCents, type FeeModel } from "@/utils/money";
 import type { AppContext } from "@/worker";
+import { PriceBreakdown } from "./PriceBreakdown";
+import { TipSelector } from "./TipSelector";
+import { PaymentActions } from "./PaymentActions";
 
 type Order = {
   id: string;
@@ -21,6 +24,8 @@ type Order = {
   totalDue: number | null;
   amountPaid: number;
   depositAmount: number | null;
+  platformFee: number | null;
+  tipAmount: number;
   createdAt: Date;
 };
 
@@ -28,18 +33,33 @@ interface OrderCardProps {
   order: Order;
   viewMode: 'customer' | 'admin';
   ctx: AppContext;
+  feeModel?: FeeModel | null;
 }
 
-export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
+export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const paymentStatus = getPaymentStatus(order);
   const [items, setItems] = useState(order.items);
   const [notes, setNotes] = useState(order.notes || '');
+  const [tipAmount, setTipAmount] = useState(0);
   const [preferredDate, setPreferredDate] = useState(
     order.preferredDate ? new Date(order.preferredDate).toISOString().split('T')[0] : ''
   );
+
+  const isConfirmedOrCompleted = order.status === 'confirmed' || order.status === 'completed';
+  const showPaymentUI = viewMode === 'customer' && isConfirmedOrCompleted;
+
+  const handlePay = async (_amountCents: number) => {
+    setErrorMessage(null);
+    const result = await createCheckoutSession(order.id, tipAmount || undefined);
+    if (result.success && result.checkoutUrl) {
+      window.location.href = result.checkoutUrl;
+    } else {
+      setErrorMessage(result.error || 'Failed to start payment');
+    }
+  };
 
   const statusConfig = {
     pending: { label: 'Pending', color: 'var(--color-status-info-bg)', textColor: 'var(--color-text-primary)' },
@@ -262,6 +282,37 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
           <div style={{ whiteSpace: 'pre-wrap' }}>
             {order.adminNotes}
           </div>
+        </div>
+      )}
+
+      {/* Payment Section (confirmed/completed orders, customer view) */}
+      {showPaymentUI && (
+        <div style={{
+          marginTop: 'var(--space-md)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-md)',
+        }}>
+          <PriceBreakdown
+            price={order.price}
+            platformFee={order.platformFee}
+            tipAmount={tipAmount}
+            totalDue={order.totalDue}
+            feeModel={feeModel ?? null}
+          />
+
+          {paymentStatus === 'unpaid' && (
+            <TipSelector
+              onTipChange={setTipAmount}
+              currentTip={tipAmount}
+            />
+          )}
+
+          <PaymentActions
+            order={order}
+            tipAmount={tipAmount}
+            onPay={handlePay}
+          />
         </div>
       )}
 
