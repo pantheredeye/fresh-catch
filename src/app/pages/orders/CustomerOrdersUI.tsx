@@ -15,6 +15,9 @@ type Order = {
   status: string;
   price: number | null;
   adminNotes: string | null;
+  totalDue: number | null;
+  amountPaid: number;
+  depositAmount: number | null;
   createdAt: Date;
   updatedAt: Date;
 };

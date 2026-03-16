@@ -1,5 +1,7 @@
 "use client";
 
+import { getPaymentStatus } from "@/utils/payments";
+
 type Order = {
   id: string;
   orderNumber: number;
@@ -8,7 +10,9 @@ type Order = {
   items: string;
   notes: string | null;
   price: number | null;
-  paymentStatus: string;
+  totalDue: number | null;
+  amountPaid: number;
+  depositAmount: number | null;
   paymentMethod: string | null;
   preferredDate: Date | null;
   user: {
@@ -183,16 +187,22 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                     textAlign: 'right',
                     fontSize: 'var(--font-size-sm)'
                   }}>
-                    <div style={{
-                      fontWeight: 'bold',
-                      padding: '4px 8px',
-                      background: order.paymentStatus === 'paid' ? 'var(--color-status-success-bg)' : 'var(--color-status-warning-bg)',
-                      border: order.paymentStatus === 'paid' ? '2px solid var(--color-status-success-border)' : '2px solid var(--color-status-warning-border)',
-                      borderRadius: '4px',
-                      marginBottom: '4px'
-                    }}>
-                      {order.paymentStatus === 'paid' ? '✓ PAID' : 'UNPAID'}
-                    </div>
+                    {(() => {
+                      const status = getPaymentStatus(order);
+                      const isPaid = status === 'paid' || status === 'overpaid';
+                      return (
+                        <div style={{
+                          fontWeight: 'bold',
+                          padding: '4px 8px',
+                          background: isPaid ? 'var(--color-status-success-bg)' : 'var(--color-status-warning-bg)',
+                          border: isPaid ? '2px solid var(--color-status-success-border)' : '2px solid var(--color-status-warning-border)',
+                          borderRadius: '4px',
+                          marginBottom: '4px'
+                        }}>
+                          {isPaid ? '✓ PAID' : status === 'deposit' ? 'DEPOSIT' : status === 'partial' ? 'PARTIAL' : 'UNPAID'}
+                        </div>
+                      );
+                    })()}
                     {order.paymentMethod && (
                       <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
                         {order.paymentMethod}
@@ -261,10 +271,10 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
           </div>
           <div style={{ display: 'flex', gap: '32px' }}>
             <div>
-              Paid: {orders.filter(o => o.paymentStatus === 'paid').length}
+              Paid: {orders.filter(o => { const s = getPaymentStatus(o); return s === 'paid' || s === 'overpaid'; }).length}
             </div>
             <div>
-              Unpaid: {orders.filter(o => o.paymentStatus === 'unpaid').length}
+              Unpaid: {orders.filter(o => { const s = getPaymentStatus(o); return s === 'unpaid' || s === null; }).length}
             </div>
           </div>
         </div>

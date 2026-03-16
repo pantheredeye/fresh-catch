@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button, Card, Textarea, TextInput } from "@/design-system";
 import { cancelOrder, updateOrder } from "../functions";
+import { getPaymentStatus } from "@/utils/payments";
 import type { AppContext } from "@/worker";
 
 type Order = {
@@ -16,6 +17,9 @@ type Order = {
   price: number | null;
   notes: string | null;
   adminNotes: string | null;
+  totalDue: number | null;
+  amountPaid: number;
+  depositAmount: number | null;
   createdAt: Date;
 };
 
@@ -29,6 +33,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const paymentStatus = getPaymentStatus(order);
   const [items, setItems] = useState(order.items);
   const [notes, setNotes] = useState(order.notes || '');
   const [preferredDate, setPreferredDate] = useState(
@@ -108,19 +113,39 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-action-primary)', marginBottom: 'var(--space-xs)' }}>
             Order #{order.orderNumber}
           </div>
-          <div style={{
-            display: 'inline-block',
-            padding: '4px 12px',
-            background: config.color,
-            color: config.textColor,
-            borderRadius: 'var(--radius-sm)',
-            fontSize: 'var(--font-size-xs)',
-            fontWeight: 'var(--font-weight-semibold)',
-            textTransform: 'uppercase',
-            letterSpacing: 'var(--letter-spacing-wide)',
-            marginBottom: 'var(--space-xs)'
-          }}>
-            {config.label}
+          <div style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap', marginBottom: 'var(--space-xs)' }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '4px 12px',
+              background: config.color,
+              color: config.textColor,
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
+              textTransform: 'uppercase',
+              letterSpacing: 'var(--letter-spacing-wide)'
+            }}>
+              {config.label}
+            </div>
+            {paymentStatus && (
+              <div style={{
+                display: 'inline-block',
+                padding: '4px 12px',
+                background: paymentStatus === 'paid' || paymentStatus === 'overpaid'
+                  ? 'var(--color-status-success)'
+                  : paymentStatus === 'unpaid'
+                    ? 'var(--color-status-error)'
+                    : 'var(--color-status-warning-bg)',
+                color: 'var(--color-text-primary)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 'var(--font-weight-semibold)',
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--letter-spacing-wide)'
+              }}>
+                {paymentStatus === 'paid' ? '✓ PAID' : paymentStatus === 'overpaid' ? 'OVERPAID' : paymentStatus === 'deposit' ? 'DEPOSIT' : paymentStatus === 'partial' ? 'PARTIAL' : 'UNPAID'}
+              </div>
+            )}
           </div>
           <div style={{
             fontSize: 'var(--font-size-xs)',
