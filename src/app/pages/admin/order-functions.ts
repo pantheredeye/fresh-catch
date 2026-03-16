@@ -9,7 +9,12 @@ import { sendOrderConfirmedEmail } from "@/utils/email";
 import { calculatePlatformFee, type FeeModel } from "@/utils/money";
 import { getStripe } from "@/utils/stripe";
 
-export async function confirmOrder(orderId: string, price: number, adminNotes: string) {
+export async function confirmOrder(
+  orderId: string,
+  price: number,
+  adminNotes: string,
+  depositOverride?: number | null,
+) {
   const { ctx, request } = requestInfo;
 
   if (!hasAdminAccess(ctx)) {
@@ -26,6 +31,7 @@ export async function confirmOrder(orderId: string, price: number, adminNotes: s
             name: true,
             platformFeeBps: true,
             feeModel: true,
+            defaultDepositBps: true,
             stripeAccountId: true,
             stripeOnboardingComplete: true,
           },
@@ -41,12 +47,25 @@ export async function confirmOrder(orderId: string, price: number, adminNotes: s
       return { success: false, error: "Only pending orders can be confirmed" };
     }
 
-    const { platformFeeBps, feeModel } = order.organization;
+    const { platformFeeBps, feeModel, defaultDepositBps } = order.organization;
     const { customerTotal, platformFee } = calculatePlatformFee(
       price,
       platformFeeBps,
       feeModel as FeeModel,
     );
+
+    // Calculate deposit amount:
+    // - explicit null override = no deposit regardless of org default
+    // - numeric override = use that amount in cents
+    // - undefined (not provided) = use org default if set
+    let depositAmount: number | null = null;
+    if (depositOverride === null) {
+      depositAmount = null;
+    } else if (typeof depositOverride === 'number') {
+      depositAmount = depositOverride;
+    } else if (defaultDepositBps) {
+      depositAmount = Math.round(customerTotal * defaultDepositBps / 10000);
+    }
 
     await db.order.update({
       where: { id: orderId },
@@ -56,6 +75,7 @@ export async function confirmOrder(orderId: string, price: number, adminNotes: s
         platformFeeBps,
         platformFee,
         totalDue: customerTotal,
+        depositAmount,
         adminNotes: adminNotes.trim() || null,
       },
     });
@@ -69,22 +89,31 @@ export async function confirmOrder(orderId: string, price: number, adminNotes: s
         const stripe = getStripe(secretKey);
         const origin = new URL(request.url).origin;
 
+        // Charge deposit amount if set, otherwise full totalDue
+        const checkoutAmount = depositAmount ?? customerTotal;
+        // Scale platform fee proportionally for deposit payments
+        const checkoutFee = depositAmount
+          ? Math.round(platformFee * depositAmount / customerTotal)
+          : platformFee;
+
         const session = await stripe.checkout.sessions.create({
           mode: "payment",
           line_items: [
             {
               price_data: {
                 currency: "usd",
-                unit_amount: customerTotal,
+                unit_amount: checkoutAmount,
                 product_data: {
-                  name: `Order #${order.orderNumber}`,
+                  name: depositAmount
+                    ? `Deposit for Order #${order.orderNumber}`
+                    : `Order #${order.orderNumber}`,
                 },
               },
               quantity: 1,
             },
           ],
           payment_intent_data: {
-            application_fee_amount: platformFee,
+            application_fee_amount: checkoutFee,
             transfer_data: {
               destination: stripeAccountId,
             },
