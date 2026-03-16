@@ -74,8 +74,8 @@ export async function getOnboardingLink(orgId: string) {
 
     const accountLink = await stripe.accountLinks.create({
       account: org.stripeAccountId,
-      refresh_url: `${origin}/admin/stripe/onboarding?refresh=true`,
-      return_url: `${origin}/admin/stripe/onboarding?complete=true`,
+      refresh_url: `${origin}/admin/settings/stripe?onboarding=refresh`,
+      return_url: `${origin}/admin/settings/stripe?onboarding=complete`,
       type: "account_onboarding",
     });
 

@@ -105,5 +105,14 @@ export async function StripeSettingsPage(requestInfo: RequestInfo) {
     feeModel: org.feeModel,
   };
 
-  return <StripeSettingsUI orgId={org.id} stripeStatus={stripeStatus} />;
+  const url = new URL(requestInfo.request.url);
+  const onboardingParam = url.searchParams.get("onboarding");
+
+  return (
+    <StripeSettingsUI
+      orgId={org.id}
+      stripeStatus={stripeStatus}
+      onboardingParam={onboardingParam}
+    />
+  );
 }

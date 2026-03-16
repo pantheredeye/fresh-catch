@@ -322,6 +322,18 @@
   margin: var(--space-md) 0 0 0;
 }
 
+.stripe-success {
+  color: var(--color-status-success);
+  font-size: var(--font-size-sm);
+  margin: var(--space-md) 0 0 0;
+}
+
+.stripe-pending {
+  color: var(--color-status-warning);
+  font-size: var(--font-size-sm);
+  margin: var(--space-md) 0 0 0;
+}
+
 .stripe-back-link {
   margin-top: var(--space-lg);
   text-align: center;

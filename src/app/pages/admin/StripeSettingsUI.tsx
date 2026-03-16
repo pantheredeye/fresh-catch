@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Button, Badge } from "@/design-system";
 import {
   createConnectedAccount,
   getOnboardingLink,
+  checkOnboardingStatus,
 } from "./stripe-functions";
 import "./admin.css";
 
@@ -20,12 +21,49 @@ type StripeStatus = {
 export function StripeSettingsUI({
   orgId,
   stripeStatus,
+  onboardingParam,
 }: {
   orgId: string;
   stripeStatus: StripeStatus;
+  onboardingParam: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [onboardingMessage, setOnboardingMessage] = useState<string | null>(
+    null,
+  );
+  const [onboardingSuccess, setOnboardingSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!onboardingParam) return;
+
+    if (onboardingParam === "complete") {
+      startTransition(async () => {
+        const result = await checkOnboardingStatus(orgId);
+        if (result.success && result.onboardingComplete) {
+          setOnboardingSuccess(true);
+          setOnboardingMessage("Stripe setup complete! You can now accept payments.");
+        } else if (result.success) {
+          setOnboardingMessage(
+            "Stripe setup is not yet complete. Please continue setup to finish verification.",
+          );
+        } else {
+          setError(result.error ?? "Failed to check onboarding status");
+        }
+        // Clean URL params
+        window.history.replaceState({}, "", window.location.pathname);
+      });
+    } else if (onboardingParam === "refresh") {
+      startTransition(async () => {
+        const link = await getOnboardingLink(orgId);
+        if (link.success && link.url) {
+          window.location.href = link.url;
+        } else {
+          setError(link.error ?? "Failed to generate new onboarding link");
+        }
+      });
+    }
+  }, [onboardingParam, orgId]);
 
   const handleConnect = () => {
     setError(null);
@@ -129,6 +167,15 @@ export function StripeSettingsUI({
           </>
         )}
 
+        {onboardingMessage && (
+          <p
+            className={
+              onboardingSuccess ? "stripe-success" : "stripe-pending"
+            }
+          >
+            {onboardingMessage}
+          </p>
+        )}
         {error && <p className="stripe-error">{error}</p>}
       </div>
 
