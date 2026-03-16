@@ -1,4 +1,4 @@
-import { RequestInfo } from "rwsdk/worker";
+import { RequestInfo, requestInfo } from "rwsdk/worker";
 import { Login } from "../user/Login";
 import { CustomerOrdersUI } from "./CustomerOrdersUI";
 import { db } from "@/db";
@@ -16,6 +16,10 @@ export async function CustomerOrdersPage({ ctx }: RequestInfo) {
       </div>
     );
   }
+
+  const url = new URL(requestInfo.request.url);
+  const checkoutStatus = url.searchParams.get("checkout") as "success" | "cancel" | null;
+  const checkoutOrder = url.searchParams.get("order") ? Number(url.searchParams.get("order")) : null;
 
   const [orders, org] = await Promise.all([
     db.order.findMany({
@@ -35,5 +39,5 @@ export async function CustomerOrdersPage({ ctx }: RequestInfo) {
 
   const feeModel = (org?.feeModel ?? "customer") as FeeModel;
 
-  return <CustomerOrdersUI orders={orders} ctx={ctx} feeModel={feeModel} />;
+  return <CustomerOrdersUI orders={orders} ctx={ctx} feeModel={feeModel} checkoutStatus={checkoutStatus} checkoutOrder={checkoutOrder} />;
 }

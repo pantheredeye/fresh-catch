@@ -1,7 +1,7 @@
 "use client";
 
 import { Container, Button } from "@/design-system";
-import { OrderCard } from "./components/OrderCard";
+import { OrderCard, PaymentStatusBanner } from "./components";
 import type { AppContext } from "@/worker";
 import type { FeeModel } from "@/utils/money";
 
@@ -29,11 +29,14 @@ interface CustomerOrdersUIProps {
   orders: Order[];
   ctx: AppContext;
   feeModel: FeeModel;
+  checkoutStatus?: "success" | "cancel" | null;
+  checkoutOrder?: number | null;
 }
 
-export function CustomerOrdersUI({ orders, ctx, feeModel }: CustomerOrdersUIProps) {
+export function CustomerOrdersUI({ orders, ctx, feeModel, checkoutStatus, checkoutOrder }: CustomerOrdersUIProps) {
   return (
     <Container size="md">
+      <PaymentStatusBanner status={checkoutStatus ?? null} orderNumber={checkoutOrder ?? null} />
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
