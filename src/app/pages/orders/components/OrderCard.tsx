@@ -13,7 +13,7 @@ type Order = {
   items: string;
   preferredDate: Date | null;
   status: string;
-  price: string | null;
+  price: number | null;
   notes: string | null;
   adminNotes: string | null;
   createdAt: Date;
@@ -201,7 +201,7 @@ export function OrderCard({ order, viewMode, ctx }: OrderCardProps) {
               Price:
             </div>
             <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-              {order.price}
+              ${(order.price / 100).toFixed(2)}
             </div>
           </div>
         )}

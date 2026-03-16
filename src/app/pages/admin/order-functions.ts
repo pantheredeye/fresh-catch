@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { sendOrderConfirmedEmail } from "@/utils/email";
 
-export async function confirmOrder(orderId: string, price: string, adminNotes: string) {
+export async function confirmOrder(orderId: string, price: number, adminNotes: string) {
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx)) {
@@ -33,7 +33,7 @@ export async function confirmOrder(orderId: string, price: string, adminNotes: s
       where: { id: orderId },
       data: {
         status: 'confirmed',
-        price: price.trim(),
+        price: price,
         adminNotes: adminNotes.trim() || null
       }
     });
@@ -47,7 +47,7 @@ export async function confirmOrder(orderId: string, price: string, adminNotes: s
           customerName: order.contactName,
           orderNumber: order.orderNumber,
           items: order.items,
-          price: price.trim(),
+          price: String(price),
           adminNotes: adminNotes.trim() || undefined,
           preferredDate: order.preferredDate?.toISOString(),
           businessName: order.organization.name,

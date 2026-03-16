@@ -13,7 +13,7 @@ type Order = {
   preferredDate: Date | null;
   notes: string | null;
   status: string;
-  price: string | null;
+  price: number | null;
   adminNotes: string | null;
   createdAt: Date;
   updatedAt: Date;

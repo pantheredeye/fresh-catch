@@ -7,7 +7,7 @@ type Order = {
   contactPhone: string | null;
   items: string;
   notes: string | null;
-  price: string | null;
+  price: number | null;
   paymentStatus: string;
   paymentMethod: string | null;
   preferredDate: Date | null;
@@ -234,7 +234,7 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                 }}>
                   {order.price && (
                     <div>
-                      <span style={{ fontWeight: 'bold' }}>Price:</span> {order.price}
+                      <span style={{ fontWeight: 'bold' }}>Price:</span> ${(order.price / 100).toFixed(2)}
                     </div>
                   )}
                   {order.notes && (

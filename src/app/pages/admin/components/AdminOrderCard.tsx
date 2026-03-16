@@ -14,7 +14,7 @@ type Order = {
   preferredDate: Date | null;
   notes: string | null;
   status: string;
-  price: string | null;
+  price: number | null;
   adminNotes: string | null;
   paymentStatus: string;
   paymentMethod: string | null;
@@ -34,7 +34,7 @@ interface AdminOrderCardProps {
 
 export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [price, setPrice] = useState(order.price || '');
+  const [priceInput, setPriceInput] = useState(order.price ? String(order.price / 100) : '');
   const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,13 +53,18 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
   const handleConfirm = async () => {
     setErrorMessage(null);
-    if (!price.trim()) {
+    if (!priceInput.trim()) {
       setErrorMessage('Please enter a price before confirming');
+      return;
+    }
+    const priceInCents = Math.round(parseFloat(priceInput) * 100);
+    if (isNaN(priceInCents) || priceInCents <= 0) {
+      setErrorMessage('Please enter a valid price');
       return;
     }
 
     startTransition(async () => {
-      const result = await confirmOrder(order.id, price, adminNotes);
+      const result = await confirmOrder(order.id, priceInCents, adminNotes);
       if (result.success) {
         setIsEditing(false);
       } else {
@@ -317,8 +322,8 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           <TextInput
             label="Price"
             placeholder="$45-50 or Market price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
             required
             size="md"
             helperText="This will be visible to customer"
@@ -342,7 +347,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
               variant="primary"
               size="md"
               onClick={handleConfirm}
-              disabled={isPending || !price.trim()}
+              disabled={isPending || !priceInput.trim()}
               fullWidth
             >
               {isPending ? 'Confirming...' : 'Confirm Order'}
@@ -377,7 +382,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
                 Price
               </div>
               <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-                {order.price}
+                ${(order.price / 100).toFixed(2)}
               </div>
             </div>
           )}
