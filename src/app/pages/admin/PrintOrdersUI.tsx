@@ -1,6 +1,7 @@
 "use client";
 
 import { getPaymentStatus } from "@/utils/payments";
+import { formatCents } from "@/utils/money";
 
 type Order = {
   id: string;
@@ -242,11 +243,9 @@ export function PrintOrdersUI({ orders, date, organizationName }: PrintOrdersUIP
                   gap: '16px',
                   fontSize: 'var(--font-size-sm)'
                 }}>
-                  {order.price && (
-                    <div>
-                      <span style={{ fontWeight: 'bold' }}>Price:</span> ${(order.price / 100).toFixed(2)}
-                    </div>
-                  )}
+                  <div>
+                    <span style={{ fontWeight: 'bold' }}>Price:</span> {order.price != null ? formatCents(order.price) : '—'}
+                  </div>
                   {order.notes && (
                     <div style={{ flex: 1 }}>
                       <span style={{ fontWeight: 'bold' }}>Notes:</span> {order.notes}

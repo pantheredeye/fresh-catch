@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Button, Card, TextInput, Textarea } from "@/design-system";
 import { confirmOrder, completeOrder, cancelOrderAdmin, markAsPaid } from "../order-functions";
 import { getPaymentStatus, type PaymentStatus } from "@/utils/payments";
+import { formatCents } from "@/utils/money";
 import type { AppContext } from "@/worker";
 
 type Order = {
@@ -388,21 +389,19 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           gap: 'var(--space-md)',
           marginTop: 'var(--space-md)'
         }}>
-          {order.price && (
-            <div style={{
-              padding: 'var(--space-md)',
-              background: 'var(--color-status-success)',
-              borderRadius: 'var(--radius-sm)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>
-                Price
-              </div>
-              <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-                ${(order.price / 100).toFixed(2)}
-              </div>
+          <div style={{
+            padding: 'var(--space-md)',
+            background: 'var(--color-status-success)',
+            borderRadius: 'var(--radius-sm)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>
+              Price
             </div>
-          )}
+            <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
+              {order.price != null ? formatCents(order.price) : '—'}
+            </div>
+          </div>
 
           {order.adminNotes && (
             <div style={{
