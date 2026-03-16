@@ -228,13 +228,18 @@ export async function cancelOrderAdmin(orderId: string) {
 
 export async function markAsPaid(
   orderId: string,
-  paymentMethod: string,
-  paymentNotes?: string
+  amount: number,
+  method: string,
+  notes?: string
 ) {
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx)) {
     return { success: false, error: "Admin access required" };
+  }
+
+  if (amount <= 0) {
+    return { success: false, error: "Amount must be positive" };
   }
 
   try {
@@ -246,15 +251,37 @@ export async function markAsPaid(
       return { success: false, error: "Order not found" };
     }
 
+    if (order.status !== "confirmed" && order.status !== "completed") {
+      return { success: false, error: "Order must be confirmed or completed" };
+    }
+
+    const paymentType =
+      order.depositAmount != null && order.depositAmount > 0 && order.amountPaid === 0
+        ? "deposit"
+        : "payment";
+
+    const newAmountPaid = order.amountPaid + amount;
+    const fullyPaid = order.totalDue != null && newAmountPaid >= order.totalDue;
+
+    await db.payment.create({
+      data: {
+        orderId,
+        amount,
+        method,
+        type: paymentType,
+        notes: notes || null,
+      },
+    });
+
     await db.order.update({
       where: { id: orderId },
       data: {
-        paymentMethod: paymentMethod,
-        paymentNotes: paymentNotes || null,
-        paidAt: new Date()
-      }
+        amountPaid: newAmountPaid,
+        paymentMethod: method,
+        paymentNotes: notes || null,
+        ...(fullyPaid ? { paidAt: new Date() } : {}),
+      },
     });
-
 
     return { success: true };
   } catch (error) {

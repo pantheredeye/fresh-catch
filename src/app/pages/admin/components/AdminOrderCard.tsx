@@ -52,6 +52,8 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const remainingDue = order.totalDue != null ? Math.max(0, order.totalDue - order.amountPaid) : 0;
+  const [paymentAmountInput, setPaymentAmountInput] = useState(remainingDue > 0 ? String(remainingDue / 100) : '');
 
   const hasStripe = !!(order.organization?.stripeAccountId && order.organization?.stripeOnboardingComplete);
   const defaultDepositBps = order.organization?.defaultDepositBps ?? null;
@@ -179,9 +181,20 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
   };
 
   const handleMarkPaid = async () => {
+    let amountCents: number;
+    try {
+      amountCents = parseDollars(paymentAmountInput);
+    } catch {
+      setErrorMessage('Enter a valid payment amount');
+      return;
+    }
+    if (amountCents <= 0) {
+      setErrorMessage('Amount must be greater than zero');
+      return;
+    }
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await markAsPaid(order.id, paymentMethod, paymentNotes || undefined);
+      const result = await markAsPaid(order.id, amountCents, paymentMethod, paymentNotes || undefined);
       if (result.success) {
         setShowPaymentModal(false);
       } else {
@@ -642,6 +655,39 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           }}>
             Mark Order as Paid
           </h3>
+
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label style={{
+              display: 'block',
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
+              marginBottom: 'var(--space-xs)',
+              color: 'var(--color-text-primary)'
+            }}>
+              Amount ($)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={paymentAmountInput}
+              onChange={(e) => setPaymentAmountInput(e.target.value)}
+              style={{
+                width: '100%',
+                padding: 'var(--space-sm)',
+                borderRadius: 'var(--radius-sm)',
+                border: '2px solid var(--color-border-light)',
+                fontSize: 'var(--font-size-md)',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+              }}
+            />
+            {remainingDue > 0 && (
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginTop: 'var(--space-xs)', display: 'block' }}>
+                Remaining: {formatCents(remainingDue)}
+              </span>
+            )}
+          </div>
 
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{
