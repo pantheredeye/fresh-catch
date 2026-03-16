@@ -125,3 +125,85 @@ export async function checkOnboardingStatus(orgId: string) {
     return { success: false as const, error: "Failed to check onboarding status" };
   }
 }
+
+const VALID_FEE_MODELS = ["customer", "vendor", "split"] as const;
+type FeeModel = (typeof VALID_FEE_MODELS)[number];
+
+export async function updateFeeConfig(
+  orgId: string,
+  feeBps: number,
+  feeModel: string
+) {
+  const { ctx } = requestInfo;
+
+  if (!hasAdminAccess(ctx)) {
+    return { success: false as const, error: "Admin access required" };
+  }
+
+  if (!Number.isInteger(feeBps) || feeBps < 0 || feeBps > 5000) {
+    return {
+      success: false as const,
+      error: "feeBps must be an integer between 0 and 5000",
+    };
+  }
+
+  if (!VALID_FEE_MODELS.includes(feeModel as FeeModel)) {
+    return {
+      success: false as const,
+      error: "feeModel must be one of: customer, vendor, split",
+    };
+  }
+
+  try {
+    const org = await db.organization.update({
+      where: { id: orgId },
+      data: {
+        platformFeeBps: feeBps,
+        feeModel: feeModel,
+      },
+    });
+
+    return { success: true as const, data: org };
+  } catch (error) {
+    console.error("Failed to update fee config:", error);
+    return { success: false as const, error: "Failed to update fee config" };
+  }
+}
+
+export async function updateDepositConfig(
+  orgId: string,
+  depositBps: number | null
+) {
+  const { ctx } = requestInfo;
+
+  if (!hasAdminAccess(ctx)) {
+    return { success: false as const, error: "Admin access required" };
+  }
+
+  if (
+    depositBps !== null &&
+    (!Number.isInteger(depositBps) || depositBps < 0 || depositBps > 10000)
+  ) {
+    return {
+      success: false as const,
+      error: "depositBps must be null or an integer between 0 and 10000",
+    };
+  }
+
+  try {
+    const org = await db.organization.update({
+      where: { id: orgId },
+      data: {
+        defaultDepositBps: depositBps,
+      },
+    });
+
+    return { success: true as const, data: org };
+  } catch (error) {
+    console.error("Failed to update deposit config:", error);
+    return {
+      success: false as const,
+      error: "Failed to update deposit config",
+    };
+  }
+}
