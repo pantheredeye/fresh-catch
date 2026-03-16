@@ -150,12 +150,28 @@ model Order {
   // Relations
   user         User         @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
+  payments     Payment[]
 
   @@index([userId])
   @@index([organizationId])
   @@index([status])
   @@index([createdAt])
   @@index([orderNumber])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  orderId         String
+  amount          Int // Amount in cents
+  method          String // stripe | cash | venmo | zelle | other
+  type            String // deposit | payment | tip | refund
+  stripePaymentId String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
 }
 
 model ShareEvent {
