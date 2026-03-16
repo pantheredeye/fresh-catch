@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { Button, Badge, RadioGroup, ToggleSwitch, TextInput } from "@/design-system";
 import {
   createConnectedAccount,
@@ -9,6 +9,7 @@ import {
   updateFeeConfig,
   updateDepositConfig,
 } from "./stripe-functions";
+import { calculatePlatformFee, formatCents, parseDollars, type FeeModel } from "@/utils/money";
 import "./admin.css";
 
 type StripeStatus = {
@@ -44,6 +45,9 @@ export function StripeSettingsUI({
   const [feeSuccess, setFeeSuccess] = useState<string | null>(null);
   const [feeError, setFeeError] = useState<string | null>(null);
 
+  // Fee preview state
+  const [sampleAmount, setSampleAmount] = useState("50.00");
+
   // Deposit config state
   const [depositEnabled, setDepositEnabled] = useState(
     stripeStatus.defaultDepositBps !== null,
@@ -53,6 +57,20 @@ export function StripeSettingsUI({
   );
   const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
+
+  const feePreview = useMemo(() => {
+    try {
+      const cents = parseDollars(sampleAmount);
+      if (cents <= 0) return null;
+      const breakdown = calculatePlatformFee(cents, feeBps, feeModel as FeeModel);
+      const depositAmount = depositEnabled
+        ? Math.round((breakdown.customerTotal * depositBps) / 10000)
+        : null;
+      return { ...breakdown, depositAmount };
+    } catch {
+      return null;
+    }
+  }, [sampleAmount, feeBps, feeModel, depositEnabled, depositBps]);
 
   const handleSaveFee = () => {
     setFeeError(null);
@@ -287,6 +305,56 @@ export function StripeSettingsUI({
 
             {feeSuccess && <p className="stripe-success">{feeSuccess}</p>}
             {feeError && <p className="stripe-error">{feeError}</p>}
+          </div>
+
+          {/* Fee Preview Calculator */}
+          <div className="stripe-config-section">
+            <h3 className="stripe-config-heading">Fee Preview</h3>
+            <p className="stripe-config-description">
+              See how fees apply to a sample order.
+            </p>
+
+            <div className="stripe-config-field">
+              <TextInput
+                label="Sample order amount"
+                value={sampleAmount}
+                onChange={(e) => setSampleAmount(e.target.value)}
+                placeholder="50.00"
+                helperText="Enter a dollar amount to preview"
+                size="md"
+              />
+            </div>
+
+            {feePreview && (
+              <div className="fee-preview">
+                <div className="fee-preview__row">
+                  <span className="fee-preview__label">Customer pays</span>
+                  <span className="fee-preview__value fee-preview__value--primary">
+                    {formatCents(feePreview.customerTotal)}
+                  </span>
+                </div>
+                <div className="fee-preview__row">
+                  <span className="fee-preview__label">Vendor receives</span>
+                  <span className="fee-preview__value fee-preview__value--success">
+                    {formatCents(feePreview.vendorReceives)}
+                  </span>
+                </div>
+                <div className="fee-preview__row">
+                  <span className="fee-preview__label">Platform fee</span>
+                  <span className="fee-preview__value fee-preview__value--warning">
+                    {formatCents(feePreview.platformFee)}
+                  </span>
+                </div>
+                {feePreview.depositAmount !== null && (
+                  <div className="fee-preview__row fee-preview__row--deposit">
+                    <span className="fee-preview__label">Deposit required</span>
+                    <span className="fee-preview__value">
+                      {formatCents(feePreview.depositAmount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Deposit Configuration */}
