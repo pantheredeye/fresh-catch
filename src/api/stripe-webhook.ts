@@ -85,10 +85,10 @@ async function dispatchWebhookEvent(event: Stripe.Event): Promise<void> {
       console.log("Payment intent failed:", event.data.object.id);
       break;
     case "charge.refunded":
-      console.log("Charge refunded:", event.data.object.id);
+      await handleChargeRefunded(event.data.object as Stripe.Charge);
       break;
     case "account.updated":
-      console.log("Connected account updated:", event.data.object.id);
+      await handleAccountUpdated(event.data.object as Stripe.Account);
       break;
     default:
       console.log(`Unhandled webhook event type: ${event.type}`);
@@ -253,4 +253,126 @@ async function handlePaymentIntentSucceeded(
     `Payment recorded (backup): ${paymentType} of ${amountPaidCents}c for order ${order.orderNumber}` +
       (fullyPaid ? " (fully paid)" : ""),
   );
+}
+
+/**
+ * Handle charge.refunded — create negative Payment record and decrement amountPaid.
+ * Clears paidAt if the order is no longer fully paid after the refund.
+ */
+async function handleChargeRefunded(charge: Stripe.Charge): Promise<void> {
+  const refundAmount = charge.amount_refunded;
+  if (!refundAmount || refundAmount <= 0) {
+    console.log("Charge refund with zero amount, skipping:", charge.id);
+    return;
+  }
+
+  await ensureDb();
+
+  // Find the original payment by stripePaymentId (the PaymentIntent ID)
+  const paymentIntentId =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent?.id ?? null;
+
+  if (!paymentIntentId) {
+    console.error("charge.refunded missing payment_intent:", charge.id);
+    return;
+  }
+
+  const originalPayment = await db.payment.findFirst({
+    where: { stripePaymentId: paymentIntentId },
+  });
+  if (!originalPayment) {
+    console.log(
+      `No original payment found for intent ${paymentIntentId}, skipping refund`,
+    );
+    return;
+  }
+
+  // Dedup: skip if we already recorded a refund for this charge
+  const existingRefund = await db.payment.findFirst({
+    where: {
+      orderId: originalPayment.orderId,
+      stripePaymentId: charge.id,
+      type: "refund",
+    },
+  });
+  if (existingRefund) {
+    console.log(`Refund already recorded for charge ${charge.id}, skipping`);
+    return;
+  }
+
+  const order = await db.order.findUnique({
+    where: { id: originalPayment.orderId },
+  });
+  if (!order) {
+    console.error(
+      `Order not found for refund: ${originalPayment.orderId}`,
+    );
+    return;
+  }
+
+  const newAmountPaid = order.amountPaid - refundAmount;
+  const wasFullyPaid = order.paidAt != null;
+  const stillFullyPaid =
+    order.totalDue != null && newAmountPaid >= order.totalDue;
+
+  await db.payment.create({
+    data: {
+      orderId: order.id,
+      amount: -refundAmount,
+      method: "stripe",
+      type: "refund",
+      stripePaymentId: charge.id,
+    },
+  });
+
+  await db.order.update({
+    where: { id: order.id },
+    data: {
+      amountPaid: newAmountPaid,
+      ...(wasFullyPaid && !stillFullyPaid ? { paidAt: null } : {}),
+    },
+  });
+
+  console.log(
+    `Refund recorded: ${refundAmount}c for order ${order.orderNumber}` +
+      (wasFullyPaid && !stillFullyPaid ? " (no longer fully paid)" : ""),
+  );
+}
+
+/**
+ * Handle account.updated — update org stripeOnboardingComplete status.
+ * Sets onboarding complete when charges_enabled AND details_submitted are true.
+ */
+async function handleAccountUpdated(account: Stripe.Account): Promise<void> {
+  await ensureDb();
+
+  const org = await db.organization.findFirst({
+    where: { stripeAccountId: account.id },
+  });
+  if (!org) {
+    console.log(
+      `No organization found for Stripe account ${account.id}, skipping`,
+    );
+    return;
+  }
+
+  const onboardingComplete =
+    account.charges_enabled === true && account.details_submitted === true;
+
+  if (onboardingComplete !== org.stripeOnboardingComplete) {
+    await db.organization.update({
+      where: { id: org.id },
+      data: { stripeOnboardingComplete: onboardingComplete },
+    });
+
+    console.log(
+      `Stripe onboarding ${onboardingComplete ? "complete" : "incomplete"} for org ${org.name}`,
+    );
+  } else {
+    console.log(
+      `Stripe onboarding status unchanged for org ${org.name}: ${onboardingComplete}`,
+    );
+  }
 }
