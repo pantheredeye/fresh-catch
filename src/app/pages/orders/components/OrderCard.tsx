@@ -177,7 +177,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
         </div>
 
         {viewMode === 'customer' && order.status === 'pending' && (
-          <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+          <div className="flex gap-xs">
             <Button
               variant="secondary"
               size="sm"
@@ -215,12 +215,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
       </div>
 
       {/* Order Details */}
-      <div style={{
-        background: 'var(--color-surface-secondary)',
-        padding: 'var(--space-md)',
-        borderRadius: 'var(--radius-sm)',
-        marginBottom: 'var(--space-md)'
-      }}>
+      <div className="surface-panel mb-md">
         <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-xs)' }}>Items:</div>
         <div style={{ whiteSpace: 'pre-wrap' }}>{order.items}</div>
       </div>
@@ -285,12 +280,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
 
       {/* Payment Section (confirmed/completed orders, customer view) */}
       {showPaymentUI && (
-        <div style={{
-          marginTop: 'var(--space-md)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-md)',
-        }}>
+        <div className="flex-col gap-md mt-md">
           <PriceBreakdown
             price={order.price}
             platformFee={order.platformFee}
@@ -377,11 +367,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
             helperText="Special requests, questions, etc."
           />
 
-          <div style={{
-            display: 'flex',
-            gap: 'var(--space-sm)',
-            marginTop: 'var(--space-md)'
-          }}>
+          <div className="flex gap-sm mt-md">
             <Button
               variant="primary"
               size="md"

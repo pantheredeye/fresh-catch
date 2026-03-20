@@ -14,8 +14,7 @@ export { Badge, NotificationBadge } from './components/Badge'
 
 // Composition Components (used on multiple pages)
 export { FreshHero, FreshGrid, FreshItem } from './components/FreshHero'
-export { LoginForm } from './components/LoginForm'
-export { SectionHeader, DateHeader } from './components/SectionHeader'
+export { SectionHeader } from './components/SectionHeader'
 export { NavGrid } from './components/NavGrid'
 export type { NavGridItem } from './components/NavGrid'
 
@@ -35,9 +34,7 @@ export {
 } from './components/FormControls'
 
 // Share Components
-export { QRCodeGenerator } from './components/QRCodeGenerator'
 export { ShareModal } from './components/ShareModal'
-export { ShareButton } from './components/ShareButton'
 
 // Design System Styles
 // Import tokens.css in your main app file or Document.tsx:

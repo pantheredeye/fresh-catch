@@ -289,7 +289,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+        <div className="flex gap-sm flex-wrap">
           {order.status === 'pending' && (
             <>
               <Button
@@ -345,14 +345,10 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
       </div>
 
       {/* Customer Info */}
-      <div style={{
+      <div className="surface-panel mb-md" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: 'var(--space-md)',
-        padding: 'var(--space-md)',
-        background: 'var(--color-surface-secondary)',
-        borderRadius: 'var(--radius-sm)',
-        marginBottom: 'var(--space-md)'
       }}>
         <div>
           <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
@@ -398,13 +394,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
       {/* Customer Notes */}
       {order.notes && (
-        <div style={{
-          padding: 'var(--space-sm)',
-          background: 'var(--color-surface-secondary)',
-          borderRadius: 'var(--radius-sm)',
-          marginBottom: 'var(--space-md)',
-          fontSize: 'var(--font-size-sm)'
-        }}>
+        <div className="surface-panel mb-md" style={{ padding: 'var(--space-sm)', fontSize: 'var(--font-size-sm)' }}>
           <div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>Customer Notes:</div>
           <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-secondary)' }}>
             {order.notes}
@@ -558,11 +548,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             helperText="Optional message to customer"
           />
 
-          <div style={{
-            display: 'flex',
-            gap: 'var(--space-sm)',
-            marginTop: 'var(--space-md)'
-          }}>
+          <div className="flex gap-sm mt-md">
             <Button
               variant="primary"
               size="md"
@@ -655,12 +641,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
       {/* Payment History */}
       {(order.status === 'confirmed' || order.status === 'completed') && (
-        <div style={{
-          marginTop: 'var(--space-md)',
-          padding: 'var(--space-md)',
-          background: 'var(--color-surface-secondary)',
-          borderRadius: 'var(--radius-sm)',
-        }}>
+        <div className="surface-panel mt-md">
           <div style={{
             fontWeight: 'var(--font-weight-semibold)',
             marginBottom: 'var(--space-sm)',
@@ -767,17 +748,8 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
           borderRadius: 'var(--radius-sm)',
           marginTop: 'var(--space-md)'
         }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 'var(--space-md)'
-          }}>
-            <h3 style={{
-              fontSize: 'var(--font-size-md)',
-              fontWeight: 'var(--font-weight-semibold)',
-              margin: 0
-            }}>
+          <div className="flex-between mb-md">
+            <h3 className="heading-lg m-0">
               Record Payment
             </h3>
             {remainingDue > 0 && (
@@ -840,11 +812,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
             helperText="Optional details about the payment"
           />
 
-          <div style={{
-            display: 'flex',
-            gap: 'var(--space-sm)',
-            marginTop: 'var(--space-md)'
-          }}>
+          <div className="flex gap-sm mt-md">
             <Button
               variant="primary"
               size="md"

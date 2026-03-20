@@ -124,13 +124,8 @@ function YourMarketsSection({
       maxWidth: '500px',
       margin: '0 auto'
     }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 'var(--space-md)'
-      }}>
-        <h2 className="heading-2xl" style={{ margin: 0 }}>
+      <div className="flex-between mb-md">
+        <h2 className="heading-2xl m-0">
           Your Markets ({markets.length})
         </h2>
       </div>
@@ -165,13 +160,8 @@ function AllMarketsSection({
       maxWidth: '500px',
       margin: '0 auto'
     }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 'var(--space-md)'
-      }}>
-        <h2 className="heading-2xl" style={{ margin: 0 }}>
+      <div className="flex-between mb-md">
+        <h2 className="heading-2xl m-0">
           All Markets ({markets.length})
         </h2>
       </div>

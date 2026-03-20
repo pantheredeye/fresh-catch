@@ -83,44 +83,18 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
     <Container size="md" noPadding>
       <Card variant="centered" maxWidth="800px">
         <div style={{ marginBottom: 'var(--space-lg)' }}>
-          <h1 style={{
-            fontSize: 'var(--font-size-3xl)',
-            fontWeight: 'var(--font-weight-bold)',
-            color: 'var(--color-text-primary)',
-            fontFamily: 'var(--font-display)',
-            marginBottom: 'var(--space-xs)'
-          }}>
+          <h1 className="text-heading-lg">
             Quick Order
           </h1>
-          <p style={{
-            fontSize: 'var(--font-size-md)',
-            color: 'var(--color-text-secondary)',
-            margin: 0,
-            lineHeight: 'var(--line-height-base)'
-          }}>
+          <p className="text-subheading">
             Tell Evan what you need and when you'd like to pick it up. He'll confirm availability, price, and pickup details.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-md)'
-        }}>
+        <form onSubmit={handleSubmit} className="flex-col gap-md">
           {/* Contact Information */}
-          <div style={{
-            background: 'var(--color-surface-secondary)',
-            padding: 'var(--space-md)',
-            borderRadius: 'var(--radius-sm)'
-          }}>
-            <h3 style={{
-              fontSize: 'var(--font-size-sm)',
-              fontWeight: 'var(--font-weight-semibold)',
-              color: 'var(--color-text-primary)',
-              textTransform: 'uppercase',
-              letterSpacing: 'var(--letter-spacing-wider)',
-              marginBottom: 'var(--space-md)'
-            }}>
+          <div className="surface-panel">
+            <h3 className="label-md mb-md">
               Contact Information
             </h3>
 
@@ -166,15 +140,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
           />
 
           <div>
-            <label style={{
-              fontSize: 'var(--font-size-xs)',
-              fontWeight: 'var(--font-weight-semibold)',
-              color: 'var(--color-text-primary)',
-              textTransform: 'uppercase',
-              letterSpacing: 'var(--letter-spacing-wider)',
-              marginBottom: 'var(--space-sm)',
-              display: 'block'
-            }}>
+            <label className="label-sm mb-sm" style={{ display: 'block' }}>
               Preferred Pickup Date
             </label>
             <input
@@ -212,11 +178,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
             helperText={`Optional (${notes.length}/500)`}
           />
 
-          <div style={{
-            display: 'flex',
-            gap: 'var(--space-sm)',
-            marginTop: 'var(--space-md)'
-          }}>
+          <div className="flex gap-sm mt-md">
             <Button
               type="button"
               variant="cancel"
