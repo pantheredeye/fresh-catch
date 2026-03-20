@@ -1,5 +1,19 @@
 /**
- * Payment status utilities — derived from order pricing fields
+ * Payment status utilities — derived from order pricing fields.
+ *
+ * Order pricing lifecycle:
+ *   1. Order created (pending): price/totalDue/platformFee all null, amountPaid=0
+ *   2. Admin confirms: price, totalDue, platformFee set; depositAmount optional
+ *   3. Payments recorded: amountPaid incremented; paidAt set when fully paid
+ *   4. Order completed/cancelled: pricing fields frozen
+ *
+ * Valid field combinations:
+ *   - totalDue=null → price not yet set (pending), status returns null
+ *   - totalDue>=0, amountPaid=0 → "unpaid"
+ *   - totalDue>0, 0 < amountPaid <= depositAmount → "deposit"
+ *   - totalDue>0, amountPaid < totalDue (above deposit) → "partial"
+ *   - totalDue>0, amountPaid == totalDue → "paid"
+ *   - totalDue>0, amountPaid > totalDue → "overpaid"
  */
 
 export type PaymentStatus =

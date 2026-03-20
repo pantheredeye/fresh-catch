@@ -2,13 +2,12 @@ import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { PrintOrdersUI } from "./PrintOrdersUI";
+import { AccessDenied } from "./components";
 
 export async function PrintOrdersPage() {
   const { ctx, request } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
-    return <div>Access denied</div>;
-  }
+  if (!hasAdminAccess(ctx)) return <AccessDenied />;
 
   // Get date from query param (default to today)
   const url = new URL(request.url);

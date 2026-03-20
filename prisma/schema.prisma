@@ -38,15 +38,17 @@ model User {
   deletedAt DateTime? // Soft delete timestamp
   createdAt DateTime  @default(now())
 
-  credentials Credential[] // Relationship: One user can have many credentials
-  memberships Membership[] // Relationship: User can belong to multiple organizations
-  orders      Order[] // Relationship: User can have many orders
-  shareEvents ShareEvent[] // Relationship: User can have many share events
+  credentials     Credential[] // Relationship: One user can have many credentials
+  memberships     Membership[] // Relationship: User can belong to multiple organizations
+  orders          Order[] // Relationship: User can have many orders
+  shareEvents     ShareEvent[] // Relationship: User can have many share events
+  invitesSent     Invite[]     @relation("InvitesSent")
+  invitesAccepted Invite[]     @relation("InvitesAccepted")
 }
 
 model Credential {
   id           String   @id @default(uuid()) // Internal DB ID
-  userId       String   @unique // Every credential is linked to a specific user
+  userId       String // Every credential is linked to a specific user (1-to-many: multiple devices per user)
   user         User     @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now())
   credentialId String   @unique // WebAuthn credential identifier
@@ -78,6 +80,7 @@ model Organization {
   markets     Market[] // Relationship: Organization can have multiple markets
   orders      Order[] // Relationship: Organization can have multiple orders
   shareEvents ShareEvent[] // Relationship: Organization can have multiple share events
+  invites     Invite[] // Relationship: Organization can have multiple invites
 }
 
 model Market {
@@ -96,6 +99,7 @@ model Market {
 
   @@index([organizationId])
   @@index([active])
+  @@index([organizationId, active])
 }
 
 model Membership {
@@ -113,6 +117,25 @@ model Membership {
   @@index([organizationId])
 }
 
+/// Order lifecycle state machine:
+///
+///   pending ──(admin confirms + sets price)──→ confirmed ──→ completed
+///     │                                           │
+///     └──(customer or admin cancels)──→ cancelled ←┘ (admin cancels)
+///
+/// Pricing fields populated at each state:
+///   pending:   price=null, totalDue=null, amountPaid=0, platformFee=null
+///   confirmed: price=set, totalDue=set, platformFee=set, depositAmount=optional
+///   completed: same as confirmed; amountPaid may equal totalDue
+///   cancelled: fields frozen at time of cancellation
+///
+/// Payment status (derived via getPaymentStatus in src/utils/payments.ts):
+///   null     → totalDue not yet set (pending order)
+///   unpaid   → totalDue set, amountPaid=0
+///   deposit  → amountPaid > 0 && amountPaid <= depositAmount
+///   partial  → amountPaid > depositAmount but < totalDue
+///   paid     → amountPaid == totalDue
+///   overpaid → amountPaid > totalDue
 model Order {
   id             String @id @default(uuid())
   orderNumber    Int // Friendly order number (per org, app-managed)
@@ -131,25 +154,25 @@ model Order {
 
   // Admin fields
   status     String  @default("pending") // pending | confirmed | completed | cancelled
-  price      Int? // Price in cents (replaces old String? format)
-  adminNotes String? // Internal notes for Evan
+  price      Int? // Vendor price in cents, set by admin at confirmation
+  adminNotes String? // Internal notes for admin
 
-  // Pricing and fees
-  tipAmount      Int  @default(0) // Tip in cents
-  platformFeeBps Int? // Platform fee in basis points
+  // Pricing and fees (all set together at confirmation by confirmOrder)
+  tipAmount      Int  @default(0) // Tip in cents, added at checkout
+  platformFeeBps Int? // Snapshot of org's fee rate at confirmation
   platformFee    Int? // Calculated platform fee in cents
-  totalDue       Int? // Total amount due in cents
-  amountPaid     Int  @default(0) // Amount paid so far in cents
-  depositAmount  Int? // Deposit amount in cents
+  totalDue       Int? // Customer-facing total (price + fee, or price - fee, per feeModel)
+  amountPaid     Int  @default(0) // Running sum of all Payment records
+  depositAmount  Int? // Optional deposit in cents, allows partial-first payment
 
   // Stripe integration
   stripeCheckoutSessionId String? // Stripe Checkout session ID
   stripePaymentIntentId   String? // Stripe PaymentIntent ID
 
-  // Payment tracking
-  paymentMethod String? // "cash" | "venmo" | "zelle" | "card" | etc
-  paymentNotes  String? // "Venmo: @evan | Paid $45 on 12/29"
-  paidAt        DateTime? // When payment was marked as received
+  // Payment tracking (denormalized from Payment records for quick display)
+  paymentMethod String? // Most recent method: "cash" | "venmo" | "zelle" | "card" | etc
+  paymentNotes  String? // Most recent payment note
+  paidAt        DateTime? // Set when amountPaid >= totalDue
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -194,4 +217,24 @@ model ShareEvent {
 
   @@index([organizationId])
   @@index([timestamp])
+}
+
+model Invite {
+  id             String    @id @default(uuid())
+  organizationId String
+  email          String?
+  role           String // 'owner' or 'manager'
+  token          String    @unique
+  invitedBy      String
+  status         String    @default("pending") // pending | accepted | revoked
+  acceptedBy     String?
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  inviter      User         @relation("InvitesSent", fields: [invitedBy], references: [id])
+  acceptor     User?        @relation("InvitesAccepted", fields: [acceptedBy], references: [id])
+
+  @@index([token])
+  @@index([organizationId])
 }
