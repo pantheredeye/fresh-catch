@@ -79,6 +79,10 @@ export default defineApp([
         },
         include: {
           memberships: {
+            // Only fetch matching membership when org context exists; fetch all on first login
+            ...(ctx.session.currentOrganizationId
+              ? { where: { organizationId: ctx.session.currentOrganizationId } }
+              : {}),
             include: {
               organization: true,
             },

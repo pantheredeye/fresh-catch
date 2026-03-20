@@ -30,7 +30,8 @@ export async function PrintOrdersPage() {
       },
       status: {
         in: ['confirmed', 'completed']
-      }
+      },
+      user: { deletedAt: null }
     },
     include: {
       user: {

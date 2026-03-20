@@ -10,6 +10,7 @@ export function AdminLayoutClient({
   user,
   currentOrganization,
   isAdmin,
+  isOwner,
   children,
 }: {
   user: User | null;
@@ -20,6 +21,7 @@ export function AdminLayoutClient({
     role: string;
   } | null;
   isAdmin: boolean;
+  isOwner: boolean;
   children: React.ReactNode;
 }) {
   if (!isAdmin) {
@@ -64,6 +66,11 @@ export function AdminLayoutClient({
           <a href="/admin/orders" className="admin-nav-item">
             Orders
           </a>
+          {isOwner && (
+            <a href="/admin/team" className="admin-nav-item">
+              Team
+            </a>
+          )}
           <a href="/admin/settings/stripe" className="admin-nav-item">
             Settings
           </a>
