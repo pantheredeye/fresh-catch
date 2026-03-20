@@ -1,13 +1,14 @@
 import type { LayoutProps } from "rwsdk/router";
 import type { RequestInfo } from "rwsdk/worker";
 import { AdminLayoutClient } from "./AdminLayoutClient";
+import { hasAdminAccess } from "@/utils/permissions";
 
 export function AdminLayout({
   children,
   requestInfo,
 }: LayoutProps<RequestInfo>) {
   const ctx = requestInfo?.ctx;
-  const isAdmin = ctx?.currentOrganization?.role && ['owner', 'manager'].includes(ctx.currentOrganization.role);
+  const isAdmin = ctx ? hasAdminAccess(ctx) : false;
 
   return (
     <AdminLayoutClient

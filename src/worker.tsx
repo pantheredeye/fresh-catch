@@ -6,6 +6,7 @@ import { CustomerHome } from "@/app/pages/home/CustomerHome";
 import { DesignTest } from "@/app/pages/DesignTest";
 
 import { setCommonHeaders } from "@/app/headers";
+import { hasAdminAccess } from "@/utils/permissions";
 import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
@@ -113,7 +114,7 @@ export default defineApp([
         ctx.session.role = defaultMembership.role;
       }
 
-      // Populate currentOrganization in context if session has organization data
+      // Re-validate session role from DB on each request
       if (ctx.session.currentOrganizationId && ctx.user) {
         const currentMembership = ctx.user.memberships.find(
           (m) => m.organizationId === ctx.session!.currentOrganizationId
@@ -124,8 +125,27 @@ export default defineApp([
             id: currentMembership.organization.id,
             name: currentMembership.organization.name,
             type: currentMembership.organization.type,
-            role: currentMembership.role,
+            role: currentMembership.role,  // Always use DB role, not session
           };
+
+          // Sync session role if it drifted from DB
+          if (ctx.session.role !== currentMembership.role) {
+            await sessions.save(response.headers, {
+              userId: ctx.session.userId,
+              currentOrganizationId: ctx.session.currentOrganizationId,
+              role: currentMembership.role,
+            });
+            ctx.session.role = currentMembership.role;
+          }
+        } else {
+          // Membership revoked — clear org context and redirect
+          await sessions.save(response.headers, {
+            userId: ctx.session.userId,
+            currentOrganizationId: null,
+            role: null,
+          });
+          response.headers.set("Location", "/");
+          return new Response(null, { status: 302, headers: response.headers });
         }
       }
     }
@@ -165,6 +185,17 @@ export default defineApp([
     prefix("/profile", layout(CustomerLayout, profileRoutes)),
 
     // Admin routes with admin header + nav
-    prefix("/admin", layout(AdminLayout, adminRoutes)),
+    prefix("/admin", [
+      ({ ctx, response }) => {
+        if (!ctx.user) {
+          response.headers.set("Location", "/login");
+          return new Response(null, { status: 302, headers: response.headers });
+        }
+        if (!hasAdminAccess(ctx)) {
+          return new Response("Forbidden", { status: 403 });
+        }
+      },
+      ...layout(AdminLayout, adminRoutes),
+    ]),
   ]),
 ]);

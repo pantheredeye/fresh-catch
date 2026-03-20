@@ -30,7 +30,8 @@ import type { AppContext } from "@/worker";
  */
 
 export function hasAdminAccess(ctx: AppContext): boolean {
-  return ['owner', 'manager'].includes(ctx.currentOrganization?.role || '');
+  return ctx.currentOrganization?.type === 'business' &&
+    ['owner', 'manager'].includes(ctx.currentOrganization.role);
 }
 
 export function isOwner(ctx: AppContext): boolean {
@@ -58,7 +59,7 @@ export function canAccessAdminRoutes(ctx: AppContext): boolean {
  * Currently owner-only, but extensible
  */
 export function canModifyMarkets(ctx: AppContext): boolean {
-  return isOwner(ctx); // Could extend to managers later
+  return ctx.currentOrganization?.type === 'business' && isOwner(ctx);
 }
 
 /**
@@ -67,4 +68,12 @@ export function canModifyMarkets(ctx: AppContext): boolean {
  */
 export function canManageSchedules(ctx: AppContext): boolean {
   return hasAdminAccess(ctx);
+}
+
+/**
+ * Check if user can manage team members and invites
+ * Owner-only
+ */
+export function canManageTeam(ctx: AppContext): boolean {
+  return ctx.currentOrganization?.type === 'business' && isOwner(ctx);
 }

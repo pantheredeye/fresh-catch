@@ -307,21 +307,7 @@ export async function addMembershipWithJoinCode(code: string) {
   });
 
   if (existingMembership) {
-    // Already a member - update role if different
-    if (existingMembership.role !== role) {
-      await db.membership.update({
-        where: {
-          userId_organizationId: {
-            userId: ctx.user.id,
-            organizationId: freshCatchOrg.id,
-          },
-        },
-        data: { role },
-      });
-      console.log(`✅ Updated ${ctx.user.username}'s role to ${role}`);
-    } else {
-      console.log(`User ${ctx.user.username} already has ${role} role`);
-    }
+    return { success: false, error: "You already have access to this organization" };
   } else {
     // Add new membership
     await db.membership.create({
