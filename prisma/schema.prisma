@@ -79,11 +79,12 @@ model Organization {
   defaultDepositBps Int?                  // Default deposit in basis points (optional)
   feeModel         String  @default("customer") // 'customer' | 'vendor' | 'split'
 
-  memberships Membership[] // Relationship: Organization can have multiple members
-  markets     Market[] // Relationship: Organization can have multiple markets
-  orders      Order[] // Relationship: Organization can have multiple orders
-  shareEvents ShareEvent[] // Relationship: Organization can have multiple share events
-  invites     Invite[] // Relationship: Organization can have multiple invites
+  memberships  Membership[] // Relationship: Organization can have multiple members
+  markets      Market[] // Relationship: Organization can have multiple markets
+  orders       Order[] // Relationship: Organization can have multiple orders
+  shareEvents  ShareEvent[] // Relationship: Organization can have multiple share events
+  invites      Invite[] // Relationship: Organization can have multiple invites
+  catchUpdates CatchUpdate[] // Relationship: Organization can have multiple catch updates
 }
 
 model Market {
@@ -240,4 +241,20 @@ model Invite {
 
   @@index([token])
   @@index([organizationId])
+}
+
+model CatchUpdate {
+  id               String   @id @default(uuid())
+  organizationId   String
+  recordedBy       String? // Which admin recorded this update
+  rawTranscript    String
+  formattedContent String // JSON: { headline, items[], summary }
+  status           String   @default("live") // "live" or "archived"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, status])
 }

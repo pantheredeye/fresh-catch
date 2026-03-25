@@ -41,6 +41,10 @@
       ]
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
+  // ANTHROPIC_API_KEY must be set as Workers secret: wrangler secret put ANTHROPIC_API_KEY
   "d1_databases": [
     {
       "binding": "DB",
