@@ -289,7 +289,7 @@ export function ToggleSwitch({
           ...toggleSwitchStyles,
           width: `${sizeConfig.width}px`,
           height: `${sizeConfig.height}px`,
-          backgroundColor: isChecked ? '#4CAF50' : '#e0e0e0',
+          backgroundColor: isChecked ? 'var(--color-status-success)' : 'var(--color-border-input)',
           ...(disabled ? disabledStyles : {})
         }}>
           <input
@@ -326,20 +326,20 @@ const inputGroupStyles: React.CSSProperties = {
 const labelStyles: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 600,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   textTransform: 'uppercase',
   letterSpacing: '1px',
   marginBottom: '4px',
 };
 
 const requiredStyles: React.CSSProperties = {
-  color: 'var(--coral)',
+  color: 'var(--color-action-secondary)',
   marginLeft: '2px',
 };
 
 const errorInputStyles: React.CSSProperties = {
-  borderColor: 'var(--coral)',
-  boxShadow: '0 0 0 3px rgba(255, 107, 107, 0.1)',
+  borderColor: 'var(--color-action-secondary)',
+  boxShadow: '0 0 0 3px var(--color-status-error-bg)',
 };
 
 const disabledStyles: React.CSSProperties = {
@@ -349,14 +349,14 @@ const disabledStyles: React.CSSProperties = {
 
 const errorTextStyles: React.CSSProperties = {
   fontSize: '12px',
-  color: 'var(--coral)',
+  color: 'var(--color-action-secondary)',
   marginTop: '4px',
   fontWeight: 500,
 };
 
 const helperTextStyles: React.CSSProperties = {
   fontSize: '12px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   marginTop: '4px',
 };
 
@@ -384,10 +384,10 @@ const selectWrapperStyles: React.CSSProperties = {
 
 const selectBaseStyles: React.CSSProperties = {
   width: '100%',
-  border: '2px solid #e0e0e0',
+  border: '2px solid var(--color-border-input)',
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--warm-white)',
-  color: 'var(--deep-navy)',
+  background: 'var(--color-surface-warm)',
+  color: 'var(--color-text-primary)',
   fontSize: '16px',
   fontFamily: 'var(--font-modern)',
   transition: 'all 0.3s ease',
@@ -395,12 +395,6 @@ const selectBaseStyles: React.CSSProperties = {
   appearance: 'none',
   cursor: 'pointer',
   paddingRight: '40px',
-
-  ':focus': {
-    borderColor: 'var(--ocean-blue)',
-    boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
-    background: 'white',
-  },
 };
 
 const selectArrowStyles: React.CSSProperties = {
@@ -409,7 +403,7 @@ const selectArrowStyles: React.CSSProperties = {
   top: '50%',
   transform: 'translateY(-50%)',
   fontSize: '12px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   pointerEvents: 'none',
 };
 
@@ -430,15 +424,15 @@ const inlineBaseStyles: React.CSSProperties = {
 };
 
 const inlinePrimaryStyles: React.CSSProperties = {
-  backgroundColor: 'white',
-  borderColor: 'var(--ocean-blue)',
-  color: 'var(--ocean-blue)',
+  backgroundColor: 'var(--color-surface-primary)',
+  borderColor: 'var(--color-action-primary)',
+  color: 'var(--color-action-primary)',
 };
 
 const inlineOutlineStyles: React.CSSProperties = {
   backgroundColor: 'transparent',
-  borderColor: '#e0e0e0',
-  color: 'var(--deep-navy)',
+  borderColor: 'var(--color-border-input)',
+  color: 'var(--color-text-primary)',
 };
 
 // Radio Styles
@@ -451,22 +445,22 @@ const radioLabelStyles: React.CSSProperties = {
   alignItems: 'center',
   gap: 'var(--space-sm)',
   padding: 'var(--space-md)',
-  border: '2px solid #e0e0e0',
+  border: '2px solid var(--color-border-input)',
   borderRadius: 'var(--radius-sm)',
   cursor: 'pointer',
   transition: 'all 0.3s ease',
-  background: 'var(--warm-white)',
+  background: 'var(--color-surface-warm)',
 };
 
 const radioSelectedStyles: React.CSSProperties = {
-  backgroundColor: '#e8f4ff',
-  borderColor: 'var(--ocean-blue)',
+  backgroundColor: 'var(--color-status-info-bg)',
+  borderColor: 'var(--color-action-primary)',
 };
 
 const radioIndicatorStyles: React.CSSProperties = {
   width: '20px',
   height: '20px',
-  border: '2px solid #ccc',
+  border: '2px solid var(--color-border-input-disabled)',
   borderRadius: '50%',
   display: 'flex',
   alignItems: 'center',
@@ -476,15 +470,15 @@ const radioIndicatorStyles: React.CSSProperties = {
 };
 
 const radioIndicatorSelectedStyles: React.CSSProperties = {
-  borderColor: 'var(--ocean-blue)',
-  backgroundColor: 'var(--ocean-blue)',
+  borderColor: 'var(--color-action-primary)',
+  backgroundColor: 'var(--color-action-primary)',
 };
 
 const radioIndicatorDotStyles: React.CSSProperties = {
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  backgroundColor: 'white',
+  backgroundColor: 'var(--color-surface-primary)',
 };
 
 const radioContentStyles: React.CSSProperties = {
@@ -497,12 +491,12 @@ const radioContentStyles: React.CSSProperties = {
 const radioLabelTextStyles: React.CSSProperties = {
   fontSize: '16px',
   fontWeight: 500,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
 };
 
 const radioDescriptionStyles: React.CSSProperties = {
   fontSize: '14px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
 };
 
 // Toggle Styles
@@ -527,13 +521,13 @@ const toggleTextContainerStyles: React.CSSProperties = {
 const toggleLabelTextStyles: React.CSSProperties = {
   fontSize: '16px',
   fontWeight: 500,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   marginBottom: '2px',
 };
 
 const toggleDescriptionStyles: React.CSSProperties = {
   fontSize: '14px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
 };
 
 const toggleSwitchStyles: React.CSSProperties = {
@@ -546,7 +540,7 @@ const toggleSwitchStyles: React.CSSProperties = {
 const toggleDotStyles: React.CSSProperties = {
   position: 'absolute',
   top: '2px',
-  backgroundColor: 'white',
+  backgroundColor: 'var(--color-surface-primary)',
   borderRadius: '50%',
   transition: 'transform 0.3s ease',
 };
@@ -562,6 +556,42 @@ const visuallyHiddenStyles: React.CSSProperties = {
   whiteSpace: 'nowrap',
   border: '0',
 };
+
+// Specialized Variants
+
+interface MarketToggleProps {
+  /** Market active state */
+  active?: boolean;
+  /** Market name for accessibility */
+  marketName?: string;
+  /** Disabled state */
+  disabled?: boolean;
+  /** Click handler */
+  onClick?: () => void;
+}
+
+/**
+ * MarketToggle - Specialized toggle for market active/paused states
+ *
+ * WHY: Common pattern in admin interface for toggling markets on/off.
+ * Adapts active/onClick API to ToggleSwitch checked/onChange API.
+ */
+export function MarketToggle({
+  active = false,
+  marketName = 'market',
+  disabled = false,
+  onClick
+}: MarketToggleProps) {
+  return (
+    <ToggleSwitch
+      checked={active}
+      onChange={onClick}
+      disabled={disabled}
+      size="sm"
+      className="market-toggle"
+    />
+  );
+}
 
 // TODO: Add these additional form controls:
 // - Checkbox

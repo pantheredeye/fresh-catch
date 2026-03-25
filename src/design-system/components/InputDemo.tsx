@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { TextInput, Textarea, TimeInput, TimeRow } from "./Input";
 import { Select, InlineSelect, RadioGroup, ToggleSwitch } from "./FormControls";
-import { Button } from "./Button";
+import { Button } from "../Button";
 import { Container } from "./Container";
 
 /**
@@ -201,14 +201,14 @@ const headerStyles: React.CSSProperties = {
 const titleStyles: React.CSSProperties = {
   fontSize: '32px',
   fontWeight: 700,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   fontFamily: 'var(--font-display)',
   marginBottom: 'var(--space-sm)',
 };
 
 const subtitleStyles: React.CSSProperties = {
   fontSize: '18px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   margin: 0,
 };
 
@@ -219,8 +219,8 @@ const formStyles: React.CSSProperties = {
 };
 
 const sectionStyles: React.CSSProperties = {
-  background: 'var(--surface-primary)',
-  border: '1px solid #f0f0f0',
+  background: 'var(--color-surface-primary)',
+  border: '1px solid var(--color-border-input)',
   borderRadius: 'var(--radius-lg)',
   padding: 'var(--space-xl)',
   boxShadow: 'var(--shadow-sm)',
@@ -232,7 +232,7 @@ const sectionStyles: React.CSSProperties = {
 const sectionTitleStyles: React.CSSProperties = {
   fontSize: '20px',
   fontWeight: 600,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   marginBottom: 'var(--space-sm)',
   fontFamily: 'var(--font-display)',
 };
@@ -241,7 +241,7 @@ const inlinePatternStyles: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   fontSize: '16px',
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   gap: '8px',
   fontWeight: 500,
 };
@@ -249,14 +249,14 @@ const inlinePatternStyles: React.CSSProperties = {
 const previewStyles: React.CSSProperties = {
   marginTop: 'var(--space-md)',
   padding: 'var(--space-md)',
-  background: '#f0f8ff',
-  border: '1px solid #b3d9ff',
+  background: 'var(--color-surface-secondary)',
+  border: '1px solid var(--color-border-light)',
   borderRadius: 'var(--radius-sm)',
 };
 
 const previewLabelStyles: React.CSSProperties = {
   fontSize: '11px',
-  color: 'var(--ocean-blue)',
+  color: 'var(--color-action-primary)',
   fontWeight: 600,
   textTransform: 'uppercase',
   marginBottom: '6px',
@@ -264,7 +264,7 @@ const previewLabelStyles: React.CSSProperties = {
 
 const previewTextStyles: React.CSSProperties = {
   fontSize: '14px',
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
 };
 
 const actionSectionStyles: React.CSSProperties = {
@@ -275,21 +275,21 @@ const actionSectionStyles: React.CSSProperties = {
 const guideStyles: React.CSSProperties = {
   marginTop: 'var(--space-2xl)',
   padding: 'var(--space-xl)',
-  background: 'var(--glass-dark)',
+  background: 'var(--color-glass-dark)',
   borderRadius: 'var(--radius-lg)',
-  border: '1px solid rgba(0, 102, 204, 0.1)',
+  border: '1px solid var(--color-border-subtle)',
 };
 
 const guideTitleStyles: React.CSSProperties = {
   fontSize: '18px',
   fontWeight: 600,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   marginBottom: 'var(--space-md)',
 };
 
 const guideListStyles: React.CSSProperties = {
   margin: 0,
   paddingLeft: 'var(--space-md)',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   lineHeight: 1.6,
 };

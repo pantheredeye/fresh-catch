@@ -25,11 +25,11 @@ export function FreshHero({
     margin: 'var(--space-md)',
     borderRadius: 'var(--radius-xl)',
     padding: 'var(--space-xl)',
-    background: 'var(--ocean-gradient)',
+    background: 'var(--color-gradient-primary)',
     position: 'relative',
     overflow: 'hidden',
     boxShadow: 'var(--shadow-lg)',
-    color: 'white'
+    color: 'var(--color-text-inverse)'
   }
 
 
@@ -105,15 +105,15 @@ interface FreshItemProps {
 
 export function FreshItem({ emoji, children, className = '' }: FreshItemProps) {
   const itemStyle: React.CSSProperties = {
-    background: 'var(--glass-white)',
-    color: 'var(--deep-navy)',
+    background: 'var(--color-glass-base)',
+    color: 'var(--color-text-primary)',
     padding: 'var(--space-md) var(--space-sm)',
     borderRadius: 'var(--radius-md)',
     textAlign: 'center',
     fontWeight: 600,
     fontSize: '14px',
     backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255,255,255,0.3)'
+    border: '1px solid var(--color-glass-border-medium)'
   }
 
   const emojiStyle: React.CSSProperties = {

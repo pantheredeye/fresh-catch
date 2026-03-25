@@ -6,13 +6,11 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 import {
+  createBusinessForLoggedInUser,
   finishBusinessOwnerRegistration,
   startBusinessOwnerRegistration,
 } from "./functions";
-import { TextInput } from "@/design-system/components/Input";
-import { Button } from "@/design-system/components/Button";
-import { Container } from "@/design-system/components/Container";
-import "@/design-system/tokens.css";
+import { TextInput, Button, Container, Card } from "@/design-system";
 
 /**
  * Business Owner Setup - Admin registration flow with enhanced UX
@@ -55,14 +53,55 @@ import "@/design-system/tokens.css";
  * - Business logo upload during setup
  */
 export function Setup({ ctx }: { ctx: any }) {
+  const isLoggedIn = !!ctx.user;
   const [username, setUsername] = useState("evan");
   const [businessName, setBusinessName] = useState("Fresh Catch Seafood Markets");
+  const [slug, setSlug] = useState("fresh-catch-seafood-markets");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
 
+  // Auto-generate slug from business name
+  useEffect(() => {
+    const autoSlug = businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
+    setSlug(autoSlug);
+  }, [businessName]);
+
   const handleBusinessOwnerSetup = async () => {
-    if (!username.trim() || !businessName.trim()) {
+    // If logged in, use simpler flow (no WebAuthn)
+    if (isLoggedIn) {
+      if (!businessName.trim() || !slug.trim()) {
+        setStatus('error');
+        setMessage('Please fill in all fields');
+        return;
+      }
+
+      setStatus('loading');
+      setMessage('Creating your business...');
+
+      try {
+        const result = await createBusinessForLoggedInUser(businessName, slug);
+
+        if (!result.success) {
+          throw new Error(result.error || "Business creation failed");
+        }
+
+        setStatus('success');
+        setMessage(`Success! Your business "${businessName}" is ready.`);
+        setCountdown(3);
+
+      } catch (error) {
+        setStatus('error');
+        setMessage(error instanceof Error ? error.message : "Business creation failed. Please try again.");
+      }
+      return;
+    }
+
+    // If not logged in, use full WebAuthn registration flow
+    if (!username.trim() || !businessName.trim() || !slug.trim()) {
       setStatus('error');
       setMessage('Please fill in all fields');
       return;
@@ -82,7 +121,7 @@ export function Setup({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing setup...');
-      const success = await finishBusinessOwnerRegistration(username, businessName, registration);
+      const success = await finishBusinessOwnerRegistration(username, businessName, slug, registration);
 
       if (!success) {
         throw new Error("Business owner setup failed. User may already have credentials.");
@@ -103,7 +142,7 @@ export function Setup({ ctx }: { ctx: any }) {
     if (status === 'success' && countdown > 0) {
       const timer = setTimeout(() => {
         if (countdown === 1) {
-          window.location.href = '/user/login';
+          window.location.href = '/admin';
         } else {
           setCountdown(countdown - 1);
         }
@@ -114,80 +153,73 @@ export function Setup({ ctx }: { ctx: any }) {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--mint-green)';
-      case 'error': return 'var(--coral)';
-      case 'loading': return 'var(--sky-blue)';
-      default: return 'var(--soft-gray)';
+      case 'success': return 'var(--color-status-success)';
+      case 'error': return 'var(--color-status-error)';
+      case 'loading': return 'var(--color-status-info)';
+      default: return 'var(--color-text-tertiary)';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--deep-navy)';
-      case 'error': return 'white';
-      case 'loading': return 'var(--deep-navy)';
-      default: return 'var(--deep-navy)';
+      case 'success': return 'var(--color-text-primary)';
+      case 'error': return 'var(--color-text-inverse)';
+      case 'loading': return 'var(--color-text-primary)';
+      default: return 'var(--color-text-primary)';
     }
   };
 
   return (
-    <Container>
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--space-md)',
-      }}>
-        <div style={{
-          background: 'var(--surface-primary)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-2xl)',
-          maxWidth: '480px',
-          width: '100%',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--soft-gray)'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: 'var(--space-xl)'
-          }}>
-            <h1 style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
+    <Container size="sm">
+      <Card variant="centered" maxWidth="480px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+          <h1
+            style={{
+              fontSize: 'var(--font-size-3xl)',
+              fontWeight: 'var(--font-weight-bold)',
+              color: 'var(--color-text-primary)',
               fontFamily: 'var(--font-display)',
-              marginBottom: 'var(--space-sm)'
-            }}>
-              Business Owner Setup
-            </h1>
-            <p style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            {isLoggedIn ? 'Create Your Business' : 'Business Owner Setup'}
+          </h1>
+          <p
+            style={{
+              fontSize: 'var(--font-size-md)',
+              color: 'var(--color-text-secondary)',
               margin: 0,
-              lineHeight: 1.5
-            }}>
-              Register your business owner account with secure passkey authentication
-            </p>
-          </div>
+              lineHeight: 'var(--line-height-base)'
+            }}
+          >
+            {isLoggedIn
+              ? `Logged in as ${ctx.user?.username}. Set up your business below.`
+              : 'Register your business owner account with secure passkey authentication'}
+          </p>
+        </div>
 
-          <form onSubmit={(e) => {
+        <form
+          onSubmit={(e) => {
             e.preventDefault();
             handleBusinessOwnerSetup();
-          }} style={{
+          }}
+          style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 'var(--space-lg)'
-          }}>
-            <TextInput
-              label="Username"
-              placeholder="e.g., evan"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={status === 'loading' || status === 'success'}
-              size="lg"
-            />
+            gap: 'var(--space-md)'
+          }}
+        >
+            {!isLoggedIn && (
+              <TextInput
+                label="Username"
+                placeholder="e.g., evan"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={status === 'loading' || status === 'success'}
+                size="lg"
+              />
+            )}
 
             <TextInput
               label="Business Name"
@@ -199,6 +231,17 @@ export function Setup({ ctx }: { ctx: any }) {
               size="lg"
             />
 
+            <TextInput
+              label="URL Slug"
+              placeholder="e.g., evan or fresh-catch"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              required
+              disabled={status === 'loading' || status === 'success'}
+              size="lg"
+              helperText={`Your customer page: yoursite.com/?b=${slug || 'your-slug'}`}
+            />
+
             <Button
               type="submit"
               variant="primary"
@@ -206,71 +249,68 @@ export function Setup({ ctx }: { ctx: any }) {
               fullWidth
               disabled={status === 'loading' || status === 'success'}
             >
-              {status === 'loading' ? 'Setting up...' :
-               status === 'success' ? '✓ Setup Complete' :
-               'Setup Business Account'}
-            </Button>
-          </form>
+              {status === 'loading'
+                ? (isLoggedIn ? 'Creating Business...' : 'Setting up...')
+                : status === 'success'
+                  ? '✓ Setup Complete'
+                  : (isLoggedIn ? 'Create Business' : 'Setup Business Account')}
+          </Button>
+        </form>
 
-          {message && (
-            <div style={{
-              marginTop: 'var(--space-lg)',
+        {message && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
               padding: 'var(--space-md)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '14px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--font-size-sm)',
               textAlign: 'center',
-              background: getStatusColor(),
-              color: getStatusTextColor(),
-              border: `1px solid ${getStatusColor()}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 'var(--space-xs)'
-            }}>
-              {status === 'loading' && <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid currentColor',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />}
-              <span>
-                {message}
-                {status === 'success' && countdown > 0 && (
-                  <> Redirecting in {countdown}...</>
-                )}
-              </span>
-            </div>
-          )}
-
-          {status === 'success' && (
-            <div style={{
-              marginTop: 'var(--space-md)',
-              textAlign: 'center'
-            }}>
-              <a
-                href="/user/login"
+              gap: 'var(--space-xs)',
+              background: getStatusColor(),
+              color: getStatusTextColor(),
+              border: `1px solid ${getStatusColor()}`
+            }}
+          >
+            {status === 'loading' && (
+              <div
                 style={{
-                  color: 'var(--ocean-blue)',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: 500
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid currentColor',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
                 }}
-              >
-                Go to login now →
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
+              />
+            )}
+            <span>
+              {message}
+              {status === 'success' && countdown > 0 && (
+                <> Redirecting in {countdown}...</>
+              )}
+            </span>
+          </div>
+        )}
 
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+        {status === 'success' && (
+          <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+            <a
+              href="/admin"
+              style={{
+                color: 'var(--color-action-primary)',
+                textDecoration: 'none',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-medium)'
+              }}
+            >
+              Go to dashboard now →
+            </a>
+          </div>
+        )}
+      </Card>
     </Container>
   );
 }

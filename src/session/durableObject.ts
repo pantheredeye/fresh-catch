@@ -4,6 +4,7 @@ import { DurableObject } from "cloudflare:workers";
 export interface Session {
   userId?: string | null;
   challenge?: string | null;
+  challengeCreatedAt?: number | null;
   createdAt: number;
   currentOrganizationId?: string | null;
   role?: string | null;
@@ -30,6 +31,7 @@ export class SessionDurableObject extends DurableObject {
     const session: Session = {
       userId,
       challenge,
+      challengeCreatedAt: challenge ? Date.now() : null,
       createdAt: Date.now(),
       currentOrganizationId,
       role,

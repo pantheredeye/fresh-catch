@@ -74,19 +74,19 @@ Previous conversions created "fake phone containers" - HTML that simulated mobil
 
 ## Color Psychology & Usage
 
-### Ocean Theme (Trust & Freshness)
+### Ocean Theme (Trust & Freshness) → `--color-action-primary`
 - **Primary**: Ocean gradient - trustworthy, clean water association
 - **Usage**: Main CTAs, branding, primary navigation
 
-### Coral/Salmon (Appetite & Warmth)  
+### Coral/Salmon (Appetite & Warmth) → `--color-action-secondary`
 - **Secondary**: Coral gradient - warm, appetizing, alert color
 - **Usage**: Secondary actions, alerts, warm accents
 
-### Mint Fresh (Energy & Success)
+### Mint Fresh (Energy & Success) → `--color-status-success`
 - **Accent**: Seafoam green - fresh, energetic, success states
 - **Usage**: "Fresh" badges, success messages, availability indicators
 
-### Warm Gold (Premium & Special)
+### Warm Gold (Premium & Special) → `--color-accent-gold`
 - **Premium**: Market gold - special items, favorites
 - **Usage**: Star ratings, premium items, special offers
 
@@ -182,3 +182,128 @@ function MarketCard({ market, ctx }) {
 - File upload with drag & drop
 - Date/time pickers
 - Multi-select dropdown
+
+## Design Token System
+
+### Three-Tier Token Architecture
+
+Tokens follow a **Brand → Alias → Component** hierarchy:
+- **Brand layer**: Raw values (`brand.color.blue.500 = #0066CC`) — defined in `tokens-three-tier.json`
+- **Alias layer**: Semantic names (`--color-action-primary`) — used in CSS
+- **Component layer**: Component-specific tokens (`component.button.primary.background`) — for Figma
+
+**All code uses the alias layer.** Brand tokens exist only as the source; component tokens exist only for Figma.
+
+### Token Naming Convention
+
+- Colors: `--color-{category}-{variant}` (e.g., `--color-text-primary`, `--color-action-primary`, `--color-surface-secondary`)
+- Font sizes: `--font-size-{scale}` (e.g., `--font-size-sm`, `--font-size-xl`)
+- Spacing: `--space-{size}` (e.g., `--space-md`, `--space-xl`)
+- Radius: `--radius-{size}` (e.g., `--radius-md`, `--radius-full`)
+- Motion: `--duration-{speed}`, `--ease-out`
+
+### Token Usage Requirements
+
+**CRITICAL: All components MUST use semantic alias tokens**
+
+#### Required Token Usage:
+1. **Colors**: `var(--color-text-primary)`, `var(--color-surface-primary)`, etc.
+2. **Spacing**: `var(--space-md)`, `var(--space-lg)`, etc.
+3. **Typography**: `var(--font-size-md)`, `.heading-xl`, etc.
+4. **Borders**: `var(--color-border-light)`, `var(--radius-md)`, etc.
+
+#### NEVER:
+- Use old flat token names (`--deep-navy`, `--ocean-blue`, `--cool-gray`, `--coral`, `--mint-fresh`, `--warm-gold`, `--light-gray`, `--warm-white`) — these no longer exist
+- Hardcode hex colors (`#1A2B3D`)
+- Hardcode pixel values for spacing (`20px`)
+- Hardcode font sizes (`16px`)
+- Use `rgba()` without tokens (`rgba(255,255,255,0.1)`)
+
+#### Pattern:
+```tsx
+// ✅ GOOD
+const styles: CSSProperties = {
+  background: 'var(--color-surface-primary)',  // Auto-adapts to dark mode
+  color: 'var(--color-text-primary)',
+  padding: 'var(--space-md)',
+  fontSize: 'var(--font-size-md)',
+  borderRadius: 'var(--radius-md)',
+};
+
+// ❌ BAD
+const styles: CSSProperties = {
+  background: 'white',      // Breaks in dark mode
+  color: '#1A2B3D',         // Breaks in dark mode
+  padding: '20px',          // No token
+  fontSize: '16px',         // No token
+};
+```
+
+### Dark Mode Compatibility
+
+**All components MUST work in both light and dark modes**
+
+#### Dark Mode Testing Checklist:
+- [ ] Test with browser DevTools dark mode emulation
+- [ ] All text has sufficient contrast (use `/dark-mode-test` page)
+- [ ] Borders are visible
+- [ ] Glass effects are visible (not invisible white)
+- [ ] Input states are distinguishable
+- [ ] Focus states are visible
+- [ ] Disabled states are clear
+
+#### Browser Testing:
+```
+Chrome/Edge: DevTools > Rendering > prefers-color-scheme: dark
+Firefox: DevTools > Settings > prefers-color-scheme: dark
+Safari: Develop > Experimental > Dark Mode Override
+```
+
+#### Auto-Adapting Tokens:
+These tokens automatically change in dark mode:
+- `--color-text-primary`: Dark navy → Light gray
+- `--color-text-secondary`: Cool gray → Lighter gray
+- `--color-surface-primary`: White → Dark gray (#1f2937)
+- `--color-bg-primary`: Warm white → Very dark gray (#111827)
+- `--color-border-light`: Subtle blue → Visible tinted
+- `--color-glass-light`: Light glass → Dark glass
+- `--color-input-border`: Light gray → Tinted green
+
+### Component Enforcement
+
+#### For New Components:
+1. **Start with template**: Copy `src/design-system/COMPONENT_TEMPLATE.tsx`
+2. **Use utility classes**: Typography, layout, common patterns
+3. **Use tokens in styles**: ALL colors, spacing, typography
+4. **Test in dark mode**: Before committing
+
+#### For Modified Components:
+1. **Only fix if broken**: Don't refactor working components for token purity
+2. **Fix dark mode issues**: Replace hardcoded values causing dark mode bugs
+3. **Opportunistic replacement**: If editing a component, replace nearby hardcoded values
+
+#### Resources:
+- **Quick Reference**: `src/design-system/README.md`
+- **Template**: `src/design-system/COMPONENT_TEMPLATE.tsx`
+- **All Tokens**: `src/design-system/tokens.css`
+- **Test Page**: `/dark-mode-test`
+
+### Figma Integration
+
+#### Export Tokens to Figma:
+```bash
+pnpm run tokens:export
+```
+
+Generates `src/design-system/tokens-three-tier.json` compatible with Figma Tokens plugin.
+
+#### Token Structure:
+- **66 light mode tokens**: Colors, spacing, typography, shadows
+- **20 dark mode overrides**: Surfaces, borders, glass effects
+- **Categories**: color, spacing, sizing, typography, shadows
+
+#### Workflow:
+1. Design in Figma using exported tokens
+2. Import tokens-three-tier.json to Figma Tokens plugin
+3. Build components referencing same token names (three-tier: primitive → semantic → component)
+4. Two-way consistency maintained

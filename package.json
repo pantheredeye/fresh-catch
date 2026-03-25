@@ -24,18 +24,31 @@
     "generate": "rw-scripts ensure-env && prisma generate && wrangler types",
     "check": "npm run generate && npm run types",
     "types": "tsc",
+    "tokens:export": "node scripts/export-tokens.js",
     "prepare": "vibe-rules install cursor"
   },
   "dependencies": {
+    "@base-ui/react": "^1.0.0",
     "@prisma/adapter-d1": "~6.8.2",
     "@prisma/client": "~6.8.2",
+    "@react-email/components": "^1.0.2",
     "@simplewebauthn/browser": "^13.1.0",
     "@simplewebauthn/server": "^13.1.1",
-    "rwsdk": "0.1.39"
+    "@stripe/stripe-js": "^8.9.0",
+    "@types/qrcode": "^1.5.6",
+    "capnweb": "~0.2.0",
+    "qrcode": "^1.5.4",
+    "react": "19.3.0-canary-06fcc8f3-20251009",
+    "react-dom": "19.3.0-canary-06fcc8f3-20251009",
+    "react-email": "^5.1.0",
+    "react-server-dom-webpack": "19.3.0-canary-06fcc8f3-20251009",
+    "resend": "^6.6.0",
+    "rwsdk": "1.0.0-beta.42",
+    "stripe": "^20.4.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.7.4",
-    "@cloudflare/workers-types": "^4.20250407.0",
+    "@cloudflare/vite-plugin": "1.13.12",
+    "@cloudflare/workers-types": "^4.20251011.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
@@ -43,7 +56,7 @@
     "typescript": "^5.8.3",
     "vibe-rules": "^0.2.31",
     "vite": "^6.2.6",
-    "wrangler": "^4.20.5"
+    "wrangler": "^4.42.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

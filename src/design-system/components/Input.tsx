@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, ReactNode } from "react";
+import { forwardRef, ReactNode, useId } from "react";
 
 // Base Input Types
 export interface BaseInputProps {
@@ -10,6 +10,7 @@ export interface BaseInputProps {
   disabled?: boolean;
   className?: string;
   helperText?: string;
+  style?: React.CSSProperties;
 }
 
 // Text Input
@@ -23,6 +24,7 @@ export interface TextInputProps extends BaseInputProps {
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   icon?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  autoFocus?: boolean;
 }
 
 /**
@@ -47,9 +49,10 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(({
   onFocus,
   icon,
   size = 'md',
+  style,
   ...props
 }, ref) => {
-  const inputId = `input-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = useId();
 
   return (
     <div className={`input-group ${className}`} style={inputGroupStyles}>
@@ -79,7 +82,8 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(({
             ...sizeStyles[size],
             ...(icon ? { paddingLeft: '44px' } : {}),
             ...(error ? errorInputStyles : {}),
-            ...(disabled ? disabledStyles : {})
+            ...(disabled ? disabledStyles : {}),
+            ...style
           }}
           {...props}
         />
@@ -127,7 +131,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
   resize = 'vertical',
   ...props
 }, ref) => {
-  const inputId = `textarea-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = useId();
 
   return (
     <div className={`input-group ${className}`} style={inputGroupStyles}>
@@ -256,14 +260,14 @@ const inputGroupStyles: React.CSSProperties = {
 const labelStyles: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 600,
-  color: 'var(--deep-navy)',
+  color: 'var(--color-text-primary)',
   textTransform: 'uppercase',
   letterSpacing: '1px',
   marginBottom: '4px',
 };
 
 const requiredStyles: React.CSSProperties = {
-  color: 'var(--coral)',
+  color: 'var(--color-action-secondary)',
   marginLeft: '2px',
 };
 
@@ -277,33 +281,20 @@ const iconStyles: React.CSSProperties = {
   position: 'absolute',
   left: '12px',
   zIndex: 1,
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   fontSize: '16px',
 };
 
 const inputBaseStyles: React.CSSProperties = {
   width: '100%',
-  border: '2px solid #e0e0e0',
+  border: '2px solid var(--color-border-input)',
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--warm-white)',
-  color: 'var(--deep-navy)',
+  background: 'var(--color-surface-primary)',
+  color: 'var(--color-text-primary)',
   fontSize: '16px',
   fontFamily: 'var(--font-modern)',
   transition: 'all 0.3s ease',
   outline: 'none',
-
-  // Focus states
-  ':focus': {
-    borderColor: 'var(--ocean-blue)',
-    boxShadow: '0 0 0 3px rgba(0, 102, 204, 0.1)',
-    background: 'white',
-  },
-
-  // Placeholder
-  '::placeholder': {
-    color: 'var(--cool-gray)',
-    opacity: 0.7,
-  },
 };
 
 const sizeStyles = {
@@ -329,26 +320,26 @@ const textareaStyles: React.CSSProperties = {
 };
 
 const errorInputStyles: React.CSSProperties = {
-  borderColor: 'var(--coral)',
-  boxShadow: '0 0 0 3px rgba(255, 107, 107, 0.1)',
+  borderColor: 'var(--color-action-secondary)',
+  boxShadow: '0 0 0 3px var(--color-status-error-bg)',
 };
 
 const disabledStyles: React.CSSProperties = {
   opacity: 0.6,
   cursor: 'not-allowed',
-  backgroundColor: '#f8f8f8',
+  background: 'var(--color-input-disabled-bg)',
 };
 
 const errorTextStyles: React.CSSProperties = {
   fontSize: '12px',
-  color: 'var(--coral)',
+  color: 'var(--color-action-secondary)',
   marginTop: '4px',
   fontWeight: 500,
 };
 
 const helperTextStyles: React.CSSProperties = {
   fontSize: '12px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   marginTop: '4px',
 };
 
@@ -361,7 +352,7 @@ const timeRowStyles: React.CSSProperties = {
 
 const timeRowLabelStyles: React.CSSProperties = {
   fontSize: '14px',
-  color: 'var(--cool-gray)',
+  color: 'var(--color-text-secondary)',
   fontWeight: 500,
   minWidth: 'fit-content',
 };

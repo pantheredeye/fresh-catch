@@ -1,0 +1,34 @@
+/**
+ * LiveBanner - Shows when market is currently live
+ *
+ * WHY: Creates urgency and indicates real-time availability.
+ * Pulsing dot animation draws attention to live status.
+ *
+ * TODO: Connect to actual market live status instead of always showing
+ */
+export function LiveBanner() {
+  return (
+    <div style={{
+      background: 'var(--color-status-success)',
+      color: 'var(--color-text-inverse)',
+      padding: 'var(--space-sm)',
+      textAlign: 'center',
+      fontSize: 'var(--font-size-sm)',
+      fontWeight: 'var(--font-weight-semibold)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 'var(--space-sm)'
+    }}>
+      <span style={{
+        width: '8px',
+        height: '8px',
+        background: 'white',
+        borderRadius: '50%',
+        boxShadow: '0 0 0 2px var(--color-glass-border-medium)',
+        animation: 'live-pulse 2s ease-in-out infinite'
+      }} />
+      <span>LIVE at Livingston Market</span>
+    </div>
+  );
+}

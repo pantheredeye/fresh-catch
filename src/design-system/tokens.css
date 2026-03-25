@@ -1,41 +1,68 @@
 /* Design Tokens - Modern Fresh System */
-/* 
-WHY: Evolved from "Market Fresh Hybrid" - balances authentic seafood market feel 
+/*
+WHY: Evolved from "Market Fresh Hybrid" - balances authentic seafood market feel
 with Instagram-ready modern appeal for broader demographics
 */
 
+/* Global Resets - Prevent Horizontal Scroll */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg-primary);
+}
+
+/* Content Width Constraint - Single Source of Truth */
+/* WHY: Ensures all content (header, nav, main) aligns perfectly */
+.content-wrapper {
+  max-width: var(--width-lg);
+  margin: 0 auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
+  }
+}
+
 :root {
-  /* Colors - Vibrant Ocean Theme with Market Authenticity */
-  /* WHY: Ocean gradients feel fresh and premium, coral adds warmth and appetite appeal */
-  --ocean-gradient: linear-gradient(135deg, #0066CC, #00A896);
-  --coral-gradient: linear-gradient(135deg, #FF6B6B, #FFB366);
-  
-  /* Core Brand Colors */
-  --mint-fresh: #00D9B1;        /* WHY: "Fresh" badges, success states - seafoam green energy */
-  --ocean-blue: #0066CC;         /* WHY: Primary brand - trustworthy ocean blue */
-  --coral: #FF6B6B;             /* WHY: Alert/action color - warm salmon appetite appeal */
-  --warm-gold: #F59E0B;         /* WHY: Favorites, special items - market premium feel */
-  
-  /* Base System - Market Fresh Hybrid */
-  --warm-white: #FFFCF8;        /* WHY: Warm white with subtle grain feel, not clinical */
-  --deep-navy: #1A2B3D;         /* WHY: Deep navy text instead of pure black - softer, market-like */
-  --cool-gray: #64748B;         /* WHY: Muted text, professional but approachable */
-  --light-gray: #F1F5F9;        /* WHY: Subtle backgrounds that don't compete */
-  
-  /* Adaptive Surface Colors - Dark Mode Compatible */
-  --surface-primary: white;     /* Cards, main surfaces - adapts in dark mode */
-  --surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03)); /* Favorite cards with mint tint */
-  
-  /* Glass Effects - Modern Premium Feel */
-  /* WHY: Glassmorphism feels Instagram-ready and premium like high-end seafood markets */
-  --glass-white: rgba(255,252,248,0.8);  /* Using warm white base */
-  --glass-dark: rgba(26,43,61,0.03);     /* Using deep navy base */
-  
   /* Typography Mix - Authentic but Clean */
   /* WHY: System fonts feel familiar, monospace adds market authenticity for prices/times */
   --font-modern: 'DM Sans', -apple-system, system-ui;  /* Body text - familiar */
   --font-display: 'DM Sans', system-ui;                /* Headers - clean but not excessive */
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace; /* Prices, times - trustworthy */
+
+  /* Typography Scale - Figma-Ready */
+  /* WHY: Single source of truth for text sizes, consistent hierarchy */
+  --font-size-xs: 12px;   /* Labels, helper text, captions */
+  --font-size-sm: 14px;   /* Secondary text, small buttons */
+  --font-size-md: 16px;   /* Body text, inputs (default) */
+  --font-size-lg: 18px;   /* Large body, section headers */
+  --font-size-xl: 20px;   /* Card titles, subsection headers */
+  --font-size-2xl: 24px;  /* Page headers */
+  --font-size-3xl: 28px;  /* Hero titles */
+  --font-size-4xl: 32px;  /* Major hero text */
+  --font-size-5xl: 40px;  /* Landing page heroes */
+
+  /* Font Weights - Semantic */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights - Readability */
+  --line-height-tight: 1.2;    /* Headers */
+  --line-height-base: 1.5;     /* Body text */
+  --line-height-relaxed: 1.6;  /* Long form content */
   
   /* Spacing System - Instagram-Ready Generous */
   /* WHY: Generous spacing feels premium and photographs well for social media */
@@ -45,6 +72,13 @@ with Instagram-ready modern appeal for broader demographics
   --space-lg: 28px;  /* Section spacing */
   --space-xl: 40px;  /* Major section breaks */
   --space-2xl: 56px; /* Hero/feature spacing */
+
+  /* Width System - Mobile-First Responsive */
+  /* WHY: Consistent max-widths across app, full mobile, constrained desktop */
+  --width-sm: 450px;   /* Auth forms, focused single-task flows */
+  --width-md: 800px;   /* Content pages, readable line length */
+  --width-lg: 1200px;  /* Dashboards, admin/customer layouts */
+  --width-xl: 1400px;  /* Wide layouts, data tables */
   
   /* Border Radii - Bold but Not Excessive */
   /* WHY: 12px base radius = confident but not over-designed, feels premium */
@@ -61,6 +95,107 @@ with Instagram-ready modern appeal for broader demographics
   --shadow-lg: 0 20px 40px rgba(0,102,204,0.15); /* Floating elements */
   --shadow-coral: 0 8px 24px rgba(255,107,107,0.2); /* Action elements */
   --shadow-gold: 0 8px 24px rgba(245,158,11,0.2);   /* Favorite/special items */
+
+  /* Utility Tokens */
+  --radius-xs: 6px;
+  --letter-spacing-wide: 0.5px;
+  --letter-spacing-wider: 1px;
+  --blur-sm: 5px;
+  --blur-md: 10px;
+
+  /* === Semantic Color Aliases (three-tier alias layer) === */
+
+  /* Text */
+  --color-text-primary: #1A2B3D;
+  --color-text-secondary: #64748B;
+  --color-text-tertiary: #94A3B8;
+  --color-text-inverse: white;
+
+  /* Actions */
+  --color-action-primary: #0066CC;
+  --color-action-primary-hover: #0052A3;
+  --color-action-secondary: #FF6B6B;
+  --color-action-secondary-accent: #FFB366;
+
+  /* Status */
+  --color-status-success: #00D9B1;
+  --color-status-warning: #F59E0B;
+  --color-status-error: #FF6B6B;
+
+  /* Accent */
+  --color-accent-gold: #F59E0B;
+
+  /* Surfaces */
+  --color-surface-primary: white;
+  --color-surface-secondary: #F1F5F9;
+  --color-surface-warm: #FFFCF8;
+  --color-surface-overlay: rgba(0,0,0,0.5);
+
+  /* Borders */
+  --color-border-subtle: rgba(0, 102, 204, 0.08);
+  --color-border-light: rgba(0, 102, 204, 0.12);
+  --color-border-medium: rgba(0, 102, 204, 0.2);
+  --color-border-input: #E8EFF5;
+  --color-border-input-disabled: #CBD5E1;
+
+  /* Backgrounds */
+  --color-bg-primary: #FFFCF8;
+  --color-bg-elevated: white;
+
+  /* Extra Color Aliases */
+  --color-coral: #FF6B6B;
+  --color-coral-vivid: #FF5252;
+  --color-danger: #EF4444;
+  --color-ocean-vivid: #0077E6;
+  --color-white: #FFFFFF;
+
+  /* Shadow - Extra */
+  --shadow-xl: 0 25px 50px rgba(0, 102, 204, 0.2);
+
+  /* Gradient Aliases */
+  --color-gradient-primary: linear-gradient(135deg, #0066CC, #00A896);
+  --color-gradient-secondary: linear-gradient(135deg, #FF6B6B, #FFB366);
+
+  /* Surface Extended */
+  --color-surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03));
+  --color-bg-footer: linear-gradient(135deg, rgba(0,102,204,0.03), rgba(0,169,150,0.03));
+
+  /* Glass Effects */
+  --color-glass-base: rgba(255,252,248,0.8);
+  --color-glass-dark: rgba(26,43,61,0.03);
+  --color-glass-subtle: rgba(255, 252, 248, 0.05);
+  --color-glass-light: rgba(255, 252, 248, 0.1);
+  --color-glass-medium: rgba(255, 252, 248, 0.2);
+  --color-glass-border-light: rgba(255, 255, 255, 0.2);
+  --color-glass-border-medium: rgba(255, 255, 255, 0.3);
+
+  /* Input Colors */
+  --color-input-bg: white;
+  --color-input-border: #e0e0e0;
+  --color-input-disabled-bg: #f8f8f8;
+
+  /* Status Extended */
+  --color-status-info: #0EA5E9;
+  --color-status-info-bg: #e0f2fe;
+  --color-status-warning-bg: #fef3c7;
+  --color-status-success-bg: #ECFDF5;
+  --color-status-success-border: #10B981;
+  --color-status-warning-border: #F59E0B;
+  --color-status-error-bg: rgba(255, 107, 107, 0.1);
+  --color-status-error-border: rgba(255, 107, 107, 0.3);
+
+  /* Typography Shorthand Aliases */
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 /* Component Styles - RSC Compatible */
@@ -101,7 +236,7 @@ with Instagram-ready modern appeal for broader demographics
 
 .btn--outline:hover:not(:disabled) {
   background: rgba(0,102,204,0.05);
-  border-color: var(--ocean-blue);
+  border-color: var(--color-action-primary);
 }
 
 .btn--ghost:hover:not(:disabled) {
@@ -154,49 +289,360 @@ with Instagram-ready modern appeal for broader demographics
 }
 
 @keyframes float {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg); 
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
   }
-  50% { 
-    transform: translate(-30px, -30px) rotate(180deg); 
+  50% {
+    transform: translate(-30px, -30px) rotate(180deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
 /* Semantic Usage - Modern Fresh Guidelines */
 /*
-PRIMARY ACTIONS: 
-- Thick borders + ocean-gradient
-- WHY: Confidence, stands out in photos
+PRIMARY ACTIONS: --color-action-primary (ocean gradient)
+SECONDARY ACTIONS: --color-action-secondary (coral)
+SUCCESS/FRESH: --color-status-success (mint)
+WARNINGS: --color-status-warning (gold)
+ERRORS: --color-status-error (coral/red)
+PREMIUM/FAVORITES: --color-accent-gold
 
-FRESH/SUCCESS STATES:
-- mint-fresh with subtle bounce animation
-- WHY: Energy, excitement about fresh catch
+SURFACES: --color-surface-primary (cards), --color-bg-primary (page)
+TEXT: --color-text-primary (headings), --color-text-secondary (muted)
+BORDERS: --color-border-subtle, --color-border-light, --color-border-input
 
-FAVORITES/PREMIUM:
-- warm-gold accents
-- WHY: Market premium feel, special items
-
-BACKGROUNDS:
-- warm-white base (never pure white)
-- WHY: Photographs better, feels natural
-
-TEXT HIERARCHY:
-- deep-navy for headers (not black)
-- cool-gray for secondary text
-- font-mono for prices/times (trustworthy)
-
-SPECIAL TOUCHES:
-- Hand-drawn fish icons (when implemented)
-- "Fresh" badges with bounce
-- Torn-paper edges on market cards
-- Wave pattern dividers
-- Handwriting font for "Evan's notes"
+See patterns.md for full guidelines. Never use old flat names.
 */
+
+/* NavGrid Responsive Layout */
+/* Mobile: Stack vertically, Medium+: Use column count */
+.nav-grid {
+  grid-template-columns: 1fr !important;
+}
+
+@media (min-width: 768px) {
+  .nav-grid[data-columns="2"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .nav-grid[data-columns="3"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Input Placeholder Styling - Contrast System */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
 
 /* Dark Mode Overrides */
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface-primary: #1f2937;  /* Dark surface that's lighter than black background */
-    --surface-favorite: #1f2937; /* No gradient in dark mode - just solid surface */
+    /* Text */
+    --color-text-primary: #E2E8F0;
+    --color-text-secondary: #94A3B8;
+    --color-text-tertiary: #CBD5E1;
+
+    /* Surfaces */
+    --color-surface-primary: #1f2937;
+    --color-surface-secondary: #374151;
+    --color-surface-warm: #1f2937;
+    --color-surface-favorite: #1f2937;
+
+    /* Backgrounds */
+    --color-bg-primary: #111827;
+    --color-bg-elevated: #1f2937;
+    --color-bg-footer: linear-gradient(135deg, rgba(0,102,204,0.08), rgba(0,169,150,0.08));
+
+    /* Borders */
+    --color-border-subtle: rgba(0, 169, 150, 0.15);
+    --color-border-light: rgba(0, 169, 150, 0.25);
+    --color-border-medium: rgba(0, 169, 150, 0.35);
+    --color-border-input: rgba(0, 169, 150, 0.3);
+    --color-border-input-disabled: rgba(0, 169, 150, 0.15);
+
+    /* Glass Effects */
+    --color-glass-base: rgba(31, 41, 55, 0.8);
+    --color-glass-dark: rgba(26,43,61,0.03);
+    --color-glass-subtle: rgba(31, 41, 55, 0.3);
+    --color-glass-light: rgba(31, 41, 55, 0.5);
+    --color-glass-medium: rgba(31, 41, 55, 0.7);
+    --color-glass-border-light: rgba(255, 255, 255, 0.1);
+    --color-glass-border-medium: rgba(255, 255, 255, 0.15);
+
+    /* Input Colors */
+    --color-input-bg: #1f2937;
+    --color-input-border: rgba(0, 169, 150, 0.3);
+    --color-input-disabled-bg: #111827;
+
+    /* Status Extended - Dark Mode */
+    --color-status-info-bg: rgba(0, 102, 204, 0.2);
+    --color-status-warning-bg: rgba(245, 158, 11, 0.2);
+    --color-status-info: #38BDF8;
+    --color-status-success-bg: rgba(16, 185, 129, 0.15);
+    --color-status-success-border: #34D399;
+    --color-status-warning-border: #FBBF24;
+    --color-status-error-bg: rgba(255, 107, 107, 0.15);
+    --color-status-error-border: rgba(255, 107, 107, 0.5);
+
+    /* Extra Colors */
+    --color-coral-vivid: #FF6B6B;
+    --color-danger: #F87171;
+    --color-ocean-vivid: #3B9AFF;
+    --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Placeholder text visibility in dark mode */
+  input::placeholder,
+  textarea::placeholder,
+  select::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7;
   }
 }
+
+/* ======================
+   UTILITY CLASSES
+   ====================== */
+
+/* Typography Utilities - Figma-Aligned */
+.heading-5xl { font-size: var(--font-size-5xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--color-text-primary); }
+.heading-4xl { font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--color-text-primary); }
+.heading-3xl { font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--color-text-primary); }
+.heading-2xl { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--color-text-primary); }
+.heading-xl { font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--color-text-primary); }
+.heading-lg { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); font-family: var(--font-display); color: var(--color-text-primary); }
+
+.body-lg { font-size: var(--font-size-lg); line-height: var(--line-height-base); color: var(--color-text-primary); }
+.body-md { font-size: var(--font-size-md); line-height: var(--line-height-base); color: var(--color-text-primary); }
+.body-sm { font-size: var(--font-size-sm); line-height: var(--line-height-base); color: var(--color-text-primary); }
+
+.label-lg { font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); letter-spacing: 0.5px; color: var(--color-text-primary); }
+.label-md { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-primary); }
+.label-sm { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-primary); }
+
+.caption { font-size: var(--font-size-xs); color: var(--color-text-secondary); line-height: var(--line-height-base); }
+
+.mono { font-family: var(--font-mono); }
+.mono-md { font-family: var(--font-mono); font-size: var(--font-size-md); font-weight: var(--font-weight-medium); }
+.mono-sm { font-family: var(--font-mono); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+
+/* Layout Utilities - Common Patterns */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-start { display: flex; align-items: flex-start; }
+.flex-end { display: flex; align-items: flex-end; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+
+.grid { display: grid; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-md); }
+
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+
+.m-0 { margin: 0; }
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mb-xl { margin-bottom: var(--space-xl); }
+
+.centered-section {
+  max-width: var(--width-md);
+  margin: 0 auto;
+  padding: var(--space-md);
+}
+
+.full-width { width: 100%; }
+.max-w-sm { max-width: var(--width-sm); }
+.max-w-md { max-width: var(--width-md); }
+.max-w-lg { max-width: var(--width-lg); }
+
+/* Component Pattern Classes - Reusable Compositions */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 6px 12px;
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.status-badge--pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-status-warning);
+}
+
+.status-badge--completed {
+  background: rgba(0, 217, 177, 0.1);
+  color: var(--color-status-success);
+}
+
+.status-badge--cancelled {
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--color-status-error);
+}
+
+.info-box {
+  padding: var(--space-md);
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-box--warning {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: var(--color-status-warning);
+}
+
+.info-box--error {
+  background: rgba(255, 107, 107, 0.05);
+  border-color: var(--color-status-error);
+}
+
+.info-box--success {
+  background: rgba(0, 217, 177, 0.05);
+  border-color: var(--color-status-success);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.form-row {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+  }
+}
+
+.card-elevated {
+  background: var(--color-surface-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.card-elevated:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-glass {
+  background: var(--color-glass-light);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-glass-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+/* Additional Typography Utilities - From Pattern Analysis */
+.text-heading-lg {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.text-subheading {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
+  margin: 0;
+}
+
+.text-order-number {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-action-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.text-metadata {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+/* Additional Layout Utilities */
+.icon-button-md {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xl);
+  transition: all 0.3s ease;
+}
+
+.text-centered-section {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+/* Surface Panels - Common card/section pattern */
+.surface-panel {
+  background: var(--color-surface-secondary);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+/* Overlay Backdrop - Modal/drawer background */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-surface-overlay);
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+/* Text Alignment */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }

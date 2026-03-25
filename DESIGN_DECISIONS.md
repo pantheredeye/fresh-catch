@@ -105,6 +105,57 @@
 **Context:** Customers need immediate value without friction
 **Rationale:** Removes registration barrier, provides instant utility, easy Phase 2 upgrade path
 
+### Customer Market Display Approach (2025-01-04)
+**Decision:** Simplified schedule display with two-section discovery pattern
+**Context:** Balance between simplicity (Phase 1) and user discovery needs
+**Market Data Fields:**
+- ✅ Keep: `name`, `schedule` (e.g., "Sat 8-2"), `subtitle` (optional)
+- ❌ Defer: Specific dates, calculated "days away" status, live indicators
+**Display Strategy:**
+1. **"Your Markets"** section - Shows favorited markets (from localStorage)
+2. **"All Markets"** section - Shows all active markets for discovery
+**Rationale:**
+- Admin controls schedule as simple text (no date calculations needed)
+- Two sections solve discovery problem for older adults (60+)
+- Favorites reduce cognitive load for repeat users
+- All Markets ensures new location awareness
+**Deferred to Future Phases:**
+- Date calculations and "3 days away" status indicators
+- "Live now" indicators (requires Evan manual toggle or geofencing)
+- Time-based automatic status detection
+
+**Technical Implementation (RWSDK Pattern):**
+```tsx
+// CustomerHome.tsx (Server Component)
+export async function CustomerHome({ ctx }) {
+  const orgId = getPublicOrganizationId(); // Hardcoded for Phase 1
+  const markets = await db.market.findMany({
+    where: { organizationId: orgId, active: true },
+    orderBy: { name: 'asc' }
+  });
+  return <CustomerHomeUI markets={markets} />
+}
+
+// CustomerHomeUI.tsx (Client Component - "use client")
+export function CustomerHomeUI({ markets }) {
+  const [favorites, setFavorites] = useFavorites(); // localStorage hook
+  const favoriteMarkets = markets.filter(m => favorites.includes(m.id));
+  const allMarkets = markets;
+
+  return (
+    <>
+      {favoriteMarkets.length > 0 && <YourMarkets markets={favoriteMarkets} />}
+      <AllMarkets markets={allMarkets} favorites={favorites} onToggleFavorite={...} />
+    </>
+  );
+}
+```
+
+**Organization Context for Phase 1:**
+- Hardcode Evan's organization ID in utility function
+- Future: Replace with subdomain detection, route params, or env var
+- Single source of truth for easy migration to multi-tenant
+
 ### Phase 1 Authentication Strategy (2024-11-14)
 **Decision:** Context-aware LoginForm with business-scoped customer registration
 **Context:** Two user types - Business Owners (create markets) vs Customers (buy from businesses)
@@ -157,6 +208,227 @@
 - `/admin/routes.ts` for admin functions
 - Middleware for session + role context
 
+### RWSDK Data Fetching Pattern (2025-01-04)
+**Decision:** Server Components + Server Functions (not JSON APIs)
+**Context:** Need data fetching pattern for market CRUD operations
+**Options Considered:**
+1. Traditional JSON API routes with fetch() in client components
+2. Server Components that fetch data + Server Functions for mutations
+**Decision:** Option 2 - Server Components + Server Functions
+**Implementation Pattern:**
+```tsx
+// Page.tsx (server component) - fetches data
+export async function MarketConfigPage({ ctx }) {
+  const markets = await db.market.findMany({ where: { organizationId: ctx.currentOrganization.id }});
+  return <MarketConfigUI markets={markets} />
+}
+
+// UI.tsx ("use client") - receives data, calls server functions
+"use client";
+import { createMarket, updateMarket } from "./functions";
+export function MarketConfigUI({ markets }) {
+  // Interactive UI, calls server functions for mutations
+}
+
+// functions.ts ("use server") - mutations
+"use server";
+export async function createMarket(data) {
+  const { ctx } = requestInfo;
+  await db.market.create({ data: { ...data, organizationId: ctx.currentOrganization.id }});
+  revalidatePath("/admin/config");
+}
+```
+**Rationale:**
+- More idiomatic to rwsdk's React Server Components architecture
+- Eliminates need for JSON API layer and fetch() calls
+- Server components have direct database access
+- Server functions automatically have request context
+- Simpler data flow: Server → Props → Client → Server Functions
+- Better performance (no extra network hop for initial data)
+**When to use JSON APIs:** Only for external clients (mobile apps, webhooks, third-party integrations)
+
+### Admin Dashboard Design (2025-10-11)
+**Decision:** Minimal dashboard with equal-priority navigation cards using responsive grid
+**Context:** Need `/admin` landing page that serves as control center for daily operations (inventory and orders features coming soon). Primary users are farmers, merchants, carpenters at different skill levels - simplicity is critical.
+**Options Considered:**
+1. Comprehensive dashboard with stats, charts, and navigation
+2. Minimal navigation-only dashboard with big button cards
+3. Skip dashboard entirely, redirect `/admin` directly to `/admin/config`
+**Rationale:**
+- **Industrial design principles:** Form follows function, clarity of purpose over decoration
+- **Big button approach:** No ambiguity about clickability, reduced cognitive load, faster visual processing
+- **Equal visual weight:** Right now both actions (Markets, View Site) are high priority; future cards (Inventory, Orders) will naturally integrate into grid
+- **Mobile-first responsive grid:** 1 column mobile, 2 columns desktop, grows naturally as features added
+- **Control center concept:** Central hub for daily admin tasks (managing inventory/orders will be daily, markets weekly)
+**Implementation:**
+- Reuses admin-auth.css structure (proven, consistent styling)
+- CSS Grid with automatic responsiveness (no complex breakpoint logic)
+- Button-style cards (~120px height minimum for tap-friendliness)
+- Icon → Title → Description hierarchy for clarity
+**Future Growth Path:** Add Inventory and Orders cards as top row priority when features launch, Markets and View Site move to secondary positions
+
+### Unified Authentication Routes (2025-10-11)
+**Decision:** Use `/login` and `/logout` (not `/user/login` and `/user/logout`)
+**Context:** Multi-tenant SaaS where users can have multiple roles across different organizations. Evan (admin) will also browse other businesses as a customer. Separating "user" vs "admin" login creates confusion about which to use.
+**Options Considered:**
+1. Keep separate routes: `/user/login` for customers, `/admin/login` for business owners
+2. Unified route: `/login` for everyone, role-based redirect after authentication
+**Rationale:**
+- **One account, multiple contexts:** Users have single login but different roles in different organizations
+- **Simpler mental model:** "Where do I login?" → "Just /login" (not "Am I a user or admin?")
+- **Multi-tenant architecture:** Session already tracks `currentOrganizationId` and `role`, middleware handles context switching
+- **Smart redirect logic:** After login, check user's roles and redirect appropriately (admin → `/admin`, customer → `/`)
+**Implementation:**
+- Moved userRoutes from `prefix("/user")` to root level in worker.tsx
+- Updated all redirect locations from `/user/login` → `/login`
+- Enhanced `finishPasskeyLogin` to return `{ success: boolean, isAdmin: boolean }`
+- Login component uses `isAdmin` flag for smart redirect
+- Session now includes organization context immediately after login (no second request needed)
+**Benefits:**
+- Consistent with multi-tenant mental model
+- One less decision point for users
+- Scales naturally when users belong to multiple organizations
+- Simpler URL structure
+
+### Dark Mode Defensive CSS Pattern (2025-10-11)
+**Decision:** Use CSS classes with defensive fallback pattern (NOT inline styles) for admin pages
+**Context:** System dark mode (Ubuntu, macOS, etc.) overrides CSS variables, making text invisible on admin pages. Need resilient styling that works across all system themes.
+**Problem:**
+- User's OS dark mode overrides `var(--surface-primary)` → card becomes dark
+- User's OS dark mode overrides `var(--deep-navy)` → text becomes light
+- Result: Light text on light background = invisible
+- `color-scheme: light` meta tag is NOT enough (some systems ignore it)
+
+**Why Inline Styles Don't Work:**
+```tsx
+// ❌ DOESN'T WORK - JavaScript objects can't have duplicate keys
+style={{
+  background: 'white',  // This gets overwritten
+  background: 'var(--surface-primary)', // Only this is used
+}}
+// The second property overwrites the first, no fallback!
+```
+
+**Solution:** Move to CSS files where fallback pattern works:
+```css
+/* ✅ WORKS - CSS supports this pattern */
+.auth-card {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary); /* Variable */
+}
+/* Browser uses variable if available, falls back to explicit value if overridden */
+```
+
+**How to Fix Any Page with This Issue:**
+
+**Step 1: Create or use existing CSS file in `/admin-design-system/`**
+```bash
+# Use existing: admin-auth.css (for auth/error pages)
+# Or create new: admin-forms.css, admin-dashboard.css, etc.
+```
+
+**Step 2: Add defensive classes with explicit fallbacks**
+```css
+@import '../design-system/tokens.css';
+
+/* Container - Force Light Mode */
+.admin-page {
+  color-scheme: light; /* Tell browser to prefer light mode */
+  min-height: 100vh;
+  background: #FFFCF8; /* Explicit fallback */
+  background: var(--warm-white); /* Variable */
+}
+
+/* Card/Surface */
+.admin-card {
+  background: white; /* Explicit fallback */
+  background: var(--surface-primary); /* Variable */
+  border: 1px solid #E0E0E0; /* Explicit fallback */
+  border-color: var(--soft-gray); /* Variable */
+}
+
+/* Text */
+.admin-title {
+  color: #1A1A2E; /* Explicit fallback */
+  color: var(--deep-navy); /* Variable */
+  font-family: var(--font-display);
+}
+
+.admin-subtitle {
+  color: #6B7280; /* Explicit fallback */
+  color: var(--cool-gray); /* Variable */
+}
+```
+
+**Step 3: Update component to use classes**
+```tsx
+// BEFORE (inline styles - breaks in dark mode)
+export function MyAdminPage() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--warm-white)'
+    }}>
+      <div style={{
+        background: 'var(--surface-primary)',
+        color: 'var(--deep-navy)'
+      }}>
+        <h1>Title</h1>
+      </div>
+    </div>
+  );
+}
+
+// AFTER (CSS classes - works in dark mode)
+import "@/admin-design-system/admin-auth.css";
+
+export function MyAdminPage() {
+  return (
+    <div className="admin-page">
+      <div className="admin-card">
+        <h1 className="admin-title">Title</h1>
+      </div>
+    </div>
+  );
+}
+```
+
+**Reference Implementation:**
+- See `src/admin-design-system/admin-auth.css` for complete example
+- Used in: `Setup.tsx`, `BusinessNotFound.tsx`
+- Pattern: explicit value first, then variable with same property
+
+**Why This Works:**
+1. CSS files support multiple declarations of same property (fallback pattern)
+2. Browser uses first value as fallback, second as preferred
+3. If system theme overrides variable, explicit value is used
+4. Maintains design system consistency (variables still used)
+5. Future dark mode ready (just add `@media (prefers-color-scheme: dark)` block)
+
+**Common Pitfall:**
+Don't try to use duplicate properties in inline styles - JavaScript objects don't support this!
+
+**Future: Proper Dark Mode Support**
+When ready to support dark mode, add this to CSS file:
+```css
+@media (prefers-color-scheme: dark) {
+  .admin-page { background: #1A1A2E; }
+  .admin-card { background: #2D2D3F; }
+  .admin-title { color: #FFFFFF; }
+}
+```
+
+**Files Using This Pattern:**
+- `src/admin-design-system/admin-auth.css` (auth pages)
+- `src/app/pages/admin/Setup.tsx`
+- `src/app/pages/BusinessNotFound.tsx`
+
+**To Fix /admin/config or other pages:**
+1. Create CSS file with defensive classes
+2. Import in component
+3. Replace inline styles with className
+4. Test in system dark mode
+
 ---
 
 ## Pending Decisions
@@ -198,7 +470,7 @@
 
 ---
 
-*Last Updated: 2024-11-14*
+*Last Updated: 2025-10-11*
 *Next Review: Phase 1 completion*
 
 ## Implementation Progress

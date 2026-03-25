@@ -1,0 +1,84 @@
+/* Dark Mode Test Styles - Using media queries for guaranteed compatibility */
+
+/* Option 1: Inverted Fresh */
+.test-card--inverted-fresh {
+  background: var(--color-surface-primary);
+  border: 2px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .test-card--inverted-fresh {
+    background: #4B5563 !important; /* Much lighter gray - high contrast */
+    border: 3px solid rgba(0,217,177,0.6) !important; /* Thick bright mint border */
+    box-shadow: 0 8px 24px rgba(0,217,177,0.3) !important;
+    color: #F3F4F6 !important;
+  }
+}
+
+/* Option 2: Ocean Night */
+.test-card--ocean-night {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .test-card--ocean-night {
+    background: linear-gradient(135deg, #0c2340, #1a3a52) !important; /* Deep ocean blue gradient */
+    border: 2px solid rgba(0,169,150,0.7) !important; /* Bright teal border */
+    box-shadow: 0 8px 32px rgba(0,169,150,0.4), 0 0 40px rgba(0,169,150,0.2) !important; /* Ocean glow */
+    color: #E2E8F0 !important;
+  }
+}
+
+/* Option 3: Reverse Warmth */
+.test-card--reverse-warmth {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .test-card--reverse-warmth {
+    background: linear-gradient(135deg, #3d2817, #4a3526) !important; /* Rich warm brown gradient */
+    border: 2px solid rgba(245,158,11,0.6) !important; /* Gold border */
+    box-shadow: 0 8px 32px rgba(245,158,11,0.3) !important; /* Warm gold glow */
+    color: #FFEFD5 !important; /* Papaya whip - warm cream text */
+  }
+}
+
+/* Option 4: Glass Fresh */
+.test-card--glass-fresh {
+  background: var(--color-surface-primary);
+  border: 2px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .test-card--glass-fresh {
+    background: rgba(15,23,42,0.6) !important; /* Very translucent dark */
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 3px solid rgba(0,217,177,0.8) !important; /* Very bright mint border */
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.4),
+      inset 0 0 0 1px rgba(255,255,255,0.1) !important; /* Inner highlight for glass effect */
+    color: #F0F9FF !important;
+  }
+}
+
+/* Pin button - special dark mode treatment */
+.test-card--glass-fresh .pin-button {
+  background: var(--color-surface-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .test-card--glass-fresh .pin-button {
+    background: rgba(255,255,255,0.1);
+  }
+}

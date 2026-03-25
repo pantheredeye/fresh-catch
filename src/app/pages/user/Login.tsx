@@ -7,21 +7,19 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 import {
+  checkEmailExists,
   finishPasskeyLogin,
   finishPasskeyRegistration,
   startPasskeyLogin,
   startPasskeyRegistration,
 } from "./functions";
-import { TextInput } from "@/design-system/components/Input";
-import { Button } from "@/design-system/components/Button";
-import { Container } from "@/design-system/components/Container";
-import "@/design-system/tokens.css";
+import { TextInput, Button, Container, Card } from "@/design-system";
 
 // TODO: Get business context from environment or route
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
 /**
- * Customer/Admin Login - Modern design with enhanced UX
+ * Customer/Admin Login - Unified authentication with defensive CSS
  *
  * DESIGN DECISIONS:
  *
@@ -36,29 +34,68 @@ const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
  *    - Implementation: Loading states, step-by-step messages, success/error handling
  *    - Rationale: Professional feel, consistent with admin setup experience
  *
- * 3. **Modern Design System Integration**
- *    - Decision: Replace LoginForm component with direct design system components
- *    - Context: Match the styling from admin setup page
- *    - Implementation: TextInput, Button, Container components with glassmorphism
- *    - Rationale: Visual consistency, maintainability, modern look
+ * 3. **Defensive CSS Pattern** (vs design system tokens)
+ *    - Decision: Use admin-auth.css with explicit color values and !important
+ *    - Context: System dark mode was overriding token-based styling
+ *    - Implementation: auth-page, auth-card CSS classes with forced light mode
+ *    - Rationale: Consistent rendering regardless of system theme settings
  *
  * 4. **Dual Authentication Mode**
  *    - Decision: Support both login and registration in same interface
  *    - Context: Customers need to register, admins need to login
  *    - Implementation: Mode switching with different button text and behavior
  *    - Rationale: Flexible UX, single page for all authentication needs
+ *
+ * 5. **Smart Redirect After Login**
+ *    - Decision: Role-based redirect (admin → /admin, customer → /)
+ *    - Context: Multi-tenant SaaS where users can be both admin and customer
+ *    - Implementation: finishPasskeyLogin returns isAdmin flag, redirect accordingly
+ *    - Rationale: Takes users directly to their relevant destination
  */
 export function Login({ ctx }: { ctx: any }) {
-  const [username, setUsername] = useState("");
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState("");
+  const [flow, setFlow] = useState<'initial' | 'login' | 'register' | 'confirm-register'>('initial');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
 
-  const handleLogin = async () => {
-    if (!username.trim()) {
+  const [redirectUrl, setRedirectUrl] = useState('/');
+
+  const handleContinue = async () => {
+    if (!email.trim() || !email.includes('@')) {
       setStatus('error');
-      setMessage('Please enter a username');
+      setMessage('Please enter a valid email');
+      return;
+    }
+
+    setStatus('loading');
+    setMessage('Checking account...');
+
+    try {
+      const result = await checkEmailExists(email);
+
+      if (result.exists) {
+        // Existing user - proceed to login
+        setFlow('login');
+        setStatus('idle');
+        setMessage('');
+        handleLogin();
+      } else {
+        // New user - ask if they want to create account
+        setFlow('confirm-register');
+        setStatus('idle');
+        setMessage('');
+      }
+    } catch (error) {
+      setStatus('error');
+      setMessage('Unable to check account. Please try again.');
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      setStatus('error');
+      setMessage('Please enter a valid email');
       return;
     }
 
@@ -68,7 +105,7 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       // 1. Get a challenge from the worker
       setMessage('Generating authentication challenge...');
-      const options = await startPasskeyLogin();
+      const options = await startPasskeyLogin(email);
 
       // 2. Ask the browser to sign the challenge
       setMessage('Please complete passkey authentication...');
@@ -76,11 +113,15 @@ export function Login({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the login process
       setMessage('Verifying authentication...');
-      const success = await finishPasskeyLogin(login);
+      const result = await finishPasskeyLogin(login);
 
-      if (!success) {
+      if (!result || !result.success) {
         throw new Error("Login failed. Please check your credentials.");
       }
+
+      // Smart redirect: admin users go to dashboard, customers go to home
+      const destination = result.isAdmin ? '/admin' : '/';
+      setRedirectUrl(destination);
 
       setStatus('success');
       setMessage(`Welcome back! Redirecting to your dashboard...`);
@@ -93,9 +134,9 @@ export function Login({ ctx }: { ctx: any }) {
   };
 
   const handleRegister = async () => {
-    if (!username.trim()) {
+    if (!email.trim() || !email.includes('@')) {
       setStatus('error');
-      setMessage('Please enter a username');
+      setMessage('Please enter a valid email');
       return;
     }
 
@@ -105,7 +146,7 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       // 1. Get a challenge from the worker
       setMessage('Generating registration challenge...');
-      const options = await startPasskeyRegistration(username);
+      const options = await startPasskeyRegistration(email);
 
       // 2. Ask the browser to sign the challenge
       setMessage('Please complete passkey setup...');
@@ -113,18 +154,22 @@ export function Login({ ctx }: { ctx: any }) {
 
       // 3. Give the signed challenge to the worker to finish the registration process
       setMessage('Finalizing registration...');
-      const success = await finishPasskeyRegistration(username, registration);
+      const result = await finishPasskeyRegistration(email, email, registration);
 
-      if (!success) {
-        throw new Error("Registration failed. Username may already exist.");
+      if (!result || !result.success) {
+        throw new Error(`Email '${email}' is already registered. Please sign in instead.`);
       }
 
-      setStatus('success');
-      setMessage(`Welcome to ${BUSINESS_CONTEXT}! Registration complete.`);
-      setCountdown(3);
+      // Smart redirect: admin users go to setup, customers go to home
+      const destination = result.isAdmin ? '/admin/setup' : '/';
+      setRedirectUrl(destination);
 
-      // TODO: Create organization for customer based on customerType
-      // TODO: Link customer to business context (Evan's organization)
+      setStatus('success');
+      const welcomeMessage = result.isAdmin
+        ? `Welcome! Let's set up your business.`
+        : `Welcome to Fresh Catch! Check out our markets.`;
+      setMessage(welcomeMessage);
+      setCountdown(3);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : "Registration failed. Please try again.");
@@ -136,90 +181,133 @@ export function Login({ ctx }: { ctx: any }) {
     if (status === 'success' && countdown > 0) {
       const timer = setTimeout(() => {
         if (countdown === 1) {
-          window.location.href = '/';
+          window.location.href = redirectUrl;
         } else {
           setCountdown(countdown - 1);
         }
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [status, countdown]);
+  }, [status, countdown, redirectUrl]);
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--mint-green)';
-      case 'error': return 'var(--coral)';
-      case 'loading': return 'var(--sky-blue)';
-      default: return 'var(--soft-gray)';
+      case 'success': return 'var(--color-status-success)';
+      case 'error': return 'var(--color-action-secondary)';
+      case 'loading': return 'var(--color-status-info)';
+      default: return 'var(--color-text-tertiary)';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--deep-navy)';
-      case 'error': return 'white';
-      case 'loading': return 'var(--deep-navy)';
-      default: return 'var(--deep-navy)';
+      case 'success': return 'var(--color-text-primary)';
+      case 'error': return 'var(--color-text-inverse)';
+      case 'loading': return 'var(--color-text-primary)';
+      default: return 'var(--color-text-primary)';
     }
   };
 
   return (
-    <Container>
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--space-md)',
-      }}>
-        <div style={{
-          background: 'var(--surface-primary)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-2xl)',
-          maxWidth: '480px',
-          width: '100%',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--soft-gray)'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: 'var(--space-xl)'
-          }}>
-            <h1 style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: 'var(--deep-navy)',
+    <Container size="sm" noPadding>
+      <Card variant="centered" maxWidth="450px">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+          <h1
+            style={{
+              fontSize: 'var(--font-size-3xl)',
+              fontWeight: 'var(--font-weight-bold)',
+              color: 'var(--color-text-primary)',
               fontFamily: 'var(--font-display)',
-              marginBottom: 'var(--space-sm)'
-            }}>
-              {mode === 'login' ? 'Welcome Back' : 'Join Us'}
-            </h1>
-            <p style={{
-              fontSize: '16px',
-              color: 'var(--cool-gray)',
+              margin: '0 0 var(--space-xs) 0'
+            }}
+          >
+            {flow === 'confirm-register' ? 'Create Account' :
+             flow === 'register' ? 'Create Account' :
+             flow === 'login' ? 'Welcome Back' :
+             'Welcome'}
+          </h1>
+          <p
+            style={{
+              fontSize: 'var(--font-size-md)',
+              color: 'var(--color-text-secondary)',
               margin: 0,
-              lineHeight: 1.5
-            }}>
-              {mode === 'login'
-                ? `Sign in to ${BUSINESS_CONTEXT}`
-                : `Create your account with ${BUSINESS_CONTEXT}`
-              }
-            </p>
-          </div>
+              lineHeight: 'var(--line-height-base)'
+            }}
+          >
+            {flow === 'confirm-register'
+              ? `Create a new account with ${BUSINESS_CONTEXT}`
+              : flow === 'register'
+              ? `Create your account with ${BUSINESS_CONTEXT}`
+              : flow === 'login'
+              ? `Sign in to ${BUSINESS_CONTEXT}`
+              : `Sign in or create an account`
+            }
+          </p>
+        </div>
 
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            mode === 'login' ? handleLogin() : handleRegister();
-          }} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-lg)'
-          }}>
+        {flow === 'confirm-register' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div
+              style={{
+                padding: 'var(--space-md)',
+                background: 'var(--color-status-info)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-primary)',
+                textAlign: 'center'
+              }}
+            >
+              No account found for <strong>{email}</strong>
+            </div>
+            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
+              Would you like to create a new account?
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onClick={() => {
+                  setFlow('initial');
+                  setEmail('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onClick={handleRegister}
+              >
+                Create Account
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (flow === 'initial') {
+                handleContinue();
+              } else if (flow === 'login') {
+                handleLogin();
+              } else {
+                handleRegister();
+              }
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-md)'
+            }}
+          >
             <TextInput
-              label="Username"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              label="Email"
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={status === 'loading' || status === 'success'}
               size="lg"
@@ -232,19 +320,28 @@ export function Login({ ctx }: { ctx: any }) {
               fullWidth
               disabled={status === 'loading' || status === 'success'}
             >
-              {status === 'loading' ? (mode === 'login' ? 'Signing in...' : 'Creating Account...') :
+              {status === 'loading' ? (flow === 'login' ? 'Signing in...' : flow === 'register' ? 'Creating Account...' : 'Checking...') :
                status === 'success' ? '✓ Success' :
-               mode === 'login' ? 'Sign In with Passkey' : 'Create Account with Passkey'}
+               flow === 'initial' ? 'Continue' :
+               flow === 'login' ? 'Sign In with Passkey' :
+               'Create Account with Passkey'}
             </Button>
           </form>
+        )}
 
-          <div style={{
-            marginTop: 'var(--space-lg)',
-            textAlign: 'center'
-          }}>
+        {/* Manual Toggle - for users who prefer explicit choice */}
+        {flow === 'initial' && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
+              textAlign: 'center',
+              paddingTop: 'var(--space-md)',
+              borderTop: '1px solid var(--color-border-subtle)'
+            }}
+          >
             <button
               onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login');
+                setFlow('register');
                 setStatus('idle');
                 setMessage('');
               }}
@@ -252,40 +349,78 @@ export function Login({ ctx }: { ctx: any }) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--ocean-blue)',
-                fontSize: '14px',
+                color: 'var(--color-action-primary)',
+                fontSize: 'var(--font-size-sm)',
                 textDecoration: 'underline',
                 cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-body)'
+                fontFamily: 'var(--font-display)'
               }}
             >
-              {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+              I want to create a new account
             </button>
           </div>
-
-          {message && (
-            <div style={{
-              marginTop: 'var(--space-lg)',
-              padding: 'var(--space-md)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '14px',
+        )}
+        {(flow === 'register' || flow === 'confirm-register') && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
               textAlign: 'center',
-              background: getStatusColor(),
-              color: getStatusTextColor(),
-              border: `1px solid ${getStatusColor()}`,
+              paddingTop: 'var(--space-md)',
+              borderTop: '1px solid var(--color-border-subtle)'
+            }}
+          >
+            <button
+              onClick={() => {
+                setFlow('initial');
+                setStatus('idle');
+                setMessage('');
+              }}
+              disabled={status === 'loading' || status === 'success'}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-action-primary)',
+                fontSize: 'var(--font-size-sm)',
+                textDecoration: 'underline',
+                cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-display)'
+              }}
+            >
+              Back to sign in
+            </button>
+          </div>
+        )}
+
+        {/* Status Message */}
+        {message && (
+          <div
+            style={{
+              marginTop: 'var(--space-md)',
+              padding: 'var(--space-md)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--font-size-sm)',
+              textAlign: 'center',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 'var(--space-xs)'
-            }}>
-              {status === 'loading' && <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid currentColor',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />}
+              gap: 'var(--space-xs)',
+              background: getStatusColor(),
+              color: getStatusTextColor(),
+              border: `1px solid ${getStatusColor()}`
+            }}
+          >
+            {status === 'loading' && (
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid currentColor',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}
+              />
+            )}
               <span>
                 {message}
                 {status === 'success' && countdown > 0 && (
@@ -295,33 +430,23 @@ export function Login({ ctx }: { ctx: any }) {
             </div>
           )}
 
-          {status === 'success' && (
-            <div style={{
-              marginTop: 'var(--space-md)',
-              textAlign: 'center'
-            }}>
-              <a
-                href="/"
-                style={{
-                  color: 'var(--ocean-blue)',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                Go to dashboard now →
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+        {/* Success Link */}
+        {status === 'success' && (
+          <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+            <a
+              href={redirectUrl}
+              style={{
+                color: 'var(--color-action-primary)',
+                textDecoration: 'none',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-medium)'
+              }}
+            >
+              Go to dashboard now →
+            </a>
+          </div>
+        )}
+      </Card>
     </Container>
   );
 }

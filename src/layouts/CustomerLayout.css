@@ -1,0 +1,11 @@
+/* Customer Layout */
+
+.customer-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-main {
+  flex: 1;
+}
