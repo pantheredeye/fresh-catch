@@ -35,6 +35,9 @@ model User {
   deliveryZip    String?
   deliveryNotes  String? // Special instructions
 
+  passwordHash String? // PBKDF2 hash (hex)
+  passwordSalt String? // Salt (hex)
+
   deletedAt DateTime? // Soft delete timestamp
   createdAt DateTime  @default(now())
 

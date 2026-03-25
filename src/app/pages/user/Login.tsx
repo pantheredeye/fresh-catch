@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RequestInfo } from "rwsdk/worker";
 import {
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
 import {
   checkEmailExists,
+  loginWithPassword,
+  registerWithPassword,
   finishPasskeyLogin,
   finishPasskeyRegistration,
   startPasskeyLogin,
@@ -15,170 +16,156 @@ import {
 } from "./functions";
 import { TextInput, Button, Container, Card } from "@/design-system";
 
-// TODO: Get business context from environment or route
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
-/**
- * Customer/Admin Login - Unified authentication with defensive CSS
- *
- * DESIGN DECISIONS:
- *
- * 1. **Unified Login Flow** (vs separate admin/customer pages)
- *    - Decision: Single login page for both customers and admins
- *    - Context: Role-based access after login, same authentication method
- *    - Rationale: Simpler UX, consistent authentication, role determined post-login
- *
- * 2. **Enhanced User Experience Design**
- *    - Decision: Match admin setup UX with progressive feedback and status management
- *    - Context: Login can be confusing, users need clear feedback
- *    - Implementation: Loading states, step-by-step messages, success/error handling
- *    - Rationale: Professional feel, consistent with admin setup experience
- *
- * 3. **Defensive CSS Pattern** (vs design system tokens)
- *    - Decision: Use admin-auth.css with explicit color values and !important
- *    - Context: System dark mode was overriding token-based styling
- *    - Implementation: auth-page, auth-card CSS classes with forced light mode
- *    - Rationale: Consistent rendering regardless of system theme settings
- *
- * 4. **Dual Authentication Mode**
- *    - Decision: Support both login and registration in same interface
- *    - Context: Customers need to register, admins need to login
- *    - Implementation: Mode switching with different button text and behavior
- *    - Rationale: Flexible UX, single page for all authentication needs
- *
- * 5. **Smart Redirect After Login**
- *    - Decision: Role-based redirect (admin → /admin, customer → /)
- *    - Context: Multi-tenant SaaS where users can be both admin and customer
- *    - Implementation: finishPasskeyLogin returns isAdmin flag, redirect accordingly
- *    - Rationale: Takes users directly to their relevant destination
- */
+type Flow = "initial" | "login-password" | "login-passkey" | "register" | "confirm-register";
+
+const linkStyle = {
+  background: "none",
+  border: "none",
+  color: "var(--color-action-primary)",
+  fontSize: "var(--font-size-sm)",
+  textDecoration: "underline" as const,
+  cursor: "pointer",
+  fontFamily: "var(--font-display)",
+};
+
 export function Login({ ctx }: { ctx: any }) {
   const [email, setEmail] = useState("");
-  const [flow, setFlow] = useState<'initial' | 'login' | 'register' | 'confirm-register'>('initial');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [flow, setFlow] = useState<Flow>("initial");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [redirectUrl, setRedirectUrl] = useState("/");
 
-  const [redirectUrl, setRedirectUrl] = useState('/');
+  const disabled = status === "loading" || status === "success";
 
   const handleContinue = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setStatus('error');
-      setMessage('Please enter a valid email');
+    if (!email.trim() || !email.includes("@")) {
+      setStatus("error");
+      setMessage("Please enter a valid email");
       return;
     }
 
-    setStatus('loading');
-    setMessage('Checking account...');
+    setStatus("loading");
+    setMessage("Checking account...");
 
     try {
       const result = await checkEmailExists(email);
 
       if (result.exists) {
-        // Existing user - proceed to login
-        setFlow('login');
-        setStatus('idle');
-        setMessage('');
-        handleLogin();
+        if (result.hasPassword) {
+          setFlow("login-password");
+          setStatus("idle");
+          setMessage("");
+        } else {
+          // Passkey-only user — trigger passkey flow directly
+          setFlow("login-passkey");
+          setStatus("idle");
+          setMessage("");
+          handlePasskeyLogin();
+        }
       } else {
-        // New user - ask if they want to create account
-        setFlow('confirm-register');
-        setStatus('idle');
-        setMessage('');
+        setFlow("confirm-register");
+        setStatus("idle");
+        setMessage("");
       }
-    } catch (error) {
-      setStatus('error');
-      setMessage('Unable to check account. Please try again.');
+    } catch {
+      setStatus("error");
+      setMessage("Unable to check account. Please try again.");
     }
   };
 
-  const handleLogin = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setStatus('error');
-      setMessage('Please enter a valid email');
+  const handlePasswordLogin = async () => {
+    if (!password) {
+      setStatus("error");
+      setMessage("Please enter your password");
       return;
     }
 
-    setStatus('loading');
-    setMessage('Authenticating...');
+    setStatus("loading");
+    setMessage("Signing in...");
 
     try {
-      // 1. Get a challenge from the worker
-      setMessage('Generating authentication challenge...');
-      const options = await startPasskeyLogin(email);
+      const result = await loginWithPassword(email, password, rememberMe);
 
-      // 2. Ask the browser to sign the challenge
-      setMessage('Please complete passkey authentication...');
-      const login = await startAuthentication({ optionsJSON: options });
-
-      // 3. Give the signed challenge to the worker to finish the login process
-      setMessage('Verifying authentication...');
-      const result = await finishPasskeyLogin(login);
-
-      if (!result || !result.success) {
-        throw new Error("Login failed. Please check your credentials.");
+      if (!result.success) {
+        throw new Error(result.error || "Invalid email or password");
       }
 
-      // Smart redirect: admin users go to dashboard, customers go to home
-      const destination = result.isAdmin ? '/admin' : '/';
+      const destination = result.isAdmin ? "/admin" : "/";
       setRedirectUrl(destination);
-
-      setStatus('success');
-      setMessage(`Welcome back! Redirecting to your dashboard...`);
-      setCountdown(3);
-
+      setStatus("success");
+      setMessage("Welcome back! Redirecting...");
+      setCountdown(2);
     } catch (error) {
-      setStatus('error');
+      setStatus("error");
       setMessage(error instanceof Error ? error.message : "Login failed. Please try again.");
     }
   };
 
-  const handleRegister = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setStatus('error');
-      setMessage('Please enter a valid email');
+  const handlePasskeyLogin = async () => {
+    setStatus("loading");
+    setMessage("Authenticating with passkey...");
+
+    try {
+      const options = await startPasskeyLogin(email);
+      const login = await startAuthentication({ optionsJSON: options });
+      const result = await finishPasskeyLogin(login);
+
+      if (!result || !result.success) {
+        throw new Error("Passkey login failed.");
+      }
+
+      const destination = result.isAdmin ? "/admin" : "/";
+      setRedirectUrl(destination);
+      setStatus("success");
+      setMessage("Welcome back! Redirecting...");
+      setCountdown(2);
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Passkey login failed. Please try again.");
+    }
+  };
+
+  const handlePasswordRegister = async () => {
+    if (!password || password.length < 8) {
+      setStatus("error");
+      setMessage("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setStatus("error");
+      setMessage("Passwords don't match");
       return;
     }
 
-    setStatus('loading');
-    setMessage('Creating your account...');
+    setStatus("loading");
+    setMessage("Creating your account...");
 
     try {
-      // 1. Get a challenge from the worker
-      setMessage('Generating registration challenge...');
-      const options = await startPasskeyRegistration(email);
+      const result = await registerWithPassword(email, password, rememberMe);
 
-      // 2. Ask the browser to sign the challenge
-      setMessage('Please complete passkey setup...');
-      const registration = await startRegistration({ optionsJSON: options });
-
-      // 3. Give the signed challenge to the worker to finish the registration process
-      setMessage('Finalizing registration...');
-      const result = await finishPasskeyRegistration(email, email, registration);
-
-      if (!result || !result.success) {
-        throw new Error(`Email '${email}' is already registered. Please sign in instead.`);
+      if (!result.success) {
+        throw new Error(result.error || "Registration failed");
       }
 
-      // Smart redirect: admin users go to setup, customers go to home
-      const destination = result.isAdmin ? '/admin/setup' : '/';
-      setRedirectUrl(destination);
-
-      setStatus('success');
-      const welcomeMessage = result.isAdmin
-        ? `Welcome! Let's set up your business.`
-        : `Welcome to Fresh Catch! Check out our markets.`;
-      setMessage(welcomeMessage);
-      setCountdown(3);
+      setRedirectUrl("/");
+      setStatus("success");
+      setMessage("Welcome to Fresh Catch! Redirecting...");
+      setCountdown(2);
     } catch (error) {
-      setStatus('error');
+      setStatus("error");
       setMessage(error instanceof Error ? error.message : "Registration failed. Please try again.");
     }
   };
 
-  // Countdown and redirect on success
+  // Countdown and redirect
   useEffect(() => {
-    if (status === 'success' && countdown > 0) {
+    if (status === "success" && countdown > 0) {
       const timer = setTimeout(() => {
         if (countdown === 1) {
           window.location.href = redirectUrl;
@@ -192,115 +179,200 @@ export function Login({ ctx }: { ctx: any }) {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'success': return 'var(--color-status-success)';
-      case 'error': return 'var(--color-action-secondary)';
-      case 'loading': return 'var(--color-status-info)';
-      default: return 'var(--color-text-tertiary)';
+      case "success": return "var(--color-status-success)";
+      case "error": return "var(--color-action-secondary)";
+      case "loading": return "var(--color-status-info)";
+      default: return "var(--color-text-tertiary)";
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'success': return 'var(--color-text-primary)';
-      case 'error': return 'var(--color-text-inverse)';
-      case 'loading': return 'var(--color-text-primary)';
-      default: return 'var(--color-text-primary)';
+      case "error": return "var(--color-text-inverse)";
+      default: return "var(--color-text-primary)";
     }
   };
+
+  const heading =
+    flow === "confirm-register" || flow === "register"
+      ? "Create Account"
+      : flow === "login-password" || flow === "login-passkey"
+      ? "Welcome Back"
+      : "Welcome";
+
+  const subtitle =
+    flow === "confirm-register" || flow === "register"
+      ? `Create a new account with ${BUSINESS_CONTEXT}`
+      : flow === "login-password" || flow === "login-passkey"
+      ? `Sign in to ${BUSINESS_CONTEXT}`
+      : "Sign in or create an account";
+
+  const resetFlow = () => {
+    setFlow("initial");
+    setPassword("");
+    setConfirmPassword("");
+    setStatus("idle");
+    setMessage("");
+  };
+
+  const rememberMeCheckbox = (
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-sm)",
+        fontSize: "var(--font-size-sm)",
+        color: "var(--color-text-secondary)",
+        cursor: "pointer",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={rememberMe}
+        onChange={(e) => setRememberMe(e.target.checked)}
+        style={{ width: 16, height: 16 }}
+      />
+      Remember me
+    </label>
+  );
 
   return (
     <Container size="sm" noPadding>
       <Card variant="centered" maxWidth="450px">
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-          <h1
-            style={{
-              fontSize: 'var(--font-size-3xl)',
-              fontWeight: 'var(--font-weight-bold)',
-              color: 'var(--color-text-primary)',
-              fontFamily: 'var(--font-display)',
-              margin: '0 0 var(--space-xs) 0'
-            }}
-          >
-            {flow === 'confirm-register' ? 'Create Account' :
-             flow === 'register' ? 'Create Account' :
-             flow === 'login' ? 'Welcome Back' :
-             'Welcome'}
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+          <h1 style={{
+            fontSize: "var(--font-size-3xl)",
+            fontWeight: "var(--font-weight-bold)",
+            color: "var(--color-text-primary)",
+            fontFamily: "var(--font-display)",
+            margin: "0 0 var(--space-xs) 0",
+          }}>
+            {heading}
           </h1>
-          <p
-            style={{
-              fontSize: 'var(--font-size-md)',
-              color: 'var(--color-text-secondary)',
-              margin: 0,
-              lineHeight: 'var(--line-height-base)'
-            }}
-          >
-            {flow === 'confirm-register'
-              ? `Create a new account with ${BUSINESS_CONTEXT}`
-              : flow === 'register'
-              ? `Create your account with ${BUSINESS_CONTEXT}`
-              : flow === 'login'
-              ? `Sign in to ${BUSINESS_CONTEXT}`
-              : `Sign in or create an account`
-            }
+          <p style={{
+            fontSize: "var(--font-size-md)",
+            color: "var(--color-text-secondary)",
+            margin: 0,
+            lineHeight: "var(--line-height-base)",
+          }}>
+            {subtitle}
           </p>
         </div>
 
-        {flow === 'confirm-register' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <div
-              style={{
-                padding: 'var(--space-md)',
-                background: 'var(--color-status-info)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 'var(--font-size-sm)',
-                color: 'var(--color-text-primary)',
-                textAlign: 'center'
-              }}
-            >
+        {/* Confirm Register (new user found) */}
+        {flow === "confirm-register" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+            <div style={{
+              padding: "var(--space-md)",
+              background: "var(--color-status-info)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "var(--font-size-sm)",
+              color: "var(--color-text-primary)",
+              textAlign: "center",
+            }}>
               No account found for <strong>{email}</strong>
             </div>
-            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', textAlign: 'center', margin: 0 }}>
-              Would you like to create a new account?
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-              <Button
-                variant="secondary"
-                size="lg"
-                fullWidth
-                onClick={() => {
-                  setFlow('initial');
-                  setEmail('');
-                }}
-              >
+            <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+              <Button variant="secondary" size="lg" fullWidth onClick={() => { resetFlow(); setEmail(""); }}>
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={handleRegister}
-              >
+              <Button variant="primary" size="lg" fullWidth onClick={() => setFlow("register")}>
                 Create Account
               </Button>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Register with password */}
+        {flow === "register" && (
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (flow === 'initial') {
-                handleContinue();
-              } else if (flow === 'login') {
-                handleLogin();
-              } else {
-                handleRegister();
-              }
-            }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-md)'
-            }}
+            onSubmit={(e) => { e.preventDefault(); handlePasswordRegister(); }}
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+          >
+            <TextInput
+              label="Email"
+              type="email"
+              value={email}
+              disabled
+              size="lg"
+            />
+            <TextInput
+              label="Password"
+              type="password"
+              placeholder="Min 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={disabled}
+              size="lg"
+              autoFocus
+            />
+            <TextInput
+              label="Confirm Password"
+              type="password"
+              placeholder="Re-enter password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              disabled={disabled}
+              size="lg"
+            />
+            {rememberMeCheckbox}
+            <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
+              {status === "loading" ? "Creating Account..." : "Create Account"}
+            </Button>
+          </form>
+        )}
+
+        {/* Login with password */}
+        {flow === "login-password" && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handlePasswordLogin(); }}
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+          >
+            <TextInput
+              label="Email"
+              type="email"
+              value={email}
+              disabled
+              size="lg"
+            />
+            <TextInput
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={disabled}
+              size="lg"
+              autoFocus
+            />
+            {rememberMeCheckbox}
+            <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
+              {status === "loading" ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+        )}
+
+        {/* Login with passkey (auto-triggered or manual) */}
+        {flow === "login-passkey" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)", textAlign: "center" }}>
+            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)", margin: 0 }}>
+              Complete the passkey prompt from your browser...
+            </p>
+            <Button variant="primary" size="lg" fullWidth onClick={handlePasskeyLogin} disabled={disabled}>
+              {status === "loading" ? "Authenticating..." : "Retry Passkey"}
+            </Button>
+          </div>
+        )}
+
+        {/* Initial — email only */}
+        {flow === "initial" && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleContinue(); }}
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
           >
             <TextInput
               label="Email"
@@ -309,83 +381,35 @@ export function Login({ ctx }: { ctx: any }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={status === 'loading' || status === 'success'}
+              disabled={disabled}
               size="lg"
             />
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              disabled={status === 'loading' || status === 'success'}
-            >
-              {status === 'loading' ? (flow === 'login' ? 'Signing in...' : flow === 'register' ? 'Creating Account...' : 'Checking...') :
-               status === 'success' ? '✓ Success' :
-               flow === 'initial' ? 'Continue' :
-               flow === 'login' ? 'Sign In with Passkey' :
-               'Create Account with Passkey'}
+            <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
+              {status === "loading" ? "Checking..." : "Continue"}
             </Button>
           </form>
         )}
 
-        {/* Manual Toggle - for users who prefer explicit choice */}
-        {flow === 'initial' && (
-          <div
-            style={{
-              marginTop: 'var(--space-md)',
-              textAlign: 'center',
-              paddingTop: 'var(--space-md)',
-              borderTop: '1px solid var(--color-border-subtle)'
-            }}
-          >
-            <button
-              onClick={() => {
-                setFlow('register');
-                setStatus('idle');
-                setMessage('');
-              }}
-              disabled={status === 'loading' || status === 'success'}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-action-primary)',
-                fontSize: 'var(--font-size-sm)',
-                textDecoration: 'underline',
-                cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-display)'
-              }}
-            >
+        {/* Secondary actions */}
+        {flow === "login-password" && (
+          <div style={{ marginTop: "var(--space-md)", textAlign: "center", paddingTop: "var(--space-md)", borderTop: "1px solid var(--color-border-subtle)" }}>
+            <button onClick={() => { setFlow("login-passkey"); handlePasskeyLogin(); }} disabled={disabled} style={linkStyle}>
+              Use passkey instead
+            </button>
+          </div>
+        )}
+
+        {flow === "initial" && (
+          <div style={{ marginTop: "var(--space-md)", textAlign: "center", paddingTop: "var(--space-md)", borderTop: "1px solid var(--color-border-subtle)" }}>
+            <button onClick={() => { setFlow("confirm-register"); }} disabled={disabled} style={linkStyle}>
               I want to create a new account
             </button>
           </div>
         )}
-        {(flow === 'register' || flow === 'confirm-register') && (
-          <div
-            style={{
-              marginTop: 'var(--space-md)',
-              textAlign: 'center',
-              paddingTop: 'var(--space-md)',
-              borderTop: '1px solid var(--color-border-subtle)'
-            }}
-          >
-            <button
-              onClick={() => {
-                setFlow('initial');
-                setStatus('idle');
-                setMessage('');
-              }}
-              disabled={status === 'loading' || status === 'success'}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-action-primary)',
-                fontSize: 'var(--font-size-sm)',
-                textDecoration: 'underline',
-                cursor: status === 'loading' || status === 'success' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-display)'
-              }}
-            >
+
+        {(flow === "register" || flow === "confirm-register" || flow === "login-password" || flow === "login-passkey") && (
+          <div style={{ marginTop: "var(--space-sm)", textAlign: "center" }}>
+            <button onClick={resetFlow} disabled={disabled} style={linkStyle}>
               Back to sign in
             </button>
           </div>
@@ -393,56 +417,49 @@ export function Login({ ctx }: { ctx: any }) {
 
         {/* Status Message */}
         {message && (
-          <div
-            style={{
-              marginTop: 'var(--space-md)',
-              padding: 'var(--space-md)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 'var(--font-size-sm)',
-              textAlign: 'center',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 'var(--space-xs)',
-              background: getStatusColor(),
-              color: getStatusTextColor(),
-              border: `1px solid ${getStatusColor()}`
-            }}
-          >
-            {status === 'loading' && (
-              <div
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  border: '2px solid currentColor',
-                  borderTop: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}
-              />
+          <div style={{
+            marginTop: "var(--space-md)",
+            padding: "var(--space-md)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: "var(--font-size-sm)",
+            textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "var(--space-xs)",
+            background: getStatusColor(),
+            color: getStatusTextColor(),
+            border: `1px solid ${getStatusColor()}`,
+          }}>
+            {status === "loading" && (
+              <div style={{
+                width: "16px", height: "16px",
+                border: "2px solid currentColor",
+                borderTop: "2px solid transparent",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+              }} />
             )}
-              <span>
-                {message}
-                {status === 'success' && countdown > 0 && (
-                  <> Redirecting in {countdown}...</>
-                )}
-              </span>
-            </div>
-          )}
+            <span>
+              {message}
+              {status === "success" && countdown > 0 && <> Redirecting in {countdown}...</>}
+            </span>
+          </div>
+        )}
 
         {/* Success Link */}
-        {status === 'success' && (
-          <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+        {status === "success" && (
+          <div style={{ marginTop: "var(--space-md)", textAlign: "center" }}>
             <a
               href={redirectUrl}
               style={{
-                color: 'var(--color-action-primary)',
-                textDecoration: 'none',
-                fontSize: 'var(--font-size-sm)',
-                fontWeight: 'var(--font-weight-medium)'
+                color: "var(--color-action-primary)",
+                textDecoration: "none",
+                fontSize: "var(--font-size-sm)",
+                fontWeight: "var(--font-weight-medium)",
               }}
             >
-              Go to dashboard now →
+              Go now →
             </a>
           </div>
         )}

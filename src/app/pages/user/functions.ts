@@ -12,6 +12,7 @@ import { sessions } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
+import { hashPassword, verifyPassword } from "@/utils/password";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,11 +55,133 @@ export async function startPasskeyRegistration(username: string) {
 }
 
 export async function checkEmailExists(email: string) {
-  if (!isValidEmail(email)) return { exists: false };
+  if (!isValidEmail(email)) return { exists: false, hasPassword: false };
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
   });
-  return { exists: !!user };
+  return { exists: !!user, hasPassword: !!user?.passwordHash };
+}
+
+export async function loginWithPassword(
+  email: string,
+  password: string,
+  rememberMe: boolean
+) {
+  if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
+  if (!password) return { success: false, error: "Password required" };
+
+  const { response } = requestInfo;
+
+  const user = await db.user.findFirst({
+    where: { username: email, deletedAt: null },
+    include: {
+      memberships: { include: { organization: true } },
+    },
+  });
+
+  if (!user?.passwordHash || !user?.passwordSalt) {
+    return { success: false, error: "Invalid email or password" };
+  }
+
+  const valid = await verifyPassword(password, user.passwordHash, user.passwordSalt);
+  if (!valid) {
+    return { success: false, error: "Invalid email or password" };
+  }
+
+  const isAdmin = user.memberships.some(
+    (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
+  );
+
+  if (user.memberships.length > 0) {
+    const businessMembership = user.memberships.find(
+      (m) => m.organization.type === "business"
+    );
+    const defaultMembership = businessMembership ?? user.memberships[0];
+    await sessions.save(
+      response.headers,
+      {
+        userId: user.id,
+        currentOrganizationId: defaultMembership.organizationId,
+        role: defaultMembership.role,
+      },
+      rememberMe ? { maxAge: true } : undefined
+    );
+  } else {
+    await sessions.save(
+      response.headers,
+      { userId: user.id },
+      rememberMe ? { maxAge: true } : undefined
+    );
+  }
+
+  return { success: true, isAdmin };
+}
+
+export async function registerWithPassword(
+  email: string,
+  password: string,
+  rememberMe: boolean
+) {
+  if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
+  if (!password || password.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters" };
+  }
+
+  const { response } = requestInfo;
+
+  // Check if username already exists
+  const existingUser = await db.user.findUnique({ where: { username: email } });
+  if (existingUser) {
+    return { success: false, error: "Email already registered" };
+  }
+
+  const { hash, salt } = await hashPassword(password);
+
+  const user = await db.user.create({
+    data: {
+      username: email,
+      email,
+      name: email,
+      passwordHash: hash,
+      passwordSalt: salt,
+    },
+  });
+
+  // Create individual org
+  const customerOrg = await db.organization.create({
+    data: {
+      name: `${email}'s Account`,
+      slug: crypto.randomUUID(),
+      type: "individual",
+    },
+  });
+
+  await db.membership.create({
+    data: { userId: user.id, organizationId: customerOrg.id, role: "owner" },
+  });
+
+  // Link to Fresh Catch business
+  const freshCatch = await db.organization.findFirst({
+    where: { name: "Fresh Catch Seafood Markets" },
+  });
+
+  if (freshCatch) {
+    await db.membership.create({
+      data: { userId: user.id, organizationId: freshCatch.id, role: "customer" },
+    });
+  }
+
+  await sessions.save(
+    response.headers,
+    {
+      userId: user.id,
+      currentOrganizationId: freshCatch?.id || customerOrg.id,
+      role: "customer",
+    },
+    rememberMe ? { maxAge: true } : undefined
+  );
+
+  return { success: true, isAdmin: false };
 }
 
 export async function startPasskeyLogin(email: string) {
