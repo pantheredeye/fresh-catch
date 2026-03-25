@@ -313,9 +313,9 @@ export async function finishPasskeyRegistration(
   // Auto-login: Create session with Fresh Catch business context
   await sessions.save(response.headers, {
     userId: user.id,
-    currentOrganizationId: evanBusiness?.id || customerOrg.id,  // Fresh Catch business, or fallback to personal org
-    role: "customer",  // Customer role at Fresh Catch
-  });
+    currentOrganizationId: evanBusiness?.id || customerOrg.id,
+    role: "customer",
+  }, { maxAge: true });
 
   console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
 
@@ -418,12 +418,12 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
       currentOrganizationId: defaultMembership.organizationId,
       role: defaultMembership.role,
       challenge: null,
-    });
+    }, { maxAge: true });
   } else {
     await sessions.save(response.headers, {
       userId: user.id,
       challenge: null,
-    });
+    }, { maxAge: true });
   }
 
   return { success: true, isAdmin };

@@ -293,13 +293,20 @@ export function Login({ ctx }: { ctx: any }) {
             <TextInput
               label="Email"
               type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="your@email.com"
               value={email}
-              disabled
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={!!email && disabled}
+              required
               size="lg"
             />
             <TextInput
               label="Password"
               type="password"
+              name="new-password"
+              autoComplete="new-password"
               placeholder="Min 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -311,6 +318,8 @@ export function Login({ ctx }: { ctx: any }) {
             <TextInput
               label="Confirm Password"
               type="password"
+              name="new-password-confirm"
+              autoComplete="new-password"
               placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -334,6 +343,8 @@ export function Login({ ctx }: { ctx: any }) {
             <TextInput
               label="Email"
               type="email"
+              name="email"
+              autoComplete="email"
               value={email}
               disabled
               size="lg"
@@ -341,6 +352,8 @@ export function Login({ ctx }: { ctx: any }) {
             <TextInput
               label="Password"
               type="password"
+              name="password"
+              autoComplete="current-password"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -377,6 +390,8 @@ export function Login({ ctx }: { ctx: any }) {
             <TextInput
               label="Email"
               type="email"
+              name="email"
+              autoComplete="email"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -401,7 +416,7 @@ export function Login({ ctx }: { ctx: any }) {
 
         {flow === "initial" && (
           <div style={{ marginTop: "var(--space-md)", textAlign: "center", paddingTop: "var(--space-md)", borderTop: "1px solid var(--color-border-subtle)" }}>
-            <button onClick={() => { setFlow("confirm-register"); }} disabled={disabled} style={linkStyle}>
+            <button onClick={() => { setFlow("register"); }} disabled={disabled} style={linkStyle}>
               I want to create a new account
             </button>
           </div>

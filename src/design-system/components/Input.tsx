@@ -25,6 +25,8 @@ export interface TextInputProps extends BaseInputProps {
   icon?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
   autoFocus?: boolean;
+  name?: string;
+  autoComplete?: string;
 }
 
 /**
