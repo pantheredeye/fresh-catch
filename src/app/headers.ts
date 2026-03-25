@@ -26,6 +26,9 @@ export const setCommonHeaders =
     // Defines trusted sources for content loading and script execution:
     response.headers.set(
       "Content-Security-Policy",
-      `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://challenges.cloudflare.com; object-src 'none';`,
+      `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none';`,
     );
+
+    // Prevent clickjacking (legacy header, supplements CSP frame-ancestors)
+    response.headers.set("X-Frame-Options", "DENY");
   };

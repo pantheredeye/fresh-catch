@@ -18,7 +18,7 @@ function getStripeClient() {
 export async function createConnectedAccount(orgId: string) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
     return { success: false as const, error: "Admin access required" };
   }
 
@@ -56,7 +56,7 @@ export async function createConnectedAccount(orgId: string) {
 export async function getOnboardingLink(orgId: string) {
   const { ctx, request } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
     return { success: false as const, error: "Admin access required" };
   }
 
@@ -89,7 +89,7 @@ export async function getOnboardingLink(orgId: string) {
 export async function checkOnboardingStatus(orgId: string) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
     return { success: false as const, error: "Admin access required" };
   }
 
@@ -136,7 +136,7 @@ export async function updateFeeConfig(
 ) {
   const { ctx } = requestInfo;
 
-  if (!isOwner(ctx)) {
+  if (!isOwner(ctx) || orgId !== ctx.currentOrganization?.id) {
     return { success: false as const, error: "Owner access required" };
   }
 
@@ -176,7 +176,7 @@ export async function updateDepositConfig(
 ) {
   const { ctx } = requestInfo;
 
-  if (!isOwner(ctx)) {
+  if (!isOwner(ctx) || orgId !== ctx.currentOrganization?.id) {
     return { success: false as const, error: "Owner access required" };
   }
 

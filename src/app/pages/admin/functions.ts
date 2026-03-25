@@ -10,6 +10,8 @@ import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
 
+const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Admin Business Owner Registration Functions
  *
@@ -63,6 +65,15 @@ export async function createBusinessForLoggedInUser(
   // Must be logged in
   if (!ctx.user) {
     return { success: false, error: "You must be logged in to create a business" };
+  }
+
+  // Validate slug format
+  const RESERVED_SLUGS = ["admin", "api", "auth", "stripe", "login", "logout"];
+  if (!slug || slug.length < 3 || slug.length > 50 || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+    return { success: false, error: "Slug must be 3-50 characters, lowercase alphanumeric and hyphens only" };
+  }
+  if (RESERVED_SLUGS.includes(slug)) {
+    return { success: false, error: "This slug is reserved" };
   }
 
   // Check if slug is already taken
@@ -152,6 +163,12 @@ export async function finishBusinessOwnerRegistration(
     return false;
   }
 
+  // Reject expired challenges
+  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
+    await sessions.save(response.headers, { challenge: null });
+    return false;
+  }
+
   const verification = await verifyRegistrationResponse({
     response: registration,
     expectedChallenge: challenge,
@@ -178,7 +195,7 @@ export async function finishBusinessOwnerRegistration(
   }
 
   // Check if user already has a credential (prevent duplicate registrations)
-  const existingCredential = await db.credential.findUnique({
+  const existingCredential = await db.credential.findFirst({
     where: { userId: user.id },
   });
 

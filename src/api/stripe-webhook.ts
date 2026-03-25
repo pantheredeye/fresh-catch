@@ -46,7 +46,7 @@ export async function handleStripeWebhook(request: Request): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Webhook signature verification failed:", message);
-    return new Response(`Webhook signature verification failed: ${message}`, {
+    return new Response("Webhook verification failed", {
       status: 400,
     });
   }

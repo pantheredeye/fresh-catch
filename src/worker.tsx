@@ -201,5 +201,8 @@ export default defineApp([
       },
       ...layout(AdminLayout, adminRoutes),
     ]),
+
+    // Catch-all 404 for unmatched routes (bot scanners, typos, etc.)
+    route("*", () => new Response("Not Found", { status: 404 })),
   ]),
 ]);

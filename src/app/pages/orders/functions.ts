@@ -283,7 +283,10 @@ export async function createCheckoutSession(orderId: string, tipAmount?: number)
       },
     ];
 
-    const tipCents = tipAmount && tipAmount > 0 ? tipAmount : 0;
+    const MAX_TIP_CENTS = 50000; // $500
+    const tipCents = (tipAmount && Number.isFinite(tipAmount) && tipAmount > 0)
+      ? Math.min(Math.round(tipAmount), MAX_TIP_CENTS)
+      : 0;
     if (tipCents > 0) {
       lineItems.push({
         price_data: {

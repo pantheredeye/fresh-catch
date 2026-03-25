@@ -13,6 +13,12 @@ import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
 
+const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(email: string): boolean {
+  return typeof email === "string" && email.length <= 254 && EMAIL_RE.test(email);
+}
+
 function getWebAuthnConfig(request: Request) {
   const rpID = env.WEBAUTHN_RP_ID ?? new URL(request.url).hostname;
   const rpName = import.meta.env.VITE_IS_DEV_SERVER
@@ -25,6 +31,8 @@ function getWebAuthnConfig(request: Request) {
 }
 
 export async function startPasskeyRegistration(username: string) {
+  if (!isValidEmail(username)) throw new Error("Invalid email format");
+
   const { rpName, rpID } = getWebAuthnConfig(requestInfo.request);
   const { response } = requestInfo;
 
@@ -46,19 +54,22 @@ export async function startPasskeyRegistration(username: string) {
 }
 
 export async function checkEmailExists(email: string) {
-  const user = await db.user.findUnique({
-    where: { username: email },
+  if (!isValidEmail(email)) return { exists: false };
+  const user = await db.user.findFirst({
+    where: { username: email, deletedAt: null },
   });
   return { exists: !!user };
 }
 
 export async function startPasskeyLogin(email: string) {
+  if (!isValidEmail(email)) throw new Error("Invalid email format");
+
   const { rpID } = getWebAuthnConfig(requestInfo.request);
   const { response } = requestInfo;
 
   // Look up user by email (stored in username field)
-  const user = await db.user.findUnique({
-    where: { username: email },
+  const user = await db.user.findFirst({
+    where: { username: email, deletedAt: null },
     include: { credentials: true },
   });
 
@@ -91,6 +102,12 @@ export async function finishPasskeyRegistration(
   const challenge = session?.challenge;
 
   if (!challenge) {
+    return false;
+  }
+
+  // Reject expired challenges
+  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
+    await sessions.save(response.headers, { challenge: null });
     return false;
   }
 
@@ -194,6 +211,12 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     return false;
   }
 
+  // Reject expired challenges
+  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
+    await sessions.save(response.headers, { challenge: null });
+    return false;
+  }
+
   const credential = await db.credential.findUnique({
     where: {
       credentialId: login.id,
@@ -221,12 +244,19 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     return false;
   }
 
+  // Detect cloned authenticator (counter should never decrease)
+  const newCounter = verification.authenticationInfo.newCounter;
+  if (credential.counter > 0 && newCounter <= credential.counter) {
+    console.warn(`Credential cloning detected: ${login.id}, counter ${newCounter} <= ${credential.counter}`);
+    return false;
+  }
+
   await db.credential.update({
     where: {
       credentialId: login.id,
     },
     data: {
-      counter: verification.authenticationInfo.newCounter,
+      counter: newCounter,
     },
   });
 
@@ -253,9 +283,13 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
   );
 
-  // Set default organization context if user has memberships
+  // Set default organization context — prefer business org for admins
+  // TODO: revisit for multi-tenant with multiple vendors
   if (user.memberships.length > 0) {
-    const defaultMembership = user.memberships[0];
+    const businessMembership = user.memberships.find(
+      (m) => m.organization.type === "business"
+    );
+    const defaultMembership = businessMembership ?? user.memberships[0];
     await sessions.save(response.headers, {
       userId: user.id,
       currentOrganizationId: defaultMembership.organizationId,
@@ -343,6 +377,12 @@ export async function finishJoinCodeRegistration(
   const session = await sessions.load(request);
   const challenge = session?.challenge;
   if (!challenge) return { success: false };
+
+  // Reject expired challenges
+  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
+    await sessions.save(response.headers, { challenge: null });
+    return { success: false };
+  }
 
   const verification = await verifyRegistrationResponse({
     response: registration,

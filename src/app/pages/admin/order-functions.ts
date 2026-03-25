@@ -17,13 +17,13 @@ export async function confirmOrder(
 ) {
   const { ctx, request } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
     return { success: false, error: "Admin access required" };
   }
 
   try {
-    const order = await db.order.findUnique({
-      where: { id: orderId },
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id },
       include: {
         organization: {
           select: {
@@ -183,13 +183,13 @@ export async function confirmOrder(
 export async function completeOrder(orderId: string) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
     return { success: false, error: "Admin access required" };
   }
 
   try {
-    const order = await db.order.findUnique({
-      where: { id: orderId }
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id }
     });
 
     if (!order) {
@@ -216,11 +216,19 @@ export async function completeOrder(orderId: string) {
 export async function cancelOrderAdmin(orderId: string) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
     return { success: false, error: "Admin access required" };
   }
 
   try {
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id }
+    });
+
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
     await db.order.update({
       where: { id: orderId },
       data: { status: 'cancelled' }
@@ -242,17 +250,22 @@ export async function markAsPaid(
 ) {
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx)) {
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
     return { success: false, error: "Admin access required" };
   }
 
-  if (amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     return { success: false, error: "Amount must be positive" };
   }
 
+  const VALID_METHODS = ["cash", "check", "venmo", "zelle", "other"];
+  if (!VALID_METHODS.includes(method)) {
+    return { success: false, error: "Invalid payment method" };
+  }
+
   try {
-    const order = await db.order.findUnique({
-      where: { id: orderId }
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id }
     });
 
     if (!order) {

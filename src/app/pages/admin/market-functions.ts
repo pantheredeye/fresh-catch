@@ -3,6 +3,25 @@
 import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
+import { hasAdminAccess } from "@/utils/permissions";
+
+const FIELD_LIMITS = {
+  name: 200,
+  schedule: 500,
+  subtitle: 200,
+  locationDetails: 500,
+  customerInfo: 1000,
+} as const;
+
+function validateMarketFields(data: Record<string, unknown>): string | null {
+  for (const [field, max] of Object.entries(FIELD_LIMITS)) {
+    const val = data[field];
+    if (typeof val === "string" && val.length > max) {
+      return `${field} must be ${max} characters or less`;
+    }
+  }
+  return null;
+}
 
 /**
  * Server functions for market CRUD operations
@@ -19,9 +38,12 @@ export async function createMarket(data: {
 }) {
   const { ctx } = requestInfo;
 
-  if (!ctx.currentOrganization) {
-    throw new Error("No organization context");
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
+    throw new Error("Admin access required");
   }
+
+  const fieldError = validateMarketFields(data);
+  if (fieldError) throw new Error(fieldError);
 
   const market = await db.market.create({
     data: {
@@ -52,9 +74,12 @@ export async function updateMarket(
 ) {
   const { ctx } = requestInfo;
 
-  if (!ctx.currentOrganization) {
-    throw new Error("No organization context");
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
+    throw new Error("Admin access required");
   }
+
+  const fieldError = validateMarketFields(data);
+  if (fieldError) throw new Error(fieldError);
 
   // Verify market belongs to current organization
   const existingMarket = await db.market.findFirst({
@@ -87,8 +112,8 @@ export async function updateMarket(
 export async function deleteMarket(id: string) {
   const { ctx } = requestInfo;
 
-  if (!ctx.currentOrganization) {
-    throw new Error("No organization context");
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
+    throw new Error("Admin access required");
   }
 
   // Verify market belongs to current organization
@@ -114,8 +139,8 @@ export async function deleteMarket(id: string) {
 export async function toggleMarketActive(id: string) {
   const { ctx } = requestInfo;
 
-  if (!ctx.currentOrganization) {
-    throw new Error("No organization context");
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
+    throw new Error("Admin access required");
   }
 
   // Verify market belongs to current organization and get current state

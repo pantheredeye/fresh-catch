@@ -41,6 +41,7 @@ export async function createInvite(data: { email?: string; role: string }) {
       role: data.role,
       token: crypto.randomUUID(),
       invitedBy: userId,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     },
   });
 
@@ -141,6 +142,10 @@ export async function acceptInvite(token: string) {
 
   if (!invite || invite.status !== "pending") {
     return { success: false, error: "Invalid or expired invite" };
+  }
+
+  if (invite.expiresAt && invite.expiresAt < new Date()) {
+    return { success: false, error: "This invite has expired" };
   }
 
   // Validate email match if invite specifies an email
