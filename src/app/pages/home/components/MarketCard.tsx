@@ -90,7 +90,7 @@ export function MarketCard({
 
       <div className="flex gap-sm">
         {/* Customer action - always visible */}
-        <a href={`#order-${market.id}`} style={{
+        <a href={isAdmin ? `/admin/orders` : `/orders/new?market=${market.id}`} style={{
           flex: 1,
           padding: 'var(--space-md)',
           background: isAdmin ? 'var(--color-gradient-secondary)' : 'var(--color-gradient-primary)',

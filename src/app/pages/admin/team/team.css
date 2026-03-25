@@ -1,0 +1,279 @@
+/* Team Management Page */
+
+.team-page {
+  padding-bottom: var(--space-2xl);
+}
+
+.team-header {
+  margin-bottom: var(--space-lg);
+}
+
+.team-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs);
+}
+
+.team-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.team-error {
+  padding: var(--space-sm) var(--space-md);
+  background: color-mix(in srgb, var(--color-status-error) 10%, transparent);
+  border: 1px solid var(--color-status-error);
+  border-radius: var(--radius-sm);
+  color: var(--color-status-error);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* Invite form */
+.team-actions {
+  margin-bottom: var(--space-lg);
+}
+
+.invite-form {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.invite-form__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md);
+}
+
+.invite-form__field {
+  margin-bottom: var(--space-md);
+}
+
+.invite-form__label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.invite-form__input,
+.invite-form__select {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+.invite-form__hint {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-xs);
+}
+
+.invite-form__actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+/* Invite success */
+.invite-success {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-status-success);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.invite-success__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-status-success);
+  margin: 0 0 var(--space-xs);
+}
+
+.invite-success__hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-md);
+}
+
+.invite-success__link-row {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.invite-success__link {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+/* Team members list */
+.team-members {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+}
+
+.team-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border-subtle);
+  gap: var(--space-md);
+}
+
+.team-member:last-child {
+  border-bottom: none;
+}
+
+.team-member__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-member__name {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.team-member__you {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+.team-member__email {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.team-member__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.team-member__role-select {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+}
+
+.team-member__remove {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: none;
+  color: var(--color-status-error);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.team-member__remove:hover {
+  background: color-mix(in srgb, var(--color-status-error) 10%, transparent);
+}
+
+.team-member__remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pending invites */
+.team-invites {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.team-invite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border-subtle);
+  gap: var(--space-md);
+}
+
+.team-invite:last-child {
+  border-bottom: none;
+}
+
+.team-invite__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-invite__label {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.team-invite__meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.team-invite__actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.team-invite__copy,
+.team-invite__revoke {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.team-invite__copy {
+  color: var(--color-action-primary);
+}
+
+.team-invite__copy:hover {
+  background: color-mix(in srgb, var(--color-action-primary) 10%, transparent);
+}
+
+.team-invite__revoke {
+  color: var(--color-status-error);
+}
+
+.team-invite__revoke:hover {
+  background: color-mix(in srgb, var(--color-status-error) 10%, transparent);
+}
+
+.team-invite__revoke:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -24,6 +24,7 @@ export interface TextInputProps extends BaseInputProps {
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   icon?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  autoFocus?: boolean;
 }
 
 /**

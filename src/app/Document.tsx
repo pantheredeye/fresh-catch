@@ -11,6 +11,11 @@ export const Document: React.FC<{ children: React.ReactNode }> = ({
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+      <link rel="stylesheet" href="/src/design-system/tokens.css" />
+      <link rel="stylesheet" href="/src/layouts/CustomerLayout.css" />
+      <link rel="stylesheet" href="/src/layouts/AuthLayout.css" />
+      <link rel="stylesheet" href="/src/components/Header.css" />
+      <link rel="stylesheet" href="/src/components/UserMenu.css" />
       <link rel="modulepreload" href="/src/client.tsx" />
     </head>
     <body style={{
