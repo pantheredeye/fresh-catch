@@ -4,15 +4,7 @@ import { getPublicOrganizationId } from "@/utils/organization";
 import { CustomerHomeUI } from "./CustomerHomeUI";
 import { BusinessNotFound } from "../BusinessNotFound";
 
-// Mock data for sections not yet converted to real data
-const MOCK_FRESH_CATCH = [
-  { emoji: "🦐", name: "Shrimp" },
-  { emoji: "🐟", name: "Redfish" },
-  { emoji: "🐠", name: "Flounder" },
-  { emoji: "🦀", name: "Crab" },
-  { emoji: "🦪", name: "Oysters" },
-  { emoji: "🐟", name: "Trout" }
-];
+const STALE_DAYS = 7;
 
 const MOCK_QUICK_ACTIONS = [
   { icon: "🐟", title: "Quick Order", href: "/orders/new" },
@@ -68,10 +60,26 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
     orderBy: { name: "asc" }
   });
 
+  // Fetch latest live catch update, with staleness check
+  const catchUpdate = await db.catchUpdate.findFirst({
+    where: { organizationId: orgId, status: "live" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const isStale = catchUpdate &&
+    (Date.now() - new Date(catchUpdate.createdAt).getTime()) > STALE_DAYS * 86400000;
+
+  const catchData = catchUpdate && !isStale
+    ? {
+        ...JSON.parse(catchUpdate.formattedContent),
+        updatedAt: catchUpdate.createdAt.toISOString(),
+      }
+    : null;
+
   return (
     <CustomerHomeUI
       markets={markets}
-      freshCatch={MOCK_FRESH_CATCH}
+      catchData={catchData}
       quickActions={MOCK_QUICK_ACTIONS}
       ctx={ctx}
     />

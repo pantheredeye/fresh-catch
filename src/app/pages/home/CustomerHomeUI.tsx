@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useFavorites } from "@/hooks/useFavorites";
 import type { AppContext } from "@/worker";
 import {
   LiveBanner,
   FreshHero,
+  FreshSheet,
   MarketCard,
   BottomNavigation
 } from "./components";
@@ -18,9 +18,11 @@ type Market = {
   active: boolean;
 };
 
-type FreshCatch = {
-  emoji: string;
-  name: string;
+type CatchData = {
+  headline: string;
+  items: { name: string; note: string }[];
+  summary: string;
+  updatedAt: string;
 };
 
 type QuickAction = {
@@ -39,12 +41,12 @@ type QuickAction = {
  */
 export function CustomerHomeUI({
   markets,
-  freshCatch,
+  catchData,
   quickActions,
   ctx
 }: {
   markets: Market[];
-  freshCatch: FreshCatch[];
+  catchData: CatchData | null;
   quickActions: QuickAction[];
   ctx: AppContext;
 }) {
@@ -80,8 +82,12 @@ export function CustomerHomeUI({
       {/* Live Indicator - TODO: Show only when actually live */}
       <LiveBanner />
 
-      {/* Fresh Hero Section */}
-      <FreshHero actions={quickActions} />
+      {/* Fresh Catch or Hero Fallback */}
+      {catchData ? (
+        <FreshSheet catch={catchData} />
+      ) : (
+        <FreshHero actions={quickActions} />
+      )}
 
       {/* Your Markets Section - Only show if user has favorites */}
       {favoriteMarkets.length > 0 && (
