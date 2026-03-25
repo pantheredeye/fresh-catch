@@ -78,6 +78,17 @@ export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
           </div>
         </a>
 
+        {/* Fresh Catch Card */}
+        <a href="/admin/catch" className="admin-nav-card">
+          <div className="admin-nav-card__icon">🎙️</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Fresh Catch</h3>
+            <p className="admin-nav-card__description">
+              Record what's available this week
+            </p>
+          </div>
+        </a>
+
         {/* Share Business Card */}
         <button
           onClick={() => setShareModalOpen(true)}

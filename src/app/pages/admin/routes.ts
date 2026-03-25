@@ -6,6 +6,7 @@ import { AdminOrdersPage } from "./AdminOrdersPage";
 import { PrintOrdersPage } from "./PrintOrdersPage";
 import { StripeSettingsPage } from "./StripeSettingsPage";
 import { TeamPage } from "./team/TeamPage";
+import { CatchPage } from "./catch/CatchPage";
 
 export const adminRoutes = [
   route("/", AdminDashboard),        // /admin landing page
@@ -15,4 +16,5 @@ export const adminRoutes = [
   route("/orders/print", PrintOrdersPage), // /admin/orders/print
   route("/settings/stripe", StripeSettingsPage), // /admin/settings/stripe
   route("/team", TeamPage),           // /admin/team
+  route("/catch", CatchPage),         // /admin/catch
 ];
