@@ -2,13 +2,17 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Card } from "@/design-system";
-import { clearCatch } from "./catch-functions";
+import { clearCatch, publishCatch } from "./catch-functions";
 import "./catch.css";
+
+type InputMode = "voice" | "text";
 
 type CatchState =
   | "idle"
   | "recording"
   | "processing"
+  | "review"
+  | "publishing"
   | "done"
   | "error"
   | "permission-denied";
@@ -45,12 +49,16 @@ function getSupportedMimeType(): string {
 }
 
 export function CatchUI({ currentCatch }: CatchUIProps) {
+  const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [state, setState] = useState<CatchState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<CatchContent | null>(null);
   const [timeLeft, setTimeLeft] = useState(120);
   const [amplitude, setAmplitude] = useState(0);
   const [liveCatch, setLiveCatch] = useState(currentCatch);
+  const [textInput, setTextInput] = useState("");
+  const [draft, setDraft] = useState<CatchContent | null>(null);
+  const [rawTranscript, setRawTranscript] = useState("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -108,9 +116,9 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         formatted: CatchContent;
         rawTranscript: string;
       };
-      setResult(data.formatted);
-      setLiveCatch(null); // new catch replaces old
-      setState("done");
+      setDraft(data.formatted);
+      setRawTranscript(data.rawTranscript);
+      setState("review");
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Upload failed"
@@ -118,6 +126,40 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
       setState("error");
     }
   }, []);
+
+  const submitText = useCallback(async () => {
+    if (!textInput.trim()) return;
+    setState("processing");
+
+    try {
+      const response = await fetch("/api/catch/record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textInput.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(
+          (data as { error?: string }).error || `Submit failed (${response.status})`
+        );
+      }
+
+      const data = (await response.json()) as {
+        formatted: CatchContent;
+        rawTranscript: string;
+      };
+      setDraft(data.formatted);
+      setRawTranscript(data.rawTranscript);
+      setTextInput("");
+      setState("review");
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Submit failed"
+      );
+      setState("error");
+    }
+  }, [textInput]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
@@ -221,6 +263,8 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
   const handleReRecord = useCallback(() => {
     blobRef.current = null;
     setResult(null);
+    setDraft(null);
+    setRawTranscript("");
     setErrorMessage("");
     setState("idle");
   }, []);
@@ -238,6 +282,57 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
     setState("idle");
     startRecording();
   }, [startRecording]);
+
+  const handlePublish = useCallback(async () => {
+    if (!draft) return;
+    setState("publishing");
+    try {
+      const res = await publishCatch(draft, rawTranscript);
+      if (res.success) {
+        setResult(draft);
+        setLiveCatch(null);
+        setDraft(null);
+        setState("done");
+      } else {
+        setErrorMessage(res.error || "Publish failed");
+        setState("error");
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Publish failed");
+      setState("error");
+    }
+  }, [draft, rawTranscript]);
+
+  const updateDraftHeadline = useCallback((headline: string) => {
+    setDraft((prev) => prev ? { ...prev, headline } : prev);
+  }, []);
+
+  const updateDraftSummary = useCallback((summary: string) => {
+    setDraft((prev) => prev ? { ...prev, summary } : prev);
+  }, []);
+
+  const updateDraftItem = useCallback((index: number, field: "name" | "note", value: string) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const items = [...prev.items];
+      items[index] = { ...items[index], [field]: value };
+      return { ...prev, items };
+    });
+  }, []);
+
+  const removeDraftItem = useCallback((index: number) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return { ...prev, items: prev.items.filter((_, i) => i !== index) };
+    });
+  }, []);
+
+  const addDraftItem = useCallback(() => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return { ...prev, items: [...prev.items, { name: "", note: "" }] };
+    });
+  }, []);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -259,6 +354,24 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
     <Card variant="centered" maxWidth="600px">
       <div className="catch-page">
         <h1 className="catch-page__title">Fresh Catch</h1>
+
+        {/* Input Mode Toggle */}
+        {(state === "idle" || state === "done") && (
+          <div className="catch-mode-toggle">
+            <button
+              className={`catch-mode-toggle__btn${inputMode === "voice" ? " catch-mode-toggle__btn--active" : ""}`}
+              onClick={() => setInputMode("voice")}
+            >
+              Voice
+            </button>
+            <button
+              className={`catch-mode-toggle__btn${inputMode === "text" ? " catch-mode-toggle__btn--active" : ""}`}
+              onClick={() => setInputMode("text")}
+            >
+              Type
+            </button>
+          </div>
+        )}
 
         {/* Permission Denied */}
         {state === "permission-denied" && (
@@ -283,7 +396,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
           <div className="catch-processing">
             <div className="catch-processing__spinner" />
             <p className="catch-processing__text">
-              Transcribing &amp; formatting...
+              {inputMode === "voice" ? "Transcribing & formatting..." : "Formatting..."}
             </p>
           </div>
         )}
@@ -293,7 +406,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
           <div className="catch-error">
             <div className="catch-error__message">{errorMessage}</div>
             <div className="catch-error__actions">
-              {blobRef.current && (
+              {inputMode === "voice" && blobRef.current && (
                 <button
                   className="catch-btn catch-btn--primary"
                   onClick={handleRetry}
@@ -305,14 +418,14 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
                 className="catch-btn catch-btn--secondary"
                 onClick={handleReRecord}
               >
-                Re-record
+                {inputMode === "voice" ? "Re-record" : "Try Again"}
               </button>
             </div>
           </div>
         )}
 
-        {/* Mic Button (idle + recording + done) */}
-        {(state === "idle" || state === "recording" || state === "done") && (
+        {/* Mic Button (voice mode: idle + recording + done) */}
+        {inputMode === "voice" && (state === "idle" || state === "recording" || state === "done") && (
           <div className="catch-mic">
             <button
               className={`catch-mic__button ${
@@ -341,8 +454,108 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
             )}
 
             {state === "idle" && (
-              <p className="catch-mic__label">Tap to record what's fresh</p>
+              <p className="catch-mic__label">Tap to record — you can edit before publishing</p>
             )}
+          </div>
+        )}
+
+        {/* Text Input (text mode: idle + done) */}
+        {inputMode === "text" && (state === "idle" || state === "done") && (
+          <div className="catch-text">
+            <textarea
+              className="catch-text__input"
+              placeholder="Type what's fresh today..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              rows={4}
+            />
+            <p className="catch-text__hint">
+              AI will format your text — you can edit before publishing
+            </p>
+            <button
+              className="catch-btn catch-btn--primary catch-text__submit"
+              onClick={submitText}
+              disabled={!textInput.trim()}
+            >
+              Format with AI
+            </button>
+          </div>
+        )}
+
+        {/* Publishing */}
+        {state === "publishing" && (
+          <div className="catch-processing">
+            <div className="catch-processing__spinner" />
+            <p className="catch-processing__text">Publishing...</p>
+          </div>
+        )}
+
+        {/* Review / Edit */}
+        {state === "review" && draft && (
+          <div className="catch-review">
+            <h2 className="catch-review__title">Review & Edit</h2>
+            <div className="catch-review__field">
+              <label className="catch-review__label">Headline</label>
+              <input
+                className="catch-review__input"
+                value={draft.headline}
+                onChange={(e) => updateDraftHeadline(e.target.value)}
+              />
+            </div>
+            <div className="catch-review__field">
+              <label className="catch-review__label">Items</label>
+              {draft.items.map((item, i) => (
+                <div key={i} className="catch-review__item">
+                  <input
+                    className="catch-review__input catch-review__input--name"
+                    value={item.name}
+                    onChange={(e) => updateDraftItem(i, "name", e.target.value)}
+                    placeholder="Fish name"
+                  />
+                  <input
+                    className="catch-review__input catch-review__input--note"
+                    value={item.note}
+                    onChange={(e) => updateDraftItem(i, "note", e.target.value)}
+                    placeholder="Description"
+                  />
+                  <button
+                    className="catch-review__remove"
+                    onClick={() => removeDraftItem(i)}
+                    title="Remove item"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+              <button
+                className="catch-btn catch-btn--secondary catch-review__add"
+                onClick={addDraftItem}
+              >
+                + Add Item
+              </button>
+            </div>
+            <div className="catch-review__field">
+              <label className="catch-review__label">Summary</label>
+              <input
+                className="catch-review__input"
+                value={draft.summary}
+                onChange={(e) => updateDraftSummary(e.target.value)}
+              />
+            </div>
+            <div className="catch-review__actions">
+              <button
+                className="catch-btn catch-btn--primary"
+                onClick={handlePublish}
+              >
+                Publish
+              </button>
+              <button
+                className="catch-btn catch-btn--secondary"
+                onClick={handleReRecord}
+              >
+                Re-do
+              </button>
+            </div>
           </div>
         )}
 
@@ -366,7 +579,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
                 className="catch-btn catch-btn--secondary"
                 onClick={handleReRecord}
               >
-                Re-record
+                {inputMode === "voice" ? "Re-record" : "New Update"}
               </button>
               <button
                 className="catch-btn catch-btn--outline"
@@ -379,7 +592,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Current Live Catch */}
-        {state !== "processing" && (
+        {state !== "processing" && state !== "publishing" && state !== "review" && (
           <div className="catch-current">
             <h3 className="catch-current__header">
               Currently showing to customers:

@@ -1,11 +1,11 @@
 /**
- * Audio processing endpoint: POST /api/catch/record
- * Receives audio → transcribes via Whisper → formats via Claude → saves to DB.
+ * Catch formatting endpoint: POST /api/catch/record
+ * Accepts audio (Whisper transcription) or JSON text input.
+ * Both paths → format via Workers AI → return formatted result (no DB save).
  */
 import { env } from "cloudflare:workers";
 import type { AppContext } from "@/worker";
 import { hasAdminAccess } from "@/utils/permissions";
-import { db } from "@/db";
 
 interface CatchContent {
   headline: string;
@@ -28,85 +28,80 @@ export async function handleCatchRecord(
     return Response.json({ error: "No organization context" }, { status: 403 });
   }
 
-  const organizationId = ctx.currentOrganization.id;
+  const ai = (env as unknown as { AI: { run: (model: string, input: Record<string, unknown>) => Promise<Record<string, unknown>> } }).AI;
 
-  // Read audio from request body
-  const body = await request.arrayBuffer();
-  if (body.byteLength === 0) {
-    return Response.json({ error: "No audio data" }, { status: 400 });
-  }
-
-  // Step 1: Transcribe with Whisper
+  // Determine input type: JSON text or audio
+  const contentType = request.headers.get("content-type") ?? "";
   let transcript: string;
-  try {
-    const ai = (env as unknown as { AI: { run: (model: string, input: Record<string, unknown>) => Promise<{ text: string }> } }).AI;
-    const result = await ai.run("@cf/openai/whisper-tiny-en", {
-      audio: [...new Uint8Array(body)],
-    });
-    transcript = result.text;
-  } catch (error) {
-    console.error("Whisper transcription failed:", error);
-    return Response.json(
-      { error: "Transcription failed" },
-      { status: 500 },
-    );
-  }
 
-  if (!transcript || transcript.trim().length === 0) {
-    return Response.json(
-      { error: "No speech detected in audio" },
-      { status: 400 },
-    );
-  }
-
-  // Step 2: Format with Claude
-  const apiKey = (env as unknown as Record<string, string>).ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error("ANTHROPIC_API_KEY not configured");
-    return Response.json(
-      { error: "AI formatting not configured" },
-      { status: 500 },
-    );
-  }
-
-  let formatted: CatchContent;
-  try {
-    const claudeResponse = await fetch(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20241022",
-          max_tokens: 1024,
-          system:
-            "You are a seafood market assistant. Given a voice transcript of a fisherman describing today's catch, output ONLY valid JSON (no markdown, no explanation) with this exact shape: { \"headline\": \"short catchy headline\", \"items\": [{ \"name\": \"fish name\", \"note\": \"colorful description preserving the speaker's personality\" }], \"summary\": \"one-sentence summary\" }. Preserve the speaker's colorful descriptions and personality in the notes.",
-          messages: [
-            {
-              role: "user",
-              content: `Format this catch update transcript into structured JSON:\n\n${transcript}`,
-            },
-          ],
-        }),
-      },
-    );
-
-    if (!claudeResponse.ok) {
-      throw new Error(`Claude API returned ${claudeResponse.status}`);
+  if (contentType.includes("application/json")) {
+    // Text input — use directly
+    const body = (await request.json()) as { text?: string };
+    if (!body.text || body.text.trim().length === 0) {
+      return Response.json({ error: "No text provided" }, { status: 400 });
+    }
+    transcript = body.text.trim();
+  } else {
+    // Audio input — transcribe with Whisper
+    const body = await request.arrayBuffer();
+    if (body.byteLength === 0) {
+      return Response.json({ error: "No audio data" }, { status: 400 });
     }
 
-    const claudeResult = (await claudeResponse.json()) as {
-      content: { type: string; text: string }[];
-    };
-    const rawText = claudeResult.content[0]?.text ?? "";
+    try {
+      const result = await ai.run("@cf/openai/whisper-tiny-en", {
+        audio: [...new Uint8Array(body)],
+      }) as { text: string };
+      transcript = result.text;
+    } catch (error) {
+      console.error("Whisper transcription failed:", error);
+      return Response.json(
+        { error: "Transcription failed" },
+        { status: 500 },
+      );
+    }
+
+    if (!transcript || transcript.trim().length === 0) {
+      return Response.json(
+        { error: "No speech detected in audio" },
+        { status: 400 },
+      );
+    }
+  }
+
+  // Format with Workers AI
+  let formatted: CatchContent;
+  try {
+    const result = await ai.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a seafood market assistant. Given a description of today's catch, output ONLY valid JSON (no markdown, no explanation) with this exact shape: { \"headline\": \"short catchy headline\", \"items\": [{ \"name\": \"Fish Name\", \"note\": \"Colorful description preserving the speaker's personality\" }], \"summary\": \"One-sentence summary\" }. Capitalize all fish names (e.g. \"Mahi Mahi\", \"Red Snapper\"). Use proper sentence casing for notes, headline, and summary. Preserve the speaker's colorful descriptions and personality in the notes.",
+        },
+        {
+          role: "user",
+          content: `Format this catch update into structured JSON:\n\n${transcript}`,
+        },
+      ],
+      max_tokens: 1024,
+    }) as Record<string, unknown>;
+
+    console.log("Workers AI raw result:", JSON.stringify(result));
+    // Workers AI may return { response: string } or other shapes — extract text robustly
+    let rawText: string;
+    if (typeof result.response === "string") {
+      rawText = result.response;
+    } else if (typeof result.result === "string") {
+      rawText = result.result;
+    } else {
+      // Stringify the whole thing so we can debug + try to parse it as JSON directly
+      rawText = JSON.stringify(result.response ?? result);
+    }
 
     formatted = parseCatchContent(rawText);
   } catch (error) {
-    console.error("Claude formatting failed:", error);
+    console.error("AI formatting failed:", error);
     return Response.json(
       {
         error: "Formatting failed",
@@ -116,31 +111,14 @@ export async function handleCatchRecord(
     );
   }
 
-  // Step 3: Archive existing live updates, save new one
-  await db.catchUpdate.updateMany({
-    where: { organizationId, status: "live" },
-    data: { status: "archived" },
-  });
-
-  const catchUpdate = await db.catchUpdate.create({
-    data: {
-      organizationId,
-      recordedBy: ctx.user.id,
-      rawTranscript: transcript,
-      formattedContent: JSON.stringify(formatted),
-      status: "live",
-    },
-  });
-
   return Response.json({
-    id: catchUpdate.id,
     formatted,
     rawTranscript: transcript,
   });
 }
 
 /**
- * Parse Claude's response into CatchContent, handling markdown fences.
+ * Parse AI response into CatchContent, handling markdown fences.
  */
 function parseCatchContent(raw: string): CatchContent {
   // Try direct parse

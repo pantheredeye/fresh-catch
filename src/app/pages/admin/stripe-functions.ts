@@ -38,7 +38,7 @@ export async function createConnectedAccount(orgId: string) {
     const stripe = getStripeClient();
     const account = await stripe.accounts.create({
       type: "express",
-      metadata: { orgId },
+      metadata: { orgId, application: "fresh_catch" },
     });
 
     await db.organization.update({

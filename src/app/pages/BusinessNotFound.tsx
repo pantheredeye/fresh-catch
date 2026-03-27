@@ -1,6 +1,7 @@
 "use client";
 
 import { Container, Button } from "@/design-system";
+import "@/layouts/AdminLayout.css";
 
 /**
  * BusinessNotFound - Error page for invalid business slugs or no businesses
