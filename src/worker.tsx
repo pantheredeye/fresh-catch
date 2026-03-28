@@ -21,6 +21,7 @@ import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
 import { handleCatchRecord } from "@/api/catch-record";
+import { handleVoiceCommand } from "@/api/voice-command";
 export { SessionDurableObject } from "./session/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
@@ -155,11 +156,14 @@ export default defineApp([
       }
     }
   },
-  // Catch record API — after session/user middleware for auth context
+  // API endpoints — after session/user middleware for auth context
   async ({ ctx, request }) => {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/catch/record") {
       return handleCatchRecord(request, ctx);
+    }
+    if (request.method === "POST" && url.pathname === "/api/voice/command") {
+      return handleVoiceCommand(request, ctx);
     }
   },
   render(Document, [
