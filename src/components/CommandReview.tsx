@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { VoiceCommandResult } from "@/api/voice-tools";
+import { voiceTools } from "@/api/voice-tools";
 import "./command-review.css";
 
 // --- Shared types for form data ---
@@ -29,6 +30,21 @@ interface MarketFormData {
 interface PopupFormData extends MarketFormData {
   expiresAt: string;
   notes: string;
+}
+
+interface MarketUpdateFormData {
+  marketId: string;
+  marketName: string;
+  changes: Record<string, { old: unknown; new: string }>;
+  unchanged: Record<string, string>;
+  editingUnchanged: Set<string>;
+  expiresAt: string;
+}
+
+interface MarketCatchFormData {
+  marketId: string;
+  marketName: string;
+  items: CatchItem[];
 }
 
 // --- Props ---
@@ -297,6 +313,279 @@ function PopupReviewForm({
   );
 }
 
+// --- Market Update Diff Form ---
+
+const MARKET_FIELD_LABELS: Record<string, string> = {
+  name: "Market Name",
+  schedule: "Schedule",
+  locationDetails: "Location Details",
+  customerInfo: "Customer Information",
+  expiresAt: "Expires At",
+};
+
+function MarketUpdateReviewForm({
+  data,
+  onChange,
+}: {
+  data: MarketUpdateFormData;
+  onChange: (d: MarketUpdateFormData) => void;
+}) {
+  const toggleUnchanged = (field: string) => {
+    const next = new Set(data.editingUnchanged);
+    if (next.has(field)) {
+      next.delete(field);
+    } else {
+      next.add(field);
+    }
+    onChange({ ...data, editingUnchanged: next });
+  };
+
+  const updateChange = (field: string, value: string) => {
+    onChange({
+      ...data,
+      changes: {
+        ...data.changes,
+        [field]: { ...data.changes[field], new: value },
+      },
+    });
+  };
+
+  const updateUnchanged = (field: string, value: string) => {
+    // Promote to changes
+    const newChanges = {
+      ...data.changes,
+      [field]: { old: data.unchanged[field], new: value },
+    };
+    const newUnchanged = { ...data.unchanged };
+    delete newUnchanged[field];
+    onChange({
+      ...data,
+      changes: newChanges,
+      unchanged: newUnchanged,
+    });
+  };
+
+  const isDateField = (field: string) => field === "expiresAt";
+
+  return (
+    <>
+      {/* Changed fields - highlighted */}
+      {Object.entries(data.changes).length > 0 && (
+        <div className="cr-diff-section">
+          <label className="cr-label cr-label--diff-changed">Changed</label>
+          {Object.entries(data.changes).map(([field, { old: oldVal, new: newVal }]) => (
+            <div key={field} className="cr-diff-field cr-diff-field--changed">
+              <label className="cr-label">{MARKET_FIELD_LABELS[field] || field}</label>
+              <div className="cr-diff-old">
+                {isDateField(field) && oldVal
+                  ? new Date(oldVal as string).toLocaleString()
+                  : String(oldVal || "(empty)")}
+              </div>
+              {isDateField(field) ? (
+                <input
+                  type="datetime-local"
+                  className="cr-input cr-input--date"
+                  value={newVal ? newVal.slice(0, 16) : ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateChange(field, val ? new Date(val).toISOString() : "");
+                  }}
+                />
+              ) : (
+                <input
+                  className="cr-input cr-diff-new"
+                  value={newVal}
+                  onChange={(e) => updateChange(field, e.target.value)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Unchanged fields - dimmed, expandable */}
+      {Object.keys(data.unchanged).length > 0 && (
+        <div className="cr-diff-section cr-diff-section--unchanged">
+          <label className="cr-label cr-label--diff-unchanged">Unchanged</label>
+          {Object.entries(data.unchanged).map(([field, value]) => (
+            <div
+              key={field}
+              className={`cr-diff-field cr-diff-field--unchanged ${data.editingUnchanged.has(field) ? "cr-diff-field--editing" : ""}`}
+            >
+              <div className="cr-diff-unchanged-header" onClick={() => toggleUnchanged(field)}>
+                <label className="cr-label">{MARKET_FIELD_LABELS[field] || field}</label>
+                <span className="cr-diff-unchanged-value">
+                  {isDateField(field) && value
+                    ? new Date(value).toLocaleString()
+                    : value || "(empty)"}
+                </span>
+                <span className="cr-diff-edit-hint">
+                  {data.editingUnchanged.has(field) ? "−" : "+"}
+                </span>
+              </div>
+              {data.editingUnchanged.has(field) && (
+                isDateField(field) ? (
+                  <input
+                    type="datetime-local"
+                    className="cr-input cr-input--date"
+                    value={value ? value.slice(0, 16) : ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateUnchanged(field, val ? new Date(val).toISOString() : "");
+                    }}
+                  />
+                ) : (
+                  <input
+                    className="cr-input"
+                    value={value}
+                    onChange={(e) => updateUnchanged(field, e.target.value)}
+                  />
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Always show date picker for popup expiresAt */}
+      {data.expiresAt !== undefined && !data.changes.expiresAt && !data.unchanged.expiresAt && (
+        <div className="cr-field cr-field--prominent">
+          <label className="cr-label cr-label--prominent">Expires At</label>
+          <input
+            type="datetime-local"
+            className="cr-input cr-input--date"
+            value={data.expiresAt ? data.expiresAt.slice(0, 16) : ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              onChange({
+                ...data,
+                expiresAt: val ? new Date(val).toISOString() : "",
+              });
+            }}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+// --- Market Catch Review Form ---
+
+function MarketCatchReviewForm({
+  data,
+  onChange,
+}: {
+  data: MarketCatchFormData;
+  onChange: (d: MarketCatchFormData) => void;
+}) {
+  const updateItem = (i: number, field: "name" | "note", value: string) => {
+    const items = [...data.items];
+    items[i] = { ...items[i], [field]: value };
+    onChange({ ...data, items });
+  };
+
+  const removeItem = (i: number) => {
+    onChange({ ...data, items: data.items.filter((_, idx) => idx !== i) });
+  };
+
+  const addItem = () => {
+    onChange({ ...data, items: [...data.items, { name: "", note: "" }] });
+  };
+
+  return (
+    <>
+      <div className="cr-field">
+        <label className="cr-label">Market</label>
+        <input
+          className="cr-input cr-input--readonly"
+          value={data.marketName}
+          readOnly
+        />
+      </div>
+      <div className="cr-field">
+        <label className="cr-label">Catch Items</label>
+        {data.items.map((item, i) => (
+          <div key={i} className="cr-item-row">
+            <input
+              className="cr-input cr-input--name"
+              value={item.name}
+              onChange={(e) => updateItem(i, "name", e.target.value)}
+              placeholder="Fish name"
+            />
+            <input
+              className="cr-input cr-input--note"
+              value={item.note}
+              onChange={(e) => updateItem(i, "note", e.target.value)}
+              placeholder="Description"
+            />
+            <button
+              className="cr-remove"
+              onClick={() => removeItem(i)}
+              title="Remove item"
+            >
+              &times;
+            </button>
+          </div>
+        ))}
+        <button className="cr-btn cr-btn--secondary" onClick={addItem}>
+          + Add Item
+        </button>
+      </div>
+    </>
+  );
+}
+
+// --- Confidence Warning ---
+
+function ConfidenceWarning({
+  result,
+  onRetry,
+  onIntentChange,
+}: {
+  result: VoiceCommandResult;
+  onRetry: () => void;
+  onIntentChange: (intent: string) => void;
+}) {
+  const [showIntentPicker, setShowIntentPicker] = useState(false);
+
+  return (
+    <div className="cr-low-confidence">
+      <div className="cr-low-confidence-text">
+        I&apos;m not sure about this. Did you mean: &ldquo;{result.interpretation}&rdquo;?
+      </div>
+      <div className="cr-low-confidence-actions">
+        <button
+          className="cr-btn cr-btn--outline cr-btn--sm"
+          onClick={() => setShowIntentPicker(!showIntentPicker)}
+        >
+          That&apos;s not right
+        </button>
+      </div>
+      {showIntentPicker && (
+        <div className="cr-intent-picker">
+          <button className="cr-btn cr-btn--secondary cr-btn--sm" onClick={onRetry}>
+            Re-record
+          </button>
+          <select
+            className="cr-input cr-intent-select"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) onIntentChange(e.target.value);
+            }}
+          >
+            <option value="">Select action...</option>
+            {Object.entries(voiceTools).map(([intent, tool]) => (
+              <option key={intent} value={intent}>
+                {tool.description}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Main Component ---
 
 export function CommandReview({
@@ -306,6 +595,23 @@ export function CommandReview({
   onRetry,
 }: CommandReviewProps) {
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeResult, setActiveResult] = useState(result);
+
+  // Handle manual intent change from confidence warning
+  const handleIntentChange = useCallback(
+    (newIntent: string) => {
+      const tool = voiceTools[newIntent];
+      if (!tool) return;
+      setActiveResult({
+        ...activeResult,
+        intent: newIntent,
+        reviewType: tool.reviewType,
+        confidence: 1.0, // User explicitly chose this
+      });
+    },
+    [activeResult],
+  );
 
   // Initialize form data from voice result
   const [catchData, setCatchData] = useState<CatchFormData>(() => ({
@@ -336,6 +642,38 @@ export function CommandReview({
     notes: (result.data.notes as string) || "",
   }));
 
+  const [marketUpdateData, setMarketUpdateData] = useState<MarketUpdateFormData>(() => {
+    // Build diff: separate changed fields from original data
+    const data = result.data;
+    const originalData = (data._original as Record<string, unknown>) || {};
+    const changes: Record<string, { old: unknown; new: string }> = {};
+    const unchanged: Record<string, string> = {};
+
+    const diffFields = ["name", "schedule", "locationDetails", "customerInfo"];
+    for (const field of diffFields) {
+      if (data[field] !== undefined && data[field] !== originalData[field]) {
+        changes[field] = { old: originalData[field], new: String(data[field] || "") };
+      } else if (originalData[field] !== undefined) {
+        unchanged[field] = String(originalData[field] || "");
+      }
+    }
+
+    return {
+      marketId: (data.marketId as string) || "",
+      marketName: (data.name as string) || (originalData.name as string) || "",
+      changes,
+      unchanged,
+      editingUnchanged: new Set<string>(),
+      expiresAt: (data.expiresAt as string) || (originalData.expiresAt as string) || "",
+    };
+  });
+
+  const [marketCatchData, setMarketCatchData] = useState<MarketCatchFormData>(() => ({
+    marketId: (result.data.marketId as string) || "",
+    marketName: (result.data.marketName as string) || (result.data.name as string) || "",
+    items: parseCatchPreview(result.data.catchPreview),
+  }));
+
   // Escape key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -347,11 +685,15 @@ export function CommandReview({
 
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setError(null);
     try {
       let data: Record<string, unknown>;
-      switch (result.reviewType) {
+      switch (activeResult.reviewType) {
         case "catch":
-          data = { ...catchData };
+          data = {
+            ...catchData,
+            rawTranscript: activeResult.rawTranscript,
+          };
           break;
         case "market-create":
           data = {
@@ -360,35 +702,67 @@ export function CommandReview({
               marketData.catchPreview.length > 0
                 ? JSON.stringify({ items: marketData.catchPreview })
                 : undefined,
+            rawTranscript: activeResult.rawTranscript,
           };
           break;
         case "popup-create":
           data = {
             ...popupData,
+            type: "popup",
             catchPreview:
               popupData.catchPreview.length > 0
                 ? JSON.stringify({ items: popupData.catchPreview })
                 : undefined,
+            rawTranscript: activeResult.rawTranscript,
+          };
+          break;
+        case "market-update": {
+          // Collect only changed fields
+          const changedFields: Record<string, unknown> = {};
+          for (const [field, { new: newVal }] of Object.entries(marketUpdateData.changes)) {
+            changedFields[field] = newVal;
+          }
+          data = {
+            marketId: marketUpdateData.marketId,
+            ...changedFields,
+            rawTranscript: activeResult.rawTranscript,
+          };
+          if (marketUpdateData.expiresAt) {
+            data.expiresAt = marketUpdateData.expiresAt;
+          }
+          break;
+        }
+        case "market-catch":
+          data = {
+            marketId: marketCatchData.marketId,
+            catchPreview: JSON.stringify({ items: marketCatchData.items }),
+            rawTranscript: activeResult.rawTranscript,
           };
           break;
         default:
-          data = result.data;
+          data = activeResult.data;
       }
-      await onSave(result.intent, data);
+      await onSave(activeResult.intent, data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
     }
-  }, [result, catchData, marketData, popupData, onSave]);
+  }, [activeResult, catchData, marketData, popupData, marketUpdateData, marketCatchData, onSave]);
 
   // Determine if save is enabled
   const canSave = (() => {
-    switch (result.reviewType) {
+    switch (activeResult.reviewType) {
       case "catch":
         return catchData.headline.trim().length > 0 && catchData.items.length > 0;
       case "market-create":
         return marketData.name.trim().length > 0;
       case "popup-create":
         return popupData.name.trim().length > 0 && popupData.expiresAt.length > 0;
+      case "market-update":
+        return marketUpdateData.marketId.length > 0 && Object.keys(marketUpdateData.changes).length > 0;
+      case "market-catch":
+        return marketCatchData.marketId.length > 0 && marketCatchData.items.length > 0;
       default:
         return true;
     }
@@ -399,25 +773,45 @@ export function CommandReview({
       <div className="cr-panel">
         {/* Header */}
         <div className="cr-header">
-          <p className="cr-interpretation">{result.interpretation}</p>
-          {result.confidence < 0.8 && (
+          <p className="cr-interpretation">{activeResult.interpretation}</p>
+          {activeResult.confidence < 0.7 && (
+            <ConfidenceWarning
+              result={activeResult}
+              onRetry={onRetry}
+              onIntentChange={handleIntentChange}
+            />
+          )}
+          {activeResult.confidence >= 0.7 && activeResult.confidence < 0.8 && (
             <div className="cr-confidence-warning">
-              Low confidence ({Math.round(result.confidence * 100)}%) — please
+              Low confidence ({Math.round(activeResult.confidence * 100)}%) — please
               review carefully
             </div>
           )}
         </div>
 
+        {/* Error banner */}
+        {error && (
+          <div className="cr-error-banner">
+            {error}
+          </div>
+        )}
+
         {/* Form body */}
         <div className="cr-body">
-          {result.reviewType === "catch" && (
+          {activeResult.reviewType === "catch" && (
             <CatchReviewForm data={catchData} onChange={setCatchData} />
           )}
-          {result.reviewType === "market-create" && (
+          {activeResult.reviewType === "market-create" && (
             <MarketReviewForm data={marketData} onChange={setMarketData} />
           )}
-          {result.reviewType === "popup-create" && (
+          {activeResult.reviewType === "popup-create" && (
             <PopupReviewForm data={popupData} onChange={setPopupData} />
+          )}
+          {activeResult.reviewType === "market-update" && (
+            <MarketUpdateReviewForm data={marketUpdateData} onChange={setMarketUpdateData} />
+          )}
+          {activeResult.reviewType === "market-catch" && (
+            <MarketCatchReviewForm data={marketCatchData} onChange={setMarketCatchData} />
           )}
         </div>
 
