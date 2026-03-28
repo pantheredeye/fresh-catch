@@ -62,7 +62,7 @@ export function Header({
           <span className="unified-header__logo-text">Evan's Fresh Catch</span>
         </a>
         <div className="unified-header__actions">
-          <a href="#quick-order" className="quick-order-button">
+          <a href="/orders/new" className="quick-order-button">
             + Quick Order
           </a>
           <UserMenu user={user} currentOrganization={currentOrganization} />
