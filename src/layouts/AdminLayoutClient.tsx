@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
+import { CommandReview } from "@/components/CommandReview";
 import type { User } from "@/db";
 import type { VoiceCommandResult } from "@/api/voice-tools";
 import "./AdminLayout.css";
@@ -27,10 +28,21 @@ export function AdminLayoutClient({
   isOwner: boolean;
   children: React.ReactNode;
 }) {
-  const [_commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
+  const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
   const handleCommandResult = useCallback((result: VoiceCommandResult) => {
     setCommandResult(result);
-    // CommandReview (next task) will consume this state
+  }, []);
+  const handleReviewSave = useCallback(async (intent: string, data: Record<string, unknown>) => {
+    // TODO: Route to appropriate server function based on intent
+    console.log("CommandReview save:", intent, data);
+    setCommandResult(null);
+  }, []);
+  const handleReviewCancel = useCallback(() => {
+    setCommandResult(null);
+  }, []);
+  const handleReviewRetry = useCallback(() => {
+    setCommandResult(null);
+    // CommandBar will re-open on next mic tap
   }, []);
 
   if (!isAdmin) {
@@ -88,6 +100,14 @@ export function AdminLayoutClient({
 
       <main className="admin-main content-wrapper">{children}</main>
       <CommandBar onResult={handleCommandResult} />
+      {commandResult && (
+        <CommandReview
+          result={commandResult}
+          onSave={handleReviewSave}
+          onCancel={handleReviewCancel}
+          onRetry={handleReviewRetry}
+        />
+      )}
     </div>
   );
 }
