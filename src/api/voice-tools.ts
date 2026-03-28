@@ -11,6 +11,8 @@ export type VoiceCommandResult = {
   confidence: number;
   data: Record<string, unknown>;
   interpretation: string;
+  rawTranscript: string;
+  reviewType: string;
 };
 
 type SchemaField = {

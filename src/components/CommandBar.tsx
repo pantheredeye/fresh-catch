@@ -24,6 +24,7 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [textInput, setTextInput] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const hints = HINT_CONTEXTS[hintContext ?? "default"] ?? HINT_CONTEXTS.default;
@@ -31,6 +32,7 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
   const uploadAudio = useCallback(
     async (blob: Blob) => {
       setProcessing(true);
+      setError(null);
       try {
         const buffer = await blob.arrayBuffer();
         const response = await fetch("/api/voice/command", {
@@ -42,8 +44,8 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
         const result = (await response.json()) as VoiceCommandResult;
         onResult(result);
         setOpen(false);
-      } catch {
-        // Stay open so user can retry
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
         setProcessing(false);
       }
@@ -57,6 +59,7 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
     const text = textInput.trim();
     if (!text) return;
     setProcessing(true);
+    setError(null);
     try {
       const response = await fetch("/api/voice/command", {
         method: "POST",
@@ -68,8 +71,8 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
       setTextInput("");
       onResult(result);
       setOpen(false);
-    } catch {
-      // Stay open so user can retry
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setProcessing(false);
     }
@@ -90,6 +93,7 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
     }
     recorder.setState("idle");
     setProcessing(false);
+    setError(null);
     setOpen(false);
   }, [recorder]);
 
@@ -161,6 +165,19 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
               <p className="command-bar__processing-text">
                 {inputMode === "voice" ? "Transcribing..." : "Processing..."}
               </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && !processing && (
+            <div className="command-bar__error">
+              <p>{error}</p>
+              <button
+                className="command-bar__error-dismiss"
+                onClick={() => setError(null)}
+              >
+                Try again
+              </button>
             </div>
           )}
 

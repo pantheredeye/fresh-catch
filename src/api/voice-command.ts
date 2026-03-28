@@ -13,11 +13,6 @@ import {
   type BusinessContext,
 } from "@/api/voice-tools";
 
-interface CommandResponse extends VoiceCommandResult {
-  rawTranscript: string;
-  reviewType: string;
-}
-
 function validateCommandResult(obj: unknown): VoiceCommandResult {
   if (typeof obj !== "object" || obj === null) {
     throw new Error("Invalid command result shape");
@@ -90,7 +85,7 @@ export async function handleVoiceCommand(
       interpretation: `Unknown action "${formatted.intent}". Could not match to a known command.`,
       rawTranscript,
       reviewType: "unknown",
-    } satisfies CommandResponse);
+    } satisfies VoiceCommandResult);
   }
 
   // For market-specific intents, verify marketId exists in org's markets
@@ -110,7 +105,7 @@ export async function handleVoiceCommand(
         interpretation: `Market ID "${formatted.data.marketId}" not found in your markets.`,
         rawTranscript,
         reviewType: tool.reviewType,
-      } satisfies CommandResponse);
+      } satisfies VoiceCommandResult);
     }
   }
 
@@ -121,5 +116,5 @@ export async function handleVoiceCommand(
     interpretation: formatted.interpretation,
     rawTranscript,
     reviewType: tool.reviewType,
-  } satisfies CommandResponse);
+  } satisfies VoiceCommandResult);
 }
