@@ -8,6 +8,8 @@ import {
   updateMarket,
   deleteMarket,
   toggleMarketActive,
+  cancelPopup,
+  endPopup,
 } from "./market-functions";
 import "./admin.css";
 
@@ -144,6 +146,22 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
   const handleDeleteMarket = async (id: string) => {
     startTransition(async () => {
       await deleteMarket(id);
+      setIsModalOpen(false);
+      setEditingMarket(undefined);
+    });
+  };
+
+  const handleEndPopup = async (id: string) => {
+    startTransition(async () => {
+      await endPopup(id);
+      setIsModalOpen(false);
+      setEditingMarket(undefined);
+    });
+  };
+
+  const handleCancelPopup = async (id: string) => {
+    startTransition(async () => {
+      await cancelPopup(id);
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -353,8 +371,11 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
           onClose={handleCloseModal}
           onSave={handleSaveMarket}
           onDelete={handleDeleteMarket}
+          onEndPopup={handleEndPopup}
+          onCancelPopup={handleCancelPopup}
           market={editingMarket}
           presetType={modalPresetType}
+          isPending={isPending}
         />
     </div>
   );
