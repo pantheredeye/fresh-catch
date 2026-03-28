@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
+import { CommandBar } from "@/components/CommandBar";
 import type { User } from "@/db";
+import type { VoiceCommandResult } from "@/api/voice-tools";
 import "./AdminLayout.css";
 import "@/components/UserMenu.css";
 import "@/design-system/tokens.css";
@@ -24,6 +27,12 @@ export function AdminLayoutClient({
   isOwner: boolean;
   children: React.ReactNode;
 }) {
+  const [_commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
+  const handleCommandResult = useCallback((result: VoiceCommandResult) => {
+    setCommandResult(result);
+    // CommandReview (next task) will consume this state
+  }, []);
+
   if (!isAdmin) {
     return (
       <div className="admin-access-denied">
@@ -78,6 +87,7 @@ export function AdminLayoutClient({
       </header>
 
       <main className="admin-main content-wrapper">{children}</main>
+      <CommandBar onResult={handleCommandResult} />
     </div>
   );
 }
