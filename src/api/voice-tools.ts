@@ -147,6 +147,11 @@ export type MarketContext = {
   type: string;
   schedule: string;
   active: boolean;
+  subtitle: string | null;
+  locationDetails: string | null;
+  customerInfo: string | null;
+  catchPreview: string | null;
+  expiresAt: Date | null;
 };
 
 export type BusinessContext = {
@@ -193,10 +198,23 @@ export function buildCommandPrompt(
   const marketList =
     context.markets.length > 0
       ? context.markets
-          .map(
-            (m) =>
+          .map((m) => {
+            const parts = [
               `- ${m.name} (id: ${m.id}, type: ${m.type}, schedule: ${m.schedule}, active: ${m.active})`,
-          )
+            ];
+            if (m.subtitle) parts.push(`  subtitle: ${m.subtitle}`);
+            if (m.locationDetails) parts.push(`  location: ${m.locationDetails}`);
+            if (m.customerInfo) parts.push(`  customerInfo: ${m.customerInfo}`);
+            if (m.catchPreview) {
+              // Truncate long catch previews to save tokens
+              const preview = m.catchPreview.length > 200
+                ? m.catchPreview.slice(0, 200) + "..."
+                : m.catchPreview;
+              parts.push(`  catchPreview: ${preview}`);
+            }
+            if (m.expiresAt) parts.push(`  expiresAt: ${new Date(m.expiresAt).toISOString()}`);
+            return parts.join("\n");
+          })
           .join("\n")
       : "No markets configured yet.";
 
@@ -229,5 +247,7 @@ Rules:
 - Resolve relative dates ("this Saturday", "tomorrow") to absolute dates using today's date
 - Set confidence lower if the intent is ambiguous
 - The interpretation should be a plain English summary like "Update catch preview for Folly Beach Market"
-- If you cannot determine the intent, use confidence: 0 and interpretation explaining why`;
+- If you cannot determine the intent, use confidence: 0 and interpretation explaining why
+- For update_market: ONLY include fields the user explicitly wants to change. Do NOT echo back unchanged fields. The current values are shown above for each market.
+- If multiple markets partially match the name, set confidence lower and mention the ambiguity in interpretation`;
 }

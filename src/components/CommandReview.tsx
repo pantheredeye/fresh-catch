@@ -696,7 +696,7 @@ export function CommandReview({
     const changes: Record<string, { old: unknown; new: string }> = {};
     const unchanged: Record<string, string> = {};
 
-    const diffFields = ["name", "schedule", "locationDetails", "customerInfo"];
+    const diffFields = ["name", "schedule", "subtitle", "locationDetails", "customerInfo"];
     for (const field of diffFields) {
       if (data[field] !== undefined && data[field] !== originalData[field]) {
         changes[field] = { old: originalData[field], new: String(data[field] || "") };

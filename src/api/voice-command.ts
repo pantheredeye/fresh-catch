@@ -50,12 +50,21 @@ export async function handleVoiceCommand(
       type: true,
       schedule: true,
       active: true,
+      subtitle: true,
+      locationDetails: true,
+      customerInfo: true,
+      catchPreview: true,
+      expiresAt: true,
     },
   });
 
   const businessContext: BusinessContext = { markets };
   const role = ctx.currentOrganization!.role;
   const systemPrompt = buildCommandPrompt(voiceTools, businessContext, role);
+
+  // Check for explicit ?marketId targeting from admin UI
+  const url = new URL(request.url);
+  const explicitMarketId = url.searchParams.get("marketId");
 
   // Process through shared voice pipeline
   const response = await processVoiceInput(request, ctx, {
@@ -88,25 +97,50 @@ export async function handleVoiceCommand(
     } satisfies VoiceCommandResult);
   }
 
-  // For market-specific intents, verify marketId exists in org's markets
+  // For market-specific intents, verify marketId exists and inject _original
   if (
-    (formatted.intent === "update_market" ||
-      formatted.intent === "update_market_catch") &&
-    formatted.data.marketId
+    formatted.intent === "update_market" ||
+    formatted.intent === "update_market_catch"
   ) {
-    const marketExists = markets.some(
-      (m) => m.id === formatted.data.marketId,
-    );
-    if (!marketExists) {
+    // Use explicit marketId from query param if provided, else use LLM's pick
+    const targetMarketId = explicitMarketId || (formatted.data.marketId as string);
+
+    if (!targetMarketId) {
       return Response.json({
         intent: formatted.intent,
         confidence: 0,
         data: formatted.data,
-        interpretation: `Market ID "${formatted.data.marketId}" not found in your markets.`,
+        interpretation: "Could not determine which market to update.",
         rawTranscript,
         reviewType: tool.reviewType,
       } satisfies VoiceCommandResult);
     }
+
+    const matchedMarket = markets.find((m) => m.id === targetMarketId);
+    if (!matchedMarket) {
+      return Response.json({
+        intent: formatted.intent,
+        confidence: 0,
+        data: formatted.data,
+        interpretation: `Market ID "${targetMarketId}" not found in your markets.`,
+        rawTranscript,
+        reviewType: tool.reviewType,
+      } satisfies VoiceCommandResult);
+    }
+
+    // Inject original market state for diff display + override marketId if explicit
+    formatted.data.marketId = matchedMarket.id;
+    formatted.data._original = {
+      name: matchedMarket.name,
+      schedule: matchedMarket.schedule,
+      subtitle: matchedMarket.subtitle,
+      locationDetails: matchedMarket.locationDetails,
+      customerInfo: matchedMarket.customerInfo,
+      catchPreview: matchedMarket.catchPreview,
+      active: matchedMarket.active,
+      type: matchedMarket.type,
+      expiresAt: matchedMarket.expiresAt,
+    };
   }
 
   return Response.json({
