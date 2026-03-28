@@ -21,7 +21,7 @@ export function CustomerFooter() {
       }}>
         Made by{' '}
         <a
-          href="https://digitalglue.co"
+          href="https://digitalglue.dev"
           target="_blank"
           rel="noopener noreferrer"
           style={{
