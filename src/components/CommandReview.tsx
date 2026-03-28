@@ -58,6 +58,30 @@ interface CommandReviewProps {
 
 // --- Helpers ---
 
+function toEndOfDay(dateStr: string): string {
+  if (!dateStr) return "";
+  // dateStr is YYYY-MM-DD from date input
+  return new Date(`${dateStr}T23:59:59`).toISOString();
+}
+
+function toDateInputValue(isoStr: string): string {
+  if (!isoStr) return "";
+  try {
+    return new Date(isoStr).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
+function getTodayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isDateInPast(dateStr: string): boolean {
+  if (!dateStr) return false;
+  return dateStr < getTodayStr();
+}
+
 function parseCatchPreview(raw: unknown): CatchItem[] {
   if (!raw) return [];
   try {
@@ -276,23 +300,34 @@ function PopupReviewForm({
   data: PopupFormData;
   onChange: (d: PopupFormData) => void;
 }) {
+  const dateVal = toDateInputValue(data.expiresAt);
+  const pastDate = isDateInPast(dateVal);
+
   return (
     <>
       <div className="cr-popup-badge">Popup</div>
       <div className="cr-field cr-field--prominent">
-        <label className="cr-label cr-label--prominent">Expires At *</label>
+        <label className="cr-label cr-label--prominent">
+          Popup expires end of day on: *
+        </label>
         <input
-          type="datetime-local"
+          type="date"
           className="cr-input cr-input--date"
-          value={data.expiresAt ? data.expiresAt.slice(0, 16) : ""}
+          value={dateVal}
+          min={getTodayStr()}
           onChange={(e) => {
             const val = e.target.value;
             onChange({
               ...data,
-              expiresAt: val ? new Date(val).toISOString() : "",
+              expiresAt: val ? toEndOfDay(val) : "",
             });
           }}
         />
+        {pastDate && (
+          <span className="cr-date-validation">
+            Date must be today or in the future
+          </span>
+        )}
       </div>
       <MarketReviewForm
         data={data}
@@ -330,6 +365,8 @@ function MarketUpdateReviewForm({
   data: MarketUpdateFormData;
   onChange: (d: MarketUpdateFormData) => void;
 }) {
+  const [showUnchanged, setShowUnchanged] = useState(false);
+
   const toggleUnchanged = (field: string) => {
     const next = new Set(data.editingUnchanged);
     if (next.has(field)) {
@@ -367,6 +404,33 @@ function MarketUpdateReviewForm({
 
   const isDateField = (field: string) => field === "expiresAt";
 
+  const renderDateInput = (
+    value: string,
+    onChangeVal: (val: string) => void,
+  ) => {
+    const dateVal = toDateInputValue(value);
+    const pastDate = isDateInPast(dateVal);
+    return (
+      <>
+        <input
+          type="date"
+          className="cr-input cr-input--date"
+          value={dateVal}
+          min={getTodayStr()}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChangeVal(val ? toEndOfDay(val) : "");
+          }}
+        />
+        {pastDate && (
+          <span className="cr-date-validation">
+            Date must be today or in the future
+          </span>
+        )}
+      </>
+    );
+  };
+
   return (
     <>
       {/* Changed fields - highlighted */}
@@ -378,36 +442,34 @@ function MarketUpdateReviewForm({
               <label className="cr-label">{MARKET_FIELD_LABELS[field] || field}</label>
               <div className="cr-diff-old">
                 {isDateField(field) && oldVal
-                  ? new Date(oldVal as string).toLocaleString()
+                  ? new Date(oldVal as string).toLocaleDateString()
                   : String(oldVal || "(empty)")}
               </div>
-              {isDateField(field) ? (
-                <input
-                  type="datetime-local"
-                  className="cr-input cr-input--date"
-                  value={newVal ? newVal.slice(0, 16) : ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    updateChange(field, val ? new Date(val).toISOString() : "");
-                  }}
-                />
-              ) : (
-                <input
-                  className="cr-input cr-diff-new"
-                  value={newVal}
-                  onChange={(e) => updateChange(field, e.target.value)}
-                />
-              )}
+              {isDateField(field)
+                ? renderDateInput(newVal, (val) => updateChange(field, val))
+                : (
+                  <input
+                    className="cr-input cr-diff-new"
+                    value={newVal}
+                    onChange={(e) => updateChange(field, e.target.value)}
+                  />
+                )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Unchanged fields - dimmed, expandable */}
+      {/* Unchanged fields - collapsed behind toggle */}
       {Object.keys(data.unchanged).length > 0 && (
         <div className="cr-diff-section cr-diff-section--unchanged">
-          <label className="cr-label cr-label--diff-unchanged">Unchanged</label>
-          {Object.entries(data.unchanged).map(([field, value]) => (
+          <button
+            className="cr-show-all-toggle"
+            onClick={() => setShowUnchanged(!showUnchanged)}
+            type="button"
+          >
+            {showUnchanged ? "− Hide unchanged fields" : `+ Show all fields (${Object.keys(data.unchanged).length} unchanged)`}
+          </button>
+          {showUnchanged && Object.entries(data.unchanged).map(([field, value]) => (
             <div
               key={field}
               className={`cr-diff-field cr-diff-field--unchanged ${data.editingUnchanged.has(field) ? "cr-diff-field--editing" : ""}`}
@@ -416,7 +478,7 @@ function MarketUpdateReviewForm({
                 <label className="cr-label">{MARKET_FIELD_LABELS[field] || field}</label>
                 <span className="cr-diff-unchanged-value">
                   {isDateField(field) && value
-                    ? new Date(value).toLocaleString()
+                    ? new Date(value).toLocaleDateString()
                     : value || "(empty)"}
                 </span>
                 <span className="cr-diff-edit-hint">
@@ -424,23 +486,15 @@ function MarketUpdateReviewForm({
                 </span>
               </div>
               {data.editingUnchanged.has(field) && (
-                isDateField(field) ? (
-                  <input
-                    type="datetime-local"
-                    className="cr-input cr-input--date"
-                    value={value ? value.slice(0, 16) : ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      updateUnchanged(field, val ? new Date(val).toISOString() : "");
-                    }}
-                  />
-                ) : (
-                  <input
-                    className="cr-input"
-                    value={value}
-                    onChange={(e) => updateUnchanged(field, e.target.value)}
-                  />
-                )
+                isDateField(field)
+                  ? renderDateInput(value, (val) => updateUnchanged(field, val))
+                  : (
+                    <input
+                      className="cr-input"
+                      value={value}
+                      onChange={(e) => updateUnchanged(field, e.target.value)}
+                    />
+                  )
               )}
             </div>
           ))}
@@ -450,19 +504,12 @@ function MarketUpdateReviewForm({
       {/* Always show date picker for popup expiresAt */}
       {data.expiresAt !== undefined && !data.changes.expiresAt && !data.unchanged.expiresAt && (
         <div className="cr-field cr-field--prominent">
-          <label className="cr-label cr-label--prominent">Expires At</label>
-          <input
-            type="datetime-local"
-            className="cr-input cr-input--date"
-            value={data.expiresAt ? data.expiresAt.slice(0, 16) : ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              onChange({
-                ...data,
-                expiresAt: val ? new Date(val).toISOString() : "",
-              });
-            }}
-          />
+          <label className="cr-label cr-label--prominent">
+            Popup expires end of day on:
+          </label>
+          {renderDateInput(data.expiresAt, (val) =>
+            onChange({ ...data, expiresAt: val })
+          )}
         </div>
       )}
     </>
@@ -758,7 +805,7 @@ export function CommandReview({
       case "market-create":
         return marketData.name.trim().length > 0;
       case "popup-create":
-        return popupData.name.trim().length > 0 && popupData.expiresAt.length > 0;
+        return popupData.name.trim().length > 0 && popupData.expiresAt.length > 0 && !isDateInPast(toDateInputValue(popupData.expiresAt));
       case "market-update":
         return marketUpdateData.marketId.length > 0 && Object.keys(marketUpdateData.changes).length > 0;
       case "market-catch":

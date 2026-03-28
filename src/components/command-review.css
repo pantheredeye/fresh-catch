@@ -317,12 +317,42 @@
 }
 
 .cr-diff-section--unchanged {
-  opacity: 0.7;
   margin-top: var(--space-md);
 }
 
+.cr-diff-section--unchanged .cr-diff-field {
+  opacity: 0.7;
+}
+
+.cr-diff-section--unchanged .cr-diff-field--editing {
+  opacity: 1;
+}
+
+.cr-show-all-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  padding: var(--space-sm) 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+.cr-show-all-toggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.cr-date-validation {
+  font-size: var(--font-size-xs);
+  color: var(--color-status-error);
+  margin-top: var(--space-xs);
+}
+
 .cr-label--diff-changed {
-  color: var(--color-action-primary);
+  color: var(--color-status-success);
   font-weight: var(--font-weight-bold);
 }
 
@@ -339,8 +369,8 @@
 }
 
 .cr-diff-field--changed {
-  background: rgba(59, 130, 246, 0.05);
-  border-left: 3px solid var(--color-action-primary);
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 3px solid var(--color-status-success);
 }
 
 .cr-diff-field--unchanged {
