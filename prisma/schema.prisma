@@ -99,11 +99,20 @@ model Market {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Popup market fields
+  type           String    @default("regular") // "regular" | "popup"
+  expiresAt      DateTime? // When popup market expires
+  catchPreview   String? // JSON: { items: [{name, note}] }
+  notes          String? // Catch-all for unstructured voice content
+  rawTranscript  String? // Verbatim Whisper output (null for form-created)
+  cancelledAt    DateTime? // Set if popup cancelled before happening
+
   organization Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([active])
   @@index([organizationId, active])
+  @@index([organizationId, type, active])
 }
 
 model Membership {
