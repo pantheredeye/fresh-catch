@@ -11,6 +11,7 @@ import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
 import { profileRoutes } from "@/app/pages/profile/routes";
+import { marketRoutes } from "@/app/pages/markets/routes";
 import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
@@ -199,6 +200,9 @@ export default defineApp([
 
     // Profile routes with customer layout
     prefix("/profile", layout(CustomerLayout, profileRoutes)),
+
+    // Market routes with customer layout (public)
+    prefix("/markets", layout(CustomerLayout, marketRoutes)),
 
     // Admin routes with admin header + nav
     prefix("/admin", [
