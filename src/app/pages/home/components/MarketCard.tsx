@@ -7,6 +7,7 @@ type Market = {
   schedule: string;
   subtitle: string | null;
   active: boolean;
+  catchPreview?: string | null;
 };
 
 interface MarketCardProps {
@@ -87,6 +88,25 @@ export function MarketCard({
           </span>
         )}
       </div>
+
+      {/* Catch Preview - subtle display of usually available items */}
+      {market.catchPreview && (() => {
+        try {
+          const preview = JSON.parse(market.catchPreview);
+          const items = preview?.items;
+          if (!items || items.length === 0) return null;
+          const names = items.map((i: { name: string }) => i.name).join(", ");
+          return (
+            <div style={{
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--color-text-secondary)',
+              marginBottom: 'var(--space-md)'
+            }}>
+              Usually available: {names}
+            </div>
+          );
+        } catch { return null; }
+      })()}
 
       <div className="flex gap-sm">
         {/* Customer action - always visible */}

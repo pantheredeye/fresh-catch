@@ -7,6 +7,7 @@ import {
   FreshHero,
   FreshSheet,
   MarketCard,
+  PopupCard,
   BottomNavigation
 } from "./components";
 
@@ -16,6 +17,7 @@ type Market = {
   schedule: string;
   subtitle: string | null;
   active: boolean;
+  catchPreview?: string | null;
 };
 
 type CatchData = {
@@ -23,6 +25,16 @@ type CatchData = {
   items: { name: string; note: string }[];
   summary: string;
   updatedAt: string;
+};
+
+type PopupMarket = {
+  id: string;
+  name: string;
+  schedule: string;
+  expiresAt: string;
+  locationDetails?: string | null;
+  customerInfo?: string | null;
+  catchPreview?: string | null;
 };
 
 type QuickAction = {
@@ -41,11 +53,13 @@ type QuickAction = {
  */
 export function CustomerHomeUI({
   markets,
+  popups,
   catchData,
   quickActions,
   ctx
 }: {
   markets: Market[];
+  popups: PopupMarket[];
   catchData: CatchData | null;
   quickActions: QuickAction[];
   ctx: AppContext;
@@ -87,6 +101,11 @@ export function CustomerHomeUI({
         <FreshSheet catch={catchData} />
       ) : (
         <FreshHero actions={quickActions} />
+      )}
+
+      {/* Popup Markets Section - Only show if popups exist */}
+      {popups.length > 0 && (
+        <PopupSection popups={popups} />
       )}
 
       {/* Your Markets Section - Only show if user has favorites */}
@@ -181,6 +200,50 @@ function AllMarketsSection({
           ctx={ctx}
         />
       ))}
+    </div>
+  );
+}
+
+function PopupSection({ popups }: { popups: PopupMarket[] }) {
+  return (
+    <div style={{
+      padding: 'var(--space-lg) var(--space-md)',
+      maxWidth: '500px',
+      margin: '0 auto'
+    }}>
+      <div className="flex-between mb-md">
+        <h2 className="heading-2xl m-0">
+          Coming Up
+        </h2>
+      </div>
+
+      {popups.map(popup => (
+        <PopupCard
+          key={popup.id}
+          popup={{
+            name: popup.name,
+            schedule: popup.schedule,
+            expiresAt: popup.expiresAt,
+            locationDetails: popup.locationDetails,
+            customerInfo: popup.customerInfo,
+            catchPreview: popup.catchPreview ? JSON.parse(popup.catchPreview) : null
+          }}
+        />
+      ))}
+
+      <a
+        href="/markets/past"
+        style={{
+          display: 'block',
+          textAlign: 'center',
+          color: 'var(--color-action-primary)',
+          fontSize: 'var(--font-size-sm)',
+          textDecoration: 'none',
+          marginTop: 'var(--space-xs)'
+        }}
+      >
+        See past popups →
+      </a>
     </div>
   );
 }
