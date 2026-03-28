@@ -12,12 +12,27 @@ export async function MarketConfigPage(requestInfo: RequestInfo) {
   if (!ctx.currentOrganization) return <NoOrganization />;
 
   // Fetch markets directly in server component
-  const markets = await db.market.findMany({
+  const rawMarkets = await db.market.findMany({
     where: {
       organizationId: ctx.currentOrganization.id,
     },
     orderBy: [{ active: "desc" }, { name: "asc" }],
   });
+
+  // Serialize dates to strings for client component
+  const markets = rawMarkets.map((m) => ({
+    id: m.id,
+    name: m.name,
+    schedule: m.schedule,
+    subtitle: m.subtitle,
+    locationDetails: m.locationDetails,
+    customerInfo: m.customerInfo,
+    active: m.active,
+    type: m.type,
+    expiresAt: m.expiresAt?.toISOString() ?? null,
+    catchPreview: m.catchPreview,
+    cancelledAt: m.cancelledAt?.toISOString() ?? null,
+  }));
 
   return <MarketConfigUI markets={markets} />;
 }

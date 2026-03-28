@@ -9,6 +9,10 @@ interface Market {
   subtitle?: string | null
   locationDetails?: string | null
   customerInfo?: string | null
+  type?: string
+  expiresAt?: string | null
+  catchPreview?: string | null
+  notes?: string | null
 }
 
 interface MarketFormModalProps {
@@ -24,11 +28,17 @@ interface MarketFormModalProps {
     locationDetails?: string | null;
     customerInfo?: string | null;
     active?: boolean;
+    type?: string;
+    expiresAt?: string | null;
+    catchPreview?: string | null;
+    notes?: string | null;
   }) => void | Promise<void>
   /** Function to delete market */
   onDelete?: (id: string) => Promise<void>
   /** Existing market data for editing (undefined for new market) */
   market?: Market
+  /** Pre-set market type for new markets */
+  presetType?: "regular" | "popup"
 }
 
 /**
@@ -43,7 +53,8 @@ export function MarketFormModal({
   onClose,
   onSave,
   onDelete,
-  market
+  market,
+  presetType = "regular"
 }: MarketFormModalProps) {
 
   // Form state
@@ -51,11 +62,14 @@ export function MarketFormModal({
     name: '',
     schedule: '',
     active: true,
-    locationDetails: '', // Consolidated location info
-    customerInfo: ''     // Consolidated customer info
+    locationDetails: '',
+    customerInfo: '',
+    type: presetType,
+    expiresAt: null,
+    notes: null,
   })
 
-  // Reset form when market prop changes
+  // Reset form when market prop or presetType changes
   useEffect(() => {
     if (market) {
       setFormData({ ...market })
@@ -65,10 +79,13 @@ export function MarketFormModal({
         schedule: '',
         active: true,
         locationDetails: '',
-        customerInfo: ''
+        customerInfo: '',
+        type: presetType,
+        expiresAt: null,
+        notes: null,
       })
     }
-  }, [market])
+  }, [market, presetType])
 
   const [saving, setSaving] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -233,7 +250,11 @@ export function MarketFormModal({
 
         {/* Header */}
         <h2 style={headerStyle}>
-          {isEditing ? `Edit ${formData.name}` : 'Add New Market'}
+          {isEditing
+            ? `Edit ${formData.name}`
+            : formData.type === "popup"
+              ? "Add Popup Market"
+              : "Add New Market"}
         </h2>
 
         {validationError && (
@@ -322,6 +343,34 @@ export function MarketFormModal({
             onBlur={(e) => Object.assign(e.target.style, textareaStyle)}
           />
         </div>
+
+        {/* Popup-specific fields */}
+        {formData.type === "popup" && (
+          <>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Event Date & Time</label>
+              <input
+                type="datetime-local"
+                value={formData.expiresAt ? new Date(formData.expiresAt).toISOString().slice(0, 16) : ''}
+                onChange={(e) => handleInputChange('expiresAt', e.target.value ? new Date(e.target.value).toISOString() : '')}
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Notes</label>
+              <textarea
+                placeholder="Any additional notes about this popup..."
+                value={formData.notes || ''}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' as const }}
+                onFocus={(e) => Object.assign(e.target.style, { ...inputStyle, minHeight: '80px', ...inputFocusStyle })}
+                onBlur={(e) => Object.assign(e.target.style, { ...inputStyle, minHeight: '80px' })}
+              />
+            </div>
+          </>
+        )}
 
         {/* Priority 4: Management Actions */}
         <div style={buttonRowStyle}>
