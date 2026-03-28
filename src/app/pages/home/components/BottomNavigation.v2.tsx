@@ -144,7 +144,7 @@ export function BottomNavigationV2() {
           </a>
 
           {/* Quick Order - Matches header button style */}
-          <a href="#quick-order" style={{
+          <a href="/orders/new" style={{
             display: 'inline-flex',
             alignItems: 'center',
             padding: 'var(--space-xs) var(--space-md)',
