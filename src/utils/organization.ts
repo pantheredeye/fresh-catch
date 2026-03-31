@@ -11,20 +11,17 @@ import { db } from "@/db";
  *
  * Logic:
  * - If exactly 1 business exists: return its ID
- * - If 0 businesses exist: return null (will show "no businesses" page)
- * - If multiple businesses: return first one (TODO: show directory in future)
+ * - If 0 or multiple businesses: return null (caller shows directory or not-found)
  */
 export async function getPublicOrganizationId(): Promise<string | null> {
   const businesses = await db.organization.findMany({
     where: { type: 'business' },
-    orderBy: { createdAt: 'asc' }
+    select: { id: true },
   });
 
-  if (businesses.length === 0) {
+  if (businesses.length !== 1) {
     return null;
   }
 
-  // For now, return the first business (usually Evan's)
-  // Future: This could show a directory page if multiple businesses exist
   return businesses[0].id;
 }
