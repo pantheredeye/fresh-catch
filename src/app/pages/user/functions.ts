@@ -424,64 +424,6 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
   return { success: true, isAdmin };
 }
 
-export async function addMembershipWithJoinCode(code: string) {
-  const { ctx, response } = requestInfo;
-
-  // Must be logged in
-  if (!ctx.user) {
-    return { success: false, error: "You must be logged in" };
-  }
-
-  // Validate code & determine role
-  const role = code === env.ADMIN_CODE ? "owner" :
-               code === env.MANAGER_CODE ? "manager" : null;
-  if (!role) {
-    return { success: false, error: "Invalid join code" };
-  }
-
-  // Find Fresh Catch organization
-  const freshCatchOrg = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
-
-  if (!freshCatchOrg) {
-    return { success: false, error: "Organization not found" };
-  }
-
-  // Check if already a member
-  const existingMembership = await db.membership.findUnique({
-    where: {
-      userId_organizationId: {
-        userId: ctx.user.id,
-        organizationId: freshCatchOrg.id,
-      },
-    },
-  });
-
-  if (existingMembership) {
-    return { success: false, error: "You already have access to this organization" };
-  } else {
-    // Add new membership
-    await db.membership.create({
-      data: {
-        userId: ctx.user.id,
-        organizationId: freshCatchOrg.id,
-        role: role,
-      },
-    });
-    console.log(`✅ Added ${ctx.user.username} as ${role}`);
-  }
-
-  // Update session to Fresh Catch org context
-  await sessions.save(response.headers, {
-    userId: ctx.user.id,
-    currentOrganizationId: freshCatchOrg.id,
-    role: role,
-  });
-
-  return { success: true, role };
-}
-
 export async function finishJoinCodeRegistration(
   username: string,
   email: string,
