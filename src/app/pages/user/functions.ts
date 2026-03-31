@@ -77,7 +77,7 @@ export async function loginWithPassword(
     include: {
       memberships: {
         include: { organization: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { updatedAt: "desc" },
       },
     },
   });
@@ -391,7 +391,7 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
           organization: true,
         },
         orderBy: {
-          createdAt: "desc",
+          updatedAt: "desc",
         },
       },
     },
