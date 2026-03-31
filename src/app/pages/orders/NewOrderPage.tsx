@@ -7,8 +7,9 @@ export function NewOrderPage({ ctx }: RequestInfo) {
     return <Login ctx={ctx} />;
   }
 
-  // Resolve vendor: browsingOrganization (from /v/:slug or ?b=) > currentOrganization (session)
-  const vendor = ctx.browsingOrganization ?? ctx.currentOrganization;
+  // Resolve vendor: browsingOrganization (from /v/:slug or ?b=) > currentOrganization (session, business only)
+  const vendor = ctx.browsingOrganization ??
+    (ctx.currentOrganization?.type === 'business' ? ctx.currentOrganization : null);
 
   if (!vendor) {
     return new Response(null, { status: 302, headers: { Location: "/" } });
