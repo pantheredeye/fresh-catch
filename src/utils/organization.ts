@@ -25,3 +25,18 @@ export async function getPublicOrganizationId(): Promise<string | null> {
 
   return businesses[0].id;
 }
+
+/**
+ * Get all businesses with at least 1 active market.
+ * Filters out businesses still setting up (no active markets).
+ */
+export async function getPublicOrganizations(): Promise<{ name: string; slug: string }[]> {
+  return db.organization.findMany({
+    where: {
+      type: 'business',
+      markets: { some: { active: true } },
+    },
+    select: { name: true, slug: true },
+    orderBy: { name: 'asc' },
+  });
+}
