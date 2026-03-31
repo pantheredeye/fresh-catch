@@ -387,6 +387,9 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
         include: {
           organization: true,
         },
+        orderBy: {
+          createdAt: "desc",
+        },
       },
     },
   });
