@@ -1,6 +1,5 @@
 "use server";
 import { requestInfo } from "rwsdk/worker";
-import { db } from "@/db";
 
 export type ShareType = "organization" | "market";
 
@@ -31,11 +30,16 @@ export function generateShareUrl(options: ShareOptions): string {
  * Get current organization share URL from context
  */
 export async function getCurrentOrgShareUrl(): Promise<string> {
-  // TODO: Fix organization slug in database (should be "evan", not UUID)
-  // For now, hardcoded to match deployment subdomain
+  const { ctx } = requestInfo;
+  const slug = ctx.currentOrganization?.slug;
+
+  if (!slug) {
+    return "/";
+  }
+
   return generateShareUrl({
     type: "organization",
-    organizationSlug: "evan",
+    organizationSlug: slug,
   });
 }
 
