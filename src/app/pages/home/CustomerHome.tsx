@@ -4,6 +4,7 @@ import { CustomerHomeUI } from "./CustomerHomeUI";
 import { BusinessNotFound } from "../BusinessNotFound";
 import { VendorDirectory } from "./components";
 import { fetchVendorData, getQuickActions } from "./fetchVendorData";
+import { db } from "@/db";
 
 /**
  * CustomerHome - Server Component
@@ -47,12 +48,21 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
 
   const { markets, popups, catchData } = await fetchVendorData(orgId);
 
+  // Determine market name: first active regular market, fallback to org name
+  let marketName: string | undefined = markets[0]?.name;
+  if (!marketName) {
+    marketName = ctx.browsingOrganization?.name
+      ?? (await db.organization.findUnique({ where: { id: orgId }, select: { name: true } }))?.name
+      ?? undefined;
+  }
+
   return (
     <CustomerHomeUI
       markets={markets}
       popups={popups}
       catchData={catchData}
       quickActions={getQuickActions(ctx.browsingOrganization?.slug)}
+      marketName={marketName}
       ctx={ctx}
     />
   );

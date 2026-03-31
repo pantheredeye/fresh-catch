@@ -56,12 +56,14 @@ export function CustomerHomeUI({
   popups,
   catchData,
   quickActions,
+  marketName,
   ctx
 }: {
   markets: Market[];
   popups: PopupMarket[];
   catchData: CatchData | null;
   quickActions: QuickAction[];
+  marketName?: string;
   ctx: AppContext;
 }) {
   const [favorites, toggleFavorite] = useFavorites();
@@ -95,7 +97,7 @@ export function CustomerHomeUI({
       }} />
 
       {/* Live Indicator - TODO: Show only when actually live */}
-      <LiveBanner />
+      <LiveBanner marketName={marketName} />
 
       {/* Fresh Catch or Hero Fallback */}
       {catchData ? (
