@@ -294,29 +294,25 @@ export async function finishPasskeyRegistration(
     },
   });
 
-  // Link customer to Evan's business (Fresh Catch Seafood Markets) as a customer
-  const evanBusiness = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
+  // Link to browsed vendor if registering from a vendor page (?b=slug)
+  const { ctx } = requestInfo;
+  const vendorOrg = ctx.browsingOrganization;
 
-  if (evanBusiness) {
+  if (vendorOrg) {
     await db.membership.create({
       data: {
         userId: user.id,
-        organizationId: evanBusiness.id,
+        organizationId: vendorOrg.id,
         role: "customer",
       },
     });
   }
 
-  // Auto-login: Create session with Fresh Catch business context
   await sessions.save(response.headers, {
     userId: user.id,
-    currentOrganizationId: evanBusiness?.id || customerOrg.id,
+    currentOrganizationId: vendorOrg?.id || customerOrg.id,
     role: "customer",
   }, { maxAge: true });
-
-  console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
 
   // Customers are NOT admins (they're customers of business org, not owners)
   return { success: true, isAdmin: false };
