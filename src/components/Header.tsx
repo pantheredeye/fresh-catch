@@ -32,7 +32,7 @@ export function Header({
       <header className="unified-header unified-header--auth">
         <div className="unified-header__content content-wrapper">
           <a href="/" className="unified-header__logo">
-            <span className="unified-header__logo-text">Evan's Fresh Catch</span>
+            <span className="unified-header__logo-text">Fresh Catch</span>
           </a>
         </div>
       </header>
@@ -47,7 +47,7 @@ export function Header({
           <div className="unified-header__left">
             <a href="/" className="unified-header__logo">
               <span className="unified-header__logo-text">
-                Evan's Fresh Catch
+                {currentOrganization?.name ?? "Admin"}
               </span>
             </a>
             <div className="admin-badge">ADMIN</div>
