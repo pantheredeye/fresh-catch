@@ -167,6 +167,17 @@
   color: var(--color-status-success);
 }
 
+.user-menu-item.org-item-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.org-switch-error {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--color-status-error);
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .user-menu-trigger .user-email {

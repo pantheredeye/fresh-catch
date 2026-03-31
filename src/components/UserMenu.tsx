@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Menu } from "@base-ui/react/menu";
 import type { User } from "@/db";
-import { listUserOrganizations } from "@/app/pages/user/org-functions";
+import { listUserOrganizations, switchOrganization } from "@/app/pages/user/org-functions";
 
 type UserOrg = {
   id: string;
@@ -32,6 +32,26 @@ export function UserMenu({
   } | null;
 }) {
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([]);
+  const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  async function handleSwitchOrg(orgId: string) {
+    if (switching || orgId === currentOrganization?.id) return;
+    setSwitching(true);
+    setSwitchError(null);
+    try {
+      const result = await switchOrganization(orgId);
+      if (result.success) {
+        window.location.href = "/admin";
+      } else {
+        setSwitchError(result.error || "Failed to switch");
+        setSwitching(false);
+      }
+    } catch {
+      setSwitchError("Failed to switch organization");
+      setSwitching(false);
+    }
+  }
 
   const isAdmin =
     currentOrganization?.type === 'business' &&
@@ -89,11 +109,17 @@ export function UserMenu({
                 {userOrgs.length >= 2 && (
                   <>
                     <Menu.Separator className="user-menu-separator" />
-                    <div className="org-switcher-label">Switch Business</div>
+                    <div className="org-switcher-label">
+                      {switching ? "Switching…" : "Switch Business"}
+                    </div>
+                    {switchError && (
+                      <div className="org-switch-error">{switchError}</div>
+                    )}
                     {userOrgs.map((org) => (
                       <Menu.Item
                         key={org.id}
-                        className={`user-menu-item org-item${org.id === currentOrganization?.id ? " org-item-active" : ""}`}
+                        className={`user-menu-item org-item${org.id === currentOrganization?.id ? " org-item-active" : ""}${switching ? " org-item-disabled" : ""}`}
+                        onClick={() => handleSwitchOrg(org.id)}
                       >
                         <span className="org-name">{org.name}</span>
                         {org.id === currentOrganization?.id && (
