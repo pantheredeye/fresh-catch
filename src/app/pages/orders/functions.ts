@@ -71,6 +71,22 @@ export async function createOrder(data: CreateOrderData) {
       });
     }
 
+    // Ensure customer has membership to vendor org
+    await db.membership.upsert({
+      where: {
+        userId_organizationId: {
+          userId: ctx.user.id,
+          organizationId: vendorOrg.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: ctx.user.id,
+        organizationId: vendorOrg.id,
+        role: "customer",
+      },
+    });
+
     // Get next order number for this organization
     const lastOrder = await db.order.findFirst({
       where: { organizationId: vendorOrg.id },
