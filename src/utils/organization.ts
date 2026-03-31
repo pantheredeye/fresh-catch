@@ -28,10 +28,3 @@ export async function getPublicOrganizationId(): Promise<string | null> {
   // Future: This could show a directory page if multiple businesses exist
   return businesses[0].id;
 }
-
-/**
- * Get organization name for display
- */
-export function getPublicOrganizationName(): string {
-  return "Fresh Catch Seafood Markets";
-}
