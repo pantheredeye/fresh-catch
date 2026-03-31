@@ -23,6 +23,7 @@ type Order = {
   tipAmount: number;
   createdAt: Date;
   updatedAt: Date;
+  organization: { name: string; slug: string };
 };
 
 interface CustomerOrdersUIProps {

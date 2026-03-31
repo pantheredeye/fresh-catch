@@ -17,6 +17,11 @@ export async function CustomerOrdersPage({ ctx }: RequestInfo) {
     where: {
       userId: ctx.user.id,
     },
+    include: {
+      organization: {
+        select: { name: true, slug: true }
+      }
+    },
     orderBy: {
       createdAt: 'desc'
     }

@@ -27,6 +27,7 @@ type Order = {
   platformFee: number | null;
   tipAmount: number;
   createdAt: Date;
+  organization?: { name: string; slug: string };
 };
 
 interface OrderCardProps {
