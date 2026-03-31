@@ -354,10 +354,14 @@ export async function cancelOrder(orderId: string) {
     return { success: false, error: "You must be logged in" };
   }
 
+  if (!ctx.currentOrganization) {
+    return { success: false, error: "No organization context" };
+  }
+
   try {
     // Get order to verify ownership and status
-    const order = await db.order.findUnique({
-      where: { id: orderId }
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id }
     });
 
     if (!order) {
