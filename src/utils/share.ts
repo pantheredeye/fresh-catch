@@ -10,17 +10,16 @@ export interface ShareOptions {
 }
 
 /**
- * Generate shareable URL - flexible for current subdomain or future multi-tenant
+ * Generate shareable URL using path model: origin/?b={slug}
  */
 export function generateShareUrl(options: ShareOptions): string {
   const { type, organizationSlug, marketId } = options;
 
-  // Current: subdomain model (evan.digitalglue.dev)
-  // Future: switch to ?b=slug by changing this logic
-  const baseUrl = `https://${organizationSlug}.digitalglue.dev`;
+  const origin = new URL(requestInfo.request.url).origin;
+  const baseUrl = `${origin}/?b=${organizationSlug}`;
 
   if (type === "market" && marketId) {
-    return `${baseUrl}/#market-${marketId}`;
+    return `${baseUrl}#market-${marketId}`;
   }
 
   return baseUrl;
