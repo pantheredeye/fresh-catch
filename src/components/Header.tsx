@@ -12,12 +12,18 @@ interface HeaderProps {
     type: string;
     role: string;
   } | null;
+  browsingOrganization?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   variant?: "customer" | "admin" | "auth";
 }
 
 export function Header({
   user,
   currentOrganization,
+  browsingOrganization,
   variant = "customer",
 }: HeaderProps) {
   // Auth variant: centered logo only

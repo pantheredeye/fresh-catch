@@ -12,6 +12,7 @@ export function CustomerLayout({
     <CustomerLayoutClient
       user={ctx?.user ?? null}
       currentOrganization={ctx?.currentOrganization ?? null}
+      browsingOrganization={ctx?.browsingOrganization ?? null}
     >
       {children}
     </CustomerLayoutClient>
