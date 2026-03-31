@@ -206,7 +206,10 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
                 notes: order.notes || '',
                 preferredDate: order.preferredDate ? new Date(order.preferredDate).toISOString().split('T')[0] : ''
               };
-              window.location.href = `/orders/new?prefill=${encodeURIComponent(JSON.stringify(prefill))}`;
+              const vendorSlug = ctx?.browsingOrganization?.slug;
+              const params = new URLSearchParams({ prefill: JSON.stringify(prefill) });
+              if (vendorSlug) params.set('b', vendorSlug);
+              window.location.href = `/orders/new?${params.toString()}`;
             }}
           >
             Order Again
