@@ -65,6 +65,7 @@ export function CustomerHomeUI({
   ctx: AppContext;
 }) {
   const [favorites, toggleFavorite] = useFavorites();
+  const vendorSlug = ctx.browsingOrganization?.slug;
 
   // Filter markets into favorites and all
   const favoriteMarkets = markets.filter(m => favorites.includes(m.id));
@@ -98,14 +99,14 @@ export function CustomerHomeUI({
 
       {/* Fresh Catch or Hero Fallback */}
       {catchData ? (
-        <FreshSheet catch={catchData} />
+        <FreshSheet catch={catchData} vendorSlug={vendorSlug} />
       ) : (
         <FreshHero actions={quickActions} />
       )}
 
       {/* Popup Markets Section - Only show if popups exist */}
       {popups.length > 0 && (
-        <PopupSection popups={popups} />
+        <PopupSection popups={popups} vendorSlug={vendorSlug} />
       )}
 
       {/* Your Markets Section - Only show if user has favorites */}
@@ -115,6 +116,7 @@ export function CustomerHomeUI({
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
           ctx={ctx}
+          vendorSlug={vendorSlug}
         />
       )}
 
@@ -124,10 +126,11 @@ export function CustomerHomeUI({
         favorites={favorites}
         onToggleFavorite={toggleFavorite}
         ctx={ctx}
+        vendorSlug={vendorSlug}
       />
 
       {/* Bottom Navigation */}
-      <BottomNavigation />
+      <BottomNavigation vendorSlug={vendorSlug} />
     </div>
   );
 }
@@ -136,12 +139,14 @@ function YourMarketsSection({
   markets,
   favorites,
   onToggleFavorite,
-  ctx
+  ctx,
+  vendorSlug
 }: {
   markets: Market[];
   favorites: string[];
   onToggleFavorite: (marketId: string) => void;
   ctx: AppContext;
+  vendorSlug?: string;
 }) {
   return (
     <div style={{
@@ -162,6 +167,7 @@ function YourMarketsSection({
           isFavorite={favorites.includes(market.id)}
           onToggleFavorite={onToggleFavorite}
           ctx={ctx}
+          vendorSlug={vendorSlug}
         />
       ))}
     </div>
@@ -172,12 +178,14 @@ function AllMarketsSection({
   markets,
   favorites,
   onToggleFavorite,
-  ctx
+  ctx,
+  vendorSlug
 }: {
   markets: Market[];
   favorites: string[];
   onToggleFavorite: (marketId: string) => void;
   ctx: AppContext;
+  vendorSlug?: string;
 }) {
   return (
     <div style={{
@@ -198,13 +206,14 @@ function AllMarketsSection({
           isFavorite={favorites.includes(market.id)}
           onToggleFavorite={onToggleFavorite}
           ctx={ctx}
+          vendorSlug={vendorSlug}
         />
       ))}
     </div>
   );
 }
 
-function PopupSection({ popups }: { popups: PopupMarket[] }) {
+function PopupSection({ popups, vendorSlug }: { popups: PopupMarket[]; vendorSlug?: string }) {
   return (
     <div style={{
       padding: 'var(--space-lg) var(--space-md)',
@@ -228,6 +237,7 @@ function PopupSection({ popups }: { popups: PopupMarket[] }) {
             customerInfo: popup.customerInfo,
             catchPreview: popup.catchPreview ? JSON.parse(popup.catchPreview) : null
           }}
+          vendorSlug={vendorSlug}
         />
       ))}
 

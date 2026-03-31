@@ -13,7 +13,7 @@ import { trackShare } from '../share-functions';
  * Quick Order button styled prominently in center.
  * Reduced nav items to Home, Markets, More.
  */
-export function BottomNavigationV2() {
+export function BottomNavigationV2({ vendorSlug }: { vendorSlug?: string } = {}) {
   const [footerVisible, setFooterVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -144,7 +144,7 @@ export function BottomNavigationV2() {
           </a>
 
           {/* Quick Order - Matches header button style */}
-          <a href="/orders/new" style={{
+          <a href={vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new"} style={{
             display: 'inline-flex',
             alignItems: 'center',
             padding: 'var(--space-xs) var(--space-md)',

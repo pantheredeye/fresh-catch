@@ -15,6 +15,7 @@ interface MarketCardProps {
   isFavorite: boolean;
   onToggleFavorite: (marketId: string) => void;
   ctx: AppContext;
+  vendorSlug?: string;
 }
 
 /**
@@ -28,7 +29,8 @@ export function MarketCard({
   market,
   isFavorite,
   onToggleFavorite,
-  ctx
+  ctx,
+  vendorSlug
 }: MarketCardProps) {
   const isAdmin = hasAdminAccess(ctx);
 
@@ -110,7 +112,7 @@ export function MarketCard({
 
       <div className="flex gap-sm">
         {/* Customer action - always visible */}
-        <a href={isAdmin ? `/admin/orders` : `/orders/new?market=${market.id}`} style={{
+        <a href={isAdmin ? `/admin/orders` : `/orders/new?market=${market.id}${vendorSlug ? `&b=${vendorSlug}` : ''}`} style={{
           flex: 1,
           padding: 'var(--space-md)',
           background: isAdmin ? 'var(--color-gradient-secondary)' : 'var(--color-gradient-primary)',

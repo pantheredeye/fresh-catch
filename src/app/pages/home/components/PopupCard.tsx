@@ -19,7 +19,7 @@ function getDateBadge(expiresAt: string): string {
   return expires.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export function PopupCard({ popup }: { popup: PopupData }) {
+export function PopupCard({ popup, vendorSlug }: { popup: PopupData; vendorSlug?: string }) {
   const badge = getDateBadge(popup.expiresAt);
   const isUrgent = badge === "TODAY!" || badge === "TOMORROW!";
 
@@ -134,7 +134,7 @@ export function PopupCard({ popup }: { popup: PopupData }) {
       {/* Order Now CTA */}
       <div style={{ textAlign: 'center' as const }}>
         <a
-          href="/orders/new"
+          href={vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new"}
           style={{
             display: 'inline-block',
             padding: 'var(--space-sm) var(--space-xl)',

@@ -6,12 +6,15 @@ import { BusinessNotFound } from "../BusinessNotFound";
 
 const STALE_DAYS = 7;
 
-const MOCK_QUICK_ACTIONS = [
-  { icon: "🐟", title: "Quick Order", href: "/orders/new" },
-  { icon: "📋", title: "My Orders", href: "/orders" },
-  { icon: "📍", title: "Markets", href: "#markets" },
-  { icon: "💬", title: "Contact", href: "#text" }
-];
+function getQuickActions(vendorSlug?: string) {
+  const orderHref = vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new";
+  return [
+    { icon: "🐟", title: "Quick Order", href: orderHref },
+    { icon: "📋", title: "My Orders", href: "/orders" },
+    { icon: "📍", title: "Markets", href: "#markets" },
+    { icon: "💬", title: "Contact", href: "#text" }
+  ];
+}
 
 /**
  * CustomerHome - Server Component
@@ -104,7 +107,7 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
       markets={markets}
       popups={popups}
       catchData={catchData}
-      quickActions={MOCK_QUICK_ACTIONS}
+      quickActions={getQuickActions(ctx.browsingOrganization?.slug)}
       ctx={ctx}
     />
   );
