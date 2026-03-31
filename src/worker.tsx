@@ -3,6 +3,7 @@ import { route, render, prefix, layout } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
+import { VendorProfilePage } from "@/app/pages/home/VendorProfilePage";
 import { DesignTest } from "@/app/pages/DesignTest";
 
 import { setCommonHeaders } from "@/app/headers";
@@ -188,7 +189,7 @@ export default defineApp([
       //   - If only 1 business total, auto-show it
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
-      route("/v/:slug", CustomerHome),
+      route("/v/:slug", VendorProfilePage),
       route("/design-test", DesignTest),
       ...darkModeTestRoutes,
 
