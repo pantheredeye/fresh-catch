@@ -65,7 +65,7 @@ export function Header({
     <header className="unified-header unified-header--customer">
       <div className="unified-header__content content-wrapper">
         <a href="/" className="unified-header__logo">
-          <span className="unified-header__logo-text">Evan's Fresh Catch</span>
+          <span className="unified-header__logo-text">{browsingOrganization?.name ?? currentOrganization?.name ?? "Fresh Catch"}</span>
         </a>
         <div className="unified-header__actions">
           <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="quick-order-button">
