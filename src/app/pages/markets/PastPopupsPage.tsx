@@ -29,6 +29,7 @@ export async function PastPopupsPage({ ctx, request }: RequestInfo) {
     const detectedOrgId = await getPublicOrganizationId();
 
     if (!detectedOrgId) {
+      // Multiple businesses or none — past popups need a specific vendor
       return <BusinessNotFound businessSlug={null} />;
     }
 

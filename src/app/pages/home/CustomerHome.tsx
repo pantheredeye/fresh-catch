@@ -1,8 +1,9 @@
 import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
-import { getPublicOrganizationId } from "@/utils/organization";
+import { getPublicOrganizationId, getPublicOrganizations } from "@/utils/organization";
 import { CustomerHomeUI } from "./CustomerHomeUI";
 import { BusinessNotFound } from "../BusinessNotFound";
+import { VendorDirectory } from "./components";
 
 const STALE_DAYS = 7;
 
@@ -22,6 +23,7 @@ function getQuickActions(vendorSlug?: string) {
  * RWSDK Pattern: Server Component that fetches real data
  * - Uses ctx.browsingOrganization from tenant middleware for ?b= resolution
  * - Falls back to getPublicOrganizationId() when no ?b= param
+ * - Shows VendorDirectory when multiple businesses exist, BusinessNotFound when zero
  * - Passes all data to CustomerHomeUI client component
  */
 export async function CustomerHome({ ctx, request }: RequestInfo) {
@@ -43,6 +45,11 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
     const detectedOrgId = await getPublicOrganizationId();
 
     if (!detectedOrgId) {
+      // Multiple businesses or none — show directory if any exist
+      const vendors = await getPublicOrganizations();
+      if (vendors.length > 0) {
+        return <VendorDirectory vendors={vendors} />;
+      }
       return <BusinessNotFound businessSlug={null} />;
     }
 
