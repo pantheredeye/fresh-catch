@@ -4,29 +4,14 @@ import type { AppContext } from "@/worker";
  * Role-based permission utilities
  *
  * Role hierarchy:
- * - owner: Full admin access (Evan)
- * - manager: Admin access (future employees)
- * - customer: Customer-only access (buyers)
-
-  What's implemented:
-  1. Permission utilities (/src/utils/permissions.ts) with role checking functions
-  2. Role hierarchy - Owner → Manager → Customer with granular permissions
-  3. Context-aware components - MarketCard example shows conditional UI
-  4. Documentation updated in both pattern files
-
-  Key features:
-  - Single components handle multiple user types (no duplicate admin/customer pages)
-  - Visual role indicators - Coral buttons for admin, Ocean for customers
-  - Progressive permissions - Owners can modify markets, Managers can manage schedules
-  - Future-proof - Easy to add new roles or extend permissions
-
-  Example in CustomerHome:
-  - Customer sees: "Order Fish" (Ocean button) + Directions
-  - Admin sees: "Manage Market" (Coral button) + Settings gear + Directions
-
-  Ready for Evan + future managers - The system automatically handles role detection and UI adaptation. When Evan hires managers, they'll get admin
-  access to schedules but not market configuration (unless you extend canModifyMarkets function).
-  
+ * - owner: Full admin access
+ * - manager: Admin access
+ * - customer: Customer-only access
+ *
+ * Features:
+ * - Single components handle multiple user types (no duplicate admin/customer pages)
+ * - Progressive permissions - Owners can modify markets, Managers can manage schedules
+ * - Easy to add new roles or extend permissions
  */
 
 export function hasAdminAccess(ctx: AppContext): boolean {
