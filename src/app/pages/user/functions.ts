@@ -175,7 +175,7 @@ export async function registerWithPassword(
     {
       userId: user.id,
       currentOrganizationId: vendorOrg?.id || customerOrg.id,
-      role: "customer",
+      role: vendorOrg ? "customer" : "owner",
     },
     rememberMe ? { maxAge: true } : undefined
   );
@@ -311,7 +311,7 @@ export async function finishPasskeyRegistration(
   await sessions.save(response.headers, {
     userId: user.id,
     currentOrganizationId: vendorOrg?.id || customerOrg.id,
-    role: "customer",
+    role: vendorOrg ? "customer" : "owner",
   }, { maxAge: true });
 
   // Customers are NOT admins (they're customers of business org, not owners)
