@@ -45,6 +45,11 @@ export type AppContext = {
     type: string;
     role: string;
   } | null;
+  browsingOrganization: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 };
 
 export default defineApp([
