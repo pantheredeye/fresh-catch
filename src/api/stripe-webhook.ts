@@ -386,10 +386,17 @@ async function handleChargeRefunded(charge: Stripe.Charge, orgId: string): Promi
 async function handleAccountUpdated(account: Stripe.Account, orgId: string): Promise<void> {
   const org = await db.organization.findUnique({
     where: { id: orgId },
-    select: { id: true, name: true, stripeOnboardingComplete: true },
+    select: { id: true, name: true, stripeAccountId: true, stripeOnboardingComplete: true },
   });
   if (!org) {
     console.error(`Organization not found for id ${orgId}`);
+    return;
+  }
+
+  if (org.stripeAccountId !== account.id) {
+    console.warn(
+      `Cross-org mismatch in account.updated: resolved org ${org.id} has stripeAccountId ${org.stripeAccountId} but event account is ${account.id}`,
+    );
     return;
   }
 
