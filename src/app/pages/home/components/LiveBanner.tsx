@@ -6,7 +6,7 @@
  *
  * TODO: Connect to actual market live status instead of always showing
  */
-export function LiveBanner() {
+export function LiveBanner({ marketName }: { marketName?: string }) {
   return (
     <div style={{
       background: 'var(--color-status-success)',
@@ -28,7 +28,7 @@ export function LiveBanner() {
         boxShadow: '0 0 0 2px var(--color-glass-border-medium)',
         animation: 'live-pulse 2s ease-in-out infinite'
       }} />
-      <span>LIVE at Livingston Market</span>
+      <span>{marketName ? `LIVE at ${marketName}` : 'LIVE'}</span>
     </div>
   );
 }
