@@ -33,9 +33,10 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
     // Middleware resolved ?b=slug to an org
     orgId = ctx.browsingOrganization.id;
   } else {
-    // Check if ?b= param was present but didn't resolve (invalid slug)
+    // Check if slug was present but didn't resolve (invalid slug)
     const url = new URL(request.url);
-    const businessSlug = url.searchParams.get('b');
+    const pathMatch = url.pathname.match(/^\/v\/([^/]+)/);
+    const businessSlug = pathMatch?.[1] ?? url.searchParams.get('b');
 
     if (businessSlug) {
       return <BusinessNotFound businessSlug={businessSlug} />;

@@ -188,6 +188,7 @@ export default defineApp([
       //   - If only 1 business total, auto-show it
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
+      route("/v/:slug", CustomerHome),
       route("/design-test", DesignTest),
       ...darkModeTestRoutes,
 

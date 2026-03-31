@@ -5,7 +5,10 @@ export const resolveBrowsingOrg =
   (): RouteMiddleware =>
   async ({ ctx, request }) => {
     const url = new URL(request.url);
-    const slug = url.searchParams.get("b");
+
+    // Priority: route path /v/:slug > query param ?b=
+    const pathMatch = url.pathname.match(/^\/v\/([^/]+)/);
+    const slug = pathMatch?.[1] ?? url.searchParams.get("b");
 
     if (!slug) {
       return;
