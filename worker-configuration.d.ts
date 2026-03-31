@@ -12,8 +12,6 @@ declare namespace Cloudflare {
 		STRIPE_PUBLISHABLE_KEY: "";
 		WEBAUTHN_RP_ID: string;
 		AUTH_SECRET_KEY: string;
-		ADMIN_CODE: string;
-		MANAGER_CODE: string;
 		RESEND_API_KEY: string;
 		SESSION_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").SessionDurableObject>;
 		DB: D1Database;
@@ -26,7 +24,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "WEBAUTHN_APP_NAME" | "ADMIN_EMAIL" | "STRIPE_PUBLISHABLE_KEY" | "WEBAUTHN_RP_ID" | "AUTH_SECRET_KEY" | "ADMIN_CODE" | "MANAGER_CODE" | "RESEND_API_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "WEBAUTHN_APP_NAME" | "ADMIN_EMAIL" | "STRIPE_PUBLISHABLE_KEY" | "WEBAUTHN_RP_ID" | "AUTH_SECRET_KEY" | "RESEND_API_KEY">> {}
 }
 
 // Begin runtime types
