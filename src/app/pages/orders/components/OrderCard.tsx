@@ -135,6 +135,16 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-action-primary)', marginBottom: 'var(--space-xs)' }}>
             Order #{order.orderNumber}
           </div>
+          {viewMode === 'customer' && order.organization && (
+            <div style={{
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--color-text-secondary)',
+              marginBottom: 'var(--space-xs)'
+            }}>
+              {order.organization.name}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap', marginBottom: 'var(--space-xs)' }}>
             <div style={{
               display: 'inline-block',
@@ -207,7 +217,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
                 notes: order.notes || '',
                 preferredDate: order.preferredDate ? new Date(order.preferredDate).toISOString().split('T')[0] : ''
               };
-              const vendorSlug = ctx?.browsingOrganization?.slug;
+              const vendorSlug = order.organization?.slug;
               const params = new URLSearchParams({ prefill: JSON.stringify(prefill) });
               if (vendorSlug) params.set('b', vendorSlug);
               window.location.href = `/orders/new?${params.toString()}`;
