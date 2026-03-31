@@ -10,13 +10,13 @@ export interface ShareOptions {
 }
 
 /**
- * Generate shareable URL using path model: origin/?b={slug}
+ * Generate shareable URL using path model: origin/v/{slug}
  */
 export function generateShareUrl(options: ShareOptions): string {
   const { type, organizationSlug, marketId } = options;
 
   const origin = new URL(requestInfo.request.url).origin;
-  const baseUrl = `${origin}/?b=${organizationSlug}`;
+  const baseUrl = `${origin}/v/${organizationSlug}`;
 
   if (type === "market" && marketId) {
     return `${baseUrl}#market-${marketId}`;
