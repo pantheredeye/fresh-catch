@@ -75,7 +75,10 @@ export async function loginWithPassword(
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
     include: {
-      memberships: { include: { organization: true } },
+      memberships: {
+        include: { organization: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
