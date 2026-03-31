@@ -11,22 +11,21 @@ import { BusinessNotFound } from "../BusinessNotFound";
  * Excludes cancelled popups (they never happened).
  */
 export async function PastPopupsPage({ ctx, request }: RequestInfo) {
-  const url = new URL(request.url);
-  const businessSlug = url.searchParams.get('b');
-
   let orgId: string;
 
-  if (businessSlug) {
-    const org = await db.organization.findFirst({
-      where: { slug: businessSlug, type: 'business' }
-    });
+  if (ctx.browsingOrganization) {
+    // Middleware resolved ?b=slug to an org
+    orgId = ctx.browsingOrganization.id;
+  } else {
+    // Check if ?b= param was present but didn't resolve (invalid slug)
+    const url = new URL(request.url);
+    const businessSlug = url.searchParams.get('b');
 
-    if (!org) {
+    if (businessSlug) {
       return <BusinessNotFound businessSlug={businessSlug} />;
     }
 
-    orgId = org.id;
-  } else {
+    // No ?b= param: auto-detect single business
     const detectedOrgId = await getPublicOrganizationId();
 
     if (!detectedOrgId) {
