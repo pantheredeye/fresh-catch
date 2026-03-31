@@ -41,6 +41,7 @@ export type AppContext = {
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
   } | null;
@@ -131,6 +132,7 @@ export default defineApp([
           ctx.currentOrganization = {
             id: currentMembership.organization.id,
             name: currentMembership.organization.name,
+            slug: currentMembership.organization.slug,
             type: currentMembership.organization.type,
             role: currentMembership.role,  // Always use DB role, not session
           };
