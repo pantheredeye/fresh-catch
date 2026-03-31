@@ -47,8 +47,9 @@ export async function createOrder(data: CreateOrderData) {
     return { success: false, error: "You must be logged in" };
   }
 
-  // Must have organization context
-  if (!ctx.currentOrganization) {
+  // Resolve vendor: browsingOrganization (from /v/:slug or ?b=) > currentOrganization (session)
+  const vendorOrg = ctx.browsingOrganization ?? ctx.currentOrganization;
+  if (!vendorOrg) {
     return { success: false, error: "No organization context" };
   }
 
@@ -72,7 +73,7 @@ export async function createOrder(data: CreateOrderData) {
 
     // Get next order number for this organization
     const lastOrder = await db.order.findFirst({
-      where: { organizationId: ctx.currentOrganization.id },
+      where: { organizationId: vendorOrg.id },
       orderBy: { orderNumber: 'desc' },
       select: { orderNumber: true }
     });
@@ -82,7 +83,7 @@ export async function createOrder(data: CreateOrderData) {
     const order = await db.order.create({
       data: {
         userId: ctx.user.id,
-        organizationId: ctx.currentOrganization.id,
+        organizationId: vendorOrg.id,
         orderNumber: nextOrderNumber,
         contactName: data.contactName,
         contactEmail: data.contactEmail,
@@ -104,7 +105,7 @@ export async function createOrder(data: CreateOrderData) {
           items: order.items,
           preferredDate: order.preferredDate?.toISOString(),
           notes: order.notes || undefined,
-          businessName: ctx.currentOrganization.name,
+          businessName: vendorOrg.name,
         });
       } catch (emailError) {
         console.error('Failed to send confirmation email:', emailError);
@@ -124,7 +125,7 @@ export async function createOrder(data: CreateOrderData) {
           items: order.items,
           preferredDate: order.preferredDate?.toISOString(),
           notes: order.notes || undefined,
-          businessName: ctx.currentOrganization.name,
+          businessName: vendorOrg.name,
         });
       } catch (emailError) {
         console.error('Failed to send admin notification email:', emailError);

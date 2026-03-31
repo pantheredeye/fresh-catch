@@ -7,10 +7,17 @@ export function NewOrderPage({ ctx }: RequestInfo) {
     return <Login ctx={ctx} />;
   }
 
+  // Resolve vendor: browsingOrganization (from /v/:slug or ?b=) > currentOrganization (session)
+  const vendor = ctx.browsingOrganization ?? ctx.currentOrganization;
+
+  if (!vendor) {
+    return new Response(null, { status: 302, headers: { Location: "/" } });
+  }
+
   const defaultContact = {
     name: ctx.user.name || ctx.user.username,
     phone: ctx.user.phone || ''
   };
 
-  return <NewOrderUI ctx={ctx} defaultContact={defaultContact} />;
+  return <NewOrderUI vendorName={vendor.name} defaultContact={defaultContact} />;
 }
