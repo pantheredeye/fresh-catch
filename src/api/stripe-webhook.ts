@@ -72,7 +72,7 @@ export async function handleStripeWebhook(request: Request): Promise<Response> {
   }
 
   try {
-    await dispatchWebhookEvent(event, org.id);
+    await dispatchWebhookEvent(event, org.id, stripeAccountId);
   } catch (err) {
     console.error(`Error handling webhook event ${event.type}:`, err);
     // Still return 200 — Stripe should not retry on handler errors
@@ -88,25 +88,27 @@ export async function handleStripeWebhook(request: Request): Promise<Response> {
  * Dispatch webhook event to the appropriate handler.
  * Add new event handlers here as needed.
  */
-async function dispatchWebhookEvent(event: Stripe.Event, orgId: string): Promise<void> {
+async function dispatchWebhookEvent(event: Stripe.Event, orgId: string, stripeAccountId: string): Promise<void> {
   switch (event.type) {
     case "checkout.session.completed":
       await handleCheckoutSessionCompleted(
         event.data.object as Stripe.Checkout.Session,
         orgId,
+        stripeAccountId,
       );
       break;
     case "payment_intent.succeeded":
       await handlePaymentIntentSucceeded(
         event.data.object as Stripe.PaymentIntent,
         orgId,
+        stripeAccountId,
       );
       break;
     case "payment_intent.payment_failed":
       console.log("Payment intent failed:", event.data.object.id);
       break;
     case "charge.refunded":
-      await handleChargeRefunded(event.data.object as Stripe.Charge, orgId);
+      await handleChargeRefunded(event.data.object as Stripe.Charge, orgId, stripeAccountId);
       break;
     case "account.updated":
       await handleAccountUpdated(event.data.object as Stripe.Account, orgId);
@@ -130,6 +132,7 @@ async function ensureDb(): Promise<void> {
 async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
   orgId: string,
+  stripeAccountId: string,
 ): Promise<void> {
   const metadata = session.metadata;
   if (!metadata?.platform || metadata.platform !== "fresh-catch") {
@@ -148,7 +151,12 @@ async function handleCheckoutSessionCompleted(
     include: { organization: { select: { name: true } } },
   });
   if (!order) {
-    console.error(`Order not found for checkout session: ${orderId}`);
+    console.warn("[cross-org-mismatch] Order lookup failed after orgId filter", {
+      event: "checkout.session.completed",
+      orderId,
+      orgId,
+      stripeAccountId,
+    });
     return;
   }
 
@@ -231,6 +239,7 @@ async function handleCheckoutSessionCompleted(
 async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent,
   orgId: string,
+  stripeAccountId: string,
 ): Promise<void> {
   const metadata = paymentIntent.metadata;
   if (!metadata?.platform || metadata.platform !== "fresh-catch") {
@@ -255,7 +264,12 @@ async function handlePaymentIntentSucceeded(
 
   const order = await db.order.findFirst({ where: { id: orderId, organizationId: orgId } });
   if (!order) {
-    console.error(`Order not found for payment_intent: ${orderId}`);
+    console.warn("[cross-org-mismatch] Order lookup failed after orgId filter", {
+      event: "payment_intent.succeeded",
+      orderId,
+      orgId,
+      stripeAccountId,
+    });
     return;
   }
 
@@ -299,7 +313,7 @@ async function handlePaymentIntentSucceeded(
  * Handle charge.refunded — create negative Payment record and decrement amountPaid.
  * Clears paidAt if the order is no longer fully paid after the refund.
  */
-async function handleChargeRefunded(charge: Stripe.Charge, orgId: string): Promise<void> {
+async function handleChargeRefunded(charge: Stripe.Charge, orgId: string, stripeAccountId: string): Promise<void> {
   const refundAmount = charge.amount_refunded;
   if (!refundAmount || refundAmount <= 0) {
     console.log("Charge refund with zero amount, skipping:", charge.id);
@@ -344,9 +358,12 @@ async function handleChargeRefunded(charge: Stripe.Charge, orgId: string): Promi
     where: { id: originalPayment.orderId, organizationId: orgId },
   });
   if (!order) {
-    console.error(
-      `Order not found for refund: ${originalPayment.orderId}`,
-    );
+    console.warn("[cross-org-mismatch] Order lookup failed after orgId filter", {
+      event: "charge.refunded",
+      orderId: originalPayment.orderId,
+      orgId,
+      stripeAccountId,
+    });
     return;
   }
 
