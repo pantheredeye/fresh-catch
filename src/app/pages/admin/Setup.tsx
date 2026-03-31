@@ -54,9 +54,9 @@ import { TextInput, Button, Container, Card } from "@/design-system";
  */
 export function Setup({ ctx }: { ctx: any }) {
   const isLoggedIn = !!ctx.user;
-  const [username, setUsername] = useState("evan");
-  const [businessName, setBusinessName] = useState("Fresh Catch Seafood Markets");
-  const [slug, setSlug] = useState("fresh-catch-seafood-markets");
+  const [username, setUsername] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [slug, setSlug] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
