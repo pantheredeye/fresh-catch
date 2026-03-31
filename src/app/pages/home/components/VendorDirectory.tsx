@@ -9,7 +9,7 @@ interface VendorDirectoryProps {
 
 /**
  * VendorDirectory - Grid of vendor cards for multi-vendor home page.
- * Each card links to /?b={slug} to set the browsing context.
+ * Each card links to /v/{slug} to set the browsing context.
  */
 export function VendorDirectory({ vendors }: VendorDirectoryProps) {
   if (vendors.length === 0) return null;
@@ -24,7 +24,7 @@ export function VendorDirectory({ vendors }: VendorDirectoryProps) {
       {vendors.map((vendor) => (
         <a
           key={vendor.slug}
-          href={`/?b=${vendor.slug}`}
+          href={`/v/${vendor.slug}`}
           style={{
             display: 'flex',
             flexDirection: 'column',

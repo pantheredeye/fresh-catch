@@ -239,7 +239,7 @@ export function Setup({ ctx }: { ctx: any }) {
               required
               disabled={status === 'loading' || status === 'success'}
               size="lg"
-              helperText={`Your customer page: yoursite.com/?b=${slug || 'your-slug'}`}
+              helperText={`Your customer page: yoursite.com/v/${slug || 'your-slug'}`}
             />
 
             <Button
