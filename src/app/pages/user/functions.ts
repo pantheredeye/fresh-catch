@@ -276,7 +276,7 @@ export async function finishPasskeyRegistration(
 
   // Create individual organization for the customer
   // Use UUID for slug - customer orgs are private and never shared publicly
-  // Only business orgs need readable slugs like ?b=evan for public sharing
+  // Only business orgs need readable slugs for public sharing
   const customerOrg = await db.organization.create({
     data: {
       name: `${username}'s Account`,
