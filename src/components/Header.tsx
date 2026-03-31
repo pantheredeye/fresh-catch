@@ -71,7 +71,7 @@ export function Header({
           <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="quick-order-button">
             + Quick Order
           </a>
-          <UserMenu user={user} currentOrganization={currentOrganization} />
+          <UserMenu user={user} currentOrganization={currentOrganization} browsingOrganization={browsingOrganization} />
         </div>
       </div>
     </header>

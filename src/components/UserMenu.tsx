@@ -5,7 +5,8 @@ import type { User } from "@/db";
 
 export function UserMenu({
   user,
-  currentOrganization
+  currentOrganization,
+  browsingOrganization
 }: {
   user: User | null;
   currentOrganization: {
@@ -14,11 +15,19 @@ export function UserMenu({
     type: string;
     role: string;
   } | null;
+  browsingOrganization?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }) {
   // Not logged in - show sign in button
   if (!user) {
+    const loginHref = browsingOrganization?.slug
+      ? `/login?b=${browsingOrganization.slug}`
+      : "/login";
     return (
-      <a href="/login" className="sign-in-button">
+      <a href={loginHref} className="sign-in-button">
         Sign In
       </a>
     );
