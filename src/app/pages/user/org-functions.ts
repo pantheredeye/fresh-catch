@@ -1,6 +1,7 @@
 "use server";
 
 import { requestInfo } from "rwsdk/worker";
+import { sessions } from "@/session/store";
 import { db } from "@/db";
 
 export async function listUserOrganizations() {
@@ -29,4 +30,40 @@ export async function listUserOrganizations() {
     slug: m.organization.slug,
     role: m.role,
   }));
+}
+
+export async function switchOrganization(orgId: string) {
+  const { ctx, response } = requestInfo;
+
+  if (!ctx.user) {
+    return { success: false, error: "Must be logged in" };
+  }
+
+  const membership = await db.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: ctx.user.id,
+        organizationId: orgId,
+      },
+    },
+  });
+
+  if (!membership) {
+    return { success: false, error: "No membership for this organization" };
+  }
+
+  // Update session with new org context
+  await sessions.save(response.headers, {
+    userId: ctx.user.id,
+    currentOrganizationId: orgId,
+    role: membership.role,
+  });
+
+  // Touch membership updatedAt for most-recently-used sorting
+  await db.membership.update({
+    where: { id: membership.id },
+    data: { updatedAt: new Date() },
+  });
+
+  return { success: true };
 }
