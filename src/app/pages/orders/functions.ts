@@ -3,6 +3,7 @@
 import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
+import { sessions } from "@/session/store";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/utils/email";
 import { getStripe } from "@/utils/stripe";
 import { getPaymentStatus } from "@/utils/payments";
@@ -40,7 +41,7 @@ function validateOrder(data: CreateOrderData): { valid: boolean; errors: string[
 }
 
 export async function createOrder(data: CreateOrderData) {
-  const { ctx } = requestInfo;
+  const { ctx, response } = requestInfo;
 
   // Must be logged in
   if (!ctx.user) {
@@ -86,6 +87,16 @@ export async function createOrder(data: CreateOrderData) {
         role: "customer",
       },
     });
+
+    // Update session to point to vendor org so subsequent pages show correct context
+    await sessions.save(response.headers, {
+      userId: ctx.user.id,
+      currentOrganizationId: vendorOrg.id,
+      role: "customer",
+    });
+    if (ctx.session) {
+      ctx.session.currentOrganizationId = vendorOrg.id;
+    }
 
     // Get next order number for this organization
     const lastOrder = await db.order.findFirst({
