@@ -197,9 +197,13 @@ export async function createCheckoutSession(orderId: string, tipAmount?: number)
     return { success: false as const, error: "You must be logged in" };
   }
 
+  if (!ctx.currentOrganization) {
+    return { success: false as const, error: "No organization context" };
+  }
+
   try {
-    const order = await db.order.findUnique({
-      where: { id: orderId },
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id },
       include: {
         organization: {
           select: {
