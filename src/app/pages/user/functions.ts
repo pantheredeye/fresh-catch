@@ -160,14 +160,13 @@ export async function registerWithPassword(
     data: { userId: user.id, organizationId: customerOrg.id, role: "owner" },
   });
 
-  // Link to Fresh Catch business
-  const freshCatch = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
+  // Link to browsed vendor if registering from a vendor page (?b=slug)
+  const { ctx } = requestInfo;
+  const vendorOrg = ctx.browsingOrganization;
 
-  if (freshCatch) {
+  if (vendorOrg) {
     await db.membership.create({
-      data: { userId: user.id, organizationId: freshCatch.id, role: "customer" },
+      data: { userId: user.id, organizationId: vendorOrg.id, role: "customer" },
     });
   }
 
@@ -175,7 +174,7 @@ export async function registerWithPassword(
     response.headers,
     {
       userId: user.id,
-      currentOrganizationId: freshCatch?.id || customerOrg.id,
+      currentOrganizationId: vendorOrg?.id || customerOrg.id,
       role: "customer",
     },
     rememberMe ? { maxAge: true } : undefined
