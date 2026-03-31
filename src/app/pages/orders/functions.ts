@@ -147,9 +147,13 @@ export async function updateOrder(orderId: string, data: Partial<CreateOrderData
     return { success: false, error: "You must be logged in" };
   }
 
+  if (!ctx.currentOrganization) {
+    return { success: false, error: "No organization context" };
+  }
+
   try {
-    const order = await db.order.findUnique({
-      where: { id: orderId }
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id }
     });
 
     if (!order) {
