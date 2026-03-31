@@ -9,6 +9,7 @@ interface HeaderProps {
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
   } | null;

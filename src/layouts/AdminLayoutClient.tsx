@@ -31,6 +31,7 @@ export function AdminLayoutClient({
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
   } | null;

@@ -17,6 +17,7 @@ export function CustomerLayoutClient({
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
   } | null;
