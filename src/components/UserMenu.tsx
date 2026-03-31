@@ -86,6 +86,23 @@ export function UserMenu({
                 >
                   <span className="admin-icon">🔑</span> Admin
                 </Menu.Item>
+                {userOrgs.length >= 2 && (
+                  <>
+                    <Menu.Separator className="user-menu-separator" />
+                    <div className="org-switcher-label">Switch Business</div>
+                    {userOrgs.map((org) => (
+                      <Menu.Item
+                        key={org.id}
+                        className={`user-menu-item org-item${org.id === currentOrganization?.id ? " org-item-active" : ""}`}
+                      >
+                        <span className="org-name">{org.name}</span>
+                        {org.id === currentOrganization?.id && (
+                          <span className="org-check">✓</span>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </>
+                )}
               </>
             )}
 
