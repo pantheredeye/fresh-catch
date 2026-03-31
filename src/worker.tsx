@@ -23,6 +23,7 @@ import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
+import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 export { SessionDurableObject } from "./session/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
@@ -174,6 +175,7 @@ export default defineApp([
       return handleVoiceCommand(request, ctx);
     }
   },
+  resolveBrowsingOrg(),
   render(Document, [
     // Auth routes with minimal layout
     ...layout(AuthLayout, userRoutes),  // /login, /logout
