@@ -13,7 +13,10 @@ export function LoginPage(requestInfo: RequestInfo) {
 
   // If already logged in, auto-redirect to home
   if (ctx.user) {
-    const destination = ctx.currentOrganization ? '/admin' : '/';
+    const url = new URL(requestInfo.request.url);
+    const bSlug = url.searchParams.get("b");
+    const base = ctx.currentOrganization ? '/admin' : '/';
+    const destination = bSlug ? `${base}?b=${bSlug}` : base;
     return new Response(null, {
       status: 302,
       headers: { Location: destination },
