@@ -1,7 +1,16 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Menu } from "@base-ui/react/menu";
 import type { User } from "@/db";
+import { listUserOrganizations } from "@/app/pages/user/org-functions";
+
+type UserOrg = {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+};
 
 export function UserMenu({
   user,
@@ -22,6 +31,18 @@ export function UserMenu({
     slug: string;
   } | null;
 }) {
+  const [userOrgs, setUserOrgs] = useState<UserOrg[]>([]);
+
+  const isAdmin =
+    currentOrganization?.type === 'business' &&
+    currentOrganization?.role &&
+    ['owner', 'manager'].includes(currentOrganization.role);
+
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    listUserOrganizations().then(setUserOrgs).catch(() => {});
+  }, [user, isAdmin]);
+
   // Not logged in - show sign in button
   if (!user) {
     const loginHref = browsingOrganization?.slug
@@ -33,12 +54,6 @@ export function UserMenu({
       </a>
     );
   }
-
-  // Admin = owner/manager of a BUSINESS org (not individual customer org)
-  const isAdmin =
-    currentOrganization?.type === 'business' &&
-    currentOrganization?.role &&
-    ['owner', 'manager'].includes(currentOrganization.role);
 
   return (
     <Menu.Root>
