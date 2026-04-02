@@ -40,6 +40,17 @@ export function Login({ ctx }: { ctx: any }) {
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
+  const [bSlug, setBSlug] = useState<string | null>(null);
+
+  // Capture ?b= param from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const b = params.get("b");
+    if (b) setBSlug(b);
+  }, []);
+
+  const withBParam = (url: string) =>
+    bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
 
   const disabled = status === "loading" || status === "success";
 
@@ -96,7 +107,7 @@ export function Login({ ctx }: { ctx: any }) {
         throw new Error(result.error || "Invalid email or password");
       }
 
-      const destination = result.isAdmin ? "/admin" : "/";
+      const destination = withBParam(result.isAdmin ? "/admin" : "/");
       setRedirectUrl(destination);
       setStatus("success");
       setMessage("Welcome back! Redirecting...");
@@ -120,7 +131,7 @@ export function Login({ ctx }: { ctx: any }) {
         throw new Error("Passkey login failed.");
       }
 
-      const destination = result.isAdmin ? "/admin" : "/";
+      const destination = withBParam(result.isAdmin ? "/admin" : "/");
       setRedirectUrl(destination);
       setStatus("success");
       setMessage("Welcome back! Redirecting...");
@@ -153,7 +164,7 @@ export function Login({ ctx }: { ctx: any }) {
         throw new Error(result.error || "Registration failed");
       }
 
-      setRedirectUrl("/");
+      setRedirectUrl(withBParam("/"));
       setStatus("success");
       setMessage("Welcome to Fresh Catch! Redirecting...");
       setCountdown(2);

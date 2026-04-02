@@ -1,34 +1,79 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Menu } from "@base-ui/react/menu";
 import type { User } from "@/db";
+import { listUserOrganizations, switchOrganization } from "@/app/pages/user/org-functions";
+
+type UserOrg = {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+};
 
 export function UserMenu({
   user,
-  currentOrganization
+  currentOrganization,
+  browsingOrganization
 }: {
   user: User | null;
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
   } | null;
+  browsingOrganization?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }) {
-  // Not logged in - show sign in button
-  if (!user) {
-    return (
-      <a href="/login" className="sign-in-button">
-        Sign In
-      </a>
-    );
+  const [userOrgs, setUserOrgs] = useState<UserOrg[]>([]);
+  const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  async function handleSwitchOrg(orgId: string) {
+    if (switching || orgId === currentOrganization?.id) return;
+    setSwitching(true);
+    setSwitchError(null);
+    try {
+      const result = await switchOrganization(orgId);
+      if (result.success) {
+        window.location.href = "/admin";
+      } else {
+        setSwitchError(result.error || "Failed to switch");
+        setSwitching(false);
+      }
+    } catch {
+      setSwitchError("Failed to switch organization");
+      setSwitching(false);
+    }
   }
 
-  // Admin = owner/manager of a BUSINESS org (not individual customer org)
   const isAdmin =
     currentOrganization?.type === 'business' &&
     currentOrganization?.role &&
     ['owner', 'manager'].includes(currentOrganization.role);
+
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    listUserOrganizations().then(setUserOrgs).catch(() => {});
+  }, [user, isAdmin]);
+
+  // Not logged in - show sign in button
+  if (!user) {
+    const loginHref = browsingOrganization?.slug
+      ? `/login?b=${browsingOrganization.slug}`
+      : "/login";
+    return (
+      <a href={loginHref} className="sign-in-button">
+        Sign In
+      </a>
+    );
+  }
 
   return (
     <Menu.Root>
@@ -61,6 +106,29 @@ export function UserMenu({
                 >
                   <span className="admin-icon">🔑</span> Admin
                 </Menu.Item>
+                {userOrgs.length >= 2 && (
+                  <>
+                    <Menu.Separator className="user-menu-separator" />
+                    <div className="org-switcher-label">
+                      {switching ? "Switching…" : "Switch Business"}
+                    </div>
+                    {switchError && (
+                      <div className="org-switch-error">{switchError}</div>
+                    )}
+                    {userOrgs.map((org) => (
+                      <Menu.Item
+                        key={org.id}
+                        className={`user-menu-item org-item${org.id === currentOrganization?.id ? " org-item-active" : ""}${switching ? " org-item-disabled" : ""}`}
+                        onClick={() => handleSwitchOrg(org.id)}
+                      >
+                        <span className="org-name">{org.name}</span>
+                        {org.id === currentOrganization?.id && (
+                          <span className="org-check">✓</span>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </>
+                )}
               </>
             )}
 

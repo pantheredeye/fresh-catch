@@ -75,7 +75,10 @@ export async function loginWithPassword(
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
     include: {
-      memberships: { include: { organization: true } },
+      memberships: {
+        include: { organization: true },
+        orderBy: { updatedAt: "desc" },
+      },
     },
   });
 
@@ -160,14 +163,13 @@ export async function registerWithPassword(
     data: { userId: user.id, organizationId: customerOrg.id, role: "owner" },
   });
 
-  // Link to Fresh Catch business
-  const freshCatch = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
+  // Link to browsed vendor if registering from a vendor page (?b=slug)
+  const { ctx } = requestInfo;
+  const vendorOrg = ctx.browsingOrganization;
 
-  if (freshCatch) {
+  if (vendorOrg) {
     await db.membership.create({
-      data: { userId: user.id, organizationId: freshCatch.id, role: "customer" },
+      data: { userId: user.id, organizationId: vendorOrg.id, role: "customer" },
     });
   }
 
@@ -175,8 +177,8 @@ export async function registerWithPassword(
     response.headers,
     {
       userId: user.id,
-      currentOrganizationId: freshCatch?.id || customerOrg.id,
-      role: "customer",
+      currentOrganizationId: vendorOrg?.id || customerOrg.id,
+      role: vendorOrg ? "customer" : "owner",
     },
     rememberMe ? { maxAge: true } : undefined
   );
@@ -277,7 +279,7 @@ export async function finishPasskeyRegistration(
 
   // Create individual organization for the customer
   // Use UUID for slug - customer orgs are private and never shared publicly
-  // Only business orgs need readable slugs like ?b=evan for public sharing
+  // Only business orgs need readable slugs for public sharing
   const customerOrg = await db.organization.create({
     data: {
       name: `${username}'s Account`,
@@ -295,29 +297,25 @@ export async function finishPasskeyRegistration(
     },
   });
 
-  // Link customer to Evan's business (Fresh Catch Seafood Markets) as a customer
-  const evanBusiness = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
+  // Link to browsed vendor if registering from a vendor page (?b=slug)
+  const { ctx } = requestInfo;
+  const vendorOrg = ctx.browsingOrganization;
 
-  if (evanBusiness) {
+  if (vendorOrg) {
     await db.membership.create({
       data: {
         userId: user.id,
-        organizationId: evanBusiness.id,
+        organizationId: vendorOrg.id,
         role: "customer",
       },
     });
   }
 
-  // Auto-login: Create session with Fresh Catch business context
   await sessions.save(response.headers, {
     userId: user.id,
-    currentOrganizationId: evanBusiness?.id || customerOrg.id,
-    role: "customer",
+    currentOrganizationId: vendorOrg?.id || customerOrg.id,
+    role: vendorOrg ? "customer" : "owner",
   }, { maxAge: true });
-
-  console.log(`✅ Customer registration complete: ${username} linked to Fresh Catch business`);
 
   // Customers are NOT admins (they're customers of business org, not owners)
   return { success: true, isAdmin: false };
@@ -392,6 +390,9 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
         include: {
           organization: true,
         },
+        orderBy: {
+          updatedAt: "desc",
+        },
       },
     },
   });
@@ -427,175 +428,4 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
   }
 
   return { success: true, isAdmin };
-}
-
-export async function addMembershipWithJoinCode(code: string) {
-  const { ctx, response } = requestInfo;
-
-  // Must be logged in
-  if (!ctx.user) {
-    return { success: false, error: "You must be logged in" };
-  }
-
-  // Validate code & determine role
-  const role = code === env.ADMIN_CODE ? "owner" :
-               code === env.MANAGER_CODE ? "manager" : null;
-  if (!role) {
-    return { success: false, error: "Invalid join code" };
-  }
-
-  // Find Fresh Catch organization
-  const freshCatchOrg = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
-
-  if (!freshCatchOrg) {
-    return { success: false, error: "Organization not found" };
-  }
-
-  // Check if already a member
-  const existingMembership = await db.membership.findUnique({
-    where: {
-      userId_organizationId: {
-        userId: ctx.user.id,
-        organizationId: freshCatchOrg.id,
-      },
-    },
-  });
-
-  if (existingMembership) {
-    return { success: false, error: "You already have access to this organization" };
-  } else {
-    // Add new membership
-    await db.membership.create({
-      data: {
-        userId: ctx.user.id,
-        organizationId: freshCatchOrg.id,
-        role: role,
-      },
-    });
-    console.log(`✅ Added ${ctx.user.username} as ${role}`);
-  }
-
-  // Update session to Fresh Catch org context
-  await sessions.save(response.headers, {
-    userId: ctx.user.id,
-    currentOrganizationId: freshCatchOrg.id,
-    role: role,
-  });
-
-  return { success: true, role };
-}
-
-export async function finishJoinCodeRegistration(
-  username: string,
-  email: string,
-  code: string,
-  registration: RegistrationResponseJSON,
-) {
-  const { request, response } = requestInfo;
-  const { origin } = new URL(request.url);
-
-  // 1. Verify WebAuthn challenge (same as finishPasskeyRegistration)
-  const session = await sessions.load(request);
-  const challenge = session?.challenge;
-  if (!challenge) return { success: false };
-
-  // Reject expired challenges
-  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await sessions.save(response.headers, { challenge: null });
-    return { success: false };
-  }
-
-  const verification = await verifyRegistrationResponse({
-    response: registration,
-    expectedChallenge: challenge,
-    expectedOrigin: origin,
-    expectedRPID: env.WEBAUTHN_RP_ID || new URL(request.url).hostname,
-  });
-
-  if (!verification.verified || !verification.registrationInfo) {
-    return { success: false };
-  }
-
-  await sessions.save(response.headers, { challenge: null });
-
-  // 2. Validate code & determine role
-  const role = code === env.ADMIN_CODE ? "owner" :
-               code === env.MANAGER_CODE ? "manager" : null;
-  if (!role) return { success: false };
-
-  // 3. Check if username already exists
-  const existingUser = await db.user.findUnique({
-    where: { username },
-  });
-
-  if (existingUser) {
-    console.log(`Join failed: Username '${username}' already exists`);
-    return { success: false };
-  }
-
-  // 4. Create User + Credential
-  const user = await db.user.create({
-    data: {
-      username,
-      email: email,
-      name: username,
-      phone: null,
-    },
-  });
-
-  await db.credential.create({
-    data: {
-      userId: user.id,
-      credentialId: verification.registrationInfo.credential.id,
-      publicKey: verification.registrationInfo.credential.publicKey,
-      counter: verification.registrationInfo.credential.counter,
-    },
-  });
-
-  // 5. Create individual organization (like customer flow)
-  const individualOrg = await db.organization.create({
-    data: {
-      name: `${username}'s Account`,
-      slug: crypto.randomUUID(),
-      type: "individual",
-    },
-  });
-
-  await db.membership.create({
-    data: {
-      userId: user.id,
-      organizationId: individualOrg.id,
-      role: "owner",
-    },
-  });
-
-  // 6. Link to Fresh Catch Seafood Markets with admin role
-  const freshCatchOrg = await db.organization.findFirst({
-    where: { name: "Fresh Catch Seafood Markets" },
-  });
-
-  if (!freshCatchOrg) {
-    throw new Error("Fresh Catch organization not found");
-  }
-
-  await db.membership.create({
-    data: {
-      userId: user.id,
-      organizationId: freshCatchOrg.id,
-      role: role, // 'owner' or 'manager' from code
-    },
-  });
-
-  // 7. Auto-login with Fresh Catch org context (admin dashboard)
-  await sessions.save(response.headers, {
-    userId: user.id,
-    currentOrganizationId: freshCatchOrg.id,
-    role: role,
-  });
-
-  console.log(`✅ Join code registration: ${username} added as ${role}`);
-
-  return { success: true, isAdmin: true };
 }

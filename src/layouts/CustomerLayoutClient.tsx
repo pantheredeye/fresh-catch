@@ -10,14 +10,21 @@ import "@/design-system/tokens.css";
 export function CustomerLayoutClient({
   user,
   currentOrganization,
+  browsingOrganization,
   children,
 }: {
   user: User | null;
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
+  } | null;
+  browsingOrganization: {
+    id: string;
+    name: string;
+    slug: string;
   } | null;
   children: React.ReactNode;
 }) {
@@ -27,6 +34,7 @@ export function CustomerLayoutClient({
         variant="customer"
         user={user}
         currentOrganization={currentOrganization}
+        browsingOrganization={browsingOrganization}
       />
 
       <main className="customer-main">{children}</main>

@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Card } from "@/design-system";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { clearCatch, publishCatch } from "./catch-functions";
 import "./catch.css";
 
 type InputMode = "voice" | "text";
 
-type CatchState =
+type CatchPhase =
   | "idle"
-  | "recording"
   | "processing"
   | "review"
   | "publishing"
   | "done"
-  | "error"
-  | "permission-denied";
+  | "error";
 
 interface CatchContent {
   headline: string;
@@ -35,67 +35,18 @@ interface CatchUIProps {
   currentCatch: CatchUpdateData | null;
 }
 
-function getSupportedMimeType(): string {
-  if (typeof MediaRecorder === "undefined") return "audio/webm";
-  const types = [
-    "audio/webm;codecs=opus",
-    "audio/mp4",
-    "audio/webm",
-  ];
-  for (const type of types) {
-    if (MediaRecorder.isTypeSupported(type)) return type;
-  }
-  return "audio/webm";
-}
-
 export function CatchUI({ currentCatch }: CatchUIProps) {
   const [inputMode, setInputMode] = useState<InputMode>("voice");
-  const [state, setState] = useState<CatchState>("idle");
+  const [phase, setPhase] = useState<CatchPhase>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<CatchContent | null>(null);
-  const [timeLeft, setTimeLeft] = useState(120);
-  const [amplitude, setAmplitude] = useState(0);
   const [liveCatch, setLiveCatch] = useState(currentCatch);
   const [textInput, setTextInput] = useState("");
   const [draft, setDraft] = useState<CatchContent | null>(null);
   const [rawTranscript, setRawTranscript] = useState("");
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const blobRef = useRef<Blob | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const rafRef = useRef<number>(0);
-
-  const cleanup = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = 0;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close();
-      audioCtxRef.current = null;
-    }
-    analyserRef.current = null;
-    mediaRecorderRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
-
   const uploadAudio = useCallback(async (blob: Blob) => {
-    setState("processing");
+    setPhase("processing");
 
     try {
       const buffer = await blob.arrayBuffer();
@@ -118,18 +69,20 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
       };
       setDraft(data.formatted);
       setRawTranscript(data.rawTranscript);
-      setState("review");
+      setPhase("review");
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Upload failed"
       );
-      setState("error");
+      setPhase("error");
     }
   }, []);
 
+  const recorder = useVoiceRecorder({ onAudioReady: uploadAudio });
+
   const submitText = useCallback(async () => {
     if (!textInput.trim()) return;
-    setState("processing");
+    setPhase("processing");
 
     try {
       const response = await fetch("/api/catch/record", {
@@ -152,154 +105,65 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
       setDraft(data.formatted);
       setRawTranscript(data.rawTranscript);
       setTextInput("");
-      setState("review");
+      setPhase("review");
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Submit failed"
       );
-      setState("error");
+      setPhase("error");
     }
   }, [textInput]);
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
-
-  const startAmplitudeLoop = useCallback(() => {
-    const tick = () => {
-      if (!analyserRef.current) return;
-      const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(data);
-      const avg = data.reduce((sum, v) => sum + v, 0) / data.length;
-      setAmplitude(avg / 255);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-  }, []);
-
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
-      streamRef.current = stream;
-
-      // Set up audio analysis
-      const audioCtx = new AudioContext();
-      audioCtxRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      // Set up MediaRecorder
-      const mimeType = getSupportedMimeType();
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        blobRef.current = blob;
-        cleanup();
-        uploadAudio(blob);
-      };
-
-      recorder.start(1000); // collect in 1s chunks
-
-      // Countdown timer
-      setTimeLeft(120);
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            stopRecording();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      startAmplitudeLoop();
-      setState("recording");
-    } catch (err) {
-      cleanup();
-      if (
-        err instanceof DOMException &&
-        (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")
-      ) {
-        setState("permission-denied");
-      } else {
-        setErrorMessage(
-          err instanceof Error ? err.message : "Failed to access microphone"
-        );
-        setState("error");
-      }
-    }
-  }, [cleanup, uploadAudio, stopRecording, startAmplitudeLoop]);
-
-  const handleMicClick = useCallback(() => {
-    if (state === "recording") {
-      stopRecording();
-    } else if (state === "idle" || state === "done") {
-      blobRef.current = null;
+  const handleMicTap = useCallback(() => {
+    if (recorder.state === "recording") {
+      recorder.stopRecording();
+    } else {
       setResult(null);
-      startRecording();
+      setPhase("idle");
+      recorder.setState("idle");
+      recorder.startRecording();
     }
-  }, [state, stopRecording, startRecording]);
+  }, [recorder]);
 
   const handleRetry = useCallback(() => {
-    if (blobRef.current) {
-      uploadAudio(blobRef.current);
-    }
-  }, [uploadAudio]);
+    recorder.retryUpload();
+  }, [recorder]);
 
   const handleReRecord = useCallback(() => {
-    blobRef.current = null;
     setResult(null);
     setDraft(null);
     setRawTranscript("");
     setErrorMessage("");
-    setState("idle");
-  }, []);
+    setPhase("idle");
+    recorder.setState("idle");
+  }, [recorder]);
 
   const handleClearCatch = useCallback(async () => {
     const res = await clearCatch();
     if (res.success) {
       setLiveCatch(null);
       setResult(null);
-      setState("idle");
+      setPhase("idle");
     }
   }, []);
 
-  const handleRetryPermission = useCallback(() => {
-    setState("idle");
-    startRecording();
-  }, [startRecording]);
-
   const handlePublish = useCallback(async () => {
     if (!draft) return;
-    setState("publishing");
+    setPhase("publishing");
     try {
       const res = await publishCatch(draft, rawTranscript);
       if (res.success) {
         setResult(draft);
         setLiveCatch(null);
         setDraft(null);
-        setState("done");
+        setPhase("done");
       } else {
         setErrorMessage(res.error || "Publish failed");
-        setState("error");
+        setPhase("error");
       }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Publish failed");
-      setState("error");
+      setPhase("error");
     }
   }, [draft, rawTranscript]);
 
@@ -334,11 +198,11 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
     });
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+  // Derive effective UI state from recorder state + catch phase
+  const isRecording = recorder.state === "recording";
+  const isPermissionDenied = recorder.state === "permission-denied";
+  const showIdle = phase === "idle" && !isRecording && !isPermissionDenied;
+  const showDone = phase === "done";
 
   // Parse current catch content
   let currentCatchContent: CatchContent | null = null;
@@ -356,7 +220,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         <h1 className="catch-page__title">Fresh Catch</h1>
 
         {/* Input Mode Toggle */}
-        {(state === "idle" || state === "done") && (
+        {(showIdle || showDone) && (
           <div className="catch-mode-toggle">
             <button
               className={`catch-mode-toggle__btn${inputMode === "voice" ? " catch-mode-toggle__btn--active" : ""}`}
@@ -374,7 +238,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Permission Denied */}
-        {state === "permission-denied" && (
+        {isPermissionDenied && (
           <div className="catch-permission">
             <div className="catch-permission__icon">🎙️</div>
             <h2 className="catch-permission__title">Microphone Access Needed</h2>
@@ -384,7 +248,10 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
             </p>
             <button
               className="catch-btn catch-btn--primary"
-              onClick={handleRetryPermission}
+              onClick={() => {
+                recorder.setState("idle");
+                recorder.startRecording();
+              }}
             >
               Try Again
             </button>
@@ -392,7 +259,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Processing */}
-        {state === "processing" && (
+        {phase === "processing" && (
           <div className="catch-processing">
             <div className="catch-processing__spinner" />
             <p className="catch-processing__text">
@@ -402,11 +269,11 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Error */}
-        {state === "error" && (
+        {phase === "error" && (
           <div className="catch-error">
             <div className="catch-error__message">{errorMessage}</div>
             <div className="catch-error__actions">
-              {inputMode === "voice" && blobRef.current && (
+              {inputMode === "voice" && recorder.blob && (
                 <button
                   className="catch-btn catch-btn--primary"
                   onClick={handleRetry}
@@ -425,42 +292,17 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Mic Button (voice mode: idle + recording + done) */}
-        {inputMode === "voice" && (state === "idle" || state === "recording" || state === "done") && (
-          <div className="catch-mic">
-            <button
-              className={`catch-mic__button ${
-                state === "recording" ? "catch-mic__button--recording" : ""
-              }`}
-              onClick={handleMicClick}
-              style={
-                state === "recording"
-                  ? {
-                      boxShadow: `0 0 ${20 + amplitude * 40}px ${
-                        8 + amplitude * 20
-                      }px rgba(255, 107, 107, ${0.3 + amplitude * 0.5})`,
-                    }
-                  : undefined
-              }
-            >
-              <span className={`catch-mic__ring${state === "recording" ? " catch-mic__ring--recording" : ""}`} />
-              {state === "recording" ? "⏹️" : "🎙️"}
-            </button>
-
-            {state === "recording" && (
-              <>
-                <div className="catch-mic__timer">{formatTime(timeLeft)}</div>
-                <p className="catch-mic__label">Recording... Tap to stop</p>
-              </>
-            )}
-
-            {state === "idle" && (
-              <p className="catch-mic__label">Tap to record — you can edit before publishing</p>
-            )}
-          </div>
+        {inputMode === "voice" && (showIdle || isRecording || showDone) && (
+          <VoiceMicButton
+            state={isRecording ? "recording" : "idle"}
+            amplitude={recorder.amplitude}
+            timeLeft={recorder.timeLeft}
+            onTap={handleMicTap}
+          />
         )}
 
         {/* Text Input (text mode: idle + done) */}
-        {inputMode === "text" && (state === "idle" || state === "done") && (
+        {inputMode === "text" && (showIdle || showDone) && (
           <div className="catch-text">
             <textarea
               className="catch-text__input"
@@ -483,7 +325,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Publishing */}
-        {state === "publishing" && (
+        {phase === "publishing" && (
           <div className="catch-processing">
             <div className="catch-processing__spinner" />
             <p className="catch-processing__text">Publishing...</p>
@@ -491,7 +333,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Review / Edit */}
-        {state === "review" && draft && (
+        {phase === "review" && draft && (
           <div className="catch-review">
             <h2 className="catch-review__title">Review & Edit</h2>
             <div className="catch-review__field">
@@ -560,7 +402,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Done Result */}
-        {state === "done" && result && (
+        {showDone && result && (
           <div className="catch-result">
             <div className="catch-result__success">&#10003; Catch Updated</div>
             <h2 className="catch-result__headline">{result.headline}</h2>
@@ -592,7 +434,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
         )}
 
         {/* Current Live Catch */}
-        {state !== "processing" && state !== "publishing" && state !== "review" && (
+        {phase !== "processing" && phase !== "publishing" && phase !== "review" && (
           <div className="catch-current">
             <h3 className="catch-current__header">
               Currently showing to customers:
@@ -618,7 +460,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
                 <p className="catch-result__summary">
                   {currentCatchContent.summary}
                 </p>
-                {state === "idle" && (
+                {showIdle && (
                   <button
                     className="catch-btn catch-btn--outline"
                     onClick={handleClearCatch}

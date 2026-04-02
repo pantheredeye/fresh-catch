@@ -7,7 +7,7 @@ import "@/layouts/AdminLayout.css";
  * BusinessNotFound - Error page for invalid business slugs or no businesses
  *
  * Shown when:
- * - User visits /?b=invalid-slug (businessSlug provided)
+ * - User visits /v/invalid-slug or /?b=invalid-slug (businessSlug provided)
  * - No businesses exist in the database yet (businessSlug is null)
  *
  * Uses admin page design pattern: clean, professional, helpful

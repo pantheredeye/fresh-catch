@@ -3,6 +3,7 @@ import { route, render, prefix, layout } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
+import { VendorProfilePage } from "@/app/pages/home/VendorProfilePage";
 import { DesignTest } from "@/app/pages/DesignTest";
 
 import { setCommonHeaders } from "@/app/headers";
@@ -11,6 +12,7 @@ import { userRoutes } from "@/app/pages/user/routes";
 import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
 import { profileRoutes } from "@/app/pages/profile/routes";
+import { marketRoutes } from "@/app/pages/markets/routes";
 import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
@@ -21,6 +23,8 @@ import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
 import { handleCatchRecord } from "@/api/catch-record";
+import { handleVoiceCommand } from "@/api/voice-command";
+import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 export { SessionDurableObject } from "./session/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
@@ -39,8 +43,14 @@ export type AppContext = {
   currentOrganization: {
     id: string;
     name: string;
+    slug: string;
     type: string;
     role: string;
+  } | null;
+  browsingOrganization: {
+    id: string;
+    name: string;
+    slug: string;
   } | null;
 };
 
@@ -87,6 +97,7 @@ export default defineApp([
             include: {
               organization: true,
             },
+            orderBy: { updatedAt: "desc" },
           },
         },
       });
@@ -129,6 +140,7 @@ export default defineApp([
           ctx.currentOrganization = {
             id: currentMembership.organization.id,
             name: currentMembership.organization.name,
+            slug: currentMembership.organization.slug,
             type: currentMembership.organization.type,
             role: currentMembership.role,  // Always use DB role, not session
           };
@@ -155,13 +167,17 @@ export default defineApp([
       }
     }
   },
-  // Catch record API — after session/user middleware for auth context
+  // API endpoints — after session/user middleware for auth context
   async ({ ctx, request }) => {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/catch/record") {
       return handleCatchRecord(request, ctx);
     }
+    if (request.method === "POST" && url.pathname === "/api/voice/command") {
+      return handleVoiceCommand(request, ctx);
+    }
   },
+  resolveBrowsingOrg(),
   render(Document, [
     // Auth routes with minimal layout
     ...layout(AuthLayout, userRoutes),  // /login, /logout
@@ -174,6 +190,7 @@ export default defineApp([
       //   - If only 1 business total, auto-show it
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
+      route("/v/:slug", VendorProfilePage),
       route("/design-test", DesignTest),
       ...darkModeTestRoutes,
 
@@ -195,6 +212,9 @@ export default defineApp([
 
     // Profile routes with customer layout
     prefix("/profile", layout(CustomerLayout, profileRoutes)),
+
+    // Market routes with customer layout (public)
+    prefix("/markets", layout(CustomerLayout, marketRoutes)),
 
     // Admin routes with admin header + nav
     prefix("/admin", [

@@ -201,6 +201,98 @@
   flex-shrink: 0;
 }
 
+/* Split action buttons */
+.config-actions--split {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Popup section accent */
+.markets-list-container--popup {
+  border-color: var(--color-action-secondary);
+  border-width: 2px;
+  background: var(--color-surface-primary);
+}
+
+.market-item--popup {
+  border-left: 3px solid var(--color-action-secondary);
+}
+
+/* Popup date badge */
+.popup-date-badge {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  padding: 1px var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--color-action-secondary);
+  color: var(--color-text-inverse);
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Catch preview summary */
+.market-item__catch-preview {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* Inactive section collapsed header */
+.inactive-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding-right: var(--space-md);
+  user-select: none;
+}
+
+.inactive-chevron {
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  transition: transform 0.2s ease;
+}
+
+.inactive-chevron--open {
+  transform: rotate(180deg);
+}
+
+.markets-list-container--inactive {
+  opacity: 0.85;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  padding: 1px var(--space-xs);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge--inactive {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+}
+
+.badge--expired {
+  background: var(--color-status-warning);
+  color: var(--color-text-inverse);
+}
+
+.badge--cancelled {
+  background: var(--color-status-error);
+  color: var(--color-text-inverse);
+}
+
 /* Empty State */
 .config-empty-state {
   background: var(--color-surface-primary);

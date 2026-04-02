@@ -3,17 +3,17 @@
 import { useState, useEffect } from "react";
 import { Container, Card, Button, TextInput, Textarea } from "@/design-system";
 import { createOrder } from "./functions";
-import type { AppContext } from "@/worker";
 
 interface NewOrderUIProps {
-  ctx: AppContext;
+  vendorName: string;
+  vendorId: string;
   defaultContact: {
     name: string;
     phone: string;
   };
 }
 
-export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
+export function NewOrderUI({ vendorName, vendorId, defaultContact }: NewOrderUIProps) {
   const [contactName, setContactName] = useState(defaultContact.name);
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState(defaultContact.phone);
@@ -60,14 +60,14 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
         items: items.trim(),
         preferredDate: preferredDate || null,
         notes: notes.trim() || null,
-      });
+      }, vendorId);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create order');
       }
 
       setStatus('success');
-      setMessage('Order submitted! Evan will confirm soon.');
+      setMessage(`Order submitted! ${vendorName} will confirm soon.`);
 
       // Redirect after 2 seconds
       setTimeout(() => {
@@ -87,7 +87,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
             Quick Order
           </h1>
           <p className="text-subheading">
-            Tell Evan what you need and when you'd like to pick it up. He'll confirm availability, price, and pickup details.
+            Tell {vendorName} what you need and when you'd like to pick it up. They'll confirm availability, price, and pickup details.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
             required
             placeholder="Example: 2 lbs shrimp, 1 lb redfish fillets, dozen oysters"
             rows={4}
-            helperText={`Describe what you want - Evan will confirm availability and price (${items.length}/1000)`}
+            helperText={`Describe what you want - ${vendorName} will confirm availability and price (${items.length}/1000)`}
           />
 
           <div>
@@ -165,7 +165,7 @@ export function NewOrderUI({ ctx, defaultContact }: NewOrderUIProps) {
               color: 'var(--color-text-secondary)',
               marginTop: '4px'
             }}>
-              Optional - Evan will confirm pickup time
+              Optional - {vendorName} will confirm pickup time
             </div>
           </div>
 

@@ -16,7 +16,7 @@ function relativeTime(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export function FreshSheet({ catch: catchData }: { catch: CatchData }) {
+export function FreshSheet({ catch: catchData, vendorSlug }: { catch: CatchData; vendorSlug?: string }) {
   return (
     <div style={{
       width: 'calc(100% - var(--space-md) * 2)',
@@ -90,7 +90,7 @@ export function FreshSheet({ catch: catchData }: { catch: CatchData }) {
       {/* Order Now CTA */}
       <div style={{ textAlign: 'center' as const }}>
         <a
-          href="/orders/new"
+          href={vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new"}
           style={{
             display: 'inline-block',
             padding: 'var(--space-sm) var(--space-xl)',

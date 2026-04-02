@@ -7,31 +7,36 @@
 import { db } from "@/db";
 
 /**
- * Get the public-facing organization ID for customer views
+ * Get the public-facing organization for customer views
  *
  * Logic:
- * - If exactly 1 business exists: return its ID
- * - If 0 businesses exist: return null (will show "no businesses" page)
- * - If multiple businesses: return first one (TODO: show directory in future)
+ * - If exactly 1 business exists: return its id + slug
+ * - If 0 or multiple businesses: return null (caller shows directory or not-found)
  */
-export async function getPublicOrganizationId(): Promise<string | null> {
+export async function getPublicOrganization(): Promise<{ id: string; slug: string; name: string } | null> {
   const businesses = await db.organization.findMany({
     where: { type: 'business' },
-    orderBy: { createdAt: 'asc' }
+    select: { id: true, slug: true, name: true },
   });
 
-  if (businesses.length === 0) {
+  if (businesses.length !== 1) {
     return null;
   }
 
-  // For now, return the first business (usually Evan's)
-  // Future: This could show a directory page if multiple businesses exist
-  return businesses[0].id;
+  return businesses[0];
 }
 
 /**
- * Get organization name for display
+ * Get all businesses with at least 1 active market.
+ * Filters out businesses still setting up (no active markets).
  */
-export function getPublicOrganizationName(): string {
-  return "Fresh Catch Seafood Markets";
+export async function getPublicOrganizations(): Promise<{ name: string; slug: string }[]> {
+  return db.organization.findMany({
+    where: {
+      type: 'business',
+      markets: { some: { active: true } },
+    },
+    select: { name: true, slug: true },
+    orderBy: { name: 'asc' },
+  });
 }

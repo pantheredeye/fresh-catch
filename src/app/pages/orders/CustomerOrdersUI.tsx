@@ -23,6 +23,7 @@ type Order = {
   tipAmount: number;
   createdAt: Date;
   updatedAt: Date;
+  organization: { name: string; slug: string };
 };
 
 interface CustomerOrdersUIProps {
@@ -34,6 +35,8 @@ interface CustomerOrdersUIProps {
 }
 
 export function CustomerOrdersUI({ orders, ctx, feeModel, checkoutStatus, checkoutOrder }: CustomerOrdersUIProps) {
+  const vendorSlug = ctx.browsingOrganization?.slug;
+  const newOrderHref = vendorSlug ? `/orders/new?b=${vendorSlug}` : '/orders/new';
   return (
     <Container size="md">
       <PaymentStatusBanner status={checkoutStatus ?? null} orderNumber={checkoutOrder ?? null} />
@@ -57,7 +60,7 @@ export function CustomerOrdersUI({ orders, ctx, feeModel, checkoutStatus, checko
           <Button
             variant="primary"
             size="md"
-            onClick={() => window.location.href = '/orders/new'}
+            onClick={() => window.location.href = newOrderHref}
           >
             + New Order
           </Button>
@@ -75,7 +78,7 @@ export function CustomerOrdersUI({ orders, ctx, feeModel, checkoutStatus, checko
             <Button
               variant="primary"
               size="lg"
-              onClick={() => window.location.href = '/orders/new'}
+              onClick={() => window.location.href = newOrderHref}
             >
               Place Your First Order
             </Button>

@@ -1,6 +1,5 @@
 "use server";
 import { requestInfo } from "rwsdk/worker";
-import { db } from "@/db";
 
 export type ShareType = "organization" | "market";
 
@@ -11,17 +10,16 @@ export interface ShareOptions {
 }
 
 /**
- * Generate shareable URL - flexible for current subdomain or future multi-tenant
+ * Generate shareable URL using path model: origin/v/{slug}
  */
 export function generateShareUrl(options: ShareOptions): string {
   const { type, organizationSlug, marketId } = options;
 
-  // Current: subdomain model (evan.digitalglue.dev)
-  // Future: switch to ?b=slug by changing this logic
-  const baseUrl = `https://${organizationSlug}.digitalglue.dev`;
+  const origin = new URL(requestInfo.request.url).origin;
+  const baseUrl = `${origin}/v/${organizationSlug}`;
 
   if (type === "market" && marketId) {
-    return `${baseUrl}/#market-${marketId}`;
+    return `${baseUrl}#market-${marketId}`;
   }
 
   return baseUrl;
@@ -31,11 +29,16 @@ export function generateShareUrl(options: ShareOptions): string {
  * Get current organization share URL from context
  */
 export async function getCurrentOrgShareUrl(): Promise<string> {
-  // TODO: Fix organization slug in database (should be "evan", not UUID)
-  // For now, hardcoded to match deployment subdomain
+  const { ctx } = requestInfo;
+  const slug = ctx.currentOrganization?.slug;
+
+  if (!slug) {
+    return "/";
+  }
+
   return generateShareUrl({
     type: "organization",
-    organizationSlug: "evan",
+    organizationSlug: slug,
   });
 }
 

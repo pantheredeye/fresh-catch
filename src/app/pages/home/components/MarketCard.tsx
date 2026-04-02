@@ -7,6 +7,7 @@ type Market = {
   schedule: string;
   subtitle: string | null;
   active: boolean;
+  catchPreview?: string | null;
 };
 
 interface MarketCardProps {
@@ -14,6 +15,7 @@ interface MarketCardProps {
   isFavorite: boolean;
   onToggleFavorite: (marketId: string) => void;
   ctx: AppContext;
+  vendorSlug?: string;
 }
 
 /**
@@ -27,7 +29,8 @@ export function MarketCard({
   market,
   isFavorite,
   onToggleFavorite,
-  ctx
+  ctx,
+  vendorSlug
 }: MarketCardProps) {
   const isAdmin = hasAdminAccess(ctx);
 
@@ -88,9 +91,28 @@ export function MarketCard({
         )}
       </div>
 
+      {/* Catch Preview - subtle display of usually available items */}
+      {market.catchPreview && (() => {
+        try {
+          const preview = JSON.parse(market.catchPreview);
+          const items = preview?.items;
+          if (!items || items.length === 0) return null;
+          const names = items.map((i: { name: string }) => i.name).join(", ");
+          return (
+            <div style={{
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--color-text-secondary)',
+              marginBottom: 'var(--space-md)'
+            }}>
+              Usually available: {names}
+            </div>
+          );
+        } catch { return null; }
+      })()}
+
       <div className="flex gap-sm">
         {/* Customer action - always visible */}
-        <a href={isAdmin ? `/admin/orders` : `/orders/new?market=${market.id}`} style={{
+        <a href={isAdmin ? `/admin/orders` : `/orders/new?market=${market.id}${vendorSlug ? `&b=${vendorSlug}` : ''}`} style={{
           flex: 1,
           padding: 'var(--space-md)',
           background: isAdmin ? 'var(--color-gradient-secondary)' : 'var(--color-gradient-primary)',
