@@ -201,7 +201,7 @@ model Order {
   @@index([organizationId])
   @@index([status])
   @@index([createdAt])
-  @@index([orderNumber])
+  @@unique([organizationId, orderNumber])
 }
 
 model Payment {

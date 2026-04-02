@@ -1,6 +1,6 @@
 import { RequestInfo } from "rwsdk/worker";
 import { db } from "@/db";
-import { getPublicOrganizationId } from "@/utils/organization";
+import { getPublicOrganization } from "@/utils/organization";
 import { PastPopupsUI } from "./PastPopupsUI";
 import { BusinessNotFound } from "../BusinessNotFound";
 
@@ -26,14 +26,14 @@ export async function PastPopupsPage({ ctx, request }: RequestInfo) {
     }
 
     // No ?b= param: auto-detect single business
-    const detectedOrgId = await getPublicOrganizationId();
+    const detected = await getPublicOrganization();
 
-    if (!detectedOrgId) {
+    if (!detected) {
       // Multiple businesses or none — past popups need a specific vendor
       return <BusinessNotFound businessSlug={null} />;
     }
 
-    orgId = detectedOrgId;
+    orgId = detected.id;
   }
 
   const now = new Date();

@@ -1,26 +1,29 @@
 import { RequestInfo } from "rwsdk/worker";
-import { getPublicOrganizationId, getPublicOrganizations } from "@/utils/organization";
+import { getPublicOrganization, getPublicOrganizations } from "@/utils/organization";
 import { CustomerHomeUI } from "./CustomerHomeUI";
 import { BusinessNotFound } from "../BusinessNotFound";
 import { VendorDirectory } from "./components";
 import { fetchVendorData, getQuickActions } from "./fetchVendorData";
-import { db } from "@/db";
 
 /**
  * CustomerHome - Server Component
  *
  * RWSDK Pattern: Server Component that fetches real data
  * - Uses ctx.browsingOrganization from tenant middleware for ?b= resolution
- * - Falls back to getPublicOrganizationId() when no ?b= param
+ * - Falls back to getPublicOrganization() when no ?b= param
  * - Shows VendorDirectory when multiple businesses exist, BusinessNotFound when zero
  * - Passes all data to CustomerHomeUI client component
  */
 export async function CustomerHome({ ctx, request }: RequestInfo) {
   let orgId: string;
+  let vendorSlug: string | undefined;
+  let vendorName: string | undefined;
 
   if (ctx.browsingOrganization) {
     // Middleware resolved ?b=slug to an org
     orgId = ctx.browsingOrganization.id;
+    vendorSlug = ctx.browsingOrganization.slug;
+    vendorName = ctx.browsingOrganization.name;
   } else {
     // Check if slug was present but didn't resolve (invalid slug)
     const url = new URL(request.url);
@@ -32,9 +35,9 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
     }
 
     // No ?b= param: auto-detect single business
-    const detectedOrgId = await getPublicOrganizationId();
+    const detected = await getPublicOrganization();
 
-    if (!detectedOrgId) {
+    if (!detected) {
       // Multiple businesses or none — show directory if any exist
       const vendors = await getPublicOrganizations();
       if (vendors.length > 0) {
@@ -43,25 +46,22 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
       return <BusinessNotFound businessSlug={null} />;
     }
 
-    orgId = detectedOrgId;
+    orgId = detected.id;
+    vendorSlug = detected.slug;
+    vendorName = detected.name;
   }
 
   const { markets, popups, catchData } = await fetchVendorData(orgId);
 
   // Determine market name: first active regular market, fallback to org name
-  let marketName: string | undefined = markets[0]?.name;
-  if (!marketName) {
-    marketName = ctx.browsingOrganization?.name
-      ?? (await db.organization.findUnique({ where: { id: orgId }, select: { name: true } }))?.name
-      ?? undefined;
-  }
+  const marketName = markets[0]?.name ?? vendorName;
 
   return (
     <CustomerHomeUI
       markets={markets}
       popups={popups}
       catchData={catchData}
-      quickActions={getQuickActions(ctx.browsingOrganization?.slug)}
+      quickActions={getQuickActions(vendorSlug)}
       marketName={marketName}
       ctx={ctx}
     />

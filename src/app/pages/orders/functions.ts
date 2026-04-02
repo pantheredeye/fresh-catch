@@ -3,7 +3,6 @@
 import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
-import { sessions } from "@/session/store";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/utils/email";
 import { getStripe } from "@/utils/stripe";
 import { getPaymentStatus } from "@/utils/payments";
@@ -40,18 +39,21 @@ function validateOrder(data: CreateOrderData): { valid: boolean; errors: string[
   return { valid: errors.length === 0, errors };
 }
 
-export async function createOrder(data: CreateOrderData) {
-  const { ctx, response } = requestInfo;
+export async function createOrder(data: CreateOrderData, vendorOrgId: string) {
+  const { ctx } = requestInfo;
 
   // Must be logged in
   if (!ctx.user) {
     return { success: false, error: "You must be logged in" };
   }
 
-  // Resolve vendor: browsingOrganization (from /v/:slug or ?b=) > currentOrganization (session)
-  const vendorOrg = ctx.browsingOrganization ?? ctx.currentOrganization;
-  if (!vendorOrg) {
-    return { success: false, error: "No organization context" };
+  // Look up vendor org explicitly by ID passed from client
+  const vendorOrg = await db.organization.findUnique({
+    where: { id: vendorOrgId },
+    select: { id: true, name: true, slug: true, type: true },
+  });
+  if (!vendorOrg || vendorOrg.type !== "business") {
+    return { success: false, error: "Invalid vendor" };
   }
 
   // Validate input
@@ -88,39 +90,37 @@ export async function createOrder(data: CreateOrderData) {
       },
     });
 
-    // Update session to point to vendor org so subsequent pages show correct context
-    await sessions.save(response.headers, {
-      userId: ctx.user.id,
-      currentOrganizationId: vendorOrg.id,
-      role: "customer",
-    });
-    if (ctx.session) {
-      ctx.session.currentOrganizationId = vendorOrg.id;
-    }
+    // Get next order number with retry on unique constraint violation
+    let order;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const lastOrder = await db.order.findFirst({
+        where: { organizationId: vendorOrg.id },
+        orderBy: { orderNumber: 'desc' },
+        select: { orderNumber: true }
+      });
+      const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
 
-    // Get next order number for this organization
-    const lastOrder = await db.order.findFirst({
-      where: { organizationId: vendorOrg.id },
-      orderBy: { orderNumber: 'desc' },
-      select: { orderNumber: true }
-    });
-    const nextOrderNumber = (lastOrder?.orderNumber || 0) + 1;
-
-    // Create order
-    const order = await db.order.create({
-      data: {
-        userId: ctx.user.id,
-        organizationId: vendorOrg.id,
-        orderNumber: nextOrderNumber,
-        contactName: data.contactName,
-        contactEmail: data.contactEmail,
-        contactPhone: data.contactPhone,
-        items: data.items,
-        preferredDate: data.preferredDate ? new Date(data.preferredDate) : null,
-        notes: data.notes,
-        status: 'pending'
+      try {
+        order = await db.order.create({
+          data: {
+            userId: ctx.user.id,
+            organizationId: vendorOrg.id,
+            orderNumber: nextOrderNumber,
+            contactName: data.contactName,
+            contactEmail: data.contactEmail,
+            contactPhone: data.contactPhone,
+            items: data.items,
+            preferredDate: data.preferredDate ? new Date(data.preferredDate) : null,
+            notes: data.notes,
+            status: 'pending'
+          }
+        });
+        break;
+      } catch (e: any) {
+        if (attempt === 2 || !e.message?.includes('UNIQUE constraint failed')) throw e;
       }
-    });
+    }
+    if (!order) throw new Error("Failed to create order after retries");
 
     // Send confirmation email to customer (if they provided email)
     if (order.contactEmail) {
@@ -175,22 +175,13 @@ export async function updateOrder(orderId: string, data: Partial<CreateOrderData
     return { success: false, error: "You must be logged in" };
   }
 
-  if (!ctx.currentOrganization) {
-    return { success: false, error: "No organization context" };
-  }
-
   try {
     const order = await db.order.findFirst({
-      where: { id: orderId, organizationId: ctx.currentOrganization.id }
+      where: { id: orderId, userId: ctx.user.id }
     });
 
     if (!order) {
       return { success: false, error: "Order not found" };
-    }
-
-    // Only owner can edit
-    if (order.userId !== ctx.user.id) {
-      return { success: false, error: "Not authorized" };
     }
 
     // Only pending orders can be edited
@@ -225,13 +216,9 @@ export async function createCheckoutSession(orderId: string, tipAmount?: number)
     return { success: false as const, error: "You must be logged in" };
   }
 
-  if (!ctx.currentOrganization) {
-    return { success: false as const, error: "No organization context" };
-  }
-
   try {
     const order = await db.order.findFirst({
-      where: { id: orderId, organizationId: ctx.currentOrganization.id },
+      where: { id: orderId, userId: ctx.user.id },
       include: {
         organization: {
           select: {
@@ -248,11 +235,6 @@ export async function createCheckoutSession(orderId: string, tipAmount?: number)
 
     if (!order) {
       return { success: false as const, error: "Order not found" };
-    }
-
-    // Only owner can pay
-    if (order.userId !== ctx.user.id) {
-      return { success: false as const, error: "Not authorized" };
     }
 
     // Must be confirmed
@@ -382,23 +364,13 @@ export async function cancelOrder(orderId: string) {
     return { success: false, error: "You must be logged in" };
   }
 
-  if (!ctx.currentOrganization) {
-    return { success: false, error: "No organization context" };
-  }
-
   try {
-    // Get order to verify ownership and status
     const order = await db.order.findFirst({
-      where: { id: orderId, organizationId: ctx.currentOrganization.id }
+      where: { id: orderId, userId: ctx.user.id }
     });
 
     if (!order) {
       return { success: false, error: "Order not found" };
-    }
-
-    // Only owner can cancel
-    if (order.userId !== ctx.user.id) {
-      return { success: false, error: "Not authorized" };
     }
 
     // Only pending orders can be cancelled

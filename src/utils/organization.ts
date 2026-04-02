@@ -7,23 +7,23 @@
 import { db } from "@/db";
 
 /**
- * Get the public-facing organization ID for customer views
+ * Get the public-facing organization for customer views
  *
  * Logic:
- * - If exactly 1 business exists: return its ID
+ * - If exactly 1 business exists: return its id + slug
  * - If 0 or multiple businesses: return null (caller shows directory or not-found)
  */
-export async function getPublicOrganizationId(): Promise<string | null> {
+export async function getPublicOrganization(): Promise<{ id: string; slug: string; name: string } | null> {
   const businesses = await db.organization.findMany({
     where: { type: 'business' },
-    select: { id: true },
+    select: { id: true, slug: true, name: true },
   });
 
   if (businesses.length !== 1) {
     return null;
   }
 
-  return businesses[0].id;
+  return businesses[0];
 }
 
 /**

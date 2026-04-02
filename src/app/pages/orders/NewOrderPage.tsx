@@ -7,9 +7,8 @@ export function NewOrderPage({ ctx }: RequestInfo) {
     return <Login ctx={ctx} />;
   }
 
-  // Resolve vendor: browsingOrganization (from /v/:slug or ?b=) > currentOrganization (session, business only)
-  const vendor = ctx.browsingOrganization ??
-    (ctx.currentOrganization?.type === 'business' ? ctx.currentOrganization : null);
+  // Vendor must come from explicit browsing context (/v/:slug or ?b=)
+  const vendor = ctx.browsingOrganization;
 
   if (!vendor) {
     return new Response(null, { status: 302, headers: { Location: "/" } });
@@ -20,5 +19,5 @@ export function NewOrderPage({ ctx }: RequestInfo) {
     phone: ctx.user.phone || ''
   };
 
-  return <NewOrderUI vendorName={vendor.name} defaultContact={defaultContact} />;
+  return <NewOrderUI vendorName={vendor.name} vendorId={vendor.id} defaultContact={defaultContact} />;
 }

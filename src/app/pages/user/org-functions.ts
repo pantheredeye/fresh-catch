@@ -46,9 +46,10 @@ export async function switchOrganization(orgId: string) {
         organizationId: orgId,
       },
     },
+    include: { organization: { select: { type: true } } },
   });
 
-  if (!membership) {
+  if (!membership || membership.organization.type !== "business") {
     return { success: false, error: "No membership for this organization" };
   }
 

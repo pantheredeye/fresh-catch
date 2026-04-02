@@ -27,12 +27,8 @@ export async function CustomerOrdersPage({ ctx }: RequestInfo) {
     }
   });
 
-  const feeModel: FeeModel = ctx.currentOrganization
-    ? ((await db.organization.findUnique({
-        where: { id: ctx.currentOrganization.id },
-        select: { feeModel: true }
-      }))?.feeModel ?? "customer") as FeeModel
-    : "customer";
+  // Fee model defaults to "customer" — per-order feeModel is a future enhancement
+  const feeModel: FeeModel = "customer";
 
   return <CustomerOrdersUI orders={orders} ctx={ctx} feeModel={feeModel} checkoutStatus={checkoutStatus} checkoutOrder={checkoutOrder} />;
 }

@@ -15,14 +15,15 @@ export async function trackShare(
 ) {
   const { ctx } = requestInfo;
 
-  if (!ctx.currentOrganization?.id) {
+  const orgId = ctx.browsingOrganization?.id ?? ctx.currentOrganization?.id;
+  if (!orgId) {
     return { success: false, error: "No organization context" };
   }
 
   try {
     await db.shareEvent.create({
       data: {
-        organizationId: ctx.currentOrganization.id,
+        organizationId: orgId,
         shareType,
         sharedBy: ctx.user?.id || null,
         timestamp: new Date(),

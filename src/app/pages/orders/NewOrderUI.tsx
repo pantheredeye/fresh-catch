@@ -6,13 +6,14 @@ import { createOrder } from "./functions";
 
 interface NewOrderUIProps {
   vendorName: string;
+  vendorId: string;
   defaultContact: {
     name: string;
     phone: string;
   };
 }
 
-export function NewOrderUI({ vendorName, defaultContact }: NewOrderUIProps) {
+export function NewOrderUI({ vendorName, vendorId, defaultContact }: NewOrderUIProps) {
   const [contactName, setContactName] = useState(defaultContact.name);
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState(defaultContact.phone);
@@ -59,7 +60,7 @@ export function NewOrderUI({ vendorName, defaultContact }: NewOrderUIProps) {
         items: items.trim(),
         preferredDate: preferredDate || null,
         notes: notes.trim() || null,
-      });
+      }, vendorId);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create order');

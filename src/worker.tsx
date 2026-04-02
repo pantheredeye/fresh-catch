@@ -97,6 +97,7 @@ export default defineApp([
             include: {
               organization: true,
             },
+            orderBy: { updatedAt: "desc" },
           },
         },
       });
