@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
-import { AdminChatBubble } from "@/app/pages/admin/chat";
+import { AdminChatBubble, AdminChatSheet } from "@/app/pages/admin/chat";
 import { publishCatch } from "@/app/pages/admin/catch/catch-functions";
 import {
   createMarket,
@@ -42,6 +42,7 @@ export function AdminLayoutClient({
 }) {
   const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -188,7 +189,14 @@ export function AdminLayoutClient({
         />
       )}
       {toast && <Toast message={toast} />}
-      <AdminChatBubble organizationId={currentOrganization?.id} />
+      <AdminChatBubble organizationId={currentOrganization?.id} onClick={() => setChatOpen(true)} />
+      {currentOrganization && (
+        <AdminChatSheet
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          organizationId={currentOrganization.id}
+        />
+      )}
     </div>
   );
 }

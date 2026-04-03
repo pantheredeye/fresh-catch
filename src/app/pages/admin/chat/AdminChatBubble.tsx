@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { NotificationBadge } from '@/design-system';
 import { getUnreadCount } from '@/chat/functions';
 
-export function AdminChatBubble({ organizationId }: {
+export function AdminChatBubble({ organizationId, onClick }: {
   organizationId?: string | null;
+  onClick?: () => void;
 }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -28,6 +29,7 @@ export function AdminChatBubble({ organizationId }: {
 
   return (
     <button
+      onClick={onClick}
       style={{
         position: 'fixed',
         bottom: '24px',
