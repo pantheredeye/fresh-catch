@@ -16,7 +16,7 @@ interface ConversationRow {
 
 interface ConversationListProps {
   organizationId: string;
-  onSelectConversation: (conversationId: string) => void;
+  onSelectConversation: (conversationId: string, customerName?: string) => void;
 }
 
 function timeAgo(date: Date | string): string {
@@ -113,7 +113,7 @@ export function ConversationList({
       {conversations.map((conv) => (
         <button
           key={conv.id}
-          onClick={() => onSelectConversation(conv.id)}
+          onClick={() => onSelectConversation(conv.id, conv.customerName)}
           style={{
             display: "flex",
             alignItems: "center",
