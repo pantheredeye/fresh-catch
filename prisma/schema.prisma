@@ -109,6 +109,10 @@ model Market {
   rawTranscript  String? // Verbatim Whisper output (null for form-created)
   cancelledAt    DateTime? // Set if popup cancelled before happening
 
+  // Location fields
+  county         String? // County name, populated by user
+  city           String? // City name, populated by user
+
   organization Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
