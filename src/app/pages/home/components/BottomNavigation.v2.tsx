@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ShareModal } from '@/design-system';
+import { useEffect, useState, useCallback } from 'react';
+import { ShareModal, NotificationBadge } from '@/design-system';
 import { getCurrentOrgShareUrl } from '@/utils/share';
 import { trackShare } from '../share-functions';
+import { getUnreadCount, markAsRead } from '@/chat/functions';
+import { getStoredConversationId } from './NamePrompt';
 import { ChatSheet } from './ChatSheet';
 
 /**
@@ -22,6 +24,38 @@ export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll unread count every 30s when chat is closed
+  const fetchUnread = useCallback(async () => {
+    if (!organizationId) return;
+    try {
+      const count = await getUnreadCount(organizationId, 'customer');
+      setUnreadCount(count);
+    } catch {
+      // Silently fail — badge just won't update
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (chatOpen || !organizationId) return;
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
+  }, [chatOpen, organizationId, fetchUnread]);
+
+  // When chat opens, reset badge and mark messages as read
+  const handleChatToggle = useCallback(async () => {
+    const opening = !chatOpen;
+    setChatOpen(opening);
+    if (opening && organizationId) {
+      setUnreadCount(0);
+      const convId = getStoredConversationId(organizationId);
+      if (convId) {
+        try { await markAsRead(convId, 'customer'); } catch { /* noop */ }
+      }
+    }
+  }, [chatOpen, organizationId]);
 
   useEffect(() => {
     const footer = document.querySelector('.customer-footer');
@@ -134,22 +168,29 @@ export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
           padding: 'var(--space-sm)',
           gap: 'var(--space-sm)'
         }}>
-          <button
-            onClick={() => setChatOpen(!chatOpen)}
-            style={{
-              padding: 'var(--space-sm) var(--space-md)',
-              color: 'var(--color-text-inverse)',
-              fontSize: 'var(--font-size-sm)',
-              fontWeight: 'var(--font-weight-semibold)',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--color-gradient-primary)',
-              boxShadow: 'var(--shadow-md)',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Chat
-          </button>
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <button
+              onClick={handleChatToggle}
+              style={{
+                padding: 'var(--space-sm) var(--space-md)',
+                color: 'var(--color-text-inverse)',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-semibold)',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--color-gradient-primary)',
+                boxShadow: 'var(--shadow-md)',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Chat
+            </button>
+            {unreadCount > 0 && (
+              <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
+                {unreadCount}
+              </NotificationBadge>
+            )}
+          </div>
 
           {/* Quick Order - Matches header button style */}
           <a href={vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new"} style={{
