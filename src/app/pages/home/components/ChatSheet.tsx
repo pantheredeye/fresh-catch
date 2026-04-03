@@ -4,6 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 type SheetState = "closed" | "peek" | "full";
 
+interface ChatMessage {
+  id: string;
+  content: string;
+  senderType: "customer" | "vendor";
+  senderId: string | null;
+  createdAt: string;
+}
+
 interface ChatSheetProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,10 +54,80 @@ export function ChatSheet({
   vendorSlug,
 }: ChatSheetProps) {
   const [sheetState, setSheetState] = useState<SheetState>("closed");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const dragStartY = useRef<number | null>(null);
   const dragCurrentY = useRef<number | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelayRef = useRef(1000);
   const reducedMotion = useReducedMotion();
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+  }, [messages, reducedMotion]);
+
+  // WebSocket connection
+  const isClosed = sheetState === "closed";
+  useEffect(() => {
+    if (!conversationId || isClosed) {
+      return;
+    }
+
+    let stopped = false;
+
+    function connect() {
+      if (stopped) return;
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const url = `${protocol}//${window.location.host}/ws/chat/${conversationId}`;
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.addEventListener("open", () => {
+        reconnectDelayRef.current = 1000; // reset backoff on success
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "history") {
+          setMessages(data.messages);
+        } else if (data.type === "message") {
+          setMessages((prev) => [...prev, data]);
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        wsRef.current = null;
+        if (stopped) return;
+        // Reconnect with exponential backoff
+        const delay = reconnectDelayRef.current;
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectDelayRef.current = Math.min(delay * 2, 30000);
+          connect();
+        }, delay);
+      });
+
+      ws.addEventListener("error", () => {
+        ws.close();
+      });
+    }
+
+    connect();
+
+    return () => {
+      stopped = true;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [conversationId, isClosed]);
 
   const transition = reducedMotion ? "none" : "transform 0.3s ease";
   const backdropTransition = reducedMotion ? "none" : "opacity 0.3s ease";
@@ -254,9 +332,66 @@ export function ChatSheet({
             overflowY: "auto",
             padding: "var(--space-md)",
             WebkitOverflowScrolling: "touch",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-sm)",
           }}
         >
-          {/* Chat messages will be rendered here by child components */}
+          {messages.length === 0 ? (
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                padding: "var(--space-xl)",
+              }}
+            >
+              <p
+                style={{
+                  color: "var(--color-text-tertiary)",
+                  fontSize: "var(--font-size-lg)",
+                  lineHeight: "var(--line-height-base)",
+                  margin: 0,
+                }}
+              >
+                Say hi to Evan! He usually responds within a few hours.
+              </p>
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    msg.senderType === "customer" ? "flex-end" : "flex-start",
+                }}
+              >
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    padding: "var(--space-sm) var(--space-md)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "var(--font-size-lg)",
+                    lineHeight: "var(--line-height-base)",
+                    background:
+                      msg.senderType === "customer"
+                        ? "var(--color-action-primary)"
+                        : "var(--color-surface-secondary)",
+                    color:
+                      msg.senderType === "customer"
+                        ? "var(--color-text-inverse)"
+                        : "var(--color-text-primary)",
+                  }}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
     </>
