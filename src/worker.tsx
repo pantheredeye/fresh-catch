@@ -179,6 +179,48 @@ export default defineApp([
     }
   },
   resolveBrowsingOrg(),
+  // WebSocket upgrade handler for chat — before render() to avoid RSC processing
+  async ({ ctx, request }) => {
+    const url = new URL(request.url);
+    const wsMatch = url.pathname.match(/^\/ws\/chat\/([^/]+)$/);
+    if (!wsMatch) return; // Not a chat WebSocket path, continue to next middleware
+
+    // Reject non-WebSocket requests to this path
+    if (request.headers.get("Upgrade") !== "websocket") {
+      return new Response("Expected WebSocket upgrade", { status: 400 });
+    }
+
+    const conversationId = wsMatch[1];
+
+    // Verify conversation exists
+    const conversation = await db.conversation.findUnique({
+      where: { id: conversationId },
+    });
+    if (!conversation) {
+      return new Response("Conversation not found", { status: 404 });
+    }
+
+    // Authorization: admin can access any org conversation, customer only their own
+    if (ctx.user && hasAdminAccess(ctx)) {
+      // Admin: verify conversation belongs to their org
+      if (conversation.organizationId !== ctx.currentOrganization?.id) {
+        return new Response("Forbidden", { status: 403 });
+      }
+    } else if (ctx.user) {
+      // Logged-in customer: must be the conversation's customer
+      if (conversation.customerId !== ctx.user.id) {
+        return new Response("Forbidden", { status: 403 });
+      }
+    } else {
+      // Anonymous: no WebSocket access without auth
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Forward to ChatDurableObject
+    const doId = env.CHAT_DURABLE_OBJECT.idFromName(conversationId);
+    const stub = env.CHAT_DURABLE_OBJECT.get(doId);
+    return stub.fetch(request);
+  },
   render(Document, [
     // Auth routes with minimal layout
     ...layout(AuthLayout, userRoutes),  // /login, /logout
