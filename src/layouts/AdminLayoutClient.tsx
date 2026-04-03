@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
+import { AdminChatBubble } from "@/app/pages/admin/chat";
 import { publishCatch } from "@/app/pages/admin/catch/catch-functions";
 import {
   createMarket,
@@ -187,6 +188,7 @@ export function AdminLayoutClient({
         />
       )}
       {toast && <Toast message={toast} />}
+      <AdminChatBubble organizationId={currentOrganization?.id} />
     </div>
   );
 }
