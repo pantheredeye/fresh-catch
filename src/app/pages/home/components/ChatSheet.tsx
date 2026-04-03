@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 
 type SheetState = "closed" | "peek" | "full";
 
@@ -22,6 +22,9 @@ interface ChatSheetProps {
 
 const PEEK_HEIGHT = 65; // dvh
 const FULL_HEIGHT = 92; // dvh
+const MAX_CHARS = 500;
+const COUNTER_THRESHOLD = 400;
+const SEND_COOLDOWN_MS = 2000;
 
 function getTranslateY(state: SheetState): string {
   switch (state) {
@@ -55,10 +58,14 @@ export function ChatSheet({
 }: ChatSheetProps) {
   const [sheetState, setSheetState] = useState<SheetState>("closed");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [sendCooldown, setSendCooldown] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const dragStartY = useRef<number | null>(null);
   const dragCurrentY = useRef<number | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelayRef = useRef(1000);
@@ -159,6 +166,55 @@ export function ChatSheet({
       document.body.style.overflow = "";
     };
   }, [sheetState]);
+
+  // Keyboard detection via visualViewport
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || sheetState === "closed") return;
+
+    const initialHeight = vv.height;
+    const handleResize = () => {
+      const isKb = vv.height < initialHeight * 0.75;
+      setKeyboardOpen(isKb);
+    };
+
+    vv.addEventListener("resize", handleResize);
+    return () => vv.removeEventListener("resize", handleResize);
+  }, [sheetState]);
+
+  // Auto-expand to full when keyboard opens, return to peek when closes
+  useEffect(() => {
+    if (sheetState === "closed") return;
+    if (keyboardOpen) {
+      setSheetState("full");
+    } else {
+      setSheetState("peek");
+    }
+  }, [keyboardOpen]); // intentionally not depending on sheetState to avoid loops
+
+  const canSend = inputValue.trim().length > 0 && !sendCooldown;
+
+  const handleSend = useCallback(() => {
+    const text = inputValue.trim();
+    if (!text || sendCooldown) return;
+
+    // Send via WebSocket
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "message", content: text }));
+    }
+
+    setInputValue("");
+    setSendCooldown(true);
+    setTimeout(() => setSendCooldown(false), SEND_COOLDOWN_MS);
+  }, [inputValue, sendCooldown]);
+
+  const handleFormSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      handleSend();
+    },
+    [handleSend],
+  );
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
@@ -393,6 +449,103 @@ export function ChatSheet({
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Input area */}
+        <form
+          onSubmit={handleFormSubmit}
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            gap: "var(--space-sm)",
+            padding: "var(--space-sm) var(--space-md)",
+            borderTop: "1px solid var(--color-border-subtle)",
+            flexShrink: 0,
+            background: "var(--color-surface-primary)",
+          }}
+        >
+          <div style={{ flex: 1, position: "relative" }}>
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => {
+                if (e.target.value.length <= MAX_CHARS) {
+                  setInputValue(e.target.value);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Type a message..."
+              rows={1}
+              aria-label="Message input"
+              style={{
+                width: "100%",
+                height: 52,
+                minHeight: 52,
+                maxHeight: 52,
+                fontSize: "var(--font-size-lg)",
+                lineHeight: "var(--line-height-base)",
+                padding: "var(--space-sm) var(--space-md)",
+                border: "1px solid var(--color-border-input)",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-surface-secondary)",
+                color: "var(--color-text-primary)",
+                resize: "none",
+                outline: "none",
+                boxSizing: "border-box",
+                fontFamily: "inherit",
+              }}
+            />
+            {inputValue.length > COUNTER_THRESHOLD && (
+              <span
+                aria-live="polite"
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  bottom: 4,
+                  fontSize: "var(--font-size-xs)",
+                  color:
+                    inputValue.length >= MAX_CHARS
+                      ? "var(--color-status-error)"
+                      : "var(--color-text-tertiary)",
+                }}
+              >
+                {inputValue.length}/{MAX_CHARS}
+              </span>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={!canSend}
+            aria-label="Send message"
+            style={{
+              width: 48,
+              height: 48,
+              minWidth: 48,
+              minHeight: 48,
+              borderRadius: "var(--radius-full)",
+              border: "none",
+              background: canSend
+                ? "var(--color-action-primary)"
+                : "var(--color-surface-secondary)",
+              color: canSend
+                ? "var(--color-text-inverse)"
+                : "var(--color-text-tertiary)",
+              cursor: canSend ? "pointer" : "default",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              fontSize: "var(--font-size-xl)",
+              transition: "background 0.15s ease, color 0.15s ease",
+            }}
+          >
+            &#x2191;
+          </button>
+        </form>
       </div>
     </>
   );
