@@ -5,12 +5,26 @@ interface CompactMarketRowProps {
     id: string;
     name: string;
     schedule: string;
+    catchPreview?: string | null;
   };
   isFavorite: boolean;
   onToggleFavorite: (marketId: string) => void;
   isExpanded: boolean;
   onToggle: () => void;
   isLast?: boolean;
+  vendorSlug?: string;
+}
+
+function parseCatchPreview(catchPreview?: string | null): string | null {
+  if (!catchPreview) return null;
+  try {
+    const preview = JSON.parse(catchPreview);
+    const items = preview?.items;
+    if (!items || items.length === 0) return null;
+    return items.map((i: { name: string }) => i.name).join(", ");
+  } catch {
+    return null;
+  }
 }
 
 export function CompactMarketRow({
@@ -20,7 +34,9 @@ export function CompactMarketRow({
   isExpanded,
   onToggle,
   isLast = false,
+  vendorSlug,
 }: CompactMarketRowProps) {
+  const catchNames = parseCatchPreview(market.catchPreview);
   return (
     <div
       style={{
@@ -119,6 +135,85 @@ export function CompactMarketRow({
           {"\u203A"}
         </span>
       </div>
+
+      {/* Expanded content */}
+      <div
+        style={{
+          maxHeight: isExpanded ? "300px" : "0",
+          overflow: "hidden",
+          transition: "max-height 0.3s ease",
+        }}
+        className="compact-row-expand"
+      >
+        <div
+          style={{
+            padding: `0 0 var(--space-lg) 0`,
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-sm)",
+          }}
+        >
+          {catchNames && (
+            <div
+              style={{
+                fontSize: "var(--font-size-sm)",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              Usually available: {catchNames}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+            <a
+              href={`/orders/new?market=${market.id}${vendorSlug ? `&b=${vendorSlug}` : ""}`}
+              style={{
+                flex: 1,
+                padding: "var(--space-md)",
+                background: "var(--color-gradient-primary)",
+                color: "var(--color-text-inverse)",
+                border: "none",
+                borderRadius: "var(--radius-md)",
+                fontWeight: "var(--font-weight-bold)",
+                fontSize: "var(--font-size-md)",
+                textDecoration: "none",
+                textAlign: "center",
+                boxShadow: "var(--shadow-md)",
+              }}
+              className="btn btn--primary"
+            >
+              Order Fish
+            </a>
+
+            <a
+              href={`#directions-${market.id}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-xs)",
+                padding: "var(--space-md) var(--space-lg)",
+                background: "var(--color-surface-secondary)",
+                borderRadius: "var(--radius-md)",
+                textDecoration: "none",
+                fontSize: "var(--font-size-md)",
+                color: "var(--color-text-primary)",
+                fontWeight: "var(--font-weight-semibold)",
+                flexShrink: 0,
+              }}
+            >
+              📍 Directions
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .compact-row-expand {
+            transition: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
