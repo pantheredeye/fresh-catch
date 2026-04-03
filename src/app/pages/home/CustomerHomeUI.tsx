@@ -132,7 +132,11 @@ export function CustomerHomeUI({
       />
 
       {/* Bottom Navigation */}
-      <BottomNavigation vendorSlug={vendorSlug} />
+      <BottomNavigation
+        vendorSlug={vendorSlug}
+        organizationId={ctx.browsingOrganization?.id ?? ctx.currentOrganization?.id}
+        user={ctx.user ? { name: ctx.user.name ?? 'Customer', phone: undefined } : null}
+      />
     </div>
   );
 }

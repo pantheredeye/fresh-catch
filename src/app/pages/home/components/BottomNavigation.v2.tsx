@@ -1,23 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { NavItem } from './NavItem';
 import { ShareModal } from '@/design-system';
 import { getCurrentOrgShareUrl } from '@/utils/share';
 import { trackShare } from '../share-functions';
+import { ChatSheet } from './ChatSheet';
 
 /**
- * BottomNavigation V2 - Bottom nav with prominent Quick Order CTA
+ * BottomNavigation V2 - Bottom nav with Chat, Quick Order, More
  *
- * WHY: Promotes quick ordering as primary action.
+ * WHY: Chat replaces Home button; logo in Header handles home navigation.
  * Quick Order button styled prominently in center.
- * Reduced nav items to Home, Markets, More.
  */
-export function BottomNavigationV2({ vendorSlug }: { vendorSlug?: string } = {}) {
+export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
+  vendorSlug?: string;
+  organizationId?: string;
+  user?: { name: string; phone?: string } | null;
+} = {}) {
   const [footerVisible, setFooterVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     const footer = document.querySelector('.customer-footer');
@@ -130,18 +134,22 @@ export function BottomNavigationV2({ vendorSlug }: { vendorSlug?: string } = {})
           padding: 'var(--space-sm)',
           gap: 'var(--space-sm)'
         }}>
-          <a href="/" style={{
-            padding: 'var(--space-sm) var(--space-md)',
-            textDecoration: 'none',
-            color: 'var(--color-text-inverse)',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 'var(--font-weight-semibold)',
-            borderRadius: 'var(--radius-full)',
-            background: 'var(--color-gradient-primary)',
-            boxShadow: 'var(--shadow-md)'
-          }}>
-            Home
-          </a>
+          <button
+            onClick={() => setChatOpen(!chatOpen)}
+            style={{
+              padding: 'var(--space-sm) var(--space-md)',
+              color: 'var(--color-text-inverse)',
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 'var(--font-weight-semibold)',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--color-gradient-primary)',
+              boxShadow: 'var(--shadow-md)',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Chat
+          </button>
 
           {/* Quick Order - Matches header button style */}
           <a href={vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new"} style={{
@@ -192,6 +200,17 @@ export function BottomNavigationV2({ vendorSlug }: { vendorSlug?: string } = {})
         description="Share our marketplace with friends and family"
         onShareAction={(shareType) => trackShare(shareType)}
       />
+
+      {/* Chat Sheet */}
+      {organizationId && vendorSlug && (
+        <ChatSheet
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          organizationId={organizationId}
+          vendorSlug={vendorSlug}
+          user={user}
+        />
+      )}
     </>
   );
 }
