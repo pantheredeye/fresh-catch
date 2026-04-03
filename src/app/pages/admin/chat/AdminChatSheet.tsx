@@ -90,6 +90,30 @@ export function AdminChatSheet({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [sheetState, onClose, activeConversationId, handleBack]);
 
+  // Focus trap in full-screen state
+  useEffect(() => {
+    if (sheetState !== "full" || !sheetRef.current) return;
+    const sheet = sheetRef.current;
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusable = sheet.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleTab);
+    return () => document.removeEventListener("keydown", handleTab);
+  }, [sheetState]);
+
   // Lock body scroll when open
   useEffect(() => {
     if (sheetState !== "closed") {
@@ -205,6 +229,15 @@ export function AdminChatSheet({
 
       <style>{`
         .admin-chat-sheet-panel { height: 100vh; height: 100dvh; }
+        .admin-chat-sheet-panel button:focus-visible,
+        .admin-chat-sheet-panel textarea:focus-visible,
+        .admin-chat-sheet-panel a:focus-visible {
+          outline: 2px solid var(--color-action-primary);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .admin-chat-sheet-panel button { transition: none !important; }
+        }
       `}</style>
 
       {/* Sheet */}

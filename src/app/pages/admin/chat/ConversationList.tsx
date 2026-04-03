@@ -104,6 +104,8 @@ export function ConversationList({
 
   return (
     <div
+      role="list"
+      aria-label="Conversations"
       style={{
         flex: 1,
         overflowY: "auto",
@@ -113,6 +115,8 @@ export function ConversationList({
       {conversations.map((conv) => (
         <button
           key={conv.id}
+          role="listitem"
+          aria-label={`${conv.customerName}${conv.unreadCount > 0 ? `, ${conv.unreadCount} unread` : ''}${conv.lastMessagePreview ? `: ${truncate(conv.lastMessagePreview, 40)}` : ''}`}
           onClick={() => onSelectConversation(conv.id, conv.customerName)}
           style={{
             display: "flex",

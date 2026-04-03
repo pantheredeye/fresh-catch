@@ -172,6 +172,7 @@ export function ChatThread({
     <>
       {/* Message area */}
       <div
+        aria-live="polite"
         style={{
           flex: 1,
           overflowY: "auto",

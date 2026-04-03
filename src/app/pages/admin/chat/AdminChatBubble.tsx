@@ -28,7 +28,18 @@ export function AdminChatBubble({ organizationId, onClick }: {
   }, [organizationId, fetchUnread]);
 
   return (
+    <>
+    <style>{`
+      .admin-chat-bubble:focus-visible {
+        outline: 2px solid var(--color-action-primary);
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .admin-chat-bubble { transition: none !important; }
+      }
+    `}</style>
     <button
+      className="admin-chat-bubble"
       onClick={onClick}
       style={{
         position: 'fixed',
@@ -58,5 +69,6 @@ export function AdminChatBubble({ organizationId, onClick }: {
         </NotificationBadge>
       )}
     </button>
+    </>
   );
 }

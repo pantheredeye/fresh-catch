@@ -149,7 +149,18 @@ export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
         />
       )}
 
-      <nav style={{
+      <style>{`
+        .bottom-nav-v2 button:focus-visible,
+        .bottom-nav-v2 a:focus-visible {
+          outline: 2px solid var(--color-action-primary);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .bottom-nav-v2,
+          .bottom-nav-v2 * { transition: none !important; }
+        }
+      `}</style>
+      <nav className="bottom-nav-v2" style={{
         position: 'fixed',
         bottom: footerVisible ? '100px' : 'var(--space-md)',
         left: 'var(--space-md)',
@@ -171,6 +182,8 @@ export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
           <div style={{ position: 'relative', display: 'inline-flex' }}>
             <button
               onClick={handleChatToggle}
+              aria-expanded={chatOpen}
+              aria-label={unreadCount > 0 ? `Chat — ${unreadCount} unread message${unreadCount === 1 ? '' : 's'}` : 'Chat'}
               style={{
                 padding: 'var(--space-sm) var(--space-md)',
                 color: 'var(--color-text-inverse)',
