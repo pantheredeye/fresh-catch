@@ -2,11 +2,13 @@
 
 import { useFavorites } from "@/hooks/useFavorites";
 import type { AppContext } from "@/worker";
+import { useState } from "react";
 import {
   LiveBanner,
   FreshHero,
   FreshSheet,
   MarketCard,
+  CompactMarketRow,
   PopupCard,
   BottomNavigation
 } from "./components";
@@ -129,7 +131,6 @@ export function CustomerHomeUI({
         markets={allMarkets}
         favorites={favorites}
         onToggleFavorite={toggleFavorite}
-        ctx={ctx}
         vendorSlug={vendorSlug}
       />
 
@@ -182,19 +183,32 @@ function YourMarketsSection({
   );
 }
 
+function groupByCounty(markets: Market[]): Map<string | null, Market[]> {
+  const groups = new Map<string | null, Market[]>();
+  for (const market of markets) {
+    const key = market.county ?? null;
+    const list = groups.get(key);
+    if (list) list.push(market);
+    else groups.set(key, [market]);
+  }
+  return groups;
+}
+
 function AllMarketsSection({
   markets,
   favorites,
   onToggleFavorite,
-  ctx,
   vendorSlug
 }: {
   markets: Market[];
   favorites: string[];
   onToggleFavorite: (marketId: string) => void;
-  ctx: AppContext;
   vendorSlug?: string;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const countyGroups = groupByCounty(markets);
+  const isSingleNullGroup = countyGroups.size === 1 && countyGroups.has(null);
+
   return (
     <div style={{
       padding: 'var(--space-lg) var(--space-md)',
@@ -203,20 +217,47 @@ function AllMarketsSection({
     }}>
       <div className="flex-between mb-md">
         <h2 className="heading-2xl m-0">
-          All Markets ({markets.length})
+          All Markets
         </h2>
       </div>
 
-      {markets.map(market => (
-        <MarketCard
-          key={market.id}
-          market={market}
-          isFavorite={favorites.includes(market.id)}
-          onToggleFavorite={onToggleFavorite}
-          ctx={ctx}
-          vendorSlug={vendorSlug}
-        />
-      ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+        {Array.from(countyGroups.entries()).map(([county, groupMarkets]) => (
+          <div key={county ?? '__none'}>
+            {!isSingleNullGroup && county && (
+              <h3 style={{
+                fontSize: 'var(--font-size-xl)',
+                fontWeight: 'bold',
+                color: 'var(--color-text-primary)',
+                margin: `0 0 var(--space-sm) 0`,
+              }}>
+                {county}
+              </h3>
+            )}
+            <div style={{
+              background: 'var(--color-surface-primary)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-md)',
+              border: '1px solid var(--color-border-subtle)',
+              overflow: 'hidden',
+              padding: '0 var(--space-md)',
+            }}>
+              {groupMarkets.map((market, i) => (
+                <CompactMarketRow
+                  key={market.id}
+                  market={market}
+                  isFavorite={favorites.includes(market.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  isExpanded={expandedId === market.id}
+                  onToggle={() => setExpandedId(expandedId === market.id ? null : market.id)}
+                  isLast={i === groupMarkets.length - 1}
+                  vendorSlug={vendorSlug}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
