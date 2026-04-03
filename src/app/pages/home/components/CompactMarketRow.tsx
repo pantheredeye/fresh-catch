@@ -6,6 +6,8 @@ interface CompactMarketRowProps {
     name: string;
     schedule: string;
     catchPreview?: string | null;
+    county?: string | null;
+    city?: string | null;
   };
   isFavorite: boolean;
   onToggleFavorite: (marketId: string) => void;
