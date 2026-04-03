@@ -49,6 +49,7 @@ export function CompactMarketRow({
         onClick={onToggle}
         role="button"
         tabIndex={0}
+        aria-expanded={isExpanded}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -63,6 +64,7 @@ export function CompactMarketRow({
           cursor: "pointer",
           gap: "var(--space-sm)",
         }}
+        className="compact-row-toggle"
       >
         {/* Market name */}
         <span
@@ -202,16 +204,25 @@ export function CompactMarketRow({
                 fontWeight: "var(--font-weight-semibold)",
                 flexShrink: 0,
               }}
+              aria-label={`Get directions to ${market.name}`}
             >
-              📍 Directions
+              <span aria-hidden="true">📍</span> Directions
             </a>
           </div>
         </div>
       </div>
 
       <style>{`
+        .compact-row-toggle:focus-visible {
+          outline: 2px solid var(--color-action-primary);
+          outline-offset: -2px;
+          border-radius: var(--radius-sm);
+        }
         @media (prefers-reduced-motion: reduce) {
           .compact-row-expand {
+            transition: none !important;
+          }
+          .compact-row-toggle span[aria-hidden="true"] {
             transition: none !important;
           }
         }
