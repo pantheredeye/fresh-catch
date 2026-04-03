@@ -20,7 +20,7 @@ export async function fetchVendorData(orgId: string) {
       active: true,
       type: "regular"
     },
-    orderBy: { name: "asc" }
+    orderBy: [{ county: "asc" }, { city: "asc" }, { name: "asc" }]
   });
 
   // Fetch active popups (not cancelled, not expired)

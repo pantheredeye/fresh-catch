@@ -18,6 +18,8 @@ type Market = {
   subtitle: string | null;
   active: boolean;
   catchPreview?: string | null;
+  county: string | null;
+  city: string | null;
 };
 
 type CatchData = {
