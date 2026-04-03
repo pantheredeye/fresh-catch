@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
+import { NamePrompt, getStoredConversationId } from "./NamePrompt";
 
 type SheetState = "closed" | "peek" | "full";
 
@@ -15,9 +16,10 @@ interface ChatMessage {
 interface ChatSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  conversationId: string | null;
   organizationId: string;
   vendorSlug: string;
+  /** If provided, skip name prompt and auto-create conversation */
+  user?: { name: string; phone?: string } | null;
 }
 
 const PEEK_HEIGHT = 65; // dvh
@@ -52,12 +54,19 @@ function useReducedMotion(): boolean {
 export function ChatSheet({
   isOpen,
   onClose,
-  conversationId,
   organizationId,
   vendorSlug,
+  user,
 }: ChatSheetProps) {
   const [sheetState, setSheetState] = useState<SheetState>("closed");
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // Restore conversationId from localStorage on mount
+  useEffect(() => {
+    const stored = getStoredConversationId(organizationId);
+    if (stored) setConversationId(stored);
+  }, [organizationId]);
   const [inputValue, setInputValue] = useState("");
   const [sendCooldown, setSendCooldown] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -381,171 +390,182 @@ export function ChatSheet({
           </button>
         </div>
 
-        {/* Content area - scrollable, does NOT capture drag events */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "var(--space-md)",
-            WebkitOverflowScrolling: "touch",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-sm)",
-          }}
-        >
-          {messages.length === 0 ? (
+        {/* Content: name prompt or message thread */}
+        {!conversationId ? (
+          <NamePrompt
+            organizationId={organizationId}
+            onConversationCreated={setConversationId}
+            autoCreateUser={user}
+          />
+        ) : (
+          <>
+            {/* Message area - scrollable */}
             <div
               style={{
                 flex: 1,
+                overflowY: "auto",
+                padding: "var(--space-md)",
+                WebkitOverflowScrolling: "touch",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                padding: "var(--space-xl)",
+                flexDirection: "column",
+                gap: "var(--space-sm)",
               }}
             >
-              <p
-                style={{
-                  color: "var(--color-text-tertiary)",
-                  fontSize: "var(--font-size-lg)",
-                  lineHeight: "var(--line-height-base)",
-                  margin: 0,
-                }}
-              >
-                Say hi to Evan! He usually responds within a few hours.
-              </p>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    msg.senderType === "customer" ? "flex-end" : "flex-start",
-                }}
-              >
+              {messages.length === 0 ? (
                 <div
                   style={{
-                    maxWidth: "80%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-lg)",
-                    lineHeight: "var(--line-height-base)",
-                    background:
-                      msg.senderType === "customer"
-                        ? "var(--color-action-primary)"
-                        : "var(--color-surface-secondary)",
-                    color:
-                      msg.senderType === "customer"
-                        ? "var(--color-text-inverse)"
-                        : "var(--color-text-primary)",
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    padding: "var(--space-xl)",
                   }}
                 >
-                  {msg.content}
+                  <p
+                    style={{
+                      color: "var(--color-text-tertiary)",
+                      fontSize: "var(--font-size-lg)",
+                      lineHeight: "var(--line-height-base)",
+                      margin: 0,
+                    }}
+                  >
+                    Say hi to Evan! He usually responds within a few hours.
+                  </p>
                 </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        msg.senderType === "customer" ? "flex-end" : "flex-start",
+                    }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: "80%",
+                        padding: "var(--space-sm) var(--space-md)",
+                        borderRadius: "var(--radius-md)",
+                        fontSize: "var(--font-size-lg)",
+                        lineHeight: "var(--line-height-base)",
+                        background:
+                          msg.senderType === "customer"
+                            ? "var(--color-action-primary)"
+                            : "var(--color-surface-secondary)",
+                        color:
+                          msg.senderType === "customer"
+                            ? "var(--color-text-inverse)"
+                            : "var(--color-text-primary)",
+                      }}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
 
-        {/* Input area */}
-        <form
-          onSubmit={handleFormSubmit}
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "var(--space-sm)",
-            padding: "var(--space-sm) var(--space-md)",
-            borderTop: "1px solid var(--color-border-subtle)",
-            flexShrink: 0,
-            background: "var(--color-surface-primary)",
-          }}
-        >
-          <div style={{ flex: 1, position: "relative" }}>
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => {
-                if (e.target.value.length <= MAX_CHARS) {
-                  setInputValue(e.target.value);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Type a message..."
-              rows={1}
-              aria-label="Message input"
+            {/* Input area */}
+            <form
+              onSubmit={handleFormSubmit}
               style={{
-                width: "100%",
-                height: 52,
-                minHeight: 52,
-                maxHeight: 52,
-                fontSize: "var(--font-size-lg)",
-                lineHeight: "var(--line-height-base)",
+                display: "flex",
+                alignItems: "flex-end",
+                gap: "var(--space-sm)",
                 padding: "var(--space-sm) var(--space-md)",
-                border: "1px solid var(--color-border-input)",
-                borderRadius: "var(--radius-md)",
-                background: "var(--color-surface-secondary)",
-                color: "var(--color-text-primary)",
-                resize: "none",
-                outline: "none",
-                boxSizing: "border-box",
-                fontFamily: "inherit",
+                borderTop: "1px solid var(--color-border-subtle)",
+                flexShrink: 0,
+                background: "var(--color-surface-primary)",
               }}
-            />
-            {inputValue.length > COUNTER_THRESHOLD && (
-              <span
-                aria-live="polite"
+            >
+              <div style={{ flex: 1, position: "relative" }}>
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => {
+                    if (e.target.value.length <= MAX_CHARS) {
+                      setInputValue(e.target.value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Type a message..."
+                  rows={1}
+                  aria-label="Message input"
+                  style={{
+                    width: "100%",
+                    height: 52,
+                    minHeight: 52,
+                    maxHeight: 52,
+                    fontSize: "var(--font-size-lg)",
+                    lineHeight: "var(--line-height-base)",
+                    padding: "var(--space-sm) var(--space-md)",
+                    border: "1px solid var(--color-border-input)",
+                    borderRadius: "var(--radius-md)",
+                    background: "var(--color-surface-secondary)",
+                    color: "var(--color-text-primary)",
+                    resize: "none",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    fontFamily: "inherit",
+                  }}
+                />
+                {inputValue.length > COUNTER_THRESHOLD && (
+                  <span
+                    aria-live="polite"
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      bottom: 4,
+                      fontSize: "var(--font-size-xs)",
+                      color:
+                        inputValue.length >= MAX_CHARS
+                          ? "var(--color-status-error)"
+                          : "var(--color-text-tertiary)",
+                    }}
+                  >
+                    {inputValue.length}/{MAX_CHARS}
+                  </span>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={!canSend}
+                aria-label="Send message"
                 style={{
-                  position: "absolute",
-                  right: 8,
-                  bottom: 4,
-                  fontSize: "var(--font-size-xs)",
-                  color:
-                    inputValue.length >= MAX_CHARS
-                      ? "var(--color-status-error)"
-                      : "var(--color-text-tertiary)",
+                  width: 48,
+                  height: 48,
+                  minWidth: 48,
+                  minHeight: 48,
+                  borderRadius: "var(--radius-full)",
+                  border: "none",
+                  background: canSend
+                    ? "var(--color-action-primary)"
+                    : "var(--color-surface-secondary)",
+                  color: canSend
+                    ? "var(--color-text-inverse)"
+                    : "var(--color-text-tertiary)",
+                  cursor: canSend ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  fontSize: "var(--font-size-xl)",
+                  transition: "background 0.15s ease, color 0.15s ease",
                 }}
               >
-                {inputValue.length}/{MAX_CHARS}
-              </span>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={!canSend}
-            aria-label="Send message"
-            style={{
-              width: 48,
-              height: 48,
-              minWidth: 48,
-              minHeight: 48,
-              borderRadius: "var(--radius-full)",
-              border: "none",
-              background: canSend
-                ? "var(--color-action-primary)"
-                : "var(--color-surface-secondary)",
-              color: canSend
-                ? "var(--color-text-inverse)"
-                : "var(--color-text-tertiary)",
-              cursor: canSend ? "pointer" : "default",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              fontSize: "var(--font-size-xl)",
-              transition: "background 0.15s ease, color 0.15s ease",
-            }}
-          >
-            &#x2191;
-          </button>
-        </form>
+                &#x2191;
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </>
   );
