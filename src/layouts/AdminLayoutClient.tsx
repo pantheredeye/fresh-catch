@@ -143,7 +143,7 @@ export function AdminLayoutClient({
   }
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout" data-surface="admin">
       <header className="admin-header">
         {/* Exit Admin section - above unified header */}
         <div className="admin-exit-section">

@@ -31,7 +31,7 @@ export function CustomerLayoutClient({
   children: React.ReactNode;
 }) {
   return (
-    <div className="customer-layout">
+    <div className="customer-layout" data-surface="vendor" data-vendor={browsingOrganization?.slug ?? currentOrganization?.slug ?? undefined}>
       <Header
         variant="customer"
         user={user}
