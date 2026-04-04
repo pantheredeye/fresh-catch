@@ -468,7 +468,7 @@ export function Login({ ctx }: { ctx: any }) {
               label="Email"
               type="email"
               name="email"
-              autoComplete="email"
+              autoComplete="email webauthn"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -535,7 +535,17 @@ export function Login({ ctx }: { ctx: any }) {
             )}
             <span>
               {message}
-              {status === "success" && countdown > 0 && <> Redirecting in {countdown}...</>}
+              {status === "success" && countdown > 0 && (
+                <span
+                  onClick={() => { window.location.href = redirectUrl; }}
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") window.location.href = redirectUrl; }}
+                >
+                  {" "}Redirecting in {countdown}… tap to go now
+                </span>
+              )}
             </span>
           </div>
         )}
