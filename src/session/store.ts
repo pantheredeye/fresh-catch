@@ -24,7 +24,9 @@ export async function rotateSession(
     userId?: string | null;
     currentOrganizationId?: string | null;
     role?: string | null;
+    challenge?: string | null;
   },
+  saveOptions?: { maxAge?: number | true },
 ): Promise<void> {
   // Load current session data if not provided
   let dataToPreserve = sessionData;
@@ -48,5 +50,6 @@ export async function rotateSession(
     userId: dataToPreserve.userId ?? null,
     currentOrganizationId: dataToPreserve.currentOrganizationId ?? null,
     role: dataToPreserve.role ?? null,
-  });
+    ...(dataToPreserve.challenge !== undefined ? { challenge: dataToPreserve.challenge } : {}),
+  }, saveOptions);
 }

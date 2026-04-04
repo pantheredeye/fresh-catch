@@ -8,7 +8,7 @@ import {
   AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions } from "@/session/store";
+import { sessions, rotateSession } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
@@ -90,7 +90,7 @@ export async function loginWithPassword(
     return { success: false, error: "Too many login attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
   }
 
-  const { response } = requestInfo;
+  const { request, response } = requestInfo;
 
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
@@ -143,7 +143,8 @@ export async function loginWithPassword(
       (m) => m.organization.type === "business"
     );
     const defaultMembership = businessMembership ?? user.memberships[0];
-    await sessions.save(
+    await rotateSession(
+      request,
       response.headers,
       {
         userId: user.id,
@@ -153,7 +154,8 @@ export async function loginWithPassword(
       rememberMe ? { maxAge: true } : undefined
     );
   } else {
-    await sessions.save(
+    await rotateSession(
+      request,
       response.headers,
       { userId: user.id },
       rememberMe ? { maxAge: true } : undefined
@@ -178,7 +180,7 @@ export async function registerWithPassword(
     return { success: false, error: "Too many registration attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
   }
 
-  const { response } = requestInfo;
+  const { request, response } = requestInfo;
 
   // Check if username already exists — generic error to prevent email enumeration
   const existingUser = await db.user.findUnique({ where: { username: email } });
@@ -221,7 +223,8 @@ export async function registerWithPassword(
     });
   }
 
-  await sessions.save(
+  await rotateSession(
+    request,
     response.headers,
     {
       userId: user.id,
@@ -359,11 +362,16 @@ export async function finishPasskeyRegistration(
     });
   }
 
-  await sessions.save(response.headers, {
-    userId: user.id,
-    currentOrganizationId: vendorOrg?.id || customerOrg.id,
-    role: vendorOrg ? "customer" : "owner",
-  }, { maxAge: true });
+  await rotateSession(
+    request,
+    response.headers,
+    {
+      userId: user.id,
+      currentOrganizationId: vendorOrg?.id || customerOrg.id,
+      role: vendorOrg ? "customer" : "owner",
+    },
+    { maxAge: true }
+  );
 
   // Customers are NOT admins (they're customers of business org, not owners)
   return { success: true, isAdmin: false };
@@ -462,17 +470,27 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
       (m) => m.organization.type === "business"
     );
     const defaultMembership = businessMembership ?? user.memberships[0];
-    await sessions.save(response.headers, {
-      userId: user.id,
-      currentOrganizationId: defaultMembership.organizationId,
-      role: defaultMembership.role,
-      challenge: null,
-    }, { maxAge: true });
+    await rotateSession(
+      request,
+      response.headers,
+      {
+        userId: user.id,
+        currentOrganizationId: defaultMembership.organizationId,
+        role: defaultMembership.role,
+        challenge: null,
+      },
+      { maxAge: true }
+    );
   } else {
-    await sessions.save(response.headers, {
-      userId: user.id,
-      challenge: null,
-    }, { maxAge: true });
+    await rotateSession(
+      request,
+      response.headers,
+      {
+        userId: user.id,
+        challenge: null,
+      },
+      { maxAge: true }
+    );
   }
 
   return { success: true, isAdmin };
