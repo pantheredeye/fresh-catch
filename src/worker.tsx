@@ -1,5 +1,5 @@
 import { defineApp, ErrorResponse } from "rwsdk/worker";
-import { route, render, prefix, layout } from "rwsdk/router";
+import { route, render, prefix, layout, type RouteMiddleware } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
@@ -57,14 +57,38 @@ export type AppContext = {
   } | null;
 };
 
+/**
+ * Origin validation middleware: rejects state-changing requests (POST/PUT/DELETE)
+ * whose Origin header doesn't match our host. Defense-in-depth alongside SameSite cookies.
+ */
+function validateOrigin(): RouteMiddleware {
+  return ({ request }) => {
+    const method = request.method;
+    if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
+
+    const origin = request.headers.get("Origin");
+    // No Origin header — browser same-site navigation or non-browser client.
+    // Safe to allow: SameSite=Strict cookies already block cross-site cookie attachment.
+    if (!origin) return;
+
+    const url = new URL(request.url);
+    const expected = url.origin; // e.g. https://freshcatch.app
+    if (origin === expected) return;
+
+    return new Response("Forbidden – origin mismatch", { status: 403 });
+  };
+}
+
 export default defineApp([
-  // Stripe webhook — must run before session/auth middleware to preserve raw body
+  // Stripe webhook — must run before session/auth AND origin middleware to preserve raw body
+  // (Stripe sends POST from its own origin with signature verification)
   async ({ request }) => {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/stripe/webhook") {
       return handleStripeWebhook(request);
     }
   },
+  validateOrigin(),
   setCommonHeaders(),
   async ({ ctx, request, response }) => {
     await setupDb(env);
