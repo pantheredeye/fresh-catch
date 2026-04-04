@@ -211,15 +211,21 @@ export default defineApp([
       if (conversation.customerId !== ctx.user.id) {
         return new Response("Forbidden", { status: 403 });
       }
+    } else if (conversation.customerId === null) {
+      // Anonymous conversation: conversation ID is the bearer token
     } else {
-      // Anonymous: no WebSocket access without auth
+      // Anonymous user trying to access an authenticated conversation
       return new Response("Unauthorized", { status: 401 });
     }
 
-    // Forward to ChatDurableObject
+    // Forward to ChatDurableObject with role tag
+    const role = ctx.user && hasAdminAccess(ctx) ? "vendor" : "customer";
     const doId = env.CHAT_DURABLE_OBJECT.idFromName(conversationId);
     const stub = env.CHAT_DURABLE_OBJECT.get(doId);
-    return stub.fetch(request);
+    const doUrl = new URL(request.url);
+    doUrl.searchParams.set("role", role);
+    const doRequest = new Request(doUrl.toString(), request);
+    return stub.fetch(doRequest);
   },
   render(Document, [
     // Auth routes with minimal layout

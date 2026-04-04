@@ -45,10 +45,13 @@ export class ChatDurableObject extends DurableObject {
 
     this.conversationId = this.getConversationId(request);
 
+    const url = new URL(request.url);
+    const role = url.searchParams.get("role") || "customer";
+
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    this.ctx.acceptWebSocket(server);
+    this.ctx.acceptWebSocket(server, [role]);
 
     // Send history to the new connection
     const messages = await db.message.findMany({
