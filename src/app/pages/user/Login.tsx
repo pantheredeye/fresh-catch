@@ -246,12 +246,19 @@ export function Login({ ctx }: { ctx: any }) {
     }
   }, [rateLimitCooldown]);
 
-  const getStatusColor = () => {
+  const getStatusBg = () => {
     switch (status) {
       case "success": return "var(--color-status-success)";
       case "error": return "var(--color-action-secondary)";
-      case "loading": return "var(--color-status-info)";
+      case "loading": return "var(--color-status-info-bg)";
       default: return "var(--color-text-tertiary)";
+    }
+  };
+
+  const getStatusAccent = () => {
+    switch (status) {
+      case "loading": return "var(--color-status-info)";
+      default: return undefined;
     }
   };
 
@@ -512,9 +519,10 @@ export function Login({ ctx }: { ctx: any }) {
             alignItems: "center",
             justifyContent: "center",
             gap: "var(--space-xs)",
-            background: getStatusColor(),
+            background: getStatusBg(),
             color: getStatusTextColor(),
-            border: `1px solid ${getStatusColor()}`,
+            border: `1px solid ${getStatusBg()}`,
+            borderLeft: getStatusAccent() ? `3px solid ${getStatusAccent()}` : undefined,
           }}>
             {status === "loading" && (
               <div style={{
