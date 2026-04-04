@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { db, setupDb } from "@/db";
 
 interface SendMessage {
-  type: "send";
+  type: "message";
   content: string;
   senderType: "customer" | "vendor";
   senderId?: string;
@@ -90,7 +90,7 @@ export class ChatDurableObject extends DurableObject {
       return;
     }
 
-    if (parsed.type !== "send" || !parsed.content || !parsed.senderType) {
+    if (parsed.type !== "message" || !parsed.content || !parsed.senderType) {
       ws.send(
         JSON.stringify({ type: "error", message: "Invalid message format" }),
       );
@@ -131,9 +131,7 @@ export class ChatDurableObject extends DurableObject {
 
     const payload = JSON.stringify(outgoing);
     for (const socket of this.ctx.getWebSockets()) {
-      if (socket !== ws) {
-        socket.send(payload);
-      }
+      socket.send(payload);
     }
   }
 

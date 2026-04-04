@@ -233,7 +233,7 @@ export function ChatSheet({
 
     // Send via WebSocket
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "message", content: text }));
+      wsRef.current.send(JSON.stringify({ type: "message", content: text, senderType: "customer" }));
     }
 
     setInputValue("");
