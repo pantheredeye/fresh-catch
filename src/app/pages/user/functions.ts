@@ -106,9 +106,32 @@ export async function loginWithPassword(
     return { success: false, error: "Invalid email or password" };
   }
 
+  // Account lockout: if locked and lockout hasn't expired, reject
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    return { success: false, error: "Invalid email or password" };
+  }
+
   const valid = await verifyPassword(password, user.passwordHash, user.passwordSalt);
   if (!valid) {
+    const newFailedAttempts = (user.failedAttempts ?? 0) + 1;
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        failedAttempts: newFailedAttempts,
+        ...(newFailedAttempts >= 5
+          ? { lockedUntil: new Date(Date.now() + 15 * 60 * 1000) }
+          : {}),
+      },
+    });
     return { success: false, error: "Invalid email or password" };
+  }
+
+  // Successful login: reset lockout counters
+  if (user.failedAttempts > 0 || user.lockedUntil) {
+    await db.user.update({
+      where: { id: user.id },
+      data: { failedAttempts: 0, lockedUntil: null },
+    });
   }
 
   const isAdmin = user.memberships.some(
