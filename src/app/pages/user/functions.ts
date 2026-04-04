@@ -56,16 +56,24 @@ export async function startPasskeyRegistration(username: string) {
 }
 
 export async function checkEmailExists(email: string) {
-  if (!isValidEmail(email)) return { exists: false, hasPassword: false };
+  // Anti-enumeration: add random delay (200-500ms) to normalize response times
+  const delay = new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
+
+  if (!isValidEmail(email)) {
+    await delay;
+    return { exists: false, hasPassword: false };
+  }
 
   const rl = await checkRateLimit("checkEmail");
   if (!rl.allowed) {
+    await delay;
     return { exists: false, hasPassword: false, rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
   }
 
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
   });
+  await delay;
   return { exists: !!user, hasPassword: !!user?.passwordHash };
 }
 
@@ -149,10 +157,10 @@ export async function registerWithPassword(
 
   const { response } = requestInfo;
 
-  // Check if username already exists
+  // Check if username already exists — generic error to prevent email enumeration
   const existingUser = await db.user.findUnique({ where: { username: email } });
   if (existingUser) {
-    return { success: false, error: "Email already registered" };
+    return { success: false, error: "Unable to create account. Please try again or sign in." };
   }
 
   const { hash, salt } = await hashPassword(password);
