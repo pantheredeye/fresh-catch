@@ -15,7 +15,7 @@ export function getStoredConversationId(organizationId: string): string | null {
   }
 }
 
-function storeConversationId(organizationId: string, conversationId: string) {
+export function storeConversationId(organizationId: string, conversationId: string) {
   try {
     localStorage.setItem(getStorageKey(organizationId), conversationId);
   } catch {

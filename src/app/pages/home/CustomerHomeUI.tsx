@@ -61,7 +61,8 @@ export function CustomerHomeUI({
   catchData,
   quickActions,
   marketName,
-  ctx
+  ctx,
+  chatConversationId
 }: {
   markets: Market[];
   popups: PopupMarket[];
@@ -69,6 +70,7 @@ export function CustomerHomeUI({
   quickActions: QuickAction[];
   marketName?: string;
   ctx: AppContext;
+  chatConversationId?: string;
 }) {
   const [favorites, toggleFavorite] = useFavorites();
   const vendorSlug = ctx.browsingOrganization?.slug;
@@ -140,6 +142,7 @@ export function CustomerHomeUI({
         vendorName={ctx.browsingOrganization?.name}
         organizationId={ctx.browsingOrganization?.id ?? ctx.currentOrganization?.id}
         user={ctx.user ? { name: ctx.user.name ?? 'Customer', phone: undefined } : null}
+        chatConversationId={chatConversationId}
       />
     </div>
   );

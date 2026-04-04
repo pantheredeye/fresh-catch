@@ -5,7 +5,7 @@ import { ShareModal, NotificationBadge } from '@/design-system';
 import { getCurrentOrgShareUrl } from '@/utils/share';
 import { trackShare } from '../share-functions';
 import { getUnreadCountForConversation, markAsRead } from '@/chat/functions';
-import { getStoredConversationId } from './NamePrompt';
+import { getStoredConversationId, storeConversationId } from './NamePrompt';
 import { ChatSheet } from './ChatSheet';
 
 /**
@@ -14,11 +14,12 @@ import { ChatSheet } from './ChatSheet';
  * WHY: Chat replaces Home button; logo in Header handles home navigation.
  * Quick Order button styled prominently in center.
  */
-export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, user }: {
+export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, user, chatConversationId }: {
   vendorSlug?: string;
   vendorName?: string;
   organizationId?: string;
   user?: { name: string; phone?: string } | null;
+  chatConversationId?: string;
 } = {}) {
   const [footerVisible, setFooterVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,6 +78,14 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
   useEffect(() => {
     getCurrentOrgShareUrl().then(url => setShareUrl(url)).catch(err => console.error('Failed to get share URL:', err));
   }, []);
+
+  // Auto-open chat when resuming from email link (?chat= param)
+  useEffect(() => {
+    if (chatConversationId && organizationId) {
+      storeConversationId(organizationId, chatConversationId);
+      setChatOpen(true);
+    }
+  }, [chatConversationId, organizationId]);
 
   return (
     <>

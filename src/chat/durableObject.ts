@@ -146,7 +146,7 @@ export class ChatDurableObject extends DurableObject {
                   parsed.content.length > 100
                     ? parsed.content.slice(0, 100) + "…"
                     : parsed.content,
-                chatPath: `/${conversation.organization.slug}/chat/${conversation.id}`,
+                chatPath: `/v/${conversation.organization.slug}?chat=${conversation.id}`,
                 businessName: conversation.organization.name,
               });
               this.lastEmailSentAt = now;
