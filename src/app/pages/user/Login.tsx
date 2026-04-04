@@ -181,6 +181,43 @@ export function Login({ ctx }: { ctx: any }) {
     }
   };
 
+  const handlePasskeyRegister = async () => {
+    if (!email.trim() || !email.includes("@")) {
+      setStatus("error");
+      setMessage("Please enter a valid email");
+      return;
+    }
+
+    setStatus("loading");
+    setMessage("Starting passkey registration...");
+
+    try {
+      const options = await startPasskeyRegistration(email);
+      const registration = await startRegistration({ optionsJSON: options });
+      const result = await finishPasskeyRegistration(email, email, registration);
+
+      if (!result || !result.success) {
+        throw new Error("Passkey registration failed.");
+      }
+
+      setRedirectUrl(withBParam("/"));
+      setStatus("success");
+      setMessage("Welcome to Fresh Catch! Redirecting...");
+      setCountdown(2);
+
+      try { localStorage.setItem("fresh-catch-has-passkey", "true"); } catch {}
+    } catch (error) {
+      setStatus("error");
+      setMessage(
+        error instanceof Error && error.name === "NotAllowedError"
+          ? "Passkey registration was cancelled."
+          : error instanceof Error
+          ? error.message
+          : "Passkey registration failed. Please try again."
+      );
+    }
+  };
+
   const handlePasswordRegister = async () => {
     if (!password || password.length < 8) {
       setStatus("error");
@@ -415,6 +452,35 @@ export function Login({ ctx }: { ctx: any }) {
             <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
               {status === "loading" ? "Creating Account..." : "Create Account"}
             </Button>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-sm)",
+              color: "var(--color-text-tertiary)",
+              fontSize: "var(--font-size-sm)",
+            }}>
+              <div style={{ flex: 1, height: "1px", background: "var(--color-border-subtle)" }} />
+              <span>or</span>
+              <div style={{ flex: 1, height: "1px", background: "var(--color-border-subtle)" }} />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              fullWidth
+              disabled={disabled}
+              onClick={handlePasskeyRegister}
+            >
+              Register with passkey instead
+            </Button>
+            <p style={{
+              margin: 0,
+              fontSize: "var(--font-size-xs)",
+              color: "var(--color-text-tertiary)",
+              textAlign: "center",
+            }}>
+              You can manage passkeys in settings
+            </p>
           </form>
         )}
 
