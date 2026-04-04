@@ -35,8 +35,10 @@ model User {
   deliveryZip    String?
   deliveryNotes  String? // Special instructions
 
-  passwordHash String? // PBKDF2 hash (hex)
-  passwordSalt String? // Salt (hex)
+  passwordHash   String? // PBKDF2 hash (hex)
+  passwordSalt   String? // Salt (hex)
+  failedAttempts Int      @default(0) // Login attempt counter for lockout
+  lockedUntil    DateTime? // Account locked until this time
 
   deletedAt DateTime? // Soft delete timestamp
   createdAt DateTime  @default(now())
