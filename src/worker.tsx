@@ -54,6 +54,7 @@ export type AppContext = {
     id: string;
     name: string;
     slug: string;
+    accentColor: string | null;
   } | null;
 };
 
@@ -117,10 +118,6 @@ export default defineApp([
         },
         include: {
           memberships: {
-            // Only fetch matching membership when org context exists; fetch all on first login
-            ...(ctx.session.currentOrganizationId
-              ? { where: { organizationId: ctx.session.currentOrganizationId } }
-              : {}),
             include: {
               organization: true,
             },
@@ -142,8 +139,10 @@ export default defineApp([
 
       // If session lacks organization context, set it from user's memberships
       if (ctx.user && ctx.user.memberships.length > 0 && !ctx.session.currentOrganizationId) {
-        // Default to first membership (could be enhanced with user preference later)
-        const defaultMembership = ctx.user.memberships[0];
+        // Prefer business orgs over individual
+        const defaultMembership =
+          ctx.user.memberships.find(m => m.organization.type === 'business') ??
+          ctx.user.memberships[0];
 
         // Update the session with organization context
         await sessions.save(response.headers, {
@@ -297,7 +296,11 @@ export default defineApp([
 
     // Admin routes with admin header + nav
     prefix("/admin", [
-      ({ ctx, response }) => {
+      ({ ctx, request, response }) => {
+        // Allow RSC server actions through — they handle their own auth
+        const url = new URL(request.url);
+        if (url.searchParams.has("__rsc_action_id")) return;
+
         if (!ctx.user) {
           response.headers.set("Location", "/login");
           return new Response(null, { status: 302, headers: response.headers });

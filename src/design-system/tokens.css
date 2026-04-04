@@ -196,6 +196,13 @@ html, body {
   --duration-fast: 150ms;
   --duration-normal: 300ms;
   --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+
+  /* Vendor-Configurable Accent Colors */
+  /* WHY: Per-vendor theming via accent_color on Organization.
+     Overridden by inline style in CustomerLayoutClient when org has accentColor. */
+  --vendor-accent: var(--color-action-primary);
+  --vendor-accent-soft: rgba(0, 102, 204, 0.1);
+  --vendor-hero-bg: linear-gradient(135deg, var(--vendor-accent), rgba(0, 169, 150, 0.8));
 }
 
 /* Component Styles - RSC Compatible */

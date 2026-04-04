@@ -8,6 +8,7 @@ import { StripeSettingsPage } from "./StripeSettingsPage";
 import { TeamPage } from "./team/TeamPage";
 import { CatchPage } from "./catch/CatchPage";
 import { MessagesPage } from "./messages/MessagesPage";
+import { BrandingSettingsPage } from "./BrandingSettingsPage";
 
 export const adminRoutes = [
   route("/", AdminDashboard),        // /admin landing page
@@ -16,6 +17,7 @@ export const adminRoutes = [
   route("/orders", AdminOrdersPage),  // /admin/orders
   route("/orders/print", PrintOrdersPage), // /admin/orders/print
   route("/settings/stripe", StripeSettingsPage), // /admin/settings/stripe
+  route("/settings/branding", BrandingSettingsPage), // /admin/settings/branding
   route("/team", TeamPage),           // /admin/team
   route("/catch", CatchPage),         // /admin/catch
   route("/messages", MessagesPage),    // /admin/messages
