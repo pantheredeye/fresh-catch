@@ -172,6 +172,9 @@ export function AdminLayoutClient({
               Team
             </a>
           )}
+          <a href="/admin/messages" className="admin-nav-item">
+            Messages
+          </a>
           <a href="/admin/settings/stripe" className="admin-nav-item">
             Settings
           </a>
