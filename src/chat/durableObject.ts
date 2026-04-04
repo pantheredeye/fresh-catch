@@ -1,5 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import { db, setupDb } from "@/db";
+import { sendChatReplyNotificationEmail } from "@/utils/email";
+
+const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
 
 interface SendMessage {
   type: "message";
@@ -24,6 +27,7 @@ interface HistoryPayload {
 
 export class ChatDurableObject extends DurableObject {
   private conversationId: string | null = null;
+  private lastEmailSentAt: number = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -121,6 +125,38 @@ export class ChatDurableObject extends DurableObject {
       where: { id: this.conversationId },
       data: { lastMessageAt: created.createdAt },
     });
+
+    // Notify customer via email if offline
+    if (parsed.senderType === "vendor") {
+      const customerSockets = this.ctx.getWebSockets("customer");
+      if (customerSockets.length === 0) {
+        const now = Date.now();
+        if (now - this.lastEmailSentAt > EMAIL_DEBOUNCE_MS) {
+          const conversation = await db.conversation.findUnique({
+            where: { id: this.conversationId },
+            include: { organization: true },
+          });
+          if (conversation?.customerEmail) {
+            try {
+              await sendChatReplyNotificationEmail({
+                to: conversation.customerEmail,
+                customerName: conversation.customerName,
+                vendorName: conversation.organization.name,
+                messagePreview:
+                  parsed.content.length > 100
+                    ? parsed.content.slice(0, 100) + "…"
+                    : parsed.content,
+                chatPath: `/${conversation.organization.slug}/chat/${conversation.id}`,
+                businessName: conversation.organization.name,
+              });
+              this.lastEmailSentAt = now;
+            } catch (err) {
+              console.error("[ChatDO] Failed to send notification email:", err);
+            }
+          }
+        }
+      }
+    }
 
     // Broadcast to all other connected WebSockets
     const outgoing: OutgoingMessage = {
