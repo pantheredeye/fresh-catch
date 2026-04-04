@@ -9,11 +9,13 @@ export function AcceptInviteUI({
   orgName,
   roleLabel,
   inviteEmail,
+  csrfToken,
 }: {
   token: string;
   orgName: string;
   roleLabel: string;
   inviteEmail: string | null;
+  csrfToken: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function AcceptInviteUI({
   const handleAccept = () => {
     setError(null);
     startTransition(async () => {
-      const result = await acceptInvite(token);
+      const result = await acceptInvite(csrfToken, token);
       if (result.success) {
         setAccepted(true);
       } else {

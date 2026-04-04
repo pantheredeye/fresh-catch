@@ -30,5 +30,5 @@ export async function CustomerOrdersPage({ ctx }: RequestInfo) {
   // Fee model defaults to "customer" — per-order feeModel is a future enhancement
   const feeModel: FeeModel = "customer";
 
-  return <CustomerOrdersUI orders={orders} ctx={ctx} feeModel={feeModel} checkoutStatus={checkoutStatus} checkoutOrder={checkoutOrder} />;
+  return <CustomerOrdersUI orders={orders} ctx={ctx} csrfToken={ctx.session!.csrfToken} feeModel={feeModel} checkoutStatus={checkoutStatus} checkoutOrder={checkoutOrder} />;
 }

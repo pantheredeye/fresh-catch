@@ -19,5 +19,5 @@ export function NewOrderPage({ ctx }: RequestInfo) {
     phone: ctx.user.phone || ''
   };
 
-  return <NewOrderUI vendorName={vendor.name} vendorId={vendor.id} defaultContact={defaultContact} />;
+  return <NewOrderUI csrfToken={ctx.session!.csrfToken} vendorName={vendor.name} vendorId={vendor.id} defaultContact={defaultContact} />;
 }

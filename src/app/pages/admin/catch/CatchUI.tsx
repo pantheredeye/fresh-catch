@@ -33,9 +33,10 @@ interface CatchUpdateData {
 
 interface CatchUIProps {
   currentCatch: CatchUpdateData | null;
+  csrfToken: string;
 }
 
-export function CatchUI({ currentCatch }: CatchUIProps) {
+export function CatchUI({ currentCatch, csrfToken }: CatchUIProps) {
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [phase, setPhase] = useState<CatchPhase>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -139,7 +140,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
   }, [recorder]);
 
   const handleClearCatch = useCallback(async () => {
-    const res = await clearCatch();
+    const res = await clearCatch(csrfToken);
     if (res.success) {
       setLiveCatch(null);
       setResult(null);
@@ -151,7 +152,7 @@ export function CatchUI({ currentCatch }: CatchUIProps) {
     if (!draft) return;
     setPhase("publishing");
     try {
-      const res = await publishCatch(draft, rawTranscript);
+      const res = await publishCatch(csrfToken, draft, rawTranscript);
       if (res.success) {
         setResult(draft);
         setLiveCatch(null);

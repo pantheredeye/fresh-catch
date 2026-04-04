@@ -34,10 +34,11 @@ interface OrderCardProps {
   order: Order;
   viewMode: 'customer' | 'admin';
   ctx: AppContext;
+  csrfToken: string;
   feeModel?: FeeModel | null;
 }
 
-export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
+export function OrderCard({ order, viewMode, ctx, csrfToken, feeModel }: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -54,7 +55,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
 
   const handlePay = async (_amountCents: number) => {
     setErrorMessage(null);
-    const result = await createCheckoutSession(order.id, tipAmount || undefined);
+    const result = await createCheckoutSession(csrfToken, order.id, tipAmount || undefined);
     if (result.success && result.checkoutUrl) {
       window.location.href = result.checkoutUrl;
     } else {
@@ -74,7 +75,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
   const handleUpdate = async () => {
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await updateOrder(order.id, {
+      const result = await updateOrder(csrfToken, order.id, {
         items,
         notes: notes || null,
         preferredDate: preferredDate || null,
@@ -94,7 +95,7 @@ export function OrderCard({ order, viewMode, ctx, feeModel }: OrderCardProps) {
 
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await cancelOrder(order.id);
+      const result = await cancelOrder(csrfToken, order.id);
       if (!result.success) {
         setErrorMessage(result.error || 'Failed to cancel order');
       }

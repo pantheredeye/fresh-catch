@@ -43,6 +43,7 @@ export async function AcceptInvitePage({ ctx, request }: RequestInfo) {
       orgName={invite.organization.name}
       roleLabel={roleLabel}
       inviteEmail={invite.email}
+      csrfToken={ctx.session!.csrfToken}
     />
   );
 }

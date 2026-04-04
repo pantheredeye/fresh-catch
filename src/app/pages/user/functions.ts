@@ -8,11 +8,13 @@ import {
   AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions } from "@/session/store";
+import { sessions, rotateSession } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
 import { hashPassword, verifyPassword } from "@/utils/password";
+import { checkRateLimit } from "@/rate-limit/middleware";
+import { isBreachedPassword } from "@/utils/breached-passwords";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,10 +57,24 @@ export async function startPasskeyRegistration(username: string) {
 }
 
 export async function checkEmailExists(email: string) {
-  if (!isValidEmail(email)) return { exists: false, hasPassword: false };
+  // Anti-enumeration: add random delay (200-500ms) to normalize response times
+  const delay = new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
+
+  if (!isValidEmail(email)) {
+    await delay;
+    return { exists: false, hasPassword: false };
+  }
+
+  const rl = await checkRateLimit("checkEmail");
+  if (!rl.allowed) {
+    await delay;
+    return { exists: false, hasPassword: false, rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
+  }
+
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
   });
+  await delay;
   return { exists: !!user, hasPassword: !!user?.passwordHash };
 }
 
@@ -70,7 +86,12 @@ export async function loginWithPassword(
   if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
   if (!password) return { success: false, error: "Password required" };
 
-  const { response } = requestInfo;
+  const rl = await checkRateLimit("login");
+  if (!rl.allowed) {
+    return { success: false, error: "Too many login attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
+  }
+
+  const { request, response } = requestInfo;
 
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
@@ -86,9 +107,32 @@ export async function loginWithPassword(
     return { success: false, error: "Invalid email or password" };
   }
 
+  // Account lockout: if locked and lockout hasn't expired, reject
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    return { success: false, error: "Invalid email or password" };
+  }
+
   const valid = await verifyPassword(password, user.passwordHash, user.passwordSalt);
   if (!valid) {
+    const newFailedAttempts = (user.failedAttempts ?? 0) + 1;
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        failedAttempts: newFailedAttempts,
+        ...(newFailedAttempts >= 5
+          ? { lockedUntil: new Date(Date.now() + 15 * 60 * 1000) }
+          : {}),
+      },
+    });
     return { success: false, error: "Invalid email or password" };
+  }
+
+  // Successful login: reset lockout counters
+  if (user.failedAttempts > 0 || user.lockedUntil) {
+    await db.user.update({
+      where: { id: user.id },
+      data: { failedAttempts: 0, lockedUntil: null },
+    });
   }
 
   const isAdmin = user.memberships.some(
@@ -100,7 +144,8 @@ export async function loginWithPassword(
       (m) => m.organization.type === "business"
     );
     const defaultMembership = businessMembership ?? user.memberships[0];
-    await sessions.save(
+    await rotateSession(
+      request,
       response.headers,
       {
         userId: user.id,
@@ -110,7 +155,8 @@ export async function loginWithPassword(
       rememberMe ? { maxAge: true } : undefined
     );
   } else {
-    await sessions.save(
+    await rotateSession(
+      request,
       response.headers,
       { userId: user.id },
       rememberMe ? { maxAge: true } : undefined
@@ -127,15 +173,24 @@ export async function registerWithPassword(
 ) {
   if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
   if (!password || password.length < 8) {
-    return { success: false, error: "Password must be at least 8 characters" };
+    return { success: false, error: "Password is too short — minimum 8 characters" };
   }
 
-  const { response } = requestInfo;
+  if (await isBreachedPassword(password)) {
+    return { success: false, error: "This password is too common — please choose a different one" };
+  }
 
-  // Check if username already exists
+  const rl = await checkRateLimit("register");
+  if (!rl.allowed) {
+    return { success: false, error: "Too many registration attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
+  }
+
+  const { request, response } = requestInfo;
+
+  // Check if username already exists — generic error to prevent email enumeration
   const existingUser = await db.user.findUnique({ where: { username: email } });
   if (existingUser) {
-    return { success: false, error: "Email already registered" };
+    return { success: false, error: "Unable to create account. Please try again or sign in." };
   }
 
   const { hash, salt } = await hashPassword(password);
@@ -173,7 +228,8 @@ export async function registerWithPassword(
     });
   }
 
-  await sessions.save(
+  await rotateSession(
+    request,
     response.headers,
     {
       userId: user.id,
@@ -311,11 +367,16 @@ export async function finishPasskeyRegistration(
     });
   }
 
-  await sessions.save(response.headers, {
-    userId: user.id,
-    currentOrganizationId: vendorOrg?.id || customerOrg.id,
-    role: vendorOrg ? "customer" : "owner",
-  }, { maxAge: true });
+  await rotateSession(
+    request,
+    response.headers,
+    {
+      userId: user.id,
+      currentOrganizationId: vendorOrg?.id || customerOrg.id,
+      role: vendorOrg ? "customer" : "owner",
+    },
+    { maxAge: true }
+  );
 
   // Customers are NOT admins (they're customers of business org, not owners)
   return { success: true, isAdmin: false };
@@ -414,17 +475,27 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
       (m) => m.organization.type === "business"
     );
     const defaultMembership = businessMembership ?? user.memberships[0];
-    await sessions.save(response.headers, {
-      userId: user.id,
-      currentOrganizationId: defaultMembership.organizationId,
-      role: defaultMembership.role,
-      challenge: null,
-    }, { maxAge: true });
+    await rotateSession(
+      request,
+      response.headers,
+      {
+        userId: user.id,
+        currentOrganizationId: defaultMembership.organizationId,
+        role: defaultMembership.role,
+        challenge: null,
+      },
+      { maxAge: true }
+    );
   } else {
-    await sessions.save(response.headers, {
-      userId: user.id,
-      challenge: null,
-    }, { maxAge: true });
+    await rotateSession(
+      request,
+      response.headers,
+      {
+        userId: user.id,
+        challenge: null,
+      },
+      { maxAge: true }
+    );
   }
 
   return { success: true, isAdmin };

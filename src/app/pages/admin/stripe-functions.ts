@@ -6,6 +6,7 @@ import { env } from "cloudflare:workers";
 import { db } from "@/db";
 import { hasAdminAccess, isOwner } from "@/utils/permissions";
 import { getStripe } from "@/utils/stripe";
+import { requireCsrf } from "@/session/csrf";
 
 function getStripeClient() {
   const secretKey = (env as unknown as Record<string, string>).STRIPE_SECRET_KEY;
@@ -15,7 +16,9 @@ function getStripeClient() {
   return getStripe(secretKey);
 }
 
-export async function createConnectedAccount(orgId: string) {
+export async function createConnectedAccount(csrfToken: string, orgId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
@@ -53,7 +56,9 @@ export async function createConnectedAccount(orgId: string) {
   }
 }
 
-export async function getOnboardingLink(orgId: string) {
+export async function getOnboardingLink(csrfToken: string, orgId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx, request } = requestInfo;
 
   if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
@@ -130,10 +135,13 @@ const VALID_FEE_MODELS = ["customer", "vendor", "split"] as const;
 type FeeModel = (typeof VALID_FEE_MODELS)[number];
 
 export async function updateFeeConfig(
+  csrfToken: string,
   orgId: string,
   feeBps: number,
   feeModel: string
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!isOwner(ctx) || orgId !== ctx.currentOrganization?.id) {
@@ -171,9 +179,12 @@ export async function updateFeeConfig(
 }
 
 export async function updateDepositConfig(
+  csrfToken: string,
   orgId: string,
   depositBps: number | null
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!isOwner(ctx) || orgId !== ctx.currentOrganization?.id) {

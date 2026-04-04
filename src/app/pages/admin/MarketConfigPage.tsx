@@ -34,5 +34,5 @@ export async function MarketConfigPage(requestInfo: RequestInfo) {
     cancelledAt: m.cancelledAt?.toISOString() ?? null,
   }));
 
-  return <MarketConfigUI markets={markets} />;
+  return <MarketConfigUI csrfToken={ctx.session!.csrfToken} markets={markets} />;
 }

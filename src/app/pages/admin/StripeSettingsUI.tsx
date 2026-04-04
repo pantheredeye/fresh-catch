@@ -23,11 +23,13 @@ type StripeStatus = {
 
 export function StripeSettingsUI({
   orgId,
+  csrfToken,
   stripeStatus,
   onboardingParam,
   canEditFees,
 }: {
   orgId: string;
+  csrfToken: string;
   stripeStatus: StripeStatus;
   onboardingParam: string | null;
   canEditFees: boolean;
@@ -78,7 +80,7 @@ export function StripeSettingsUI({
     setFeeError(null);
     setFeeSuccess(null);
     startFeeTransition(async () => {
-      const result = await updateFeeConfig(orgId, feeBps, feeModel);
+      const result = await updateFeeConfig(csrfToken, orgId, feeBps, feeModel);
       if (result.success) {
         setFeeSuccess("Fee configuration saved");
       } else {
@@ -92,6 +94,7 @@ export function StripeSettingsUI({
     setDepositSuccess(null);
     startDepositTransition(async () => {
       const result = await updateDepositConfig(
+        csrfToken,
         orgId,
         depositEnabled ? depositBps : null,
       );
@@ -124,7 +127,7 @@ export function StripeSettingsUI({
       });
     } else if (onboardingParam === "refresh") {
       startTransition(async () => {
-        const link = await getOnboardingLink(orgId);
+        const link = await getOnboardingLink(csrfToken, orgId);
         if (link.success && link.url) {
           window.location.href = link.url;
         } else {
@@ -137,13 +140,13 @@ export function StripeSettingsUI({
   const handleConnect = () => {
     setError(null);
     startTransition(async () => {
-      const result = await createConnectedAccount(orgId);
+      const result = await createConnectedAccount(csrfToken, orgId);
       if (!result.success) {
         setError(result.error ?? "Failed to create account");
         return;
       }
       // Account created, get onboarding link and redirect
-      const link = await getOnboardingLink(orgId);
+      const link = await getOnboardingLink(csrfToken, orgId);
       if (link.success && link.url) {
         window.location.href = link.url;
       } else {
@@ -155,7 +158,7 @@ export function StripeSettingsUI({
   const handleContinueSetup = () => {
     setError(null);
     startTransition(async () => {
-      const link = await getOnboardingLink(orgId);
+      const link = await getOnboardingLink(csrfToken, orgId);
       if (link.success && link.url) {
         window.location.href = link.url;
       } else {

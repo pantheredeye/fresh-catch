@@ -30,5 +30,5 @@ export async function CatchPage(requestInfo: RequestInfo) {
       }
     : null;
 
-  return <CatchUI currentCatch={catchData} />;
+  return <CatchUI currentCatch={catchData} csrfToken={ctx.session!.csrfToken} />;
 }

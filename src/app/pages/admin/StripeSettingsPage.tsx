@@ -58,6 +58,7 @@ export async function StripeSettingsPage(requestInfo: RequestInfo) {
   return (
     <StripeSettingsUI
       orgId={org.id}
+      csrfToken={ctx.session!.csrfToken}
       stripeStatus={stripeStatus}
       onboardingParam={onboardingParam}
       canEditFees={isOwner(ctx)}

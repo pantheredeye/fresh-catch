@@ -4,6 +4,7 @@ import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { isOwner } from "@/utils/permissions";
 import { sessions } from "@/session/store";
+import { requireCsrf } from "@/session/csrf";
 
 function assertOwner() {
   const { ctx } = requestInfo;
@@ -13,7 +14,9 @@ function assertOwner() {
   return { userId: ctx.user.id, orgId: ctx.currentOrganization.id };
 }
 
-export async function createInvite(data: { email?: string; role: string }) {
+export async function createInvite(csrfToken: string, data: { email?: string; role: string }) {
+  requireCsrf(csrfToken);
+
   const { userId, orgId } = assertOwner();
 
   if (!["owner", "manager"].includes(data.role)) {
@@ -48,7 +51,9 @@ export async function createInvite(data: { email?: string; role: string }) {
   return { success: true, invite };
 }
 
-export async function revokeInvite(inviteId: string) {
+export async function revokeInvite(csrfToken: string, inviteId: string) {
+  requireCsrf(csrfToken);
+
   const { orgId } = assertOwner();
 
   const invite = await db.invite.findFirst({
@@ -67,7 +72,9 @@ export async function revokeInvite(inviteId: string) {
   return { success: true };
 }
 
-export async function changeRole(membershipId: string, newRole: string) {
+export async function changeRole(csrfToken: string, membershipId: string, newRole: string) {
+  requireCsrf(csrfToken);
+
   const { orgId } = assertOwner();
 
   if (!["owner", "manager"].includes(newRole)) {
@@ -100,7 +107,9 @@ export async function changeRole(membershipId: string, newRole: string) {
   return { success: true };
 }
 
-export async function removeMember(membershipId: string) {
+export async function removeMember(csrfToken: string, membershipId: string) {
+  requireCsrf(csrfToken);
+
   const { orgId } = assertOwner();
 
   const membership = await db.membership.findFirst({
@@ -128,7 +137,9 @@ export async function removeMember(membershipId: string) {
   return { success: true };
 }
 
-export async function acceptInvite(token: string) {
+export async function acceptInvite(csrfToken: string, token: string) {
+  requireCsrf(csrfToken);
+
   const { ctx, response } = requestInfo;
 
   if (!ctx.user) {

@@ -89,7 +89,7 @@ function getInactiveBadge(market: Market): { label: string; className: string } 
  * Priority 3: Navigation - Tap to edit, Add new market
  * Priority 4: Overview - Active/inactive grouping
  */
-export function MarketConfigUI({ markets }: { markets: Market[] }) {
+export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; markets: Market[] }) {
   const [isPending, startTransition] = useTransition();
 
   // Modal state
@@ -134,9 +134,9 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
   }) => {
     startTransition(async () => {
       if (editingMarket) {
-        await updateMarket(editingMarket.id, marketData);
+        await updateMarket(csrfToken, editingMarket.id, marketData);
       } else {
-        await createMarket(marketData);
+        await createMarket(csrfToken, marketData);
       }
       setIsModalOpen(false);
       setEditingMarket(undefined);
@@ -145,7 +145,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
 
   const handleDeleteMarket = async (id: string) => {
     startTransition(async () => {
-      await deleteMarket(id);
+      await deleteMarket(csrfToken, id);
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -153,7 +153,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
 
   const handleEndPopup = async (id: string) => {
     startTransition(async () => {
-      await endPopup(id);
+      await endPopup(csrfToken, id);
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -161,7 +161,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
 
   const handleCancelPopup = async (id: string) => {
     startTransition(async () => {
-      await cancelPopup(id);
+      await cancelPopup(csrfToken, id);
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -174,7 +174,7 @@ export function MarketConfigUI({ markets }: { markets: Market[] }) {
 
   const handleToggleMarket = async (marketId: string) => {
     startTransition(async () => {
-      await toggleMarketActive(marketId);
+      await toggleMarketActive(csrfToken, marketId);
     });
   };
 

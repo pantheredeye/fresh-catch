@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   startAuthentication,
   startRegistration,
@@ -15,10 +15,11 @@ import {
   startPasskeyRegistration,
 } from "./functions";
 import { TextInput, Button, Container, Card } from "@/design-system";
+import { isBreachedPasswordLocal } from "@/utils/breached-passwords";
 
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
-type Flow = "initial" | "login-password" | "login-passkey" | "register" | "confirm-register";
+type Flow = "initial" | "login-password" | "login-passkey" | "register";
 
 const linkStyle = {
   background: "none",
@@ -39,7 +40,10 @@ export function Login({ ctx }: { ctx: any }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
+  const [isNewAccount, setIsNewAccount] = useState(false);
   const [bSlug, setBSlug] = useState<string | null>(null);
 
   // Capture ?b= param from URL on mount
@@ -52,7 +56,24 @@ export function Login({ ctx }: { ctx: any }) {
   const withBParam = (url: string) =>
     bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
 
-  const disabled = status === "loading" || status === "success";
+  const disabled = status === "loading" || status === "success" || rateLimitCooldown > 0;
+
+  const passwordFeedback = useMemo(() => {
+    if (!password || flow !== "register") return null;
+    if (password.length < 8) {
+      return { text: `Too short (${password.length}/8 characters)`, color: "var(--color-status-error)" };
+    }
+    if (isBreachedPasswordLocal(password)) {
+      return { text: "Too common — pick something less guessable", color: "var(--color-status-warning)" };
+    }
+    return { text: "Looks good", color: "var(--color-status-success)" };
+  }, [password, flow]);
+
+  const startRateLimitCooldown = (seconds: number) => {
+    setRateLimitCooldown(seconds);
+    setStatus("error");
+    setMessage(`Too many attempts. Please wait ${seconds}s before trying again.`);
+  };
 
   const handleContinue = async () => {
     if (!email.trim() || !email.includes("@")) {
@@ -67,6 +88,11 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       const result = await checkEmailExists(email);
 
+      if (result.rateLimited) {
+        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        return;
+      }
+
       if (result.exists) {
         if (result.hasPassword) {
           setFlow("login-password");
@@ -80,7 +106,8 @@ export function Login({ ctx }: { ctx: any }) {
           handlePasskeyLogin();
         }
       } else {
-        setFlow("confirm-register");
+        setIsNewAccount(true);
+        setFlow("register");
         setStatus("idle");
         setMessage("");
       }
@@ -103,18 +130,27 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       const result = await loginWithPassword(email, password, rememberMe);
 
+      if (result.rateLimited) {
+        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        return;
+      }
+
       if (!result.success) {
         throw new Error(result.error || "Invalid email or password");
       }
 
+      setFailedAttempts(0);
       const destination = withBParam(result.isAdmin ? "/admin" : "/");
       setRedirectUrl(destination);
       setStatus("success");
       setMessage("Welcome back! Redirecting...");
       setCountdown(2);
     } catch (error) {
+      const attempts = failedAttempts + 1;
+      setFailedAttempts(attempts);
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Login failed. Please try again.");
+      const base = error instanceof Error ? error.message : "Login failed. Please try again.";
+      setMessage(attempts >= 3 ? `${base} You may want to wait a few minutes before trying again.` : base);
     }
   };
 
@@ -136,9 +172,49 @@ export function Login({ ctx }: { ctx: any }) {
       setStatus("success");
       setMessage("Welcome back! Redirecting...");
       setCountdown(2);
+
+      // User has passkey - suppress passkey nudge
+      try { localStorage.setItem("fresh-catch-has-passkey", "true"); } catch {}
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Passkey login failed. Please try again.");
+    }
+  };
+
+  const handlePasskeyRegister = async () => {
+    if (!email.trim() || !email.includes("@")) {
+      setStatus("error");
+      setMessage("Please enter a valid email");
+      return;
+    }
+
+    setStatus("loading");
+    setMessage("Starting passkey registration...");
+
+    try {
+      const options = await startPasskeyRegistration(email);
+      const registration = await startRegistration({ optionsJSON: options });
+      const result = await finishPasskeyRegistration(email, email, registration);
+
+      if (!result || !result.success) {
+        throw new Error("Passkey registration failed.");
+      }
+
+      setRedirectUrl(withBParam("/"));
+      setStatus("success");
+      setMessage("Welcome to Fresh Catch! Redirecting...");
+      setCountdown(2);
+
+      try { localStorage.setItem("fresh-catch-has-passkey", "true"); } catch {}
+    } catch (error) {
+      setStatus("error");
+      setMessage(
+        error instanceof Error && error.name === "NotAllowedError"
+          ? "Passkey registration was cancelled."
+          : error instanceof Error
+          ? error.message
+          : "Passkey registration failed. Please try again."
+      );
     }
   };
 
@@ -160,6 +236,11 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       const result = await registerWithPassword(email, password, rememberMe);
 
+      if (result.rateLimited) {
+        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        return;
+      }
+
       if (!result.success) {
         throw new Error(result.error || "Registration failed");
       }
@@ -168,6 +249,10 @@ export function Login({ ctx }: { ctx: any }) {
       setStatus("success");
       setMessage("Welcome to Fresh Catch! Redirecting...");
       setCountdown(2);
+
+      // Mark for passkey nudge on home page
+      try { localStorage.setItem("fresh-catch-just-registered-password", "true"); } catch {}
+
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Registration failed. Please try again.");
@@ -188,12 +273,36 @@ export function Login({ ctx }: { ctx: any }) {
     }
   }, [status, countdown, redirectUrl]);
 
-  const getStatusColor = () => {
+  // Rate limit cooldown timer
+  useEffect(() => {
+    if (rateLimitCooldown > 0) {
+      const timer = setTimeout(() => {
+        const next = rateLimitCooldown - 1;
+        setRateLimitCooldown(next);
+        if (next === 0) {
+          setStatus("idle");
+          setMessage("");
+        } else {
+          setMessage(`Too many attempts. Please wait ${next}s before trying again.`);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [rateLimitCooldown]);
+
+  const getStatusBg = () => {
     switch (status) {
       case "success": return "var(--color-status-success)";
       case "error": return "var(--color-action-secondary)";
-      case "loading": return "var(--color-status-info)";
+      case "loading": return "var(--color-status-info-bg)";
       default: return "var(--color-text-tertiary)";
+    }
+  };
+
+  const getStatusAccent = () => {
+    switch (status) {
+      case "loading": return "var(--color-status-info)";
+      default: return undefined;
     }
   };
 
@@ -205,14 +314,14 @@ export function Login({ ctx }: { ctx: any }) {
   };
 
   const heading =
-    flow === "confirm-register" || flow === "register"
+    flow === "register"
       ? "Create Account"
       : flow === "login-password" || flow === "login-passkey"
       ? "Welcome Back"
       : "Welcome";
 
   const subtitle =
-    flow === "confirm-register" || flow === "register"
+    flow === "register"
       ? `Create a new account with ${BUSINESS_CONTEXT}`
       : flow === "login-password" || flow === "login-passkey"
       ? `Sign in to ${BUSINESS_CONTEXT}`
@@ -222,8 +331,10 @@ export function Login({ ctx }: { ctx: any }) {
     setFlow("initial");
     setPassword("");
     setConfirmPassword("");
+    setIsNewAccount(false);
     setStatus("idle");
     setMessage("");
+    setFailedAttempts(0);
   };
 
   const rememberMeCheckbox = (
@@ -271,36 +382,23 @@ export function Login({ ctx }: { ctx: any }) {
           </p>
         </div>
 
-        {/* Confirm Register (new user found) */}
-        {flow === "confirm-register" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
-            <div style={{
-              padding: "var(--space-md)",
-              background: "var(--color-status-info)",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "var(--font-size-sm)",
-              color: "var(--color-text-primary)",
-              textAlign: "center",
-            }}>
-              No account found for <strong>{email}</strong>
-            </div>
-            <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-              <Button variant="secondary" size="lg" fullWidth onClick={() => { resetFlow(); setEmail(""); }}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="lg" fullWidth onClick={() => setFlow("register")}>
-                Create Account
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Register with password */}
         {flow === "register" && (
           <form
             onSubmit={(e) => { e.preventDefault(); handlePasswordRegister(); }}
             style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
           >
+            {isNewAccount && (
+              <div style={{
+                padding: "var(--space-sm) var(--space-md)",
+                background: "var(--color-status-info-bg)",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--font-size-sm)",
+                color: "var(--color-text-primary)",
+              }}>
+                Creating account for <strong>{email}</strong>
+              </div>
+            )}
             <TextInput
               label="Email"
               type="email"
@@ -313,19 +411,31 @@ export function Login({ ctx }: { ctx: any }) {
               required
               size="lg"
             />
-            <TextInput
-              label="Password"
-              type="password"
-              name="new-password"
-              autoComplete="new-password"
-              placeholder="Min 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={disabled}
-              size="lg"
-              autoFocus
-            />
+            <div>
+              <TextInput
+                label="Password"
+                type="password"
+                name="new-password"
+                autoComplete="new-password"
+                placeholder="Min 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={disabled}
+                size="lg"
+                autoFocus
+              />
+              {passwordFeedback && (
+                <div style={{
+                  fontSize: "var(--font-size-xs)",
+                  color: passwordFeedback.color,
+                  marginTop: "var(--space-xs)",
+                  fontFamily: "var(--font-display)",
+                }}>
+                  {passwordFeedback.text}
+                </div>
+              )}
+            </div>
             <TextInput
               label="Confirm Password"
               type="password"
@@ -342,6 +452,35 @@ export function Login({ ctx }: { ctx: any }) {
             <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
               {status === "loading" ? "Creating Account..." : "Create Account"}
             </Button>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-sm)",
+              color: "var(--color-text-tertiary)",
+              fontSize: "var(--font-size-sm)",
+            }}>
+              <div style={{ flex: 1, height: "1px", background: "var(--color-border-subtle)" }} />
+              <span>or</span>
+              <div style={{ flex: 1, height: "1px", background: "var(--color-border-subtle)" }} />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              fullWidth
+              disabled={disabled}
+              onClick={handlePasskeyRegister}
+            >
+              Register with passkey instead
+            </Button>
+            <p style={{
+              margin: 0,
+              fontSize: "var(--font-size-xs)",
+              color: "var(--color-text-tertiary)",
+              textAlign: "center",
+            }}>
+              You can manage passkeys in settings
+            </p>
           </form>
         )}
 
@@ -402,7 +541,7 @@ export function Login({ ctx }: { ctx: any }) {
               label="Email"
               type="email"
               name="email"
-              autoComplete="email"
+              autoComplete="email webauthn"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -433,7 +572,7 @@ export function Login({ ctx }: { ctx: any }) {
           </div>
         )}
 
-        {(flow === "register" || flow === "confirm-register" || flow === "login-password" || flow === "login-passkey") && (
+        {(flow === "register" || flow === "login-password" || flow === "login-passkey") && (
           <div style={{ marginTop: "var(--space-sm)", textAlign: "center" }}>
             <button onClick={resetFlow} disabled={disabled} style={linkStyle}>
               Back to sign in
@@ -453,9 +592,10 @@ export function Login({ ctx }: { ctx: any }) {
             alignItems: "center",
             justifyContent: "center",
             gap: "var(--space-xs)",
-            background: getStatusColor(),
+            background: getStatusBg(),
             color: getStatusTextColor(),
-            border: `1px solid ${getStatusColor()}`,
+            border: `1px solid ${getStatusBg()}`,
+            borderLeft: getStatusAccent() ? `3px solid ${getStatusAccent()}` : undefined,
           }}>
             {status === "loading" && (
               <div style={{
@@ -468,7 +608,17 @@ export function Login({ ctx }: { ctx: any }) {
             )}
             <span>
               {message}
-              {status === "success" && countdown > 0 && <> Redirecting in {countdown}...</>}
+              {status === "success" && countdown > 0 && (
+                <span
+                  onClick={() => { window.location.href = redirectUrl; }}
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") window.location.href = redirectUrl; }}
+                >
+                  {" "}Redirecting in {countdown}… tap to go now
+                </span>
+              )}
             </span>
           </div>
         )}

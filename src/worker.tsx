@@ -1,5 +1,5 @@
 import { defineApp, ErrorResponse } from "rwsdk/worker";
-import { route, render, prefix, layout } from "rwsdk/router";
+import { route, render, prefix, layout, type RouteMiddleware } from "rwsdk/router";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
@@ -25,7 +25,10 @@ import { handleStripeWebhook } from "@/api/stripe-webhook";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
+import { rateLimitAuth } from "@/rate-limit/middleware";
 export { SessionDurableObject } from "./session/durableObject";
+export { ChatDurableObject } from "./chat/durableObject";
+export { RateLimitDurableObject } from "./rate-limit/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
@@ -51,17 +54,42 @@ export type AppContext = {
     id: string;
     name: string;
     slug: string;
+    accentColor: string | null;
   } | null;
 };
 
+/**
+ * Origin validation middleware: rejects state-changing requests (POST/PUT/DELETE)
+ * whose Origin header doesn't match our host. Defense-in-depth alongside SameSite cookies.
+ */
+function validateOrigin(): RouteMiddleware {
+  return ({ request }) => {
+    const method = request.method;
+    if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
+
+    const origin = request.headers.get("Origin");
+    // No Origin header — browser same-site navigation or non-browser client.
+    // Safe to allow: SameSite=Strict cookies already block cross-site cookie attachment.
+    if (!origin) return;
+
+    const url = new URL(request.url);
+    const expected = url.origin; // e.g. https://freshcatch.app
+    if (origin === expected) return;
+
+    return new Response("Forbidden – origin mismatch", { status: 403 });
+  };
+}
+
 export default defineApp([
-  // Stripe webhook — must run before session/auth middleware to preserve raw body
+  // Stripe webhook — must run before session/auth AND origin middleware to preserve raw body
+  // (Stripe sends POST from its own origin with signature verification)
   async ({ request }) => {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/stripe/webhook") {
       return handleStripeWebhook(request);
     }
   },
+  validateOrigin(),
   setCommonHeaders(),
   async ({ ctx, request, response }) => {
     await setupDb(env);
@@ -90,10 +118,6 @@ export default defineApp([
         },
         include: {
           memberships: {
-            // Only fetch matching membership when org context exists; fetch all on first login
-            ...(ctx.session.currentOrganizationId
-              ? { where: { organizationId: ctx.session.currentOrganizationId } }
-              : {}),
             include: {
               organization: true,
             },
@@ -115,14 +139,17 @@ export default defineApp([
 
       // If session lacks organization context, set it from user's memberships
       if (ctx.user && ctx.user.memberships.length > 0 && !ctx.session.currentOrganizationId) {
-        // Default to first membership (could be enhanced with user preference later)
-        const defaultMembership = ctx.user.memberships[0];
+        // Prefer business orgs over individual
+        const defaultMembership =
+          ctx.user.memberships.find(m => m.organization.type === 'business') ??
+          ctx.user.memberships[0];
 
         // Update the session with organization context
         await sessions.save(response.headers, {
           userId: ctx.session.userId,
           currentOrganizationId: defaultMembership.organizationId,
           role: defaultMembership.role,
+          csrfToken: ctx.session.csrfToken,
         });
 
         // Update the session object in context
@@ -151,6 +178,7 @@ export default defineApp([
               userId: ctx.session.userId,
               currentOrganizationId: ctx.session.currentOrganizationId,
               role: currentMembership.role,
+              csrfToken: ctx.session.csrfToken,
             });
             ctx.session.role = currentMembership.role;
           }
@@ -160,6 +188,7 @@ export default defineApp([
             userId: ctx.session.userId,
             currentOrganizationId: null,
             role: null,
+            csrfToken: ctx.session.csrfToken,
           });
           response.headers.set("Location", "/");
           return new Response(null, { status: 302, headers: response.headers });
@@ -178,8 +207,57 @@ export default defineApp([
     }
   },
   resolveBrowsingOrg(),
+  // WebSocket upgrade handler for chat — before render() to avoid RSC processing
+  async ({ ctx, request }) => {
+    const url = new URL(request.url);
+    const wsMatch = url.pathname.match(/^\/ws\/chat\/([^/]+)$/);
+    if (!wsMatch) return; // Not a chat WebSocket path, continue to next middleware
+
+    // Reject non-WebSocket requests to this path
+    if (request.headers.get("Upgrade") !== "websocket") {
+      return new Response("Expected WebSocket upgrade", { status: 400 });
+    }
+
+    const conversationId = wsMatch[1];
+
+    // Verify conversation exists
+    const conversation = await db.conversation.findUnique({
+      where: { id: conversationId },
+    });
+    if (!conversation) {
+      return new Response("Conversation not found", { status: 404 });
+    }
+
+    // Authorization: admin can access any org conversation, customer only their own
+    if (ctx.user && hasAdminAccess(ctx)) {
+      // Admin: verify conversation belongs to their org
+      if (conversation.organizationId !== ctx.currentOrganization?.id) {
+        return new Response("Forbidden", { status: 403 });
+      }
+    } else if (ctx.user) {
+      // Logged-in customer: must be the conversation's customer
+      if (conversation.customerId !== ctx.user.id) {
+        return new Response("Forbidden", { status: 403 });
+      }
+    } else if (conversation.customerId === null) {
+      // Anonymous conversation: conversation ID is the bearer token
+    } else {
+      // Anonymous user trying to access an authenticated conversation
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Forward to ChatDurableObject with role tag
+    const role = ctx.user && hasAdminAccess(ctx) ? "vendor" : "customer";
+    const doId = env.CHAT_DURABLE_OBJECT.idFromName(conversationId);
+    const stub = env.CHAT_DURABLE_OBJECT.get(doId);
+    const doUrl = new URL(request.url);
+    doUrl.searchParams.set("role", role);
+    const doRequest = new Request(doUrl.toString(), request);
+    return stub.fetch(doRequest);
+  },
   render(Document, [
-    // Auth routes with minimal layout
+    // Auth routes with rate limiting + minimal layout
+    rateLimitAuth(),
     ...layout(AuthLayout, userRoutes),  // /login, /logout
 
     // Customer routes with header + user menu
@@ -218,7 +296,11 @@ export default defineApp([
 
     // Admin routes with admin header + nav
     prefix("/admin", [
-      ({ ctx, response }) => {
+      ({ ctx, request, response }) => {
+        // Allow RSC server actions through — they handle their own auth
+        const url = new URL(request.url);
+        if (url.searchParams.has("__rsc_action_id")) return;
+
         if (!ctx.user) {
           response.headers.set("Location", "/login");
           return new Response(null, { status: 302, headers: response.headers });

@@ -9,6 +9,7 @@ import { sessions } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
+import { requireCsrf } from "@/session/csrf";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -57,9 +58,12 @@ function getWebAuthnConfig(request: Request) {
  * (No WebAuthn registration needed - user already has credentials)
  */
 export async function createBusinessForLoggedInUser(
+  csrfToken: string,
   businessName: string,
   slug: string
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx, response } = requestInfo;
 
   // Must be logged in

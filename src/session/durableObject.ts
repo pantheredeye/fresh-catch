@@ -8,6 +8,7 @@ export interface Session {
   createdAt: number;
   currentOrganizationId?: string | null;
   role?: string | null;
+  csrfToken: string;
 }
 
 export class SessionDurableObject extends DurableObject {
@@ -17,16 +18,28 @@ export class SessionDurableObject extends DurableObject {
     this.session = undefined;
   }
 
+  private generateCsrfToken(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    // Base64url-encode for safe embedding in HTML and headers
+    return btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  }
+
   async saveSession({
     userId = null,
     challenge = null,
     currentOrganizationId = null,
     role = null,
+    csrfToken,
   }: {
     userId?: string | null;
     challenge?: string | null;
     currentOrganizationId?: string | null;
     role?: string | null;
+    csrfToken?: string;
   }): Promise<Session> {
     const session: Session = {
       userId,
@@ -35,6 +48,8 @@ export class SessionDurableObject extends DurableObject {
       createdAt: Date.now(),
       currentOrganizationId,
       role,
+      // Preserve existing CSRF token on session updates; generate fresh one for new sessions
+      csrfToken: csrfToken ?? this.session?.csrfToken ?? this.generateCsrfToken(),
     };
 
     await this.ctx.storage.put<Session>("session", session);
@@ -60,6 +75,17 @@ export class SessionDurableObject extends DurableObject {
       return {
         error: "Session expired",
       };
+    }
+
+    // Backfill csrfToken for sessions created before CSRF support
+    if (!session.csrfToken) {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      session.csrfToken = btoa(String.fromCharCode(...bytes))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      await this.ctx.storage.put<Session>("session", session);
     }
 
     this.session = session;

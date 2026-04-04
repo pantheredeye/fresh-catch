@@ -15,6 +15,7 @@ export function AdminLayout({
       currentOrganization={ctx?.currentOrganization ?? null}
       isAdmin={ctx ? hasAdminAccess(ctx) : false}
       isOwner={ctx ? isOwner(ctx) : false}
+      csrfToken={ctx?.session?.csrfToken ?? ""}
     >
       {children}
     </AdminLayoutClient>

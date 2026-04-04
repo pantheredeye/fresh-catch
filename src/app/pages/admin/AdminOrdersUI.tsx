@@ -51,9 +51,10 @@ type Order = {
 interface AdminOrdersUIProps {
   orders: Order[];
   ctx: AppContext;
+  csrfToken: string;
 }
 
-export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
+export function AdminOrdersUI({ orders, ctx, csrfToken }: AdminOrdersUIProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -292,6 +293,7 @@ export function AdminOrdersUI({ orders, ctx }: AdminOrdersUIProps) {
                 key={order.id}
                 order={order}
                 ctx={ctx}
+                csrfToken={csrfToken}
               />
             ))}
           </div>

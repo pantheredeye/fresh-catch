@@ -19,6 +19,7 @@ interface HeaderProps {
     slug: string;
   } | null;
   variant?: "customer" | "admin" | "auth";
+  csrfToken?: string;
 }
 
 export function Header({
@@ -26,6 +27,7 @@ export function Header({
   currentOrganization,
   browsingOrganization,
   variant = "customer",
+  csrfToken,
 }: HeaderProps) {
   // Auth variant: centered logo only
   if (variant === "auth") {
@@ -54,7 +56,7 @@ export function Header({
             <div className="admin-badge">ADMIN</div>
           </div>
           <div className="unified-header__right">
-            <UserMenu user={user} currentOrganization={currentOrganization} />
+            <UserMenu user={user} currentOrganization={currentOrganization} csrfToken={csrfToken} />
           </div>
         </div>
       </header>
@@ -72,7 +74,7 @@ export function Header({
           <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="quick-order-button">
             + Quick Order
           </a>
-          <UserMenu user={user} currentOrganization={currentOrganization} browsingOrganization={browsingOrganization} />
+          <UserMenu user={user} currentOrganization={currentOrganization} browsingOrganization={browsingOrganization} csrfToken={csrfToken} />
         </div>
       </div>
     </header>

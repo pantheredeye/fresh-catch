@@ -13,6 +13,7 @@ export function CustomerLayout({
       user={ctx?.user ?? null}
       currentOrganization={ctx?.currentOrganization ?? null}
       browsingOrganization={ctx?.browsingOrganization ?? null}
+      csrfToken={ctx?.session?.csrfToken ?? ""}
     >
       {children}
     </CustomerLayoutClient>

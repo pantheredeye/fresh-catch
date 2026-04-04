@@ -46,9 +46,11 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
       return <BusinessNotFound businessSlug={null} />;
     }
 
-    orgId = detected.id;
-    vendorSlug = detected.slug;
-    vendorName = detected.name;
+    // Single vendor — redirect to their profile URL
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `/v/${detected.slug}` },
+    });
   }
 
   const { markets, popups, catchData } = await fetchVendorData(orgId);

@@ -35,8 +35,10 @@ model User {
   deliveryZip    String?
   deliveryNotes  String? // Special instructions
 
-  passwordHash String? // PBKDF2 hash (hex)
-  passwordSalt String? // Salt (hex)
+  passwordHash   String? // PBKDF2 hash (hex)
+  passwordSalt   String? // Salt (hex)
+  failedAttempts Int      @default(0) // Login attempt counter for lockout
+  lockedUntil    DateTime? // Account locked until this time
 
   deletedAt DateTime? // Soft delete timestamp
   createdAt DateTime  @default(now())
@@ -47,6 +49,7 @@ model User {
   shareEvents     ShareEvent[] // Relationship: User can have many share events
   invitesSent     Invite[]     @relation("InvitesSent")
   invitesAccepted Invite[]     @relation("InvitesAccepted")
+  conversations   Conversation[] // Conversations where user is a participant
 }
 
 model Credential {
@@ -79,12 +82,16 @@ model Organization {
   defaultDepositBps Int?                  // Default deposit in basis points (optional)
   feeModel         String  @default("customer") // 'customer' | 'vendor' | 'split'
 
-  memberships  Membership[] // Relationship: Organization can have multiple members
-  markets      Market[] // Relationship: Organization can have multiple markets
-  orders       Order[] // Relationship: Organization can have multiple orders
-  shareEvents  ShareEvent[] // Relationship: Organization can have multiple share events
-  invites      Invite[] // Relationship: Organization can have multiple invites
-  catchUpdates CatchUpdate[] // Relationship: Organization can have multiple catch updates
+  // Branding
+  accentColor String? // Hex color for vendor storefront theming (e.g., "#FF6B6B")
+
+  memberships   Membership[] // Relationship: Organization can have multiple members
+  markets       Market[] // Relationship: Organization can have multiple markets
+  orders        Order[] // Relationship: Organization can have multiple orders
+  shareEvents   ShareEvent[] // Relationship: Organization can have multiple share events
+  invites       Invite[] // Relationship: Organization can have multiple invites
+  catchUpdates  CatchUpdate[] // Relationship: Organization can have multiple catch updates
+  conversations Conversation[] // Relationship: Organization can have multiple conversations
 }
 
 model Market {
@@ -106,6 +113,10 @@ model Market {
   notes          String? // Catch-all for unstructured voice content
   rawTranscript  String? // Verbatim Whisper output (null for form-created)
   cancelledAt    DateTime? // Set if popup cancelled before happening
+
+  // Location fields
+  county         String? // County name, populated by user
+  city           String? // City name, populated by user
 
   organization Organization @relation(fields: [organizationId], references: [id])
 
@@ -267,4 +278,41 @@ model CatchUpdate {
 
   @@index([organizationId])
   @@index([organizationId, status])
+}
+
+model Conversation {
+  id             String   @id @default(uuid())
+  organizationId String
+  customerId     String? // Null for anonymous customers
+  customerName   String // Display name (provided by customer)
+  customerPhone  String? // Optional contact phone
+  customerEmail  String? // Optional email for reply notifications
+  status         String   @default("open") // "open" | "resolved"
+  lastMessageAt  DateTime @default(now()) // For sorting conversations by recency
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  customer     User?        @relation(fields: [customerId], references: [id])
+  messages     Message[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, lastMessageAt])
+  @@index([customerId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderType     String // "customer" | "vendor"
+  senderId       String? // User ID if authenticated, null for anonymous
+  content        String
+  readAt         DateTime? // Null until read by recipient
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
 }

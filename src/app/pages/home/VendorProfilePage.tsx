@@ -17,6 +17,9 @@ export async function VendorProfilePage({ ctx, request }: RequestInfo) {
     return <BusinessNotFound businessSlug={slug} />;
   }
 
+  const url = new URL(request.url);
+  const chatConversationId = url.searchParams.get("chat") ?? undefined;
+
   const { markets, popups, catchData } = await fetchVendorData(ctx.browsingOrganization.id);
 
   return (
@@ -26,6 +29,7 @@ export async function VendorProfilePage({ ctx, request }: RequestInfo) {
       catchData={catchData}
       quickActions={getQuickActions(ctx.browsingOrganization.slug)}
       ctx={ctx}
+      chatConversationId={chatConversationId}
     />
   );
 }

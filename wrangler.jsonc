@@ -17,25 +17,42 @@
       {
         "name": "SESSION_DURABLE_OBJECT",
         "class_name": "SessionDurableObject"
+      },
+      {
+        "name": "CHAT_DURABLE_OBJECT",
+        "class_name": "ChatDurableObject"
+      },
+      {
+        "name": "RATE_LIMIT_DURABLE_OBJECT",
+        "class_name": "RateLimitDurableObject"
       }
     ]
   },
   "vars": {
-    "WEBAUTHN_APP_NAME": "Digital Glue Market",
+    "WEBAUTHN_APP_NAME": "digitalglue-market",
     "WEBAUTHN_RP_ID": "market.digitalglue.dev",
     "RESEND_API_KEY": "",
     "ADMIN_EMAIL": "barrett@digitalglue.dev",
-    // Stripe publishable key (client-side, safe to expose)
-    "STRIPE_PUBLISHABLE_KEY": ""
-    // Stripe secrets — set via `wrangler secret put`:
-    //   wrangler secret put STRIPE_SECRET_KEY
-    //   wrangler secret put STRIPE_WEBHOOK_SECRET
+    "STRIPE_PUBLISHABLE_KEY": "",
+    "APP_URL": "https://market.digitalglue.dev"
   },
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": [
         "SessionDurableObject"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_classes": [
+        "ChatDurableObject"
+      ]
+    },
+    {
+      "tag": "v3",
+      "new_classes": [
+        "RateLimitDurableObject"
       ]
     }
   ],

@@ -4,6 +4,7 @@ import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
+import { requireCsrf } from "@/session/csrf";
 
 interface CatchContent {
   headline: string;
@@ -11,7 +12,9 @@ interface CatchContent {
   summary: string;
 }
 
-export async function publishCatch(content: CatchContent, rawTranscript: string) {
+export async function publishCatch(csrfToken: string, content: CatchContent, rawTranscript: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -38,7 +41,9 @@ export async function publishCatch(content: CatchContent, rawTranscript: string)
   return { success: true };
 }
 
-export async function clearCatch() {
+export async function clearCatch(csrfToken: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {

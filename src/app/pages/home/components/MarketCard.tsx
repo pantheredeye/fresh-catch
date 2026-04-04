@@ -8,6 +8,8 @@ type Market = {
   subtitle: string | null;
   active: boolean;
   catchPreview?: string | null;
+  county: string | null;
+  city: string | null;
 };
 
 interface MarketCardProps {
@@ -38,7 +40,7 @@ export function MarketCard({
     <div style={{
       background: isFavorite ? 'var(--color-surface-favorite)' : 'var(--color-surface-primary)',
       borderRadius: 'var(--radius-lg)',
-      padding: 'var(--space-lg)',
+      padding: 'var(--space-md)',
       marginBottom: 'var(--space-md)',
       boxShadow: 'var(--shadow-md)',
       border: '1px solid var(--color-border-subtle)',
@@ -66,7 +68,8 @@ export function MarketCard({
       </button>
 
       <div className="heading-xl" style={{
-        paddingRight: 'var(--space-xl)' // Space for favorite button
+        paddingRight: 'var(--space-xl)', // Space for favorite button
+        fontSize: 'var(--font-size-xl)'
       }}>
         {market.name}
       </div>
@@ -77,10 +80,18 @@ export function MarketCard({
         <span style={{
           color: 'var(--color-action-primary)',
           fontWeight: 'var(--font-weight-semibold)',
-          fontSize: 'var(--font-size-md)'
+          fontSize: 'var(--font-size-lg)'
         }}>
           {market.schedule}
         </span>
+        {(market.county || market.city) && (
+          <span style={{
+            color: 'var(--color-text-secondary)',
+            fontSize: 'var(--font-size-md)'
+          }}>
+            {[market.county, market.city].filter(Boolean).join(' · ')}
+          </span>
+        )}
         {market.subtitle && (
           <span style={{
             color: 'var(--color-text-secondary)',
@@ -136,16 +147,16 @@ export function MarketCard({
             color: 'var(--color-text-primary)',
             textDecoration: 'none',
             boxShadow: 'var(--shadow-sm)'
-          }} title="Edit Market">
-            ⚙️
+          }} title="Edit Market" aria-label="Edit market settings">
+            <span aria-hidden="true">⚙️</span>
           </a>
         )}
         <a href={`#directions-${market.id}`} className="icon-button-md" style={{
           background: 'var(--color-surface-secondary)',
           textDecoration: 'none',
           fontSize: 'var(--font-size-2xl)'
-        }}>
-          📍
+        }} aria-label="Get directions">
+          <span aria-hidden="true">📍</span>
         </a>
       </div>
     </div>

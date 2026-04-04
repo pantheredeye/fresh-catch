@@ -5,6 +5,7 @@ import { Container, Card, Button, TextInput, Textarea } from "@/design-system";
 import { createOrder } from "./functions";
 
 interface NewOrderUIProps {
+  csrfToken: string;
   vendorName: string;
   vendorId: string;
   defaultContact: {
@@ -13,7 +14,7 @@ interface NewOrderUIProps {
   };
 }
 
-export function NewOrderUI({ vendorName, vendorId, defaultContact }: NewOrderUIProps) {
+export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: NewOrderUIProps) {
   const [contactName, setContactName] = useState(defaultContact.name);
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState(defaultContact.phone);
@@ -53,7 +54,7 @@ export function NewOrderUI({ vendorName, vendorId, defaultContact }: NewOrderUIP
     setMessage('Submitting your order...');
 
     try {
-      const result = await createOrder({
+      const result = await createOrder(csrfToken, {
         contactName: contactName.trim(),
         contactEmail: contactEmail.trim() || null,
         contactPhone: contactPhone.trim() || null,

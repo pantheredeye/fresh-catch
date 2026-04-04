@@ -6,6 +6,12 @@ export { NavItem } from './NavItem';
 export { FreshSheet } from './FreshSheet';
 export { PopupCard } from './PopupCard';
 export { VendorDirectory } from './VendorDirectory';
+export { ChatSheet } from './ChatSheet';
+export { NamePrompt } from './NamePrompt';
+export { EmailPromptBubble } from './EmailPromptBubble';
+export { CompactMarketRow } from './CompactMarketRow';
+export { PasskeyNudge } from './PasskeyNudge';
+export { InstallBanner } from './InstallBanner';
 
 // Variant system - swap .v1 to .v2 to switch active version
 export { FreshHeroV2 as FreshHero } from './FreshHero.v2';

@@ -7,6 +7,7 @@ import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/utils/emai
 import { getStripe } from "@/utils/stripe";
 import { getPaymentStatus } from "@/utils/payments";
 import { env } from "cloudflare:workers";
+import { requireCsrf } from "@/session/csrf";
 
 interface CreateOrderData {
   contactName: string;
@@ -39,7 +40,9 @@ function validateOrder(data: CreateOrderData): { valid: boolean; errors: string[
   return { valid: errors.length === 0, errors };
 }
 
-export async function createOrder(data: CreateOrderData, vendorOrgId: string) {
+export async function createOrder(csrfToken: string, data: CreateOrderData, vendorOrgId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   // Must be logged in
@@ -168,7 +171,9 @@ export async function createOrder(data: CreateOrderData, vendorOrgId: string) {
   }
 }
 
-export async function updateOrder(orderId: string, data: Partial<CreateOrderData>) {
+export async function updateOrder(csrfToken: string, orderId: string, data: Partial<CreateOrderData>) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!ctx.user) {
@@ -209,7 +214,9 @@ export async function updateOrder(orderId: string, data: Partial<CreateOrderData
   }
 }
 
-export async function createCheckoutSession(orderId: string, tipAmount?: number) {
+export async function createCheckoutSession(csrfToken: string, orderId: string, tipAmount?: number) {
+  requireCsrf(csrfToken);
+
   const { ctx, request } = requestInfo;
 
   if (!ctx.user) {
@@ -357,7 +364,9 @@ export async function createCheckoutSession(orderId: string, tipAmount?: number)
   }
 }
 
-export async function cancelOrder(orderId: string) {
+export async function cancelOrder(csrfToken: string, orderId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!ctx.user) {

@@ -29,12 +29,13 @@ type Order = {
 interface CustomerOrdersUIProps {
   orders: Order[];
   ctx: AppContext;
+  csrfToken: string;
   feeModel: FeeModel;
   checkoutStatus?: "success" | "cancel" | null;
   checkoutOrder?: number | null;
 }
 
-export function CustomerOrdersUI({ orders, ctx, feeModel, checkoutStatus, checkoutOrder }: CustomerOrdersUIProps) {
+export function CustomerOrdersUI({ orders, ctx, csrfToken, feeModel, checkoutStatus, checkoutOrder }: CustomerOrdersUIProps) {
   const vendorSlug = ctx.browsingOrganization?.slug;
   const newOrderHref = vendorSlug ? `/orders/new?b=${vendorSlug}` : '/orders/new';
   return (
@@ -95,6 +96,7 @@ export function CustomerOrdersUI({ orders, ctx, feeModel, checkoutStatus, checko
                 order={order}
                 viewMode="customer"
                 ctx={ctx}
+                csrfToken={csrfToken}
                 feeModel={feeModel}
               />
             ))}

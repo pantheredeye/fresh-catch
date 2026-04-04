@@ -50,9 +50,10 @@ type Order = {
 interface AdminOrderCardProps {
   order: Order;
   ctx: AppContext;
+  csrfToken: string;
 }
 
-export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
+export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [priceInput, setPriceInput] = useState(order.price ? String(order.price / 100) : '');
   const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
@@ -156,7 +157,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
     }
 
     startTransition(async () => {
-      const result = await confirmOrder(order.id, priceInCents, adminNotes, depositOverride);
+      const result = await confirmOrder(csrfToken, order.id, priceInCents, adminNotes, depositOverride);
       if (result.success) {
         setIsEditing(false);
       } else {
@@ -170,7 +171,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await completeOrder(order.id);
+      const result = await completeOrder(csrfToken, order.id);
       if (!result.success) {
         setErrorMessage(result.error || 'Failed to complete order');
       }
@@ -182,7 +183,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
 
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await cancelOrderAdmin(order.id);
+      const result = await cancelOrderAdmin(csrfToken, order.id);
       if (!result.success) {
         setErrorMessage(result.error || 'Failed to cancel order');
       }
@@ -207,7 +208,7 @@ export function AdminOrderCard({ order, ctx }: AdminOrderCardProps) {
     }
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await markAsPaid(order.id, amountCents, paymentMethod, paymentNotes || undefined);
+      const result = await markAsPaid(csrfToken, order.id, amountCents, paymentMethod, paymentNotes || undefined);
       if (result.success) {
         setShowPaymentModal(false);
       } else {

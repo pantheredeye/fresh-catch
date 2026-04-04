@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
+import { AdminChatBubble, AdminChatSheet } from "@/app/pages/admin/chat";
 import { publishCatch } from "@/app/pages/admin/catch/catch-functions";
 import {
   createMarket,
@@ -25,6 +26,7 @@ export function AdminLayoutClient({
   currentOrganization,
   isAdmin,
   isOwner,
+  csrfToken,
   children,
 }: {
   user: User | null;
@@ -37,10 +39,12 @@ export function AdminLayoutClient({
   } | null;
   isAdmin: boolean;
   isOwner: boolean;
+  csrfToken: string;
   children: React.ReactNode;
 }) {
   const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -59,12 +63,12 @@ export function AdminLayoutClient({
           items: data.items as { name: string; note: string }[],
           summary: data.summary as string,
         };
-        const result = await publishCatch(content, (data.rawTranscript as string) || "");
+        const result = await publishCatch(csrfToken, content, (data.rawTranscript as string) || "");
         if (!result.success) throw new Error(result.error || "Failed to publish catch");
         break;
       }
       case "create_market": {
-        await createMarket({
+        await createMarket(csrfToken, {
           name: data.name as string,
           schedule: (data.schedule as string) || "",
           locationDetails: (data.locationDetails as string) || null,
@@ -76,7 +80,7 @@ export function AdminLayoutClient({
         break;
       }
       case "create_popup": {
-        await createMarket({
+        await createMarket(csrfToken, {
           name: data.name as string,
           schedule: (data.schedule as string) || "",
           type: "popup",
@@ -92,14 +96,15 @@ export function AdminLayoutClient({
       }
       case "update_market": {
         const { marketId, rawTranscript, ...fields } = data;
-        await updateMarket(marketId as string, {
+        await updateMarket(csrfToken, marketId as string, {
           ...fields,
           rawTranscript: (rawTranscript as string) || null,
-        } as Parameters<typeof updateMarket>[1]);
+        } as Parameters<typeof updateMarket>[2]);
         break;
       }
       case "update_market_catch": {
         await updateMarketCatchPreview(
+          csrfToken,
           data.marketId as string,
           data.catchPreview as string,
           (data.rawTranscript as string) || null,
@@ -138,7 +143,7 @@ export function AdminLayoutClient({
   }
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout" data-surface="admin">
       <header className="admin-header">
         {/* Exit Admin section - above unified header */}
         <div className="admin-exit-section">
@@ -155,6 +160,7 @@ export function AdminLayoutClient({
           variant="admin"
           user={user}
           currentOrganization={currentOrganization}
+          csrfToken={csrfToken}
         />
 
         {/* Admin nav tabs - below unified header */}
@@ -170,6 +176,9 @@ export function AdminLayoutClient({
               Team
             </a>
           )}
+          <a href="/admin/messages" className="admin-nav-item">
+            Messages
+          </a>
           <a href="/admin/settings/stripe" className="admin-nav-item">
             Settings
           </a>
@@ -187,6 +196,14 @@ export function AdminLayoutClient({
         />
       )}
       {toast && <Toast message={toast} />}
+      <AdminChatBubble organizationId={currentOrganization?.id} onClick={() => setChatOpen(true)} />
+      {currentOrganization && (
+        <AdminChatSheet
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          organizationId={currentOrganization.id}
+        />
+      )}
     </div>
   );
 }

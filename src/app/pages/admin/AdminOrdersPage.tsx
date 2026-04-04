@@ -48,5 +48,5 @@ export async function AdminOrdersPage({ ctx }: RequestInfo) {
       : undefined,
   }));
 
-  return <AdminOrdersUI orders={typedOrders} ctx={ctx} />;
+  return <AdminOrdersUI orders={typedOrders} ctx={ctx} csrfToken={ctx.session!.csrfToken} />;
 }

@@ -52,7 +52,7 @@ import { TextInput, Button, Container, Card } from "@/design-system";
  * - Manager invitation flow integration
  * - Business logo upload during setup
  */
-export function Setup({ ctx }: { ctx: any }) {
+export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
   const isLoggedIn = !!ctx.user;
   const [username, setUsername] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -83,7 +83,7 @@ export function Setup({ ctx }: { ctx: any }) {
       setMessage('Creating your business...');
 
       try {
-        const result = await createBusinessForLoggedInUser(businessName, slug);
+        const result = await createBusinessForLoggedInUser(csrfToken, businessName, slug);
 
         if (!result.success) {
           throw new Error(result.error || "Business creation failed");
@@ -151,12 +151,19 @@ export function Setup({ ctx }: { ctx: any }) {
     }
   }, [status, countdown]);
 
-  const getStatusColor = () => {
+  const getStatusBg = () => {
     switch (status) {
       case 'success': return 'var(--color-status-success)';
       case 'error': return 'var(--color-status-error)';
-      case 'loading': return 'var(--color-status-info)';
+      case 'loading': return 'var(--color-status-info-bg)';
       default: return 'var(--color-text-tertiary)';
+    }
+  };
+
+  const getStatusAccent = () => {
+    switch (status) {
+      case 'loading': return 'var(--color-status-info)';
+      default: return undefined;
     }
   };
 
@@ -269,9 +276,10 @@ export function Setup({ ctx }: { ctx: any }) {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 'var(--space-xs)',
-              background: getStatusColor(),
+              background: getStatusBg(),
               color: getStatusTextColor(),
-              border: `1px solid ${getStatusColor()}`
+              border: `1px solid ${getStatusBg()}`,
+              borderLeft: getStatusAccent() ? `3px solid ${getStatusAccent()}` : undefined,
             }}
           >
             {status === 'loading' && (

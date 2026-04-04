@@ -16,7 +16,7 @@ export const resolveBrowsingOrg =
 
     const org = await db.organization.findFirst({
       where: { slug, type: "business" },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, accentColor: true },
     });
 
     if (org) {
