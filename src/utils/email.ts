@@ -183,15 +183,18 @@ export async function sendChatReplyNotificationEmail(data: {
   customerName: string;
   vendorName: string;
   messagePreview: string;
-  chatUrl: string;
+  chatPath: string;
   businessName: string;
 }) {
+  const appUrl = env.APP_URL || 'https://market.digitalglue.dev';
+  const chatUrl = `${appUrl}${data.chatPath}`;
+
   const html = await render(
     ChatReplyNotification({
       customerName: data.customerName,
       vendorName: data.vendorName,
       messagePreview: data.messagePreview,
-      chatUrl: data.chatUrl,
+      chatUrl,
       businessName: data.businessName,
     })
   );
