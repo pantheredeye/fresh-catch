@@ -103,8 +103,8 @@
 }
 
 .admin-exit-section {
-  background: var(--color-glass-subtle);
-  border-bottom: 1px solid var(--color-glass-subtle);
+  background: var(--color-surface-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
   padding: var(--space-xs) 0;
 }
 
@@ -117,8 +117,8 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: var(--color-glass-subtle);
-  border: 1px solid var(--color-glass-light);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -128,10 +128,9 @@
 }
 
 .exit-admin-button:hover {
-  background: var(--color-glass-light);
-  border-color: var(--color-glass-border-light);
+  background: var(--color-surface-secondary);
+  border-color: var(--color-border-subtle);
   color: var(--color-text-primary);
-  transform: translateX(-2px);
 }
 
 .exit-admin-button .back-arrow {
@@ -139,15 +138,11 @@
   transition: transform var(--duration-fast) var(--ease-out);
 }
 
-.exit-admin-button:hover .back-arrow {
-  transform: translateX(-2px);
-}
-
 .admin-nav {
   padding-bottom: var(--space-md);
   display: flex;
   gap: var(--space-sm);
-  border-bottom: 1px solid var(--color-glass-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .admin-nav-item {
@@ -162,15 +157,15 @@
 }
 
 .admin-nav-item:hover {
-  color: var(--color-coral);
-  background: rgba(255, 127, 80, 0.05);
+  color: var(--color-action-primary);
+  background: rgba(0, 102, 204, 0.05);
 }
 
 /* Active state - you'll need to add this class dynamically based on current route */
 .admin-nav-item.active,
 .admin-nav-item:focus-visible {
-  color: var(--color-coral-vivid);
-  background: rgba(255, 127, 80, 0.1);
+  color: var(--color-action-primary);
+  background: rgba(0, 102, 204, 0.08);
   outline: none;
 }
 
@@ -181,7 +176,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--color-gradient-secondary);
+  background: var(--color-action-primary);
 }
 
 .admin-main {
