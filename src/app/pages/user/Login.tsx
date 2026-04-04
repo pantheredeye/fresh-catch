@@ -19,7 +19,7 @@ import { isBreachedPasswordLocal } from "@/utils/breached-passwords";
 
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
-type Flow = "initial" | "login-password" | "login-passkey" | "register" | "confirm-register";
+type Flow = "initial" | "login-password" | "login-passkey" | "register";
 
 const linkStyle = {
   background: "none",
@@ -43,6 +43,7 @@ export function Login({ ctx }: { ctx: any }) {
   const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
+  const [isNewAccount, setIsNewAccount] = useState(false);
   const [bSlug, setBSlug] = useState<string | null>(null);
 
   // Capture ?b= param from URL on mount
@@ -105,7 +106,8 @@ export function Login({ ctx }: { ctx: any }) {
           handlePasskeyLogin();
         }
       } else {
-        setFlow("confirm-register");
+        setIsNewAccount(true);
+        setFlow("register");
         setStatus("idle");
         setMessage("");
       }
@@ -261,14 +263,14 @@ export function Login({ ctx }: { ctx: any }) {
   };
 
   const heading =
-    flow === "confirm-register" || flow === "register"
+    flow === "register"
       ? "Create Account"
       : flow === "login-password" || flow === "login-passkey"
       ? "Welcome Back"
       : "Welcome";
 
   const subtitle =
-    flow === "confirm-register" || flow === "register"
+    flow === "register"
       ? `Create a new account with ${BUSINESS_CONTEXT}`
       : flow === "login-password" || flow === "login-passkey"
       ? `Sign in to ${BUSINESS_CONTEXT}`
@@ -278,6 +280,7 @@ export function Login({ ctx }: { ctx: any }) {
     setFlow("initial");
     setPassword("");
     setConfirmPassword("");
+    setIsNewAccount(false);
     setStatus("idle");
     setMessage("");
     setFailedAttempts(0);
@@ -328,36 +331,23 @@ export function Login({ ctx }: { ctx: any }) {
           </p>
         </div>
 
-        {/* Confirm Register (new user found) */}
-        {flow === "confirm-register" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
-            <div style={{
-              padding: "var(--space-md)",
-              background: "var(--color-status-info)",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "var(--font-size-sm)",
-              color: "var(--color-text-primary)",
-              textAlign: "center",
-            }}>
-              No account found for <strong>{email}</strong>
-            </div>
-            <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-              <Button variant="secondary" size="lg" fullWidth onClick={() => { resetFlow(); setEmail(""); }}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="lg" fullWidth onClick={() => setFlow("register")}>
-                Create Account
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Register with password */}
         {flow === "register" && (
           <form
             onSubmit={(e) => { e.preventDefault(); handlePasswordRegister(); }}
             style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
           >
+            {isNewAccount && (
+              <div style={{
+                padding: "var(--space-sm) var(--space-md)",
+                background: "var(--color-status-info-bg)",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--font-size-sm)",
+                color: "var(--color-text-primary)",
+              }}>
+                Creating account for <strong>{email}</strong>
+              </div>
+            )}
             <TextInput
               label="Email"
               type="email"
@@ -502,7 +492,7 @@ export function Login({ ctx }: { ctx: any }) {
           </div>
         )}
 
-        {(flow === "register" || flow === "confirm-register" || flow === "login-password" || flow === "login-passkey") && (
+        {(flow === "register" || flow === "login-password" || flow === "login-passkey") && (
           <div style={{ marginTop: "var(--space-sm)", textAlign: "center" }}>
             <button onClick={resetFlow} disabled={disabled} style={linkStyle}>
               Back to sign in
