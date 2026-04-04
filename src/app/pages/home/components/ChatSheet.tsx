@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { NamePrompt, getStoredConversationId } from "./NamePrompt";
+import { EmailPromptBubble } from "./EmailPromptBubble";
 
 type SheetState = "closed" | "peek" | "full";
 
@@ -13,11 +14,14 @@ interface ChatMessage {
   createdAt: string;
 }
 
+type EmailPromptState = "pending" | "shown" | "submitted" | "dismissed";
+
 interface ChatSheetProps {
   isOpen: boolean;
   onClose: () => void;
   organizationId: string;
   vendorSlug: string;
+  vendorName?: string;
   /** If provided, skip name prompt and auto-create conversation */
   user?: { name: string; phone?: string } | null;
 }
@@ -51,22 +55,44 @@ function useReducedMotion(): boolean {
   return reduced;
 }
 
+function getEmailPromptKey(convId: string): string {
+  return `fresh-catch-email-prompt-${convId}`;
+}
+
+function loadEmailPromptState(convId: string): EmailPromptState {
+  try {
+    const stored = localStorage.getItem(getEmailPromptKey(convId));
+    if (stored === "submitted" || stored === "dismissed") return stored;
+  } catch { /* noop */ }
+  return "pending";
+}
+
 export function ChatSheet({
   isOpen,
   onClose,
   organizationId,
   vendorSlug,
+  vendorName,
   user,
 }: ChatSheetProps) {
   const [sheetState, setSheetState] = useState<SheetState>("closed");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [emailPromptState, setEmailPromptState] = useState<EmailPromptState>("pending");
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   // Restore conversationId from localStorage on mount
   useEffect(() => {
     const stored = getStoredConversationId(organizationId);
     if (stored) setConversationId(stored);
   }, [organizationId]);
+
+  // Restore email prompt state from localStorage
+  useEffect(() => {
+    if (!conversationId) return;
+    const state = loadEmailPromptState(conversationId);
+    setEmailPromptState(state);
+  }, [conversationId]);
   const [inputValue, setInputValue] = useState("");
   const [sendCooldown, setSendCooldown] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -111,6 +137,10 @@ export function ChatSheet({
           setMessages(data.messages);
         } else if (data.type === "message") {
           setMessages((prev) => [...prev, data]);
+          // Show email prompt after first vendor message
+          if (data.senderType === "vendor") {
+            setEmailPromptState((prev) => (prev === "pending" ? "shown" : prev));
+          }
         }
       });
 
@@ -499,6 +529,38 @@ export function ChatSheet({
                   </div>
                 ))
               )}
+
+              {/* Email prompt - shown after first vendor reply */}
+              {emailPromptState === "shown" && vendorName && conversationId && (
+                <EmailPromptBubble
+                  conversationId={conversationId}
+                  vendorName={vendorName}
+                  onDismiss={() => {
+                    setEmailPromptState("dismissed");
+                    try { localStorage.setItem(getEmailPromptKey(conversationId), "dismissed"); } catch { /* noop */ }
+                  }}
+                  onSubmitted={(email) => {
+                    setSubmittedEmail(email);
+                    setEmailPromptState("submitted");
+                    try { localStorage.setItem(getEmailPromptKey(conversationId), "submitted"); } catch { /* noop */ }
+                  }}
+                />
+              )}
+
+              {/* Email submitted confirmation */}
+              {emailPromptState === "submitted" && submittedEmail && (
+                <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                  <p style={{
+                    margin: 0,
+                    fontSize: "var(--font-size-sm)",
+                    color: "var(--color-text-tertiary)",
+                    fontStyle: "italic",
+                  }}>
+                    We&apos;ll notify you at {submittedEmail}
+                  </p>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 

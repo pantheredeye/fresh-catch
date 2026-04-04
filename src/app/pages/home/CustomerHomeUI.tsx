@@ -137,6 +137,7 @@ export function CustomerHomeUI({
       {/* Bottom Navigation */}
       <BottomNavigation
         vendorSlug={vendorSlug}
+        vendorName={ctx.browsingOrganization?.name}
         organizationId={ctx.browsingOrganization?.id ?? ctx.currentOrganization?.id}
         user={ctx.user ? { name: ctx.user.name ?? 'Customer', phone: undefined } : null}
       />
@@ -212,6 +213,7 @@ function AllMarketsSection({
   return (
     <div style={{
       padding: 'var(--space-lg) var(--space-md)',
+      paddingBottom: '100px',
       maxWidth: '500px',
       margin: '0 auto'
     }}>

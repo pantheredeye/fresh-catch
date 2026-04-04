@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { ShareModal, NotificationBadge } from '@/design-system';
 import { getCurrentOrgShareUrl } from '@/utils/share';
 import { trackShare } from '../share-functions';
-import { getUnreadCount, markAsRead } from '@/chat/functions';
+import { getUnreadCountForConversation, markAsRead } from '@/chat/functions';
 import { getStoredConversationId } from './NamePrompt';
 import { ChatSheet } from './ChatSheet';
 
@@ -14,8 +14,9 @@ import { ChatSheet } from './ChatSheet';
  * WHY: Chat replaces Home button; logo in Header handles home navigation.
  * Quick Order button styled prominently in center.
  */
-export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
+export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, user }: {
   vendorSlug?: string;
+  vendorName?: string;
   organizationId?: string;
   user?: { name: string; phone?: string } | null;
 } = {}) {
@@ -29,8 +30,10 @@ export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
   // Poll unread count every 30s when chat is closed
   const fetchUnread = useCallback(async () => {
     if (!organizationId) return;
+    const convId = getStoredConversationId(organizationId);
+    if (!convId) return;
     try {
-      const count = await getUnreadCount(organizationId, 'customer');
+      const count = await getUnreadCountForConversation(convId, 'customer');
       setUnreadCount(count);
     } catch {
       // Silently fail — badge just won't update
@@ -262,6 +265,7 @@ export function BottomNavigationV2({ vendorSlug, organizationId, user }: {
           onClose={() => setChatOpen(false)}
           organizationId={organizationId}
           vendorSlug={vendorSlug}
+          vendorName={vendorName}
           user={user}
         />
       )}
