@@ -5,6 +5,7 @@ import { OrderConfirmation } from '@/emails/OrderConfirmation';
 import { OrderConfirmed } from '@/emails/OrderConfirmed';
 import { AdminNewOrder } from '@/emails/AdminNewOrder';
 import { PaymentReceived } from '@/emails/PaymentReceived';
+import { ChatReplyNotification } from '@/emails/ChatReplyNotification';
 
 // Lazy-init Resend client (only when email is sent)
 let resendClient: Resend | null = null;
@@ -173,6 +174,31 @@ export async function sendPaymentReceivedEmail(data: {
   return sendEmail({
     to: data.to,
     subject: `Payment Received - Order #${data.orderNumber} - ${data.businessName}`,
+    html,
+  });
+}
+
+export async function sendChatReplyNotificationEmail(data: {
+  to: string;
+  customerName: string;
+  vendorName: string;
+  messagePreview: string;
+  chatUrl: string;
+  businessName: string;
+}) {
+  const html = await render(
+    ChatReplyNotification({
+      customerName: data.customerName,
+      vendorName: data.vendorName,
+      messagePreview: data.messagePreview,
+      chatUrl: data.chatUrl,
+      businessName: data.businessName,
+    })
+  );
+
+  return sendEmail({
+    to: data.to,
+    subject: `${data.vendorName} from ${data.businessName} replied to your message`,
     html,
   });
 }
