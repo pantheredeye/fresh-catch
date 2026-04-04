@@ -25,7 +25,9 @@
     "check": "npm run generate && npm run types",
     "types": "tsc",
     "tokens:export": "node scripts/export-tokens.js",
-    "prepare": "vibe-rules install cursor"
+    "prepare": "vibe-rules install cursor",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
@@ -56,6 +58,7 @@
     "typescript": "^5.8.3",
     "vibe-rules": "^0.2.31",
     "vite": "^6.2.6",
+    "vitest": "^4.1.2",
     "wrangler": "^4.42.2"
   },
   "pnpm": {
