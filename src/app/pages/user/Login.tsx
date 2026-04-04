@@ -40,6 +40,7 @@ export function Login({ ctx }: { ctx: any }) {
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
   const [bSlug, setBSlug] = useState<string | null>(null);
 
@@ -124,14 +125,18 @@ export function Login({ ctx }: { ctx: any }) {
         throw new Error(result.error || "Invalid email or password");
       }
 
+      setFailedAttempts(0);
       const destination = withBParam(result.isAdmin ? "/admin" : "/");
       setRedirectUrl(destination);
       setStatus("success");
       setMessage("Welcome back! Redirecting...");
       setCountdown(2);
     } catch (error) {
+      const attempts = failedAttempts + 1;
+      setFailedAttempts(attempts);
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Login failed. Please try again.");
+      const base = error instanceof Error ? error.message : "Login failed. Please try again.";
+      setMessage(attempts >= 3 ? `${base} You may want to wait a few minutes before trying again.` : base);
     }
   };
 
@@ -263,6 +268,7 @@ export function Login({ ctx }: { ctx: any }) {
     setConfirmPassword("");
     setStatus("idle");
     setMessage("");
+    setFailedAttempts(0);
   };
 
   const rememberMeCheckbox = (
