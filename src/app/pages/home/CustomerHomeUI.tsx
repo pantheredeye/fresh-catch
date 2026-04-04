@@ -11,7 +11,8 @@ import {
   CompactMarketRow,
   PopupCard,
   BottomNavigation,
-  PasskeyNudge
+  PasskeyNudge,
+  InstallBanner
 } from "./components";
 
 type Market = {
@@ -115,6 +116,9 @@ export function CustomerHomeUI({
 
       {/* Passkey Nudge - post-password-registration */}
       <PasskeyNudge />
+
+      {/* PWA Install Banner - shows after interaction */}
+      <InstallBanner />
 
       {/* Popup Markets Section - Only show if popups exist */}
       {popups.length > 0 && (
