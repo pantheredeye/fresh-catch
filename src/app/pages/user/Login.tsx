@@ -172,6 +172,9 @@ export function Login({ ctx }: { ctx: any }) {
       setStatus("success");
       setMessage("Welcome back! Redirecting...");
       setCountdown(2);
+
+      // User has passkey - suppress passkey nudge
+      try { localStorage.setItem("fresh-catch-has-passkey", "true"); } catch {}
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Passkey login failed. Please try again.");
@@ -209,6 +212,10 @@ export function Login({ ctx }: { ctx: any }) {
       setStatus("success");
       setMessage("Welcome to Fresh Catch! Redirecting...");
       setCountdown(2);
+
+      // Mark for passkey nudge on home page
+      try { localStorage.setItem("fresh-catch-just-registered-password", "true"); } catch {}
+
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Registration failed. Please try again.");

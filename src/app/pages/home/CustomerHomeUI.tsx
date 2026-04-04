@@ -10,7 +10,8 @@ import {
   MarketCard,
   CompactMarketRow,
   PopupCard,
-  BottomNavigation
+  BottomNavigation,
+  PasskeyNudge
 } from "./components";
 
 type Market = {
@@ -111,6 +112,9 @@ export function CustomerHomeUI({
       ) : (
         <FreshHero actions={quickActions} />
       )}
+
+      {/* Passkey Nudge - post-password-registration */}
+      <PasskeyNudge />
 
       {/* Popup Markets Section - Only show if popups exist */}
       {popups.length > 0 && (
