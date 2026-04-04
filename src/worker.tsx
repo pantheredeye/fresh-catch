@@ -150,6 +150,7 @@ export default defineApp([
           userId: ctx.session.userId,
           currentOrganizationId: defaultMembership.organizationId,
           role: defaultMembership.role,
+          csrfToken: ctx.session.csrfToken,
         });
 
         // Update the session object in context
@@ -178,6 +179,7 @@ export default defineApp([
               userId: ctx.session.userId,
               currentOrganizationId: ctx.session.currentOrganizationId,
               role: currentMembership.role,
+              csrfToken: ctx.session.csrfToken,
             });
             ctx.session.role = currentMembership.role;
           }
@@ -187,6 +189,7 @@ export default defineApp([
             userId: ctx.session.userId,
             currentOrganizationId: null,
             role: null,
+            csrfToken: ctx.session.csrfToken,
           });
           response.headers.set("Location", "/");
           return new Response(null, { status: 302, headers: response.headers });

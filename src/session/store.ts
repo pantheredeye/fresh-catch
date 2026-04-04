@@ -49,6 +49,7 @@ export async function rotateSession(
     currentOrganizationId?: string | null;
     role?: string | null;
     challenge?: string | null;
+    csrfToken?: string;
   },
   saveOptions?: { maxAge?: number | true },
 ): Promise<void> {
@@ -63,6 +64,7 @@ export async function rotateSession(
       userId: currentSession.userId,
       currentOrganizationId: currentSession.currentOrganizationId,
       role: currentSession.role,
+      csrfToken: currentSession.csrfToken,
     };
   }
 
@@ -75,5 +77,28 @@ export async function rotateSession(
     currentOrganizationId: dataToPreserve.currentOrganizationId ?? null,
     role: dataToPreserve.role ?? null,
     ...(dataToPreserve.challenge !== undefined ? { challenge: dataToPreserve.challenge } : {}),
+    ...(dataToPreserve.csrfToken ? { csrfToken: dataToPreserve.csrfToken } : {}),
   }, saveOptions);
+}
+
+/**
+ * Validate a submitted CSRF token against the session token.
+ * Uses constant-time comparison to prevent timing attacks.
+ */
+export function validateCsrfToken(
+  sessionToken: string,
+  submittedToken: string,
+): boolean {
+  if (sessionToken.length !== submittedToken.length) return false;
+
+  const encoder = new TextEncoder();
+  const a = encoder.encode(sessionToken);
+  const b = encoder.encode(submittedToken);
+
+  // Constant-time comparison: always checks all bytes
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a[i] ^ b[i];
+  }
+  return mismatch === 0;
 }
