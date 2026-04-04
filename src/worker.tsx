@@ -27,6 +27,7 @@ import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
+export { RateLimitDurableObject } from "./rate-limit/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
