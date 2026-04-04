@@ -39,6 +39,7 @@ export function Login({ ctx }: { ctx: any }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
   const [bSlug, setBSlug] = useState<string | null>(null);
 
@@ -52,7 +53,13 @@ export function Login({ ctx }: { ctx: any }) {
   const withBParam = (url: string) =>
     bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
 
-  const disabled = status === "loading" || status === "success";
+  const disabled = status === "loading" || status === "success" || rateLimitCooldown > 0;
+
+  const startRateLimitCooldown = (seconds: number) => {
+    setRateLimitCooldown(seconds);
+    setStatus("error");
+    setMessage(`Too many attempts. Please wait ${seconds}s before trying again.`);
+  };
 
   const handleContinue = async () => {
     if (!email.trim() || !email.includes("@")) {
@@ -66,6 +73,11 @@ export function Login({ ctx }: { ctx: any }) {
 
     try {
       const result = await checkEmailExists(email);
+
+      if (result.rateLimited) {
+        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        return;
+      }
 
       if (result.exists) {
         if (result.hasPassword) {
@@ -102,6 +114,11 @@ export function Login({ ctx }: { ctx: any }) {
 
     try {
       const result = await loginWithPassword(email, password, rememberMe);
+
+      if (result.rateLimited) {
+        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        return;
+      }
 
       if (!result.success) {
         throw new Error(result.error || "Invalid email or password");
@@ -160,6 +177,11 @@ export function Login({ ctx }: { ctx: any }) {
     try {
       const result = await registerWithPassword(email, password, rememberMe);
 
+      if (result.rateLimited) {
+        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        return;
+      }
+
       if (!result.success) {
         throw new Error(result.error || "Registration failed");
       }
@@ -187,6 +209,23 @@ export function Login({ ctx }: { ctx: any }) {
       return () => clearTimeout(timer);
     }
   }, [status, countdown, redirectUrl]);
+
+  // Rate limit cooldown timer
+  useEffect(() => {
+    if (rateLimitCooldown > 0) {
+      const timer = setTimeout(() => {
+        const next = rateLimitCooldown - 1;
+        setRateLimitCooldown(next);
+        if (next === 0) {
+          setStatus("idle");
+          setMessage("");
+        } else {
+          setMessage(`Too many attempts. Please wait ${next}s before trying again.`);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [rateLimitCooldown]);
 
   const getStatusColor = () => {
     switch (status) {
