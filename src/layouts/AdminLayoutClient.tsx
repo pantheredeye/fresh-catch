@@ -26,6 +26,7 @@ export function AdminLayoutClient({
   currentOrganization,
   isAdmin,
   isOwner,
+  csrfToken,
   children,
 }: {
   user: User | null;
@@ -38,6 +39,7 @@ export function AdminLayoutClient({
   } | null;
   isAdmin: boolean;
   isOwner: boolean;
+  csrfToken: string;
   children: React.ReactNode;
 }) {
   const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
@@ -61,12 +63,12 @@ export function AdminLayoutClient({
           items: data.items as { name: string; note: string }[],
           summary: data.summary as string,
         };
-        const result = await publishCatch(content, (data.rawTranscript as string) || "");
+        const result = await publishCatch(csrfToken, content, (data.rawTranscript as string) || "");
         if (!result.success) throw new Error(result.error || "Failed to publish catch");
         break;
       }
       case "create_market": {
-        await createMarket({
+        await createMarket(csrfToken, {
           name: data.name as string,
           schedule: (data.schedule as string) || "",
           locationDetails: (data.locationDetails as string) || null,
@@ -78,7 +80,7 @@ export function AdminLayoutClient({
         break;
       }
       case "create_popup": {
-        await createMarket({
+        await createMarket(csrfToken, {
           name: data.name as string,
           schedule: (data.schedule as string) || "",
           type: "popup",
@@ -94,14 +96,15 @@ export function AdminLayoutClient({
       }
       case "update_market": {
         const { marketId, rawTranscript, ...fields } = data;
-        await updateMarket(marketId as string, {
+        await updateMarket(csrfToken, marketId as string, {
           ...fields,
           rawTranscript: (rawTranscript as string) || null,
-        } as Parameters<typeof updateMarket>[1]);
+        } as Parameters<typeof updateMarket>[2]);
         break;
       }
       case "update_market_catch": {
         await updateMarketCatchPreview(
+          csrfToken,
           data.marketId as string,
           data.catchPreview as string,
           (data.rawTranscript as string) || null,
@@ -157,6 +160,7 @@ export function AdminLayoutClient({
           variant="admin"
           user={user}
           currentOrganization={currentOrganization}
+          csrfToken={csrfToken}
         />
 
         {/* Admin nav tabs - below unified header */}

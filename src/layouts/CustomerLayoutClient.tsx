@@ -11,6 +11,7 @@ export function CustomerLayoutClient({
   user,
   currentOrganization,
   browsingOrganization,
+  csrfToken,
   children,
 }: {
   user: User | null;
@@ -26,6 +27,7 @@ export function CustomerLayoutClient({
     name: string;
     slug: string;
   } | null;
+  csrfToken: string;
   children: React.ReactNode;
 }) {
   return (
@@ -35,6 +37,7 @@ export function CustomerLayoutClient({
         user={user}
         currentOrganization={currentOrganization}
         browsingOrganization={browsingOrganization}
+        csrfToken={csrfToken}
       />
 
       <main className="customer-main">{children}</main>

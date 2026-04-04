@@ -53,6 +53,7 @@ export async function TeamPage({ ctx, request }: RequestInfo) {
       }))}
       currentUserId={ctx.user.id}
       baseUrl={baseUrl}
+      csrfToken={ctx.session!.csrfToken}
     />
   );
 }

@@ -26,11 +26,13 @@ export function TeamUI({
   pendingInvites,
   currentUserId,
   baseUrl,
+  csrfToken,
 }: {
   members: Member[];
   pendingInvites: PendingInvite[];
   currentUserId: string;
   baseUrl: string;
+  csrfToken: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [showInviteForm, setShowInviteForm] = useState(false);
@@ -43,7 +45,7 @@ export function TeamUI({
   const handleCreateInvite = () => {
     setError(null);
     startTransition(async () => {
-      const result = await createInvite({
+      const result = await createInvite(csrfToken, {
         email: inviteEmail || undefined,
         role: inviteRole,
       });
@@ -59,14 +61,14 @@ export function TeamUI({
 
   const handleRevokeInvite = (inviteId: string) => {
     startTransition(async () => {
-      await revokeInvite(inviteId);
+      await revokeInvite(csrfToken, inviteId);
     });
   };
 
   const handleChangeRole = (membershipId: string, newRole: string) => {
     setError(null);
     startTransition(async () => {
-      const result = await changeRole(membershipId, newRole);
+      const result = await changeRole(csrfToken, membershipId, newRole);
       if (!result.success) {
         setError(result.error || "Failed to change role");
       }
@@ -77,7 +79,7 @@ export function TeamUI({
     if (!confirm(`Remove ${name} from the team?`)) return;
     setError(null);
     startTransition(async () => {
-      const result = await removeMember(membershipId);
+      const result = await removeMember(csrfToken, membershipId);
       if (!result.success) {
         setError(result.error || "Failed to remove member");
       }

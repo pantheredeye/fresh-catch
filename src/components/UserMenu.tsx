@@ -15,7 +15,8 @@ type UserOrg = {
 export function UserMenu({
   user,
   currentOrganization,
-  browsingOrganization
+  browsingOrganization,
+  csrfToken,
 }: {
   user: User | null;
   currentOrganization: {
@@ -30,6 +31,7 @@ export function UserMenu({
     name: string;
     slug: string;
   } | null;
+  csrfToken?: string;
 }) {
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([]);
   const [switching, setSwitching] = useState(false);
@@ -40,7 +42,7 @@ export function UserMenu({
     setSwitching(true);
     setSwitchError(null);
     try {
-      const result = await switchOrganization(orgId);
+      const result = await switchOrganization(csrfToken ?? "", orgId);
       if (result.success) {
         window.location.href = "/admin";
       } else {
