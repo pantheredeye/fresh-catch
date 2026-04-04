@@ -24,5 +24,5 @@ export async function ProfilePage({ ctx }: RequestInfo) {
     );
   }
 
-  return <ProfileUI user={user} />;
+  return <ProfileUI csrfToken={ctx.session!.csrfToken} user={user} />;
 }

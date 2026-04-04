@@ -8,5 +8,5 @@ import { Setup } from "./Setup";
  * Allows Evan to register with WebAuthn and claim ownership of existing organization
  */
 export function SetupPage(requestInfo: RequestInfo) {
-  return <Setup ctx={requestInfo.ctx} />;
+  return <Setup ctx={requestInfo.ctx} csrfToken={requestInfo.ctx.session?.csrfToken ?? ""} />;
 }

@@ -2,27 +2,47 @@
 set -e
 
 # Choo Choo Ralph - Autonomous coding loop
-# Usage: ./ralph.sh [max_iterations] [--verbose|-v]
+# Usage: ./ralph.sh [max_iterations] [--verbose|-v] [-p PRIORITY]
+#
+# Examples:
+#   ./ralph.sh -p 0          # Run only P0 (critical) tasks
+#   ./ralph.sh -p 1          # Run only P1 (high) tasks
+#   ./ralph.sh               # Run all priorities (default)
+#   ./ralph.sh 10 -p 0 -v   # 10 iterations, P0 only, verbose
 
-# Default iteration limit. One iteration = one task attempt.
-# For testing, start smaller: ./ralph.sh 10
 MAX_ITERATIONS=100
 VERBOSE_FLAG=""
+PRIORITY_FILTER=""
+PRIORITY_BD_FLAG=""
 
 # Parse arguments
-for arg in "$@"; do
-  case "$arg" in
+while [ $# -gt 0 ]; do
+  case "$1" in
   --verbose | -v)
     VERBOSE_FLAG="--verbose"
+    shift
+    ;;
+  -p)
+    PRIORITY_FILTER="$2"
+    PRIORITY_BD_FLAG="--priority $2"
+    shift 2
     ;;
   [0-9]*)
-    MAX_ITERATIONS="$arg"
+    MAX_ITERATIONS="$1"
+    shift
+    ;;
+  *)
+    shift
     ;;
   esac
 done
 iteration=0
 
-echo "Starting Ralph loop (max $MAX_ITERATIONS iterations)"
+if [ -n "$PRIORITY_FILTER" ]; then
+  echo "Starting Ralph loop (max $MAX_ITERATIONS iterations, P${PRIORITY_FILTER} only)"
+else
+  echo "Starting Ralph loop (max $MAX_ITERATIONS iterations, all priorities)"
+fi
 
 while [ $iteration -lt $MAX_ITERATIONS ]; do
   echo ""
@@ -30,7 +50,7 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
   echo "---"
 
   # Check if any ready work is available (no blockers, not in_progress by another agent)
-  available=$(bd ready --assignee=ralph --type epic -n 100 --json 2>/dev/null | jq -r 'length')
+  available=$(bd ready --assignee=ralph --type epic -n 100 $PRIORITY_BD_FLAG --json 2>/dev/null | jq -r 'length')
 
   if [ "$available" -eq 0 ]; then
     echo "No ready work available. Done."
@@ -42,7 +62,7 @@ while [ $iteration -lt $MAX_ITERATIONS ]; do
 
   # Let Claude see available work, pick one, claim it, and execute
   claude --dangerously-skip-permissions --output-format stream-json --verbose -p "
-Run \`bd ready --assignee=ralph --type epic -n 100 --sort=priority\` to see available tasks.
+Run \`bd ready --assignee=ralph --type epic -n 100 --sort=priority $PRIORITY_BD_FLAG\` to see available tasks.
 
 Also run \`bd list --status=in_progress --assignee=ralph\` to see what tasks other Ralph agents are currently working on.
 

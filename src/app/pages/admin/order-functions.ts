@@ -5,16 +5,20 @@ import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
+import { requireCsrf } from "@/session/csrf";
 import { sendOrderConfirmedEmail } from "@/utils/email";
 import { calculatePlatformFee, type FeeModel } from "@/utils/money";
 import { getStripe } from "@/utils/stripe";
 
 export async function confirmOrder(
+  csrfToken: string,
   orderId: string,
   price: number,
   adminNotes: string,
   depositOverride?: number | null,
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx, request } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -180,7 +184,9 @@ export async function confirmOrder(
   }
 }
 
-export async function completeOrder(orderId: string) {
+export async function completeOrder(csrfToken: string, orderId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -213,7 +219,9 @@ export async function completeOrder(orderId: string) {
   }
 }
 
-export async function cancelOrderAdmin(orderId: string) {
+export async function cancelOrderAdmin(csrfToken: string, orderId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -243,11 +251,14 @@ export async function cancelOrderAdmin(orderId: string) {
 }
 
 export async function markAsPaid(
+  csrfToken: string,
   orderId: string,
   amount: number,
   method: string,
   notes?: string
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {

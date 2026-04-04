@@ -3,6 +3,7 @@
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { sessions } from "@/session/store";
+import { requireCsrf } from "@/session/csrf";
 
 interface UpdateProfileData {
   name: string | null;
@@ -48,7 +49,9 @@ function validateProfile(data: UpdateProfileData): { valid: boolean; errors: str
   return { valid: errors.length === 0, errors };
 }
 
-export async function updateProfile(data: UpdateProfileData) {
+export async function updateProfile(csrfToken: string, data: UpdateProfileData) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!ctx.user) {
@@ -81,7 +84,9 @@ export async function updateProfile(data: UpdateProfileData) {
   }
 }
 
-export async function deleteAccount() {
+export async function deleteAccount(csrfToken: string) {
+  requireCsrf(csrfToken);
+
   const { ctx, request, response } = requestInfo;
 
   if (!ctx.user) {

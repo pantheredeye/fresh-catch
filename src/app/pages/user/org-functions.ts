@@ -3,6 +3,7 @@
 import { requestInfo } from "rwsdk/worker";
 import { sessions } from "@/session/store";
 import { db } from "@/db";
+import { requireCsrf } from "@/session/csrf";
 
 export async function listUserOrganizations() {
   const { ctx } = requestInfo;
@@ -32,7 +33,9 @@ export async function listUserOrganizations() {
   }));
 }
 
-export async function switchOrganization(orgId: string) {
+export async function switchOrganization(csrfToken: string, orgId: string) {
+  requireCsrf(csrfToken);
+
   const { ctx, response } = requestInfo;
 
   if (!ctx.user) {

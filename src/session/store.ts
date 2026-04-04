@@ -53,10 +53,11 @@ export async function rotateSession(
   },
   saveOptions?: { maxAge?: number | true },
 ): Promise<void> {
-  // Load current session data if not provided
+  // Load current session to preserve data not explicitly provided
   let dataToPreserve = sessionData;
+  const currentSession = await sessions.load(request) as Session | null;
+
   if (!dataToPreserve) {
-    const currentSession = await sessions.load(request) as Session | null;
     if (!currentSession) {
       return; // No existing session, nothing to rotate
     }
@@ -66,6 +67,9 @@ export async function rotateSession(
       role: currentSession.role,
       csrfToken: currentSession.csrfToken,
     };
+  } else if (!dataToPreserve.csrfToken && currentSession?.csrfToken) {
+    // Preserve CSRF token from current session when not explicitly provided
+    dataToPreserve = { ...dataToPreserve, csrfToken: currentSession.csrfToken };
   }
 
   // Revoke old session (invalidates old session ID)

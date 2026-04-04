@@ -5,6 +5,7 @@ import { Container, Card, CardTitle, CardContent, Button, TextInput, CancelButto
 import { updateProfile, deleteAccount } from "./functions";
 
 interface ProfileUIProps {
+  csrfToken: string;
   user: {
     id: string;
     username: string;
@@ -20,7 +21,7 @@ interface ProfileUIProps {
   };
 }
 
-export function ProfileUI({ user }: ProfileUIProps) {
+export function ProfileUI({ csrfToken, user }: ProfileUIProps) {
   const [name, setName] = useState(user.name || "");
   const [phone, setPhone] = useState(user.phone || "");
   const [deliveryStreet, setDeliveryStreet] = useState(user.deliveryStreet || "");
@@ -39,7 +40,7 @@ export function ProfileUI({ user }: ProfileUIProps) {
     setMessage('Saving...');
 
     try {
-      const result = await updateProfile({
+      const result = await updateProfile(csrfToken, {
         name: name.trim() || null,
         phone: phone.trim() || null,
         deliveryStreet: deliveryStreet.trim() || null,
@@ -70,7 +71,7 @@ export function ProfileUI({ user }: ProfileUIProps) {
     setMessage('Deleting account...');
 
     try {
-      await deleteAccount();
+      await deleteAccount(csrfToken);
       // Redirect happens in the server function
     } catch (error) {
       setStatus('error');

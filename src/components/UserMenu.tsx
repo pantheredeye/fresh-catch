@@ -63,7 +63,7 @@ export function UserMenu({
   useEffect(() => {
     if (!user || !isAdmin) return;
     listUserOrganizations().then(setUserOrgs).catch(() => {});
-  }, [user, isAdmin]);
+  }, [user?.id, isAdmin]);
 
   // Not logged in - show sign in button
   if (!user) {

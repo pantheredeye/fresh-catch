@@ -4,6 +4,7 @@ import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
+import { requireCsrf } from "@/session/csrf";
 
 const FIELD_LIMITS = {
   name: 200,
@@ -31,7 +32,7 @@ function validateMarketFields(data: Record<string, unknown>): string | null {
  * Following rwsdk pattern: server functions called from client components
  */
 
-export async function createMarket(data: {
+export async function createMarket(csrfToken: string, data: {
   name: string;
   schedule: string;
   subtitle?: string | null;
@@ -44,6 +45,8 @@ export async function createMarket(data: {
   notes?: string | null;
   rawTranscript?: string | null;
 }) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -74,6 +77,7 @@ export async function createMarket(data: {
 }
 
 export async function updateMarket(
+  csrfToken: string,
   id: string,
   data: {
     name?: string;
@@ -89,6 +93,8 @@ export async function updateMarket(
     rawTranscript?: string | null;
   }
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -130,7 +136,9 @@ export async function updateMarket(
   return market;
 }
 
-export async function deleteMarket(id: string) {
+export async function deleteMarket(csrfToken: string, id: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -157,7 +165,9 @@ export async function deleteMarket(id: string) {
   return { success: true };
 }
 
-export async function toggleMarketActive(id: string) {
+export async function toggleMarketActive(csrfToken: string, id: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -186,7 +196,9 @@ export async function toggleMarketActive(id: string) {
   return market;
 }
 
-export async function cancelPopup(id: string) {
+export async function cancelPopup(csrfToken: string, id: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -215,7 +227,9 @@ export async function cancelPopup(id: string) {
   return market;
 }
 
-export async function endPopup(id: string) {
+export async function endPopup(csrfToken: string, id: string) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -244,10 +258,13 @@ export async function endPopup(id: string) {
 }
 
 export async function updateMarketCatchPreview(
+  csrfToken: string,
   id: string,
   catchPreview: string,
   rawTranscript?: string | null
 ) {
+  requireCsrf(csrfToken);
+
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {

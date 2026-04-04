@@ -33,13 +33,17 @@ const COUNTER_THRESHOLD = 400;
 const SEND_COOLDOWN_MS = 2000;
 
 function getTranslateY(state: SheetState): string {
+  return state === "closed" ? "translateY(100%)" : "translateY(0)";
+}
+
+function getSheetHeight(state: SheetState): string {
   switch (state) {
     case "closed":
-      return "translateY(100%)";
+      return `${PEEK_HEIGHT}dvh`;
     case "peek":
-      return `translateY(${100 - PEEK_HEIGHT}%)`;
+      return `${PEEK_HEIGHT}dvh`;
     case "full":
-      return `translateY(${100 - FULL_HEIGHT}%)`;
+      return `${FULL_HEIGHT}dvh`;
   }
 }
 
@@ -175,7 +179,7 @@ export function ChatSheet({
     };
   }, [conversationId, isClosed]);
 
-  const transition = reducedMotion ? "none" : "transform 0.3s ease";
+  const transition = reducedMotion ? "none" : "transform 0.3s ease, height 0.3s ease";
   const backdropTransition = reducedMotion ? "none" : "opacity 0.3s ease";
 
   // Sync isOpen prop to sheet state
@@ -351,7 +355,7 @@ export function ChatSheet({
 
       {/* vh fallback for browsers without dvh support */}
       <style>{`
-        .chat-sheet-panel { height: 100vh; height: 100dvh; }
+        .chat-sheet-panel { }
         .chat-sheet-panel button:focus-visible,
         .chat-sheet-panel textarea:focus-visible,
         .chat-sheet-panel a:focus-visible {
@@ -376,6 +380,7 @@ export function ChatSheet({
           bottom: 0,
           left: 0,
           right: 0,
+          height: getSheetHeight(sheetState),
           transform: getTranslateY(sheetState),
           transition,
           background: "var(--color-surface-primary)",
@@ -494,7 +499,7 @@ export function ChatSheet({
                       margin: 0,
                     }}
                   >
-                    Say hi to Evan! He usually responds within a few hours.
+                    Say hi to {vendorName ?? "us"}! We usually respond within a few hours.
                   </p>
                 </div>
               ) : (
