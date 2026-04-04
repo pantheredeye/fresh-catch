@@ -84,6 +84,18 @@
   box-shadow: var(--shadow-md);
 }
 
+[data-surface="admin"] .unified-header__logo-text {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: var(--color-text-primary);
+  background-clip: unset;
+}
+
+[data-surface="admin"] .admin-badge {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+}
+
 /* Auth variant - centered logo */
 .unified-header--auth .unified-header__content {
   justify-content: center;
