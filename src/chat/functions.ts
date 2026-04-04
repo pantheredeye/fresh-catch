@@ -42,11 +42,11 @@ export async function getMessages(
     return { messages: [], nextCursor: null };
   }
 
-  // Caller must be the customer or an org member
-  if (
-    conversation.customerId !== ctx.user?.id &&
-    conversation.organizationId !== ctx.currentOrganization?.id
-  ) {
+  // Auth: anonymous conversations (customerId=null) use conversation ID as bearer token
+  const isAnonymous = conversation.customerId === null;
+  const isOwner = conversation.customerId !== null && conversation.customerId === ctx.user?.id;
+  const isOrgMember = conversation.organizationId === ctx.currentOrganization?.id;
+  if (!isAnonymous && !isOwner && !isOrgMember) {
     return { messages: [], nextCursor: null };
   }
 
@@ -81,11 +81,11 @@ export async function getConversation(conversationId: string) {
     return null;
   }
 
-  // Caller must be the customer or an org member
-  if (
-    conversation.customerId !== ctx.user?.id &&
-    conversation.organizationId !== ctx.currentOrganization?.id
-  ) {
+  // Auth: anonymous conversations (customerId=null) use conversation ID as bearer token
+  const isAnonymous = conversation.customerId === null;
+  const isOwner = conversation.customerId !== null && conversation.customerId === ctx.user?.id;
+  const isOrgMember = conversation.organizationId === ctx.currentOrganization?.id;
+  if (!isAnonymous && !isOwner && !isOrgMember) {
     return null;
   }
 
@@ -165,10 +165,11 @@ export async function markAsRead(
     throw new Error("Conversation not found");
   }
 
-  if (
-    conversation.customerId !== ctx.user?.id &&
-    conversation.organizationId !== ctx.currentOrganization?.id
-  ) {
+  // Auth: anonymous conversations (customerId=null) use conversation ID as bearer token
+  const isAnonymous = conversation.customerId === null;
+  const isOwner = conversation.customerId !== null && conversation.customerId === ctx.user?.id;
+  const isOrgMember = conversation.organizationId === ctx.currentOrganization?.id;
+  if (!isAnonymous && !isOwner && !isOrgMember) {
     throw new Error("Access denied");
   }
 
@@ -207,6 +208,53 @@ export async function getUnreadCount(
       readAt: null,
     },
   });
+}
+
+export async function getUnreadCountForConversation(
+  conversationId: string,
+  senderType: "customer" | "vendor",
+) {
+  const conversation = await db.conversation.findUnique({
+    where: { id: conversationId },
+  });
+
+  if (!conversation) return 0;
+
+  // Conversation ID is the bearer token — no additional auth needed
+  const otherSenderType = senderType === "customer" ? "vendor" : "customer";
+
+  return db.message.count({
+    where: {
+      conversationId,
+      senderType: otherSenderType,
+      readAt: null,
+    },
+  });
+}
+
+export async function saveCustomerEmail(
+  conversationId: string,
+  email: string,
+) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { success: false, error: "Invalid email format" };
+  }
+
+  const conversation = await db.conversation.findUnique({
+    where: { id: conversationId },
+  });
+
+  if (!conversation) {
+    return { success: false, error: "Conversation not found" };
+  }
+
+  await db.conversation.update({
+    where: { id: conversationId },
+    data: { customerEmail: email },
+  });
+
+  return { success: true };
 }
 
 export async function resolveConversation(conversationId: string) {
