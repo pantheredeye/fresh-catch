@@ -25,6 +25,7 @@ import { handleStripeWebhook } from "@/api/stripe-webhook";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
+import { rateLimitAuth } from "@/rate-limit/middleware";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
@@ -229,7 +230,8 @@ export default defineApp([
     return stub.fetch(doRequest);
   },
   render(Document, [
-    // Auth routes with minimal layout
+    // Auth routes with rate limiting + minimal layout
+    rateLimitAuth(),
     ...layout(AuthLayout, userRoutes),  // /login, /logout
 
     // Customer routes with header + user menu

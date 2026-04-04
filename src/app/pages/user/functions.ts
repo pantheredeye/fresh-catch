@@ -13,6 +13,7 @@ import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
 import { hashPassword, verifyPassword } from "@/utils/password";
+import { checkRateLimit } from "@/rate-limit/middleware";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,6 +57,12 @@ export async function startPasskeyRegistration(username: string) {
 
 export async function checkEmailExists(email: string) {
   if (!isValidEmail(email)) return { exists: false, hasPassword: false };
+
+  const rl = await checkRateLimit("checkEmail");
+  if (!rl.allowed) {
+    return { exists: false, hasPassword: false, rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
+  }
+
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
   });
@@ -69,6 +76,11 @@ export async function loginWithPassword(
 ) {
   if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
   if (!password) return { success: false, error: "Password required" };
+
+  const rl = await checkRateLimit("login");
+  if (!rl.allowed) {
+    return { success: false, error: "Too many login attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
+  }
 
   const { response } = requestInfo;
 
@@ -128,6 +140,11 @@ export async function registerWithPassword(
   if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
   if (!password || password.length < 8) {
     return { success: false, error: "Password must be at least 8 characters" };
+  }
+
+  const rl = await checkRateLimit("register");
+  if (!rl.allowed) {
+    return { success: false, error: "Too many registration attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
   }
 
   const { response } = requestInfo;
