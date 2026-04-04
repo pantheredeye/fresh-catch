@@ -14,6 +14,7 @@ import { db } from "@/db";
 import { env } from "cloudflare:workers";
 import { hashPassword, verifyPassword } from "@/utils/password";
 import { checkRateLimit } from "@/rate-limit/middleware";
+import { isBreachedPassword } from "@/utils/breached-passwords";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -172,7 +173,11 @@ export async function registerWithPassword(
 ) {
   if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
   if (!password || password.length < 8) {
-    return { success: false, error: "Password must be at least 8 characters" };
+    return { success: false, error: "Password is too short — minimum 8 characters" };
+  }
+
+  if (await isBreachedPassword(password)) {
+    return { success: false, error: "This password is too common — please choose a different one" };
   }
 
   const rl = await checkRateLimit("register");
