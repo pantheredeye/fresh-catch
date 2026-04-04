@@ -281,6 +281,7 @@ model Conversation {
   customerId     String? // Null for anonymous customers
   customerName   String // Display name (provided by customer)
   customerPhone  String? // Optional contact phone
+  customerEmail  String? // Optional email for reply notifications
   status         String   @default("open") // "open" | "resolved"
   lastMessageAt  DateTime @default(now()) // For sorting conversations by recency
   createdAt      DateTime @default(now())
