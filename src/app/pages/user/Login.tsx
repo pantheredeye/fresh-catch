@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   startAuthentication,
   startRegistration,
@@ -15,6 +15,7 @@ import {
   startPasskeyRegistration,
 } from "./functions";
 import { TextInput, Button, Container, Card } from "@/design-system";
+import { isBreachedPasswordLocal } from "@/utils/breached-passwords";
 
 const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
 
@@ -55,6 +56,17 @@ export function Login({ ctx }: { ctx: any }) {
     bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
 
   const disabled = status === "loading" || status === "success" || rateLimitCooldown > 0;
+
+  const passwordFeedback = useMemo(() => {
+    if (!password || flow !== "register") return null;
+    if (password.length < 8) {
+      return { text: `Too short (${password.length}/8 characters)`, color: "var(--color-status-error)" };
+    }
+    if (isBreachedPasswordLocal(password)) {
+      return { text: "Too common — pick something less guessable", color: "var(--color-status-warning)" };
+    }
+    return { text: "Looks good", color: "var(--color-status-success)" };
+  }, [password, flow]);
 
   const startRateLimitCooldown = (seconds: number) => {
     setRateLimitCooldown(seconds);
@@ -358,19 +370,31 @@ export function Login({ ctx }: { ctx: any }) {
               required
               size="lg"
             />
-            <TextInput
-              label="Password"
-              type="password"
-              name="new-password"
-              autoComplete="new-password"
-              placeholder="Min 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={disabled}
-              size="lg"
-              autoFocus
-            />
+            <div>
+              <TextInput
+                label="Password"
+                type="password"
+                name="new-password"
+                autoComplete="new-password"
+                placeholder="Min 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={disabled}
+                size="lg"
+                autoFocus
+              />
+              {passwordFeedback && (
+                <div style={{
+                  fontSize: "var(--font-size-xs)",
+                  color: passwordFeedback.color,
+                  marginTop: "var(--space-xs)",
+                  fontFamily: "var(--font-display)",
+                }}>
+                  {passwordFeedback.text}
+                </div>
+              )}
+            </div>
             <TextInput
               label="Confirm Password"
               type="password"
