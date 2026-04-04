@@ -377,7 +377,7 @@
 .catch-text__input:focus {
   outline: none;
   border-color: var(--color-action-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .catch-text__submit {
@@ -436,7 +436,7 @@
 .catch-review__input:focus {
   outline: none;
   border-color: var(--color-action-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .catch-review__item {

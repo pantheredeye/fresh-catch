@@ -138,6 +138,9 @@ html, body {
   --color-border-input: #E8EFF5;
   --color-border-input-disabled: #CBD5E1;
 
+  /* Focus */
+  --color-focus-ring: rgba(0, 102, 204, 0.15);
+
   /* Backgrounds */
   --color-bg-primary: #FFFCF8;
   --color-bg-elevated: white;
