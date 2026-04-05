@@ -86,6 +86,8 @@ export function Login({ ctx }: { ctx: any }) {
   const [needsName, setNeedsName] = useState(false);
   const [hasPasskey, setHasPasskey] = useState(false);
   const [nameValue, setNameValue] = useState("");
+  const [passkeyDismissed, setPasskeyDismissed] = useState(false);
+  const [passkeyNudgeError, setPasskeyNudgeError] = useState(false);
 
   // OTP digit state
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
@@ -135,6 +137,14 @@ export function Login({ ctx }: { ctx: any }) {
     }, 1000);
     return () => clearTimeout(timer);
   }, [screen, countdown, redirectUrl]);
+
+  // Auto-trigger passkey authentication on mount
+  const passkeyTriggered = useRef(false);
+  useEffect(() => {
+    if (screen !== "passkey-prompt" || passkeyTriggered.current || passkeyDismissed) return;
+    passkeyTriggered.current = true;
+    handlePasskeyLogin();
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // WebOTP API - auto-read OTP from SMS/email on Android Chrome
   useEffect(() => {
@@ -299,10 +309,12 @@ export function Login({ ctx }: { ctx: any }) {
         setLoading(false);
         goToSuccess(result.isAdmin);
       } else {
+        setPasskeyDismissed(true);
         setError("Passkey verification failed. Try the code instead.");
         setLoading(false);
       }
     } catch {
+      setPasskeyDismissed(true);
       setError("Something went wrong. Try again.");
       setLoading(false);
     }
@@ -366,11 +378,11 @@ export function Login({ ctx }: { ctx: any }) {
         setLoading(false);
         goToSuccess(isAdmin);
       } else {
-        setError(result.error || "Setup failed");
+        setPasskeyNudgeError(true);
         setLoading(false);
       }
     } catch {
-      setError("Something went wrong. Try again.");
+      setPasskeyNudgeError(true);
       setLoading(false);
     }
   };
@@ -482,8 +494,20 @@ export function Login({ ctx }: { ctx: any }) {
           <>
             <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
               <h1 style={headingStyle}>Welcome back</h1>
-              <p style={subtextStyle}>Use your fingerprint or face to sign in</p>
+              <p style={subtextStyle}>
+                {loading ? "Signing you in..." : "Use your fingerprint or face to sign in"}
+              </p>
             </div>
+
+            {loading && (
+              <div style={{
+                textAlign: "center",
+                marginBottom: "var(--space-md)",
+                color: "var(--color-text-secondary)",
+              }}>
+                <Spinner />
+              </div>
+            )}
 
             {error && (
               <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
@@ -491,27 +515,47 @@ export function Login({ ctx }: { ctx: any }) {
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={disabled}
-                onClick={handlePasskeyLogin}
-              >
-                {loading ? <><Spinner />Verifying...</> : "Sign in with passkey"}
-              </Button>
+            {passkeyDismissed && !loading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  disabled={disabled}
+                  onClick={handlePasskeyLogin}
+                >
+                  Retry
+                </Button>
 
-              <div style={{ textAlign: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-sm)" }}>
+                  <button
+                    onClick={handlePasskeyPromptFallback}
+                    disabled={disabled}
+                    style={linkStyle}
+                  >
+                    Send me a code instead
+                  </button>
+                  <button onClick={resetToEmail} disabled={disabled} style={linkStyle}>
+                    Use a different email
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!passkeyDismissed && !loading && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-sm)" }}>
                 <button
                   onClick={handlePasskeyPromptFallback}
                   disabled={disabled}
                   style={linkStyle}
                 >
-                  Use a code instead
+                  Send me a code instead
+                </button>
+                <button onClick={resetToEmail} disabled={disabled} style={linkStyle}>
+                  Use a different email
                 </button>
               </div>
-            </div>
+            )}
           </>
         )}
 
@@ -652,8 +696,8 @@ export function Login({ ctx }: { ctx: any }) {
         {screen === "name" && (
           <>
             <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-              <h1 style={headingStyle}>What's your name?</h1>
-              <p style={subtextStyle}>So we know what to call you</p>
+              <h1 style={headingStyle}>Welcome to Fresh Catch!</h1>
+              <p style={subtextStyle}>What should we call you?</p>
             </div>
 
             <form
@@ -684,39 +728,55 @@ export function Login({ ctx }: { ctx: any }) {
         {screen === "passkey-nudge" && (
           <>
             <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-              <h1 style={headingStyle}>Faster next time?</h1>
-              <p style={subtextStyle}>
-                Set up fingerprint or face sign-in so you don't need a code next time
-              </p>
+              <h1 style={headingStyle}>Sign in faster next time</h1>
+              <p style={subtextStyle}>Use your fingerprint or face to skip the code</p>
             </div>
 
-            {error && (
-              <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={disabled}
-                onClick={handlePasskeySetup}
-              >
-                {loading ? <><Spinner />Setting up...</> : "Set up passkey"}
-              </Button>
-
-              <div style={{ textAlign: "center" }}>
-                <button
+            {passkeyNudgeError ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <p style={{ ...subtextStyle, textAlign: "center" }}>
+                  No problem, you can set it up later in settings
+                </p>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
                   onClick={() => goToSuccess(isAdmin)}
-                  disabled={disabled}
-                  style={linkStyle}
                 >
-                  Skip for now
-                </button>
+                  Continue
+                </Button>
               </div>
-            </div>
+            ) : (
+              <>
+                {error && (
+                  <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
+                    {error}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    disabled={disabled}
+                    onClick={handlePasskeySetup}
+                  >
+                    {loading ? <><Spinner />Setting up...</> : "Set it up"}
+                  </Button>
+
+                  <div style={{ textAlign: "center" }}>
+                    <button
+                      onClick={() => goToSuccess(isAdmin)}
+                      disabled={disabled}
+                      style={linkStyle}
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
