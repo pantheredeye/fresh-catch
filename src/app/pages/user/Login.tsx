@@ -6,12 +6,17 @@ import {
   verifyOtp,
   updateName,
   startPasskeyLogin,
+  startConditionalPasskeyLogin,
   finishPasskeyLogin,
   startPasskeyRegistration,
   finishPasskeyRegistration,
 } from "./functions";
 import { TextInput, Button, Container, Card } from "@/design-system";
-import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
+import {
+  startAuthentication,
+  startRegistration,
+  browserSupportsWebAuthnAutofill,
+} from "@simplewebauthn/browser";
 
 type Screen = "email" | "otp" | "passkey-prompt" | "name" | "passkey-nudge" | "success";
 
@@ -89,6 +94,9 @@ export function Login({ ctx }: { ctx: any }) {
   const [passkeyDismissed, setPasskeyDismissed] = useState(false);
   const [passkeyNudgeError, setPasskeyNudgeError] = useState(false);
 
+  // Conditional mediation abort controller
+  const conditionalAbortRef = useRef<AbortController | null>(null);
+
   // OTP digit state
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -100,6 +108,42 @@ export function Login({ ctx }: { ctx: any }) {
     const b = params.get("b");
     if (b) setBSlug(b);
   }, []);
+
+  // Conditional mediation: silently offer passkey from email autocomplete
+  useEffect(() => {
+    if (screen !== "email") return;
+
+    const abortController = new AbortController();
+    conditionalAbortRef.current = abortController;
+
+    (async () => {
+      try {
+        const supported = await browserSupportsWebAuthnAutofill();
+        if (!supported || abortController.signal.aborted) return;
+
+        const options = await startConditionalPasskeyLogin();
+        if (abortController.signal.aborted) return;
+
+        const authResponse = await startAuthentication({
+          optionsJSON: options,
+          useBrowserAutofill: true,
+        });
+        if (abortController.signal.aborted) return;
+
+        const result = await finishPasskeyLogin(authResponse);
+        if (result && typeof result === "object" && result.success) {
+          goToSuccess(result.isAdmin);
+        }
+      } catch {
+        // User ignored passkey suggestion or browser doesn't support it — silent fail
+      }
+    })();
+
+    return () => {
+      abortController.abort();
+      conditionalAbortRef.current = null;
+    };
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const withBParam = (url: string) =>
     bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
@@ -233,6 +277,9 @@ export function Login({ ctx }: { ctx: any }) {
   }, [loading, bSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEmailSubmit = async () => {
+    // Abort conditional mediation when user submits email
+    conditionalAbortRef.current?.abort();
+
     const trimmed = email.trim();
     if (!trimmed || !trimmed.includes("@") || !trimmed.includes(".")) {
       setError("Please enter a valid email");
@@ -469,7 +516,7 @@ export function Login({ ctx }: { ctx: any }) {
                 label="Email"
                 type="email"
                 name="email"
-                autoComplete="email"
+                autoComplete="email webauthn"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
