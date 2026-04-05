@@ -5,6 +5,8 @@ const ENDPOINT_LIMITS: Record<string, { maxRequests: number; windowMs: number }>
   login: { maxRequests: 5, windowMs: 15 * 60 * 1000 },       // 5 per 15min
   register: { maxRequests: 3, windowMs: 60 * 60 * 1000 },    // 3 per hour
   checkEmail: { maxRequests: 10, windowMs: 15 * 60 * 1000 },  // 10 per 15min
+  otpSend: { maxRequests: 3, windowMs: 15 * 60 * 1000 },     // 3 per 15min
+  otpVerify: { maxRequests: 5, windowMs: 5 * 60 * 1000 },    // 5 per 5min
 };
 
 const DEFAULT_LIMIT = { maxRequests: 20, windowMs: 15 * 60 * 1000 };
