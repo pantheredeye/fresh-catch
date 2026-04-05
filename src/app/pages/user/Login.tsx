@@ -1,10 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { requestOtp, verifyOtp } from "./functions";
+import {
+  requestOtp,
+  verifyOtp,
+  updateName,
+  startPasskeyLogin,
+  finishPasskeyLogin,
+  startPasskeyRegistration,
+  finishPasskeyRegistration,
+} from "./functions";
 import { TextInput, Button, Container, Card } from "@/design-system";
+import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 
-type Screen = "email" | "otp";
+type Screen = "email" | "otp" | "passkey-prompt" | "name" | "passkey-nudge" | "success";
 
 const linkStyle: React.CSSProperties = {
   background: "none",
@@ -24,6 +33,44 @@ const disabledLinkStyle: React.CSSProperties = {
   textDecoration: "none",
 };
 
+const headingStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-3xl)",
+  fontWeight: "var(--font-weight-bold)",
+  color: "var(--color-text-primary)",
+  fontFamily: "var(--font-display)",
+  margin: "0 0 var(--space-xs) 0",
+};
+
+const subtextStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-md)",
+  color: "var(--color-text-secondary)",
+  margin: 0,
+};
+
+const errorStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-sm)",
+  color: "var(--color-status-error)",
+  marginTop: "calc(-1 * var(--space-xs))",
+};
+
+function Spinner() {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: "16px",
+        height: "16px",
+        border: "2px solid transparent",
+        borderTopColor: "currentColor",
+        borderRadius: "50%",
+        animation: "spin 0.6s linear infinite",
+        verticalAlign: "middle",
+        marginRight: "var(--space-xs)",
+      }}
+    />
+  );
+}
+
 export function Login({ ctx }: { ctx: any }) {
   const [email, setEmail] = useState("");
   const [screen, setScreen] = useState<Screen>("email");
@@ -34,8 +81,11 @@ export function Login({ ctx }: { ctx: any }) {
   const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
   const [countdown, setCountdown] = useState(0);
-  const [success, setSuccess] = useState(false);
   const [bSlug, setBSlug] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [needsName, setNeedsName] = useState(false);
+  const [hasPasskey, setHasPasskey] = useState(false);
+  const [nameValue, setNameValue] = useState("");
 
   // OTP digit state
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
@@ -52,7 +102,7 @@ export function Login({ ctx }: { ctx: any }) {
   const withBParam = (url: string) =>
     bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
 
-  const disabled = loading || success || rateLimitCooldown > 0;
+  const disabled = loading || screen === "success" || rateLimitCooldown > 0;
 
   // Resend cooldown timer
   useEffect(() => {
@@ -61,7 +111,7 @@ export function Login({ ctx }: { ctx: any }) {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  // Rate limit cooldown timer — live-update error message
+  // Rate limit cooldown timer
   useEffect(() => {
     if (rateLimitCooldown <= 0) return;
     setError(`Too many attempts. Wait ${rateLimitCooldown}s.`);
@@ -73,9 +123,9 @@ export function Login({ ctx }: { ctx: any }) {
     return () => clearTimeout(timer);
   }, [rateLimitCooldown]);
 
-  // Redirect countdown
+  // Redirect countdown on success screen
   useEffect(() => {
-    if (!success || countdown <= 0) return;
+    if (screen !== "success" || countdown <= 0) return;
     const timer = setTimeout(() => {
       if (countdown === 1) {
         window.location.href = redirectUrl;
@@ -84,7 +134,7 @@ export function Login({ ctx }: { ctx: any }) {
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [success, countdown, redirectUrl]);
+  }, [screen, countdown, redirectUrl]);
 
   // WebOTP API - auto-read OTP from SMS/email on Android Chrome
   useEffect(() => {
@@ -110,9 +160,31 @@ export function Login({ ctx }: { ctx: any }) {
     const chars = code.replace(/\D/g, "").slice(0, 6).split("");
     const newDigits = Array(6).fill("").map((_, i) => chars[i] || "");
     setDigits(newDigits);
-    // Focus last filled or first empty
     const focusIdx = Math.min(chars.length, 5);
     digitRefs.current[focusIdx]?.focus();
+  };
+
+  // Navigate to success screen
+  const goToSuccess = (admin: boolean) => {
+    const destination = withBParam(admin ? "/admin" : "/");
+    setRedirectUrl(destination);
+    setScreen("success");
+    setCountdown(2);
+  };
+
+  // Determine next screen after OTP verification
+  const navigateAfterOtp = (result: { isAdmin: boolean; needsName?: boolean; hasPasskey?: boolean }) => {
+    setIsAdmin(result.isAdmin);
+    setNeedsName(result.needsName ?? false);
+    setHasPasskey(result.hasPasskey ?? false);
+
+    if (result.needsName) {
+      setScreen("name");
+    } else if (!result.hasPasskey) {
+      setScreen("passkey-nudge");
+    } else {
+      goToSuccess(result.isAdmin);
+    }
   };
 
   const submitOtp = useCallback(async (code: string) => {
@@ -138,12 +210,14 @@ export function Login({ ctx }: { ctx: any }) {
         return;
       }
 
-      const destination = withBParam(result.isAdmin ? "/admin" : "/");
-      setRedirectUrl(destination);
-      setSuccess(true);
-      setCountdown(2);
+      setLoading(false);
+      navigateAfterOtp({
+        isAdmin: result.isAdmin!,
+        needsName: result.needsName,
+        hasPasskey: result.hasPasskey,
+      });
     } catch {
-      setError("Verification failed. Try again.");
+      setError("Something went wrong. Try again.");
       setLoading(false);
     }
   }, [loading, bSlug]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -175,14 +249,19 @@ export function Login({ ctx }: { ctx: any }) {
       }
 
       setHint(result.hint);
-      setScreen("otp");
-      setResendCooldown(30);
-      setDigits(["", "", "", "", "", ""]);
+
+      if (result.hint === "passkey") {
+        setScreen("passkey-prompt");
+      } else {
+        setScreen("otp");
+        setResendCooldown(30);
+        setDigits(["", "", "", "", "", ""]);
+        setTimeout(() => digitRefs.current[0]?.focus(), 50);
+      }
+
       setLoading(false);
-      // Focus first digit after render
-      setTimeout(() => digitRefs.current[0]?.focus(), 50);
     } catch {
-      setError("Unable to send code. Try again.");
+      setError("Something went wrong. Try again.");
       setLoading(false);
     }
   };
@@ -202,13 +281,101 @@ export function Login({ ctx }: { ctx: any }) {
       setDigits(["", "", "", "", "", ""]);
       digitRefs.current[0]?.focus();
     } catch {
-      setError("Failed to resend. Try again.");
+      setError("Something went wrong. Try again.");
     }
     setLoading(false);
   };
 
+  const handlePasskeyLogin = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const options = await startPasskeyLogin(email.trim());
+      const authResponse = await startAuthentication({ optionsJSON: options });
+      const result = await finishPasskeyLogin(authResponse);
+
+      if (result && typeof result === "object" && result.success) {
+        setLoading(false);
+        goToSuccess(result.isAdmin);
+      } else {
+        setError("Passkey verification failed. Try the code instead.");
+        setLoading(false);
+      }
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
+    }
+  };
+
+  const handlePasskeyPromptFallback = () => {
+    setScreen("otp");
+    setResendCooldown(30);
+    setDigits(["", "", "", "", "", ""]);
+    setError("");
+    setTimeout(() => digitRefs.current[0]?.focus(), 50);
+  };
+
+  const handleNameSubmit = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed) {
+      setError("Please enter your name");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Get CSRF token from cookie
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("csrf_token="))
+        ?.split("=")[1] || "";
+
+      const result = await updateName(csrfToken, trimmed);
+
+      if (!result.success) {
+        setError(result.error || "Something went wrong");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      if (!hasPasskey) {
+        setScreen("passkey-nudge");
+      } else {
+        goToSuccess(isAdmin);
+      }
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
+    }
+  };
+
+  const handlePasskeySetup = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const options = await startPasskeyRegistration(email.trim());
+      const regResponse = await startRegistration({ optionsJSON: options });
+      const result = await finishPasskeyRegistration(regResponse);
+
+      if (result.success) {
+        setLoading(false);
+        goToSuccess(isAdmin);
+      } else {
+        setError(result.error || "Setup failed");
+        setLoading(false);
+      }
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
+    }
+  };
+
   const handleDigitChange = (index: number, value: string) => {
-    // Only allow single digit
     const digit = value.replace(/\D/g, "").slice(-1);
     const newDigits = [...digits];
     newDigits[index] = digit;
@@ -218,7 +385,6 @@ export function Login({ ctx }: { ctx: any }) {
       digitRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit on 6th digit
     if (digit && index === 5) {
       const code = newDigits.join("");
       if (code.length === 6) {
@@ -232,12 +398,10 @@ export function Login({ ctx }: { ctx: any }) {
       e.preventDefault();
       const newDigits = [...digits];
       if (digits[index]) {
-        // Clear current digit and move to previous
         newDigits[index] = "";
         setDigits(newDigits);
         if (index > 0) digitRefs.current[index - 1]?.focus();
       } else if (index > 0) {
-        // Already empty — clear previous and move there
         newDigits[index - 1] = "";
         setDigits(newDigits);
         digitRefs.current[index - 1]?.focus();
@@ -255,7 +419,6 @@ export function Login({ ctx }: { ctx: any }) {
     }
   };
 
-  // Hidden OTP input for mobile autofill
   const handleHiddenOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const code = e.target.value.replace(/\D/g, "").slice(0, 6);
     if (code) {
@@ -276,27 +439,14 @@ export function Login({ ctx }: { ctx: any }) {
 
   return (
     <Container size="sm" noPadding>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       <Card variant="centered" maxWidth="450px">
         {/* Email Screen */}
-        {screen === "email" && !success && (
+        {screen === "email" && (
           <>
             <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-              <h1 style={{
-                fontSize: "var(--font-size-3xl)",
-                fontWeight: "var(--font-weight-bold)",
-                color: "var(--color-text-primary)",
-                fontFamily: "var(--font-display)",
-                margin: "0 0 var(--space-xs) 0",
-              }}>
-                Welcome
-              </h1>
-              <p style={{
-                fontSize: "var(--font-size-md)",
-                color: "var(--color-text-secondary)",
-                margin: 0,
-              }}>
-                Sign in or create an account
-              </p>
+              <h1 style={headingStyle}>Welcome</h1>
+              <p style={subtextStyle}>Sign in or create an account</p>
             </div>
 
             <form
@@ -315,17 +465,9 @@ export function Login({ ctx }: { ctx: any }) {
                 disabled={disabled}
                 size="lg"
               />
-              {error && (
-                <div style={{
-                  fontSize: "var(--font-size-sm)",
-                  color: "var(--color-status-error)",
-                  marginTop: "calc(-1 * var(--space-xs))",
-                }}>
-                  {error}
-                </div>
-              )}
+              {error && <div style={errorStyle}>{error}</div>}
               <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
-                {loading ? "Sending code..." : "Continue"}
+                {loading ? <><Spinner />Sending code...</> : "Continue"}
               </Button>
             </form>
 
@@ -335,24 +477,50 @@ export function Login({ ctx }: { ctx: any }) {
           </>
         )}
 
-        {/* OTP Screen */}
-        {screen === "otp" && !success && (
+        {/* Passkey Prompt Screen */}
+        {screen === "passkey-prompt" && (
           <>
             <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-              <h1 style={{
-                fontSize: "var(--font-size-3xl)",
-                fontWeight: "var(--font-weight-bold)",
-                color: "var(--color-text-primary)",
-                fontFamily: "var(--font-display)",
-                margin: "0 0 var(--space-xs) 0",
-              }}>
-                Check your email
-              </h1>
-              <p style={{
-                fontSize: "var(--font-size-md)",
-                color: "var(--color-text-secondary)",
-                margin: 0,
-              }}>
+              <h1 style={headingStyle}>Welcome back</h1>
+              <p style={subtextStyle}>Use your fingerprint or face to sign in</p>
+            </div>
+
+            {error && (
+              <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={disabled}
+                onClick={handlePasskeyLogin}
+              >
+                {loading ? <><Spinner />Verifying...</> : "Sign in with passkey"}
+              </Button>
+
+              <div style={{ textAlign: "center" }}>
+                <button
+                  onClick={handlePasskeyPromptFallback}
+                  disabled={disabled}
+                  style={linkStyle}
+                >
+                  Use a code instead
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* OTP Screen */}
+        {screen === "otp" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Check your email</h1>
+              <p style={subtextStyle}>
                 We sent a 6-digit code to <strong>{email}</strong>
               </p>
             </div>
@@ -428,10 +596,10 @@ export function Login({ ctx }: { ctx: any }) {
 
             {error && (
               <div style={{
-                fontSize: "var(--font-size-sm)",
-                color: "var(--color-status-error)",
+                ...errorStyle,
                 textAlign: "center",
                 marginBottom: "var(--space-md)",
+                marginTop: 0,
               }}>
                 {error}
               </div>
@@ -444,7 +612,7 @@ export function Login({ ctx }: { ctx: any }) {
                 textAlign: "center",
                 marginBottom: "var(--space-md)",
               }}>
-                Verifying...
+                <Spinner /> Verifying...
               </div>
             )}
 
@@ -469,11 +637,7 @@ export function Login({ ctx }: { ctx: any }) {
 
               {hint === "passkey" && (
                 <button
-                  onClick={() => {
-                    // TODO: Wire up passkey login flow
-                    // For now this is a placeholder - passkey registration
-                    // will be handled in a separate epic
-                  }}
+                  onClick={handlePasskeyLogin}
                   disabled={disabled}
                   style={linkStyle}
                 >
@@ -484,21 +648,84 @@ export function Login({ ctx }: { ctx: any }) {
           </>
         )}
 
-        {/* Success */}
-        {success && (
+        {/* Name Screen */}
+        {screen === "name" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>What's your name?</h1>
+              <p style={subtextStyle}>So we know what to call you</p>
+            </div>
+
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleNameSubmit(); }}
+              style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+            >
+              <TextInput
+                label="Name"
+                type="text"
+                name="name"
+                autoComplete="name"
+                placeholder="Your name"
+                value={nameValue}
+                onChange={(e) => { setNameValue(e.target.value); setError(""); }}
+                required
+                disabled={disabled}
+                size="lg"
+              />
+              {error && <div style={errorStyle}>{error}</div>}
+              <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
+                {loading ? <><Spinner />Saving...</> : "Continue"}
+              </Button>
+            </form>
+          </>
+        )}
+
+        {/* Passkey Nudge Screen */}
+        {screen === "passkey-nudge" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Faster next time?</h1>
+              <p style={subtextStyle}>
+                Set up fingerprint or face sign-in so you don't need a code next time
+              </p>
+            </div>
+
+            {error && (
+              <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={disabled}
+                onClick={handlePasskeySetup}
+              >
+                {loading ? <><Spinner />Setting up...</> : "Set up passkey"}
+              </Button>
+
+              <div style={{ textAlign: "center" }}>
+                <button
+                  onClick={() => goToSuccess(isAdmin)}
+                  disabled={disabled}
+                  style={linkStyle}
+                >
+                  Skip for now
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Success Screen */}
+        {screen === "success" && (
           <div style={{ textAlign: "center" }}>
-            <h1 style={{
-              fontSize: "var(--font-size-3xl)",
-              fontWeight: "var(--font-weight-bold)",
-              color: "var(--color-text-primary)",
-              fontFamily: "var(--font-display)",
-              margin: "0 0 var(--space-xs) 0",
-            }}>
-              You're in!
-            </h1>
+            <h1 style={headingStyle}>You're in!</h1>
             <p style={{
-              fontSize: "var(--font-size-md)",
-              color: "var(--color-text-secondary)",
+              ...subtextStyle,
               margin: "0 0 var(--space-md) 0",
             }}>
               Redirecting in {countdown}...
