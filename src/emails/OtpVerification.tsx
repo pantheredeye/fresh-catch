@@ -9,34 +9,34 @@ import {
   Hr,
 } from '@react-email/components';
 
-interface OtpCodeProps {
+interface OtpVerificationProps {
   code: string;
 }
 
-export function OtpCode({ code }: OtpCodeProps) {
+export function OtpVerification({ code }: OtpVerificationProps) {
   return (
     <Html>
       <Head />
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>Your login code</Heading>
-
-          <Text style={text}>
-            Enter this code to sign in:
-          </Text>
+          <Heading style={h1}>Your verification code</Heading>
 
           <Section style={codeSection}>
             <Text style={codeText}>{code}</Text>
           </Section>
 
           <Text style={text}>
-            This code expires in 5 minutes. If you didn't request this, you can safely ignore it.
+            Enter this code to sign in. Expires in 5 minutes.
+          </Text>
+
+          <Text style={webOtpText}>
+            @market.digitalglue.dev #{code}
           </Text>
 
           <Hr style={hr} />
 
           <Text style={footer}>
-            Fresh Catch
+            If you didn't request this, ignore this email.
           </Text>
         </Container>
       </Body>
@@ -91,6 +91,14 @@ const codeText = {
   fontFamily: 'monospace',
 };
 
+const webOtpText = {
+  color: '#a0aec0',
+  fontSize: '11px',
+  lineHeight: '16px',
+  margin: '8px 40px 0',
+  fontFamily: 'monospace',
+};
+
 const hr = {
   borderColor: '#e0e0e0',
   margin: '26px 40px',
@@ -104,4 +112,4 @@ const footer = {
   textAlign: 'center' as const,
 };
 
-export default OtpCode;
+export default OtpVerification;

@@ -6,7 +6,7 @@ import { OrderConfirmed } from '@/emails/OrderConfirmed';
 import { AdminNewOrder } from '@/emails/AdminNewOrder';
 import { PaymentReceived } from '@/emails/PaymentReceived';
 import { ChatReplyNotification } from '@/emails/ChatReplyNotification';
-import { OtpCode } from '@/emails/OtpCode';
+import { OtpVerification } from '@/emails/OtpVerification';
 
 // Lazy-init Resend client (only when email is sent)
 let resendClient: Resend | null = null;
@@ -55,13 +55,13 @@ async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
 }
 
 export async function sendOtpEmail(data: { to: string; code: string }) {
-  const html = await render(OtpCode({ code: data.code }));
+  const html = await render(OtpVerification({ code: data.code }));
 
   return sendEmail({
     to: data.to,
-    subject: `${data.code} is your Fresh Catch login code`,
+    subject: `${data.code} is your Fresh Catch code`,
     html,
-    from: 'Fresh Catch <auth@freshcatch.app>',
+    from: 'Fresh Catch <auth@digitalglue.dev>',
   });
 }
 
