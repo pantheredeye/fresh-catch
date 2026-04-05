@@ -1,4 +1,4 @@
-import { defineDurableSession, MAX_SESSION_DURATION } from "rwsdk/auth";
+import { defineDurableSession } from "rwsdk/auth";
 import type { Session } from "./durableObject";
 
 export let sessions: ReturnType<typeof createSessionStore>;
@@ -21,7 +21,7 @@ const createStrictCookie = ({
     typeof import.meta.env !== "undefined" && import.meta.env.DEV;
   return `${name}=${sessionId}; Path=/; HttpOnly; ${isViteDev ? "" : "Secure; "}SameSite=Strict${
     maxAge != null
-      ? `; Max-Age=${maxAge === true ? MAX_SESSION_DURATION / 1000 : maxAge}`
+      ? `; Max-Age=${maxAge === true ? 10 * 365 * 24 * 60 * 60 : maxAge}`
       : ""
   }`;
 };
