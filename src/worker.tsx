@@ -112,6 +112,11 @@ export default defineApp([
       throw error;
     }
 
+    // Ensure a session exists for all visitors (needed for OTP storage)
+    if (!ctx.session) {
+      ctx.session = await sessions.save(response.headers, {}) as Session;
+    }
+
     if (ctx.session?.userId) {
       ctx.user = await db.user.findUnique({
         where: {

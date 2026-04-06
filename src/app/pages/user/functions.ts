@@ -75,7 +75,7 @@ export async function requestOtp(email: string) {
   if (!isDevServer) cookieParts.push("Secure");
   response.headers.append("Set-Cookie", cookieParts.join("; "));
 
-  // Generate OTP via session DO
+  // Generate OTP via session DO (session guaranteed by middleware)
   const otp = await saveOtp(request, env, email, deviceId);
 
   // Check if user has passkey credentials (hint for client)

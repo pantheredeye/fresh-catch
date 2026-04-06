@@ -75,7 +75,7 @@ function getEmailAction(email: string): { label: string; url: string } {
     case "protonmail.com":
       return { label: "Open Proton Mail", url: "https://mail.proton.me" };
     default:
-      return { label: "Open Email", url: `mailto:${email}` };
+      return { label: "Open Email", url: "mailto:" };
   }
 }
 
@@ -97,7 +97,7 @@ function Spinner() {
   );
 }
 
-export function Login({ ctx }: { ctx: any }) {
+export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string }) {
   const [email, setEmail] = useState("");
   const [screen, setScreen] = useState<Screen>("email");
   const [error, setError] = useState("");
@@ -431,12 +431,6 @@ export function Login({ ctx }: { ctx: any }) {
     setError("");
 
     try {
-      // Get CSRF token from cookie
-      const csrfToken = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("csrf_token="))
-        ?.split("=")[1] || "";
-
       const result = await updateName(csrfToken, trimmed);
 
       if (!result.success) {

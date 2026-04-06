@@ -26,5 +26,5 @@ export function LoginPage(requestInfo: RequestInfo) {
     }
   }
 
-  return <Login ctx={requestInfo.ctx} />;
+  return <Login ctx={requestInfo.ctx} csrfToken={requestInfo.ctx?.session?.csrfToken ?? ""} />;
 }
