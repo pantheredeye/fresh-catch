@@ -118,6 +118,7 @@ export async function handleMagicLinkVerify(request: Request): Promise<Response>
     const nameUrl = new URL("/login", url.origin);
     nameUrl.searchParams.set("flow", "name");
     nameUrl.searchParams.set("admin", String(isAdmin));
+    nameUrl.searchParams.set("pk", user.credentials.length > 0 ? "1" : "0");
     responseHeaders.set("Location", nameUrl.toString());
     return new Response(null, { status: 302, headers: responseHeaders });
   }

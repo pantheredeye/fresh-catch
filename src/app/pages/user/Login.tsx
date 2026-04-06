@@ -123,7 +123,7 @@ export function Login({ ctx }: { ctx: any }) {
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
   const hiddenOtpRef = useRef<HTMLInputElement | null>(null);
 
-  // Capture ?b= and ?error= params
+  // Capture URL params: ?b=, ?error=, ?flow=name&admin=&pk=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const b = params.get("b");
@@ -135,9 +135,21 @@ export function Login({ ctx }: { ctx: any }) {
     } else if (errorParam === "invalid-link") {
       setError("That link is invalid.");
     }
-    if (errorParam) {
+
+    // Magic-link name collection flow
+    const flowParam = params.get("flow");
+    if (flowParam === "name") {
+      setScreen("name");
+      setIsAdmin(params.get("admin") === "true");
+      setHasPasskey(params.get("pk") === "1");
+    }
+
+    // Clean consumed params from URL
+    const consumable = ["error", "flow", "admin", "pk"];
+    const hasConsumed = consumable.some((k) => params.has(k));
+    if (hasConsumed) {
       const url = new URL(window.location.href);
-      url.searchParams.delete("error");
+      consumable.forEach((k) => url.searchParams.delete(k));
       history.replaceState(null, "", url.pathname + url.search);
     }
   }, []);
