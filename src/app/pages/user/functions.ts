@@ -56,7 +56,7 @@ export async function requestOtp(email: string) {
   const { request } = requestInfo;
 
   // Generate OTP via session DO
-  const otp = await saveOtp(request, env, email);
+  const otp = await saveOtp(request, env, email, "");
 
   // Check if user has passkey credentials (hint for client)
   const user = await db.user.findFirst({
