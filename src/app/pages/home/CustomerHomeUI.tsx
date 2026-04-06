@@ -11,7 +11,6 @@ import {
   CompactMarketRow,
   PopupCard,
   BottomNavigation,
-  PasskeyNudge,
   InstallBanner
 } from "./components";
 
@@ -113,9 +112,6 @@ export function CustomerHomeUI({
       ) : (
         <FreshHero actions={quickActions} />
       )}
-
-      {/* Passkey Nudge - post-password-registration */}
-      <PasskeyNudge />
 
       {/* PWA Install Banner - shows after interaction */}
       <InstallBanner />
