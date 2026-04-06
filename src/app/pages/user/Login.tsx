@@ -1,631 +1,914 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  requestOtp,
+  verifyOtp,
+  updateName,
+  startPasskeyLogin,
+  startConditionalPasskeyLogin,
+  finishPasskeyLogin,
+  startPasskeyRegistration,
+  finishPasskeyRegistration,
+} from "./functions";
+import { TextInput, Button, Container, Card } from "@/design-system";
 import {
   startAuthentication,
   startRegistration,
+  browserSupportsWebAuthnAutofill,
 } from "@simplewebauthn/browser";
-import {
-  checkEmailExists,
-  loginWithPassword,
-  registerWithPassword,
-  finishPasskeyLogin,
-  finishPasskeyRegistration,
-  startPasskeyLogin,
-  startPasskeyRegistration,
-} from "./functions";
-import { TextInput, Button, Container, Card } from "@/design-system";
-import { isBreachedPasswordLocal } from "@/utils/breached-passwords";
 
-const BUSINESS_CONTEXT = "Fresh Catch Seafood Markets";
+type Screen = "email" | "otp" | "passkey-prompt" | "name" | "passkey-nudge" | "success";
 
-type Flow = "initial" | "login-password" | "login-passkey" | "register";
-
-const linkStyle = {
+const linkStyle: React.CSSProperties = {
   background: "none",
   border: "none",
   color: "var(--color-action-primary)",
   fontSize: "var(--font-size-sm)",
-  textDecoration: "underline" as const,
+  textDecoration: "underline",
   cursor: "pointer",
   fontFamily: "var(--font-display)",
+  padding: 0,
 };
 
-export function Login({ ctx }: { ctx: any }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
-  const [flow, setFlow] = useState<Flow>("initial");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
-  const [countdown, setCountdown] = useState(0);
-  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [redirectUrl, setRedirectUrl] = useState("/");
-  const [isNewAccount, setIsNewAccount] = useState(false);
-  const [bSlug, setBSlug] = useState<string | null>(null);
+const disabledLinkStyle: React.CSSProperties = {
+  ...linkStyle,
+  color: "var(--color-text-tertiary)",
+  cursor: "default",
+  textDecoration: "none",
+};
 
-  // Capture ?b= param from URL on mount
+const headingStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-3xl)",
+  fontWeight: "var(--font-weight-bold)",
+  color: "var(--color-text-primary)",
+  fontFamily: "var(--font-display)",
+  margin: "0 0 var(--space-xs) 0",
+};
+
+const subtextStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-md)",
+  color: "var(--color-text-secondary)",
+  margin: 0,
+};
+
+const errorStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-sm)",
+  color: "var(--color-status-error)",
+  marginTop: "calc(-1 * var(--space-xs))",
+};
+
+function getEmailAction(email: string): { label: string; url: string } {
+  const domain = email.split("@")[1]?.toLowerCase();
+  switch (domain) {
+    case "gmail.com":
+      return { label: "Open Gmail", url: "https://mail.google.com" };
+    case "outlook.com":
+    case "hotmail.com":
+    case "live.com":
+      return { label: "Open Outlook", url: "https://outlook.live.com" };
+    case "yahoo.com":
+      return { label: "Open Yahoo Mail", url: "https://mail.yahoo.com" };
+    case "icloud.com":
+      return { label: "Open iCloud Mail", url: "https://www.icloud.com/mail" };
+    case "proton.me":
+    case "protonmail.com":
+      return { label: "Open Proton Mail", url: "https://mail.proton.me" };
+    default:
+      return { label: "Open Email", url: "mailto:" };
+  }
+}
+
+function Spinner() {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: "16px",
+        height: "16px",
+        border: "2px solid transparent",
+        borderTopColor: "currentColor",
+        borderRadius: "50%",
+        animation: "spin 0.6s linear infinite",
+        verticalAlign: "middle",
+        marginRight: "var(--space-xs)",
+      }}
+    />
+  );
+}
+
+export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string }) {
+  const [email, setEmail] = useState("");
+  const [screen, setScreen] = useState<Screen>("email");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [hint, setHint] = useState<string | undefined>();
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
+  const [redirectUrl, setRedirectUrl] = useState("/");
+  const [countdown, setCountdown] = useState(0);
+  const [bSlug, setBSlug] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [needsName, setNeedsName] = useState(false);
+  const [hasPasskey, setHasPasskey] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+  const [passkeyDismissed, setPasskeyDismissed] = useState(false);
+  const [passkeyNudgeError, setPasskeyNudgeError] = useState(false);
+
+  // Conditional mediation abort controller
+  const conditionalAbortRef = useRef<AbortController | null>(null);
+
+  // OTP digit state
+  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hiddenOtpRef = useRef<HTMLInputElement | null>(null);
+
+  // Capture URL params: ?b=, ?error=, ?flow=name&admin=&pk=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const b = params.get("b");
     if (b) setBSlug(b);
+
+    const errorParam = params.get("error");
+    if (errorParam === "link-expired") {
+      setError("That link has expired. Enter your email to get a new one.");
+    } else if (errorParam === "invalid-link") {
+      setError("That link is invalid.");
+    }
+
+    // Magic-link name collection flow
+    const flowParam = params.get("flow");
+    if (flowParam === "name") {
+      setScreen("name");
+      setIsAdmin(params.get("admin") === "true");
+      setHasPasskey(params.get("pk") === "1");
+    }
+
+    // Clean consumed params from URL
+    const consumable = ["error", "flow", "admin", "pk"];
+    const hasConsumed = consumable.some((k) => params.has(k));
+    if (hasConsumed) {
+      const url = new URL(window.location.href);
+      consumable.forEach((k) => url.searchParams.delete(k));
+      history.replaceState(null, "", url.pathname + url.search);
+    }
   }, []);
+
+  // Conditional mediation: silently offer passkey from email autocomplete
+  useEffect(() => {
+    if (screen !== "email") return;
+
+    const abortController = new AbortController();
+    conditionalAbortRef.current = abortController;
+
+    (async () => {
+      try {
+        const supported = await browserSupportsWebAuthnAutofill();
+        if (!supported || abortController.signal.aborted) return;
+
+        const options = await startConditionalPasskeyLogin();
+        if (abortController.signal.aborted) return;
+
+        const authResponse = await startAuthentication({
+          optionsJSON: options,
+          useBrowserAutofill: true,
+        });
+        if (abortController.signal.aborted) return;
+
+        const result = await finishPasskeyLogin(authResponse);
+        if (result && typeof result === "object" && result.success) {
+          goToSuccess(result.isAdmin);
+        }
+      } catch {
+        // User ignored passkey suggestion or browser doesn't support it — silent fail
+      }
+    })();
+
+    return () => {
+      abortController.abort();
+      conditionalAbortRef.current = null;
+    };
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const withBParam = (url: string) =>
     bSlug ? `${url}${url.includes("?") ? "&" : "?"}b=${bSlug}` : url;
 
-  const disabled = status === "loading" || status === "success" || rateLimitCooldown > 0;
+  const disabled = loading || screen === "success" || rateLimitCooldown > 0;
 
-  const passwordFeedback = useMemo(() => {
-    if (!password || flow !== "register") return null;
-    if (password.length < 8) {
-      return { text: `Too short (${password.length}/8 characters)`, color: "var(--color-status-error)" };
-    }
-    if (isBreachedPasswordLocal(password)) {
-      return { text: "Too common — pick something less guessable", color: "var(--color-status-warning)" };
-    }
-    return { text: "Looks good", color: "var(--color-status-success)" };
-  }, [password, flow]);
-
-  const startRateLimitCooldown = (seconds: number) => {
-    setRateLimitCooldown(seconds);
-    setStatus("error");
-    setMessage(`Too many attempts. Please wait ${seconds}s before trying again.`);
-  };
-
-  const handleContinue = async () => {
-    if (!email.trim() || !email.includes("@")) {
-      setStatus("error");
-      setMessage("Please enter a valid email");
-      return;
-    }
-
-    setStatus("loading");
-    setMessage("Checking account...");
-
-    try {
-      const result = await checkEmailExists(email);
-
-      if (result.rateLimited) {
-        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
-        return;
-      }
-
-      if (result.exists) {
-        if (result.hasPassword) {
-          setFlow("login-password");
-          setStatus("idle");
-          setMessage("");
-        } else {
-          // Passkey-only user — trigger passkey flow directly
-          setFlow("login-passkey");
-          setStatus("idle");
-          setMessage("");
-          handlePasskeyLogin();
-        }
-      } else {
-        setIsNewAccount(true);
-        setFlow("register");
-        setStatus("idle");
-        setMessage("");
-      }
-    } catch {
-      setStatus("error");
-      setMessage("Unable to check account. Please try again.");
-    }
-  };
-
-  const handlePasswordLogin = async () => {
-    if (!password) {
-      setStatus("error");
-      setMessage("Please enter your password");
-      return;
-    }
-
-    setStatus("loading");
-    setMessage("Signing in...");
-
-    try {
-      const result = await loginWithPassword(email, password, rememberMe);
-
-      if (result.rateLimited) {
-        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
-        return;
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || "Invalid email or password");
-      }
-
-      setFailedAttempts(0);
-      const destination = withBParam(result.isAdmin ? "/admin" : "/");
-      setRedirectUrl(destination);
-      setStatus("success");
-      setMessage("Welcome back! Redirecting...");
-      setCountdown(2);
-    } catch (error) {
-      const attempts = failedAttempts + 1;
-      setFailedAttempts(attempts);
-      setStatus("error");
-      const base = error instanceof Error ? error.message : "Login failed. Please try again.";
-      setMessage(attempts >= 3 ? `${base} You may want to wait a few minutes before trying again.` : base);
-    }
-  };
-
-  const handlePasskeyLogin = async () => {
-    setStatus("loading");
-    setMessage("Authenticating with passkey...");
-
-    try {
-      const options = await startPasskeyLogin(email);
-      const login = await startAuthentication({ optionsJSON: options });
-      const result = await finishPasskeyLogin(login);
-
-      if (!result || !result.success) {
-        throw new Error("Passkey login failed.");
-      }
-
-      const destination = withBParam(result.isAdmin ? "/admin" : "/");
-      setRedirectUrl(destination);
-      setStatus("success");
-      setMessage("Welcome back! Redirecting...");
-      setCountdown(2);
-
-      // User has passkey - suppress passkey nudge
-      try { localStorage.setItem("fresh-catch-has-passkey", "true"); } catch {}
-    } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Passkey login failed. Please try again.");
-    }
-  };
-
-  const handlePasskeyRegister = async () => {
-    if (!email.trim() || !email.includes("@")) {
-      setStatus("error");
-      setMessage("Please enter a valid email");
-      return;
-    }
-
-    setStatus("loading");
-    setMessage("Starting passkey registration...");
-
-    try {
-      const options = await startPasskeyRegistration(email);
-      const registration = await startRegistration({ optionsJSON: options });
-      const result = await finishPasskeyRegistration(email, email, registration);
-
-      if (!result || !result.success) {
-        throw new Error("Passkey registration failed.");
-      }
-
-      setRedirectUrl(withBParam("/"));
-      setStatus("success");
-      setMessage("Welcome to Fresh Catch! Redirecting...");
-      setCountdown(2);
-
-      try { localStorage.setItem("fresh-catch-has-passkey", "true"); } catch {}
-    } catch (error) {
-      setStatus("error");
-      setMessage(
-        error instanceof Error && error.name === "NotAllowedError"
-          ? "Passkey registration was cancelled."
-          : error instanceof Error
-          ? error.message
-          : "Passkey registration failed. Please try again."
-      );
-    }
-  };
-
-  const handlePasswordRegister = async () => {
-    if (!password || password.length < 8) {
-      setStatus("error");
-      setMessage("Password must be at least 8 characters");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setStatus("error");
-      setMessage("Passwords don't match");
-      return;
-    }
-
-    setStatus("loading");
-    setMessage("Creating your account...");
-
-    try {
-      const result = await registerWithPassword(email, password, rememberMe);
-
-      if (result.rateLimited) {
-        startRateLimitCooldown(result.retryAfterSeconds ?? 30);
-        return;
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || "Registration failed");
-      }
-
-      setRedirectUrl(withBParam("/"));
-      setStatus("success");
-      setMessage("Welcome to Fresh Catch! Redirecting...");
-      setCountdown(2);
-
-      // Mark for passkey nudge on home page
-      try { localStorage.setItem("fresh-catch-just-registered-password", "true"); } catch {}
-
-    } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Registration failed. Please try again.");
-    }
-  };
-
-  // Countdown and redirect
+  // Resend cooldown timer
   useEffect(() => {
-    if (status === "success" && countdown > 0) {
-      const timer = setTimeout(() => {
-        if (countdown === 1) {
-          window.location.href = redirectUrl;
-        } else {
-          setCountdown(countdown - 1);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [status, countdown, redirectUrl]);
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   // Rate limit cooldown timer
   useEffect(() => {
-    if (rateLimitCooldown > 0) {
-      const timer = setTimeout(() => {
-        const next = rateLimitCooldown - 1;
-        setRateLimitCooldown(next);
-        if (next === 0) {
-          setStatus("idle");
-          setMessage("");
-        } else {
-          setMessage(`Too many attempts. Please wait ${next}s before trying again.`);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
+    if (rateLimitCooldown <= 0) return;
+    setError(`Too many attempts. Wait ${rateLimitCooldown}s.`);
+    const timer = setTimeout(() => {
+      const next = rateLimitCooldown - 1;
+      setRateLimitCooldown(next);
+      if (next === 0) setError("");
+    }, 1000);
+    return () => clearTimeout(timer);
   }, [rateLimitCooldown]);
 
-  const getStatusBg = () => {
-    switch (status) {
-      case "success": return "var(--color-status-success)";
-      case "error": return "var(--color-action-secondary)";
-      case "loading": return "var(--color-status-info-bg)";
-      default: return "var(--color-text-tertiary)";
+  // Redirect countdown on success screen
+  useEffect(() => {
+    if (screen !== "success" || countdown <= 0) return;
+    const timer = setTimeout(() => {
+      if (countdown === 1) {
+        window.location.href = redirectUrl;
+      } else {
+        setCountdown(countdown - 1);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [screen, countdown, redirectUrl]);
+
+  // Auto-trigger passkey authentication on mount
+  const passkeyTriggered = useRef(false);
+  useEffect(() => {
+    if (screen !== "passkey-prompt" || passkeyTriggered.current || passkeyDismissed) return;
+    passkeyTriggered.current = true;
+    handlePasskeyLogin();
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // WebOTP API - auto-read OTP from SMS/email on Android Chrome
+  useEffect(() => {
+    if (screen !== "otp") return;
+    if (!("OTPCredential" in window)) return;
+
+    const ac = new AbortController();
+    (navigator.credentials as any)
+      .get({ otp: { transport: ["email"] }, signal: ac.signal })
+      .then((otpCredential: any) => {
+        if (otpCredential?.code) {
+          const code = otpCredential.code.slice(0, 6);
+          fillDigits(code);
+          submitOtp(code);
+        }
+      })
+      .catch(() => {});
+
+    return () => ac.abort();
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fillDigits = (code: string) => {
+    const chars = code.replace(/\D/g, "").slice(0, 6).split("");
+    const newDigits = Array(6).fill("").map((_, i) => chars[i] || "");
+    setDigits(newDigits);
+    const focusIdx = Math.min(chars.length, 5);
+    digitRefs.current[focusIdx]?.focus();
+  };
+
+  // Navigate to success screen
+  const goToSuccess = (admin: boolean) => {
+    const destination = withBParam(admin ? "/admin" : "/");
+    setRedirectUrl(destination);
+    setScreen("success");
+    setCountdown(2);
+  };
+
+  // Determine next screen after OTP verification
+  const navigateAfterOtp = (result: { isAdmin: boolean; needsName?: boolean; hasPasskey?: boolean }) => {
+    setIsAdmin(result.isAdmin);
+    setNeedsName(result.needsName ?? false);
+    setHasPasskey(result.hasPasskey ?? false);
+
+    if (result.needsName) {
+      setScreen("name");
+    } else if (!result.hasPasskey) {
+      setScreen("passkey-nudge");
+    } else {
+      goToSuccess(result.isAdmin);
     }
   };
 
-  const getStatusAccent = () => {
-    switch (status) {
-      case "loading": return "var(--color-status-info)";
-      default: return undefined;
+  const submitOtp = useCallback(async (code: string) => {
+    if (code.length !== 6 || loading) return;
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await verifyOtp(code);
+
+      if (result.rateLimited) {
+        setRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        setError(`Too many attempts. Wait ${result.retryAfterSeconds ?? 30}s.`);
+        setLoading(false);
+        return;
+      }
+
+      if (!result.success) {
+        setError(result.error || "Invalid code");
+        setDigits(["", "", "", "", "", ""]);
+        digitRefs.current[0]?.focus();
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      navigateAfterOtp({
+        isAdmin: result.isAdmin!,
+        needsName: result.needsName,
+        hasPasskey: result.hasPasskey,
+      });
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
+    }
+  }, [loading, bSlug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleEmailSubmit = async () => {
+    // Abort conditional mediation when user submits email
+    conditionalAbortRef.current?.abort();
+
+    const trimmed = email.trim();
+    if (!trimmed || !trimmed.includes("@") || !trimmed.includes(".")) {
+      setError("Please enter a valid email");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await requestOtp(trimmed);
+
+      if (result.rateLimited) {
+        setRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        setError(`Too many attempts. Wait ${result.retryAfterSeconds ?? 30}s.`);
+        setLoading(false);
+        return;
+      }
+
+      if (!result.success) {
+        setError(result.error || "Something went wrong");
+        setLoading(false);
+        return;
+      }
+
+      setHint(result.hint);
+
+      if (result.hint === "passkey") {
+        setScreen("passkey-prompt");
+      } else {
+        setScreen("otp");
+        setResendCooldown(30);
+        setDigits(["", "", "", "", "", ""]);
+        setTimeout(() => digitRefs.current[0]?.focus(), 50);
+      }
+
+      setLoading(false);
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
     }
   };
 
-  const getStatusTextColor = () => {
-    switch (status) {
-      case "error": return "var(--color-text-inverse)";
-      default: return "var(--color-text-primary)";
+  const handleResend = async () => {
+    if (resendCooldown > 0 || disabled) return;
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await requestOtp(email.trim());
+      if (result.rateLimited) {
+        setRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        setError(`Too many attempts. Wait ${result.retryAfterSeconds ?? 30}s.`);
+      }
+      setResendCooldown(30);
+      setDigits(["", "", "", "", "", ""]);
+      digitRefs.current[0]?.focus();
+    } catch {
+      setError("Something went wrong. Try again.");
+    }
+    setLoading(false);
+  };
+
+  const handlePasskeyLogin = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const options = await startPasskeyLogin(email.trim());
+      const authResponse = await startAuthentication({ optionsJSON: options });
+      const result = await finishPasskeyLogin(authResponse);
+
+      if (result && typeof result === "object" && result.success) {
+        setLoading(false);
+        goToSuccess(result.isAdmin);
+      } else {
+        setPasskeyDismissed(true);
+        setError("Passkey verification failed. Try the code instead.");
+        setLoading(false);
+      }
+    } catch {
+      setPasskeyDismissed(true);
+      setError("Something went wrong. Try again.");
+      setLoading(false);
     }
   };
 
-  const heading =
-    flow === "register"
-      ? "Create Account"
-      : flow === "login-password" || flow === "login-passkey"
-      ? "Welcome Back"
-      : "Welcome";
-
-  const subtitle =
-    flow === "register"
-      ? `Create a new account with ${BUSINESS_CONTEXT}`
-      : flow === "login-password" || flow === "login-passkey"
-      ? `Sign in to ${BUSINESS_CONTEXT}`
-      : "Sign in or create an account";
-
-  const resetFlow = () => {
-    setFlow("initial");
-    setPassword("");
-    setConfirmPassword("");
-    setIsNewAccount(false);
-    setStatus("idle");
-    setMessage("");
-    setFailedAttempts(0);
+  const handlePasskeyPromptFallback = () => {
+    setScreen("otp");
+    setResendCooldown(30);
+    setDigits(["", "", "", "", "", ""]);
+    setError("");
+    setTimeout(() => digitRefs.current[0]?.focus(), 50);
   };
 
-  const rememberMeCheckbox = (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-sm)",
-        fontSize: "var(--font-size-sm)",
-        color: "var(--color-text-secondary)",
-        cursor: "pointer",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={rememberMe}
-        onChange={(e) => setRememberMe(e.target.checked)}
-        style={{ width: 16, height: 16 }}
-      />
-      Remember me
-    </label>
-  );
+  const handleNameSubmit = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed) {
+      setError("Please enter your name");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await updateName(csrfToken, trimmed);
+
+      if (!result.success) {
+        setError(result.error || "Something went wrong");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      if (!hasPasskey) {
+        setScreen("passkey-nudge");
+      } else {
+        goToSuccess(isAdmin);
+      }
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
+    }
+  };
+
+  const handlePasskeySetup = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const options = await startPasskeyRegistration(email.trim());
+      const regResponse = await startRegistration({ optionsJSON: options });
+      const result = await finishPasskeyRegistration(regResponse);
+
+      if (result.success) {
+        setLoading(false);
+        goToSuccess(isAdmin);
+      } else {
+        setPasskeyNudgeError(true);
+        setLoading(false);
+      }
+    } catch {
+      setPasskeyNudgeError(true);
+      setLoading(false);
+    }
+  };
+
+  const handleDigitChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const newDigits = [...digits];
+    newDigits[index] = digit;
+    setDigits(newDigits);
+
+    if (digit && index < 5) {
+      digitRefs.current[index + 1]?.focus();
+    }
+
+    if (digit && index === 5) {
+      const code = newDigits.join("");
+      if (code.length === 6) {
+        submitOtp(code);
+      }
+    }
+  };
+
+  const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      const newDigits = [...digits];
+      if (digits[index]) {
+        newDigits[index] = "";
+        setDigits(newDigits);
+        if (index > 0) digitRefs.current[index - 1]?.focus();
+      } else if (index > 0) {
+        newDigits[index - 1] = "";
+        setDigits(newDigits);
+        digitRefs.current[index - 1]?.focus();
+      }
+    }
+  };
+
+  const handleDigitPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    fillDigits(pasted);
+    if (pasted.length === 6) {
+      submitOtp(pasted);
+    }
+  };
+
+  const handleHiddenOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const code = e.target.value.replace(/\D/g, "").slice(0, 6);
+    if (code) {
+      fillDigits(code);
+      if (code.length === 6) {
+        submitOtp(code);
+      }
+    }
+  };
+
+  const resetToEmail = () => {
+    setScreen("email");
+    setError("");
+    setDigits(["", "", "", "", "", ""]);
+    setHint(undefined);
+    setResendCooldown(0);
+  };
 
   return (
     <Container size="sm" noPadding>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       <Card variant="centered" maxWidth="450px">
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-          <h1 style={{
-            fontSize: "var(--font-size-3xl)",
-            fontWeight: "var(--font-weight-bold)",
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-display)",
-            margin: "0 0 var(--space-xs) 0",
-          }}>
-            {heading}
-          </h1>
-          <p style={{
-            fontSize: "var(--font-size-md)",
-            color: "var(--color-text-secondary)",
-            margin: 0,
-            lineHeight: "var(--line-height-base)",
-          }}>
-            {subtitle}
-          </p>
-        </div>
+        {/* Email Screen */}
+        {screen === "email" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Welcome</h1>
+              <p style={subtextStyle}>Sign in or create an account</p>
+            </div>
 
-        {/* Register with password */}
-        {flow === "register" && (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handlePasswordRegister(); }}
-            style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
-          >
-            {isNewAccount && (
-              <div style={{
-                padding: "var(--space-sm) var(--space-md)",
-                background: "var(--color-status-info-bg)",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--font-size-sm)",
-                color: "var(--color-text-primary)",
-              }}>
-                Creating account for <strong>{email}</strong>
-              </div>
-            )}
-            <TextInput
-              label="Email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={!!email && disabled}
-              required
-              size="lg"
-            />
-            <div>
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleEmailSubmit(); }}
+              style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+            >
               <TextInput
-                label="Password"
-                type="password"
-                name="new-password"
-                autoComplete="new-password"
-                placeholder="Min 8 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                label="Email"
+                type="email"
+                name="email"
+                autoComplete="email webauthn"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 required
                 disabled={disabled}
                 size="lg"
-                autoFocus
               />
-              {passwordFeedback && (
-                <div style={{
-                  fontSize: "var(--font-size-xs)",
-                  color: passwordFeedback.color,
-                  marginTop: "var(--space-xs)",
-                  fontFamily: "var(--font-display)",
-                }}>
-                  {passwordFeedback.text}
-                </div>
-              )}
+              {error && <div style={errorStyle}>{error}</div>}
+              <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
+                {loading ? <><Spinner />Sending code...</> : "Continue"}
+              </Button>
+            </form>
+
+            <div style={{ marginTop: "var(--space-md)", textAlign: "center" }}>
+              <a href="/" style={linkStyle}>Back to home</a>
             </div>
-            <TextInput
-              label="Confirm Password"
-              type="password"
-              name="new-password-confirm"
-              autoComplete="new-password"
-              placeholder="Re-enter password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={disabled}
-              size="lg"
+          </>
+        )}
+
+        {/* Passkey Prompt Screen */}
+        {screen === "passkey-prompt" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Welcome back</h1>
+              <p style={subtextStyle}>
+                {loading ? "Signing you in..." : "Use your fingerprint or face to sign in"}
+              </p>
+            </div>
+
+            {loading && (
+              <div style={{
+                textAlign: "center",
+                marginBottom: "var(--space-md)",
+                color: "var(--color-text-secondary)",
+              }}>
+                <Spinner />
+              </div>
+            )}
+
+            {error && (
+              <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
+                {error}
+              </div>
+            )}
+
+            {passkeyDismissed && !loading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  disabled={disabled}
+                  onClick={handlePasskeyLogin}
+                >
+                  Retry
+                </Button>
+
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-sm)" }}>
+                  <button
+                    onClick={handlePasskeyPromptFallback}
+                    disabled={disabled}
+                    style={linkStyle}
+                  >
+                    Send me a code instead
+                  </button>
+                  <button onClick={resetToEmail} disabled={disabled} style={linkStyle}>
+                    Use a different email
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!passkeyDismissed && !loading && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-sm)" }}>
+                <button
+                  onClick={handlePasskeyPromptFallback}
+                  disabled={disabled}
+                  style={linkStyle}
+                >
+                  Send me a code instead
+                </button>
+                <button onClick={resetToEmail} disabled={disabled} style={linkStyle}>
+                  Use a different email
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* OTP Screen */}
+        {screen === "otp" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Check your email</h1>
+              <p style={subtextStyle}>
+                We sent a 6-digit code to <strong>{email}</strong>
+              </p>
+            </div>
+
+            {/* Open Email button */}
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <a
+                href={getEmailAction(email).url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  padding: "var(--space-sm) var(--space-lg)",
+                  background: "var(--color-surface-secondary)",
+                  color: "var(--color-action-primary)",
+                  border: "1px solid var(--color-border-light)",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "var(--font-size-sm)",
+                  fontWeight: "var(--font-weight-medium)",
+                  fontFamily: "var(--font-display)",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {getEmailAction(email).label}
+              </a>
+            </div>
+
+            {/* Hidden input for mobile autofill */}
+            <input
+              ref={hiddenOtpRef}
+              type="text"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              onChange={handleHiddenOtpChange}
+              style={{
+                position: "absolute",
+                opacity: 0,
+                width: "1px",
+                height: "1px",
+                overflow: "hidden",
+                pointerEvents: "none",
+              }}
+              tabIndex={-1}
+              aria-hidden="true"
             />
-            {rememberMeCheckbox}
-            <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
-              {status === "loading" ? "Creating Account..." : "Create Account"}
-            </Button>
+
+            {/* 6 digit inputs */}
+            <div
+              style={{
+                display: "flex",
+                gap: "var(--space-sm)",
+                justifyContent: "center",
+                marginBottom: "var(--space-md)",
+              }}
+              onPaste={handleDigitPaste}
+            >
+              {digits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { digitRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(i, e.target.value)}
+                  onKeyDown={(e) => handleDigitKeyDown(i, e)}
+                  disabled={disabled}
+                  aria-label={`Digit ${i + 1}`}
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    textAlign: "center",
+                    fontSize: "var(--font-size-xl)",
+                    fontWeight: "var(--font-weight-bold)",
+                    fontFamily: "var(--font-display)",
+                    border: "1px solid var(--color-border-input)",
+                    borderRadius: "var(--radius-md)",
+                    background: "var(--color-surface-primary)",
+                    color: "var(--color-text-primary)",
+                    outline: "none",
+                    caretColor: "var(--color-action-primary)",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "var(--color-action-primary)";
+                    e.target.style.boxShadow = "0 0 0 2px var(--color-focus-ring)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "var(--color-border-input)";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              ))}
+            </div>
+
+            <p style={{
+              fontSize: "var(--font-size-sm)",
+              color: "var(--color-text-secondary)",
+              textAlign: "center",
+              margin: "0 0 var(--space-md) 0",
+            }}>
+              Tap the button in the email to sign in instantly, or enter the code above
+            </p>
+
+            {error && (
+              <div style={{
+                ...errorStyle,
+                textAlign: "center",
+                marginBottom: "var(--space-md)",
+                marginTop: 0,
+              }}>
+                {error}
+              </div>
+            )}
+
+            {loading && (
+              <div style={{
+                fontSize: "var(--font-size-sm)",
+                color: "var(--color-text-secondary)",
+                textAlign: "center",
+                marginBottom: "var(--space-md)",
+              }}>
+                <Spinner /> Verifying...
+              </div>
+            )}
+
+            {/* Action links */}
             <div style={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               gap: "var(--space-sm)",
-              color: "var(--color-text-tertiary)",
-              fontSize: "var(--font-size-sm)",
             }}>
-              <div style={{ flex: 1, height: "1px", background: "var(--color-border-subtle)" }} />
-              <span>or</span>
-              <div style={{ flex: 1, height: "1px", background: "var(--color-border-subtle)" }} />
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              fullWidth
-              disabled={disabled}
-              onClick={handlePasskeyRegister}
-            >
-              Register with passkey instead
-            </Button>
-            <p style={{
-              margin: 0,
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-tertiary)",
-              textAlign: "center",
-            }}>
-              You can manage passkeys in settings
-            </p>
-          </form>
-        )}
+              <button
+                onClick={handleResend}
+                disabled={resendCooldown > 0 || disabled}
+                style={resendCooldown > 0 || disabled ? disabledLinkStyle : linkStyle}
+              >
+                {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+              </button>
 
-        {/* Login with password */}
-        {flow === "login-password" && (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handlePasswordLogin(); }}
-            style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
-          >
-            <TextInput
-              label="Email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              value={email}
-              disabled
-              size="lg"
-            />
-            <TextInput
-              label="Password"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={disabled}
-              size="lg"
-              autoFocus
-            />
-            {rememberMeCheckbox}
-            <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
-              {status === "loading" ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-        )}
+              <button onClick={resetToEmail} disabled={disabled} style={linkStyle}>
+                Use a different email
+              </button>
 
-        {/* Login with passkey (auto-triggered or manual) */}
-        {flow === "login-passkey" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)", textAlign: "center" }}>
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)", margin: 0 }}>
-              Complete the passkey prompt from your browser...
-            </p>
-            <Button variant="primary" size="lg" fullWidth onClick={handlePasskeyLogin} disabled={disabled}>
-              {status === "loading" ? "Authenticating..." : "Retry Passkey"}
-            </Button>
-          </div>
-        )}
-
-        {/* Initial — email only */}
-        {flow === "initial" && (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleContinue(); }}
-            style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
-          >
-            <TextInput
-              label="Email"
-              type="email"
-              name="email"
-              autoComplete="email webauthn"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={disabled}
-              size="lg"
-            />
-            <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
-              {status === "loading" ? "Checking..." : "Continue"}
-            </Button>
-          </form>
-        )}
-
-        {/* Secondary actions */}
-        {flow === "login-password" && (
-          <div style={{ marginTop: "var(--space-md)", textAlign: "center", paddingTop: "var(--space-md)", borderTop: "1px solid var(--color-border-subtle)" }}>
-            <button onClick={() => { setFlow("login-passkey"); handlePasskeyLogin(); }} disabled={disabled} style={linkStyle}>
-              Use passkey instead
-            </button>
-          </div>
-        )}
-
-        {flow === "initial" && (
-          <div style={{ marginTop: "var(--space-md)", textAlign: "center", paddingTop: "var(--space-md)", borderTop: "1px solid var(--color-border-subtle)" }}>
-            <button onClick={() => { setFlow("register"); }} disabled={disabled} style={linkStyle}>
-              I want to create a new account
-            </button>
-          </div>
-        )}
-
-        {(flow === "register" || flow === "login-password" || flow === "login-passkey") && (
-          <div style={{ marginTop: "var(--space-sm)", textAlign: "center" }}>
-            <button onClick={resetFlow} disabled={disabled} style={linkStyle}>
-              Back to sign in
-            </button>
-          </div>
-        )}
-
-        {/* Status Message */}
-        {message && (
-          <div style={{
-            marginTop: "var(--space-md)",
-            padding: "var(--space-md)",
-            borderRadius: "var(--radius-sm)",
-            fontSize: "var(--font-size-sm)",
-            textAlign: "center",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-xs)",
-            background: getStatusBg(),
-            color: getStatusTextColor(),
-            border: `1px solid ${getStatusBg()}`,
-            borderLeft: getStatusAccent() ? `3px solid ${getStatusAccent()}` : undefined,
-          }}>
-            {status === "loading" && (
-              <div style={{
-                width: "16px", height: "16px",
-                border: "2px solid currentColor",
-                borderTop: "2px solid transparent",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-              }} />
-            )}
-            <span>
-              {message}
-              {status === "success" && countdown > 0 && (
-                <span
-                  onClick={() => { window.location.href = redirectUrl; }}
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") window.location.href = redirectUrl; }}
+              {hint === "passkey" && (
+                <button
+                  onClick={handlePasskeyLogin}
+                  disabled={disabled}
+                  style={linkStyle}
                 >
-                  {" "}Redirecting in {countdown}… tap to go now
-                </span>
+                  Sign in with fingerprint instead
+                </button>
               )}
-            </span>
-          </div>
+            </div>
+          </>
         )}
 
-        {/* Success Link */}
-        {status === "success" && (
-          <div style={{ marginTop: "var(--space-md)", textAlign: "center" }}>
+        {/* Name Screen */}
+        {screen === "name" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Welcome to Fresh Catch!</h1>
+              <p style={subtextStyle}>What should we call you?</p>
+            </div>
+
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleNameSubmit(); }}
+              style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+            >
+              <TextInput
+                label="Name"
+                type="text"
+                name="name"
+                autoComplete="name"
+                placeholder="Your name"
+                value={nameValue}
+                onChange={(e) => { setNameValue(e.target.value); setError(""); }}
+                required
+                disabled={disabled}
+                size="lg"
+              />
+              {error && <div style={errorStyle}>{error}</div>}
+              <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
+                {loading ? <><Spinner />Saving...</> : "Continue"}
+              </Button>
+            </form>
+          </>
+        )}
+
+        {/* Passkey Nudge Screen */}
+        {screen === "passkey-nudge" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <h1 style={headingStyle}>Sign in faster next time</h1>
+              <p style={subtextStyle}>Use your fingerprint or face to skip the code</p>
+            </div>
+
+            {passkeyNudgeError ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <p style={{ ...subtextStyle, textAlign: "center" }}>
+                  No problem, you can set it up later in settings
+                </p>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={() => goToSuccess(isAdmin)}
+                >
+                  Continue
+                </Button>
+              </div>
+            ) : (
+              <>
+                {error && (
+                  <div style={{ ...errorStyle, textAlign: "center", marginBottom: "var(--space-md)", marginTop: 0 }}>
+                    {error}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    disabled={disabled}
+                    onClick={handlePasskeySetup}
+                  >
+                    {loading ? <><Spinner />Setting up...</> : "Set it up"}
+                  </Button>
+
+                  <div style={{ textAlign: "center" }}>
+                    <button
+                      onClick={() => goToSuccess(isAdmin)}
+                      disabled={disabled}
+                      style={linkStyle}
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* Success Screen */}
+        {screen === "success" && (
+          <div style={{ textAlign: "center" }}>
+            <h1 style={headingStyle}>You're in!</h1>
+            <p style={{
+              ...subtextStyle,
+              margin: "0 0 var(--space-md) 0",
+            }}>
+              Redirecting in {countdown}...
+            </p>
             <a
               href={redirectUrl}
               style={{
@@ -635,7 +918,7 @@ export function Login({ ctx }: { ctx: any }) {
                 fontWeight: "var(--font-weight-medium)",
               }}
             >
-              Go now →
+              Go now
             </a>
           </div>
         )}

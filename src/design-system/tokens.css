@@ -138,6 +138,9 @@ html, body {
   --color-border-input: #E8EFF5;
   --color-border-input-disabled: #CBD5E1;
 
+  /* Focus */
+  --color-focus-ring: rgba(0, 102, 204, 0.15);
+
   /* Backgrounds */
   --color-bg-primary: #FFFCF8;
   --color-bg-elevated: white;
@@ -367,6 +370,21 @@ select::placeholder {
   --color-surface-warm: var(--color-surface-primary);
   --color-bg-primary: #F8FAFC;
 
+  /* Coral → blue: remap coral aliases so downstream refs resolve to action-primary */
+  --color-coral: var(--color-action-primary);
+  --color-coral-vivid: var(--color-action-primary);
+  --color-gradient-secondary: var(--color-action-primary);
+
+  /* Glass → solid surface: admin uses flat backgrounds, not frosted glass */
+  --color-glass-subtle: var(--color-surface-secondary);
+  --color-glass-light: var(--color-surface-secondary);
+  --color-glass-medium: #E2E8F0;
+  --color-glass-border-light: var(--color-border-subtle);
+  --color-glass-border-medium: var(--color-border-light);
+
+  /* Focus ring - neutral blue instead of coral */
+  --color-focus-ring: rgba(0, 102, 204, 0.15);
+
   /* Shadows - neutral instead of branded blue */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
@@ -382,6 +400,22 @@ select::placeholder {
     --color-action-secondary-accent: #D1D5DB;
     --color-bg-primary: #0F172A;
     --color-surface-warm: var(--color-surface-primary);
+
+    /* Coral → blue (dark) */
+    --color-coral: var(--color-action-primary);
+    --color-coral-vivid: var(--color-action-primary);
+    --color-gradient-secondary: var(--color-action-primary);
+
+    /* Glass → solid surface (dark) */
+    --color-glass-subtle: var(--color-surface-secondary);
+    --color-glass-light: var(--color-surface-secondary);
+    --color-glass-medium: #334155;
+    --color-glass-border-light: var(--color-border-subtle);
+    --color-glass-border-medium: var(--color-border-light);
+
+    /* Focus ring (dark) */
+    --color-focus-ring: rgba(56, 152, 236, 0.2);
+
     --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
     --shadow-md: 0 8px 24px rgba(0,0,0,0.25);
     --shadow-lg: 0 20px 40px rgba(0,0,0,0.3);

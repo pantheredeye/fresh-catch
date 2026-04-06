@@ -31,7 +31,6 @@
   "vars": {
     "WEBAUTHN_APP_NAME": "digitalglue-market",
     "WEBAUTHN_RP_ID": "market.digitalglue.dev",
-    "RESEND_API_KEY": "",
     "ADMIN_EMAIL": "barrett@digitalglue.dev",
     "STRIPE_PUBLISHABLE_KEY": "",
     "APP_URL": "https://market.digitalglue.dev"

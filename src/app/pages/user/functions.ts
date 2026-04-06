@@ -8,13 +8,13 @@ import {
   AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions, rotateSession } from "@/session/store";
+import { sessions, rotateSession, saveOtp, verifyOtpViaSession } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
-import { hashPassword, verifyPassword } from "@/utils/password";
 import { checkRateLimit } from "@/rate-limit/middleware";
-import { isBreachedPassword } from "@/utils/breached-passwords";
+import { requireCsrf } from "@/session/csrf";
+import { sendOtpEmail } from "@/utils/email";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,6 +33,243 @@ function getWebAuthnConfig(request: Request) {
   };
 }
 
+export async function requestOtp(email: string) {
+  // Anti-enumeration: add random delay (200-500ms) to normalize response times
+  const delay = new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
+
+  if (!isValidEmail(email)) {
+    await delay;
+    return { success: false, error: "Invalid email" };
+  }
+
+  const rl = await checkRateLimit("otpSend");
+  if (!rl.allowed) {
+    await delay;
+    return {
+      success: false,
+      error: "Too many attempts. Try again later.",
+      rateLimited: true,
+      retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000),
+    };
+  }
+
+  const { request, response } = requestInfo;
+
+  // Generate deviceId for magic link device binding
+  const deviceIdBytes = new Uint8Array(16);
+  crypto.getRandomValues(deviceIdBytes);
+  const deviceId = btoa(String.fromCharCode(...deviceIdBytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  // Set fc_device cookie
+  const isDevServer = !!import.meta.env.VITE_IS_DEV_SERVER;
+  const cookieParts = [
+    `fc_device=${deviceId}`,
+    "HttpOnly",
+    "SameSite=Strict",
+    "Max-Age=600",
+    "Path=/",
+  ];
+  if (!isDevServer) cookieParts.push("Secure");
+  response.headers.append("Set-Cookie", cookieParts.join("; "));
+
+  // Generate OTP via session DO (session guaranteed by middleware)
+  const otp = await saveOtp(request, env, email, deviceId);
+
+  // Check if user has passkey credentials (hint for client)
+  const user = await db.user.findFirst({
+    where: { username: email, deletedAt: null },
+    include: { credentials: true },
+  });
+  const hint = user?.credentials && user.credentials.length > 0 ? "passkey" : undefined;
+
+  // Send email with magic link (fire-and-forget)
+  if (otp) {
+    const appUrl = (env.APP_URL || "https://market.digitalglue.dev").replace(/\/$/, "");
+    const magicUrl = `${appUrl}/auth/verify?token=${otp.magicToken}`;
+    sendOtpEmail({ to: email, code: otp.code, magicUrl }).catch((err) =>
+      console.error("[OTP] Email send failed:", err)
+    );
+  }
+
+  await delay;
+  // Never reveal account existence
+  return { success: true, hint };
+}
+
+export async function verifyOtp(code: string, name?: string) {
+  if (!code || typeof code !== "string") {
+    return { success: false, error: "Code required" };
+  }
+
+  const rl = await checkRateLimit("otpVerify");
+  if (!rl.allowed) {
+    return {
+      success: false,
+      error: "Too many attempts. Try again later.",
+      rateLimited: true,
+      retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000),
+    };
+  }
+
+  const { request, response, ctx } = requestInfo;
+
+  // Verify OTP via session DO
+  const result = await verifyOtpViaSession(request, env, code);
+
+  if (!result) {
+    return { success: false, error: "Session expired" };
+  }
+
+  if (!result.valid) {
+    if (result?.locked) {
+      return { success: false, error: "Too many failed attempts. Request a new code." };
+    }
+    if (result?.expired) {
+      return { success: false, error: "Code expired. Request a new one." };
+    }
+    return { success: false, error: "Invalid code" };
+  }
+
+  const email = result.email!;
+
+  // Look up user by email (stored in username field)
+  let user = await db.user.findFirst({
+    where: { username: email, deletedAt: null },
+    include: {
+      memberships: {
+        include: { organization: true },
+        orderBy: { updatedAt: "desc" },
+      },
+      credentials: true,
+    },
+  });
+
+  if (!user) {
+    // Create new user + individual org + membership
+    user = await db.user.create({
+      data: {
+        username: email,
+        email,
+        name: name || null,
+      },
+      include: {
+        memberships: {
+          include: { organization: true },
+          orderBy: { updatedAt: "desc" },
+        },
+        credentials: true,
+      },
+    });
+
+    const customerOrg = await db.organization.create({
+      data: {
+        name: `${email}'s Account`,
+        slug: crypto.randomUUID(),
+        type: "individual",
+      },
+    });
+
+    await db.membership.create({
+      data: { userId: user.id, organizationId: customerOrg.id, role: "owner" },
+    });
+
+    // Link to browsed vendor if ?b= param present
+    const vendorOrg = ctx.browsingOrganization;
+    if (vendorOrg) {
+      await db.membership.create({
+        data: { userId: user.id, organizationId: vendorOrg.id, role: "customer" },
+      });
+    }
+
+    // Reload memberships after creation
+    user = await db.user.findUniqueOrThrow({
+      where: { id: user.id },
+      include: {
+        memberships: {
+          include: { organization: true },
+          orderBy: { updatedAt: "desc" },
+        },
+        credentials: true,
+      },
+    });
+  } else {
+    // Existing user: link to browsed vendor if not already a member
+    const vendorOrg = ctx.browsingOrganization;
+    if (vendorOrg) {
+      const existingMembership = user.memberships.find(
+        (m) => m.organizationId === vendorOrg.id
+      );
+      if (!existingMembership) {
+        await db.membership.create({
+          data: { userId: user.id, organizationId: vendorOrg.id, role: "customer" },
+        });
+        // Reload memberships
+        user = await db.user.findUniqueOrThrow({
+          where: { id: user.id },
+          include: {
+            memberships: {
+              include: { organization: true },
+              orderBy: { updatedAt: "desc" },
+            },
+            credentials: true,
+          },
+        });
+      }
+    }
+  }
+
+  const isAdmin = user.memberships.some(
+    (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
+  );
+
+  // Set default organization context — prefer business org for admins
+  const businessMembership = user.memberships.find(
+    (m) => m.organization.type === "business"
+  );
+  const defaultMembership = businessMembership ?? user.memberships[0];
+
+  await rotateSession(
+    request,
+    response.headers,
+    {
+      userId: user.id,
+      currentOrganizationId: defaultMembership?.organizationId ?? null,
+      role: defaultMembership?.role ?? null,
+    },
+    { maxAge: true }
+  );
+
+  return {
+    success: true,
+    isAdmin,
+    needsName: !user.name,
+    hasPasskey: user.credentials.length > 0,
+  };
+}
+
+export async function updateName(csrfToken: string, name: string) {
+  requireCsrf(csrfToken);
+
+  if (!name || typeof name !== "string" || name.trim().length === 0) {
+    return { success: false, error: "Name required" };
+  }
+
+  const { ctx } = requestInfo;
+  if (!ctx.session?.userId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  await db.user.update({
+    where: { id: ctx.session.userId },
+    data: { name: name.trim() },
+  });
+
+  return { success: true };
+}
+
 export async function startPasskeyRegistration(username: string) {
   if (!isValidEmail(username)) throw new Error("Invalid email format");
 
@@ -44,9 +281,7 @@ export async function startPasskeyRegistration(username: string) {
     rpID,
     userName: username,
     authenticatorSelection: {
-      // Require the authenticator to store the credential, enabling a username-less login experience
       residentKey: "required",
-      // Prefer user verification (biometric, PIN, etc.), but allow authentication even if it's not available
       userVerification: "preferred",
     },
   });
@@ -56,190 +291,54 @@ export async function startPasskeyRegistration(username: string) {
   return options;
 }
 
-export async function checkEmailExists(email: string) {
-  // Anti-enumeration: add random delay (200-500ms) to normalize response times
-  const delay = new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
-
-  if (!isValidEmail(email)) {
-    await delay;
-    return { exists: false, hasPassword: false };
-  }
-
-  const rl = await checkRateLimit("checkEmail");
-  if (!rl.allowed) {
-    await delay;
-    return { exists: false, hasPassword: false, rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
-  }
-
-  const user = await db.user.findFirst({
-    where: { username: email, deletedAt: null },
-  });
-  await delay;
-  return { exists: !!user, hasPassword: !!user?.passwordHash };
-}
-
-export async function loginWithPassword(
-  email: string,
-  password: string,
-  rememberMe: boolean
+export async function finishPasskeyRegistration(
+  registration: RegistrationResponseJSON,
 ) {
-  if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
-  if (!password) return { success: false, error: "Password required" };
+  const { request, response, ctx } = requestInfo;
+  const { origin } = new URL(request.url);
 
-  const rl = await checkRateLimit("login");
-  if (!rl.allowed) {
-    return { success: false, error: "Too many login attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
+  // Require logged-in user
+  if (!ctx.session?.userId) {
+    return { success: false, error: "Not authenticated" };
   }
 
-  const { request, response } = requestInfo;
+  const session = await sessions.load(request);
+  const challenge = session?.challenge;
 
-  const user = await db.user.findFirst({
-    where: { username: email, deletedAt: null },
-    include: {
-      memberships: {
-        include: { organization: true },
-        orderBy: { updatedAt: "desc" },
-      },
-    },
+  if (!challenge) {
+    return { success: false, error: "No challenge" };
+  }
+
+  // Reject expired challenges
+  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
+    await sessions.save(response.headers, { challenge: null });
+    return { success: false, error: "Challenge expired" };
+  }
+
+  const verification = await verifyRegistrationResponse({
+    response: registration,
+    expectedChallenge: challenge,
+    expectedOrigin: origin,
+    expectedRPID: env.WEBAUTHN_RP_ID || new URL(request.url).hostname,
   });
 
-  if (!user?.passwordHash || !user?.passwordSalt) {
-    return { success: false, error: "Invalid email or password" };
+  if (!verification.verified || !verification.registrationInfo) {
+    return { success: false, error: "Verification failed" };
   }
 
-  // Account lockout: if locked and lockout hasn't expired, reject
-  if (user.lockedUntil && user.lockedUntil > new Date()) {
-    return { success: false, error: "Invalid email or password" };
-  }
+  await sessions.save(response.headers, { challenge: null });
 
-  const valid = await verifyPassword(password, user.passwordHash, user.passwordSalt);
-  if (!valid) {
-    const newFailedAttempts = (user.failedAttempts ?? 0) + 1;
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        failedAttempts: newFailedAttempts,
-        ...(newFailedAttempts >= 5
-          ? { lockedUntil: new Date(Date.now() + 15 * 60 * 1000) }
-          : {}),
-      },
-    });
-    return { success: false, error: "Invalid email or password" };
-  }
-
-  // Successful login: reset lockout counters
-  if (user.failedAttempts > 0 || user.lockedUntil) {
-    await db.user.update({
-      where: { id: user.id },
-      data: { failedAttempts: 0, lockedUntil: null },
-    });
-  }
-
-  const isAdmin = user.memberships.some(
-    (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
-  );
-
-  if (user.memberships.length > 0) {
-    const businessMembership = user.memberships.find(
-      (m) => m.organization.type === "business"
-    );
-    const defaultMembership = businessMembership ?? user.memberships[0];
-    await rotateSession(
-      request,
-      response.headers,
-      {
-        userId: user.id,
-        currentOrganizationId: defaultMembership.organizationId,
-        role: defaultMembership.role,
-      },
-      rememberMe ? { maxAge: true } : undefined
-    );
-  } else {
-    await rotateSession(
-      request,
-      response.headers,
-      { userId: user.id },
-      rememberMe ? { maxAge: true } : undefined
-    );
-  }
-
-  return { success: true, isAdmin };
-}
-
-export async function registerWithPassword(
-  email: string,
-  password: string,
-  rememberMe: boolean
-) {
-  if (!isValidEmail(email)) return { success: false, error: "Invalid email" };
-  if (!password || password.length < 8) {
-    return { success: false, error: "Password is too short — minimum 8 characters" };
-  }
-
-  if (await isBreachedPassword(password)) {
-    return { success: false, error: "This password is too common — please choose a different one" };
-  }
-
-  const rl = await checkRateLimit("register");
-  if (!rl.allowed) {
-    return { success: false, error: "Too many registration attempts. Try again later.", rateLimited: true, retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000) };
-  }
-
-  const { request, response } = requestInfo;
-
-  // Check if username already exists — generic error to prevent email enumeration
-  const existingUser = await db.user.findUnique({ where: { username: email } });
-  if (existingUser) {
-    return { success: false, error: "Unable to create account. Please try again or sign in." };
-  }
-
-  const { hash, salt } = await hashPassword(password);
-
-  const user = await db.user.create({
+  // Create credential for existing logged-in user only
+  await db.credential.create({
     data: {
-      username: email,
-      email,
-      name: email,
-      passwordHash: hash,
-      passwordSalt: salt,
+      userId: ctx.session.userId,
+      credentialId: verification.registrationInfo.credential.id,
+      publicKey: verification.registrationInfo.credential.publicKey,
+      counter: verification.registrationInfo.credential.counter,
     },
   });
 
-  // Create individual org
-  const customerOrg = await db.organization.create({
-    data: {
-      name: `${email}'s Account`,
-      slug: crypto.randomUUID(),
-      type: "individual",
-    },
-  });
-
-  await db.membership.create({
-    data: { userId: user.id, organizationId: customerOrg.id, role: "owner" },
-  });
-
-  // Link to browsed vendor if registering from a vendor page (?b=slug)
-  const { ctx } = requestInfo;
-  const vendorOrg = ctx.browsingOrganization;
-
-  if (vendorOrg) {
-    await db.membership.create({
-      data: { userId: user.id, organizationId: vendorOrg.id, role: "customer" },
-    });
-  }
-
-  await rotateSession(
-    request,
-    response.headers,
-    {
-      userId: user.id,
-      currentOrganizationId: vendorOrg?.id || customerOrg.id,
-      role: vendorOrg ? "customer" : "owner",
-    },
-    rememberMe ? { maxAge: true } : undefined
-  );
-
-  return { success: true, isAdmin: false };
+  return { success: true };
 }
 
 export async function startPasskeyLogin(email: string) {
@@ -248,13 +347,11 @@ export async function startPasskeyLogin(email: string) {
   const { rpID } = getWebAuthnConfig(requestInfo.request);
   const { response } = requestInfo;
 
-  // Look up user by email (stored in username field)
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
     include: { credentials: true },
   });
 
-  // If user not found, return empty allowCredentials (WebAuthn will fail gracefully)
   const allowCredentials = user?.credentials.map((cred) => ({
     id: cred.credentialId,
     type: "public-key" as const,
@@ -271,115 +368,19 @@ export async function startPasskeyLogin(email: string) {
   return options;
 }
 
-export async function finishPasskeyRegistration(
-  username: string,
-  email: string,
-  registration: RegistrationResponseJSON,
-) {
-  const { request, response } = requestInfo;
-  const { origin } = new URL(request.url);
+export async function startConditionalPasskeyLogin() {
+  const { rpID } = getWebAuthnConfig(requestInfo.request);
+  const { response } = requestInfo;
 
-  const session = await sessions.load(request);
-  const challenge = session?.challenge;
-
-  if (!challenge) {
-    return false;
-  }
-
-  // Reject expired challenges
-  if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await sessions.save(response.headers, { challenge: null });
-    return false;
-  }
-
-  const verification = await verifyRegistrationResponse({
-    response: registration,
-    expectedChallenge: challenge,
-    expectedOrigin: origin,
-    expectedRPID: env.WEBAUTHN_RP_ID || new URL(request.url).hostname,
+  const options = await generateAuthenticationOptions({
+    rpID,
+    userVerification: "preferred",
+    allowCredentials: [],
   });
 
-  if (!verification.verified || !verification.registrationInfo) {
-    return false;
-  }
+  await sessions.save(response.headers, { challenge: options.challenge });
 
-  await sessions.save(response.headers, { challenge: null });
-
-  // Check if username already exists
-  const existingUser = await db.user.findUnique({
-    where: { username },
-  });
-
-  if (existingUser) {
-    console.log(`Registration failed: Username '${username}' already exists`);
-    return false;
-  }
-
-  const user = await db.user.create({
-    data: {
-      username,
-      email: email,
-      name: username,
-      phone: null,
-    },
-  });
-
-  await db.credential.create({
-    data: {
-      userId: user.id,
-      credentialId: verification.registrationInfo.credential.id,
-      publicKey: verification.registrationInfo.credential.publicKey,
-      counter: verification.registrationInfo.credential.counter,
-    },
-  });
-
-  // Create individual organization for the customer
-  // Use UUID for slug - customer orgs are private and never shared publicly
-  // Only business orgs need readable slugs for public sharing
-  const customerOrg = await db.organization.create({
-    data: {
-      name: `${username}'s Account`,
-      slug: crypto.randomUUID(),
-      type: "individual",
-    },
-  });
-
-  // Make them a member of their own organization
-  await db.membership.create({
-    data: {
-      userId: user.id,
-      organizationId: customerOrg.id,
-      role: "owner",
-    },
-  });
-
-  // Link to browsed vendor if registering from a vendor page (?b=slug)
-  const { ctx } = requestInfo;
-  const vendorOrg = ctx.browsingOrganization;
-
-  if (vendorOrg) {
-    await db.membership.create({
-      data: {
-        userId: user.id,
-        organizationId: vendorOrg.id,
-        role: "customer",
-      },
-    });
-  }
-
-  await rotateSession(
-    request,
-    response.headers,
-    {
-      userId: user.id,
-      currentOrganizationId: vendorOrg?.id || customerOrg.id,
-      role: vendorOrg ? "customer" : "owner",
-    },
-    { maxAge: true }
-  );
-
-  // Customers are NOT admins (they're customers of business org, not owners)
-  return { success: true, isAdmin: false };
+  return options;
 }
 
 export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
@@ -462,14 +463,10 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     return { success: false, isAdmin: false };
   }
 
-  // Check if user has admin access (owner or manager role in a BUSINESS organization)
-  // Note: Everyone is "owner" of their individual org, so we must check org type
   const isAdmin = user.memberships.some(
     (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
   );
 
-  // Set default organization context — prefer business org for admins
-  // TODO: revisit for multi-tenant with multiple vendors
   if (user.memberships.length > 0) {
     const businessMembership = user.memberships.find(
       (m) => m.organization.type === "business"

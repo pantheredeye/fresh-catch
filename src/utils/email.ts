@@ -53,6 +53,19 @@ async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
   }
 }
 
+export async function sendOtpEmail(data: { to: string; code: string; magicUrl: string }) {
+  // Inline HTML — @react-email render() uses react-dom/server which is
+  // blocked in RWSDK's RSC environment
+  const html = `<!DOCTYPE html><html><head></head><body style="background-color:#f6f9fc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif"><div style="background-color:#ffffff;margin:0 auto;padding:20px 0 48px;margin-bottom:64px;max-width:600px"><h1 style="color:#1a2b3d;font-size:32px;font-weight:bold;margin:40px 0;padding:0 40px">Sign in to Fresh Catch</h1><div style="text-align:center;margin:24px 40px"><a href="${data.magicUrl}" style="display:inline-block;width:100%;max-width:320px;background-color:#0066cc;color:#ffffff;font-size:18px;font-weight:bold;text-decoration:none;text-align:center;padding:16px;border-radius:8px;box-sizing:border-box">Sign In to Fresh Catch</a></div><p style="color:#64748b;font-size:14px;line-height:22px;margin:24px 40px 16px;text-align:center">Or enter this code:</p><div style="text-align:center;margin:0 40px 24px;background:#f8fafc;border:2px solid #0066cc;border-radius:12px;padding:24px"><p style="color:#1a2b3d;font-size:36px;font-weight:bold;letter-spacing:8px;margin:0;font-family:monospace">${data.code}</p></div><p style="color:#64748b;font-size:16px;line-height:26px;margin:16px 40px">Expires in 10 minutes.</p><p style="color:#a0aec0;font-size:11px;line-height:16px;margin:8px 40px 0;font-family:monospace">@market.digitalglue.dev #${data.code}</p><hr style="border-color:#e0e0e0;margin:26px 40px"/><p style="color:#8898aa;font-size:12px;line-height:16px;margin:0 40px;text-align:center">If you didn't request this, ignore this email.</p></div></body></html>`;
+
+  return sendEmail({
+    to: data.to,
+    subject: `${data.code} is your Fresh Catch code`,
+    html,
+    from: 'Fresh Catch <auth@digitalglue.dev>',
+  });
+}
+
 // Helper functions for order emails
 export async function sendOrderConfirmationEmail(data: {
   to: string;
