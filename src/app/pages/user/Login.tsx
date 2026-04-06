@@ -58,6 +58,27 @@ const errorStyle: React.CSSProperties = {
   marginTop: "calc(-1 * var(--space-xs))",
 };
 
+function getEmailAction(email: string): { label: string; url: string } {
+  const domain = email.split("@")[1]?.toLowerCase();
+  switch (domain) {
+    case "gmail.com":
+      return { label: "Open Gmail", url: "https://mail.google.com" };
+    case "outlook.com":
+    case "hotmail.com":
+    case "live.com":
+      return { label: "Open Outlook", url: "https://outlook.live.com" };
+    case "yahoo.com":
+      return { label: "Open Yahoo Mail", url: "https://mail.yahoo.com" };
+    case "icloud.com":
+      return { label: "Open iCloud Mail", url: "https://www.icloud.com/mail" };
+    case "proton.me":
+    case "protonmail.com":
+      return { label: "Open Proton Mail", url: "https://mail.proton.me" };
+    default:
+      return { label: "Open Email", url: `mailto:${email}` };
+  }
+}
+
 function Spinner() {
   return (
     <span
@@ -102,11 +123,23 @@ export function Login({ ctx }: { ctx: any }) {
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
   const hiddenOtpRef = useRef<HTMLInputElement | null>(null);
 
-  // Capture ?b= param
+  // Capture ?b= and ?error= params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const b = params.get("b");
     if (b) setBSlug(b);
+
+    const errorParam = params.get("error");
+    if (errorParam === "link-expired") {
+      setError("That link has expired. Enter your email to get a new one.");
+    } else if (errorParam === "invalid-link") {
+      setError("That link is invalid.");
+    }
+    if (errorParam) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      history.replaceState(null, "", url.pathname + url.search);
+    }
   }, []);
 
   // Conditional mediation: silently offer passkey from email autocomplete
@@ -616,6 +649,30 @@ export function Login({ ctx }: { ctx: any }) {
               </p>
             </div>
 
+            {/* Open Email button */}
+            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+              <a
+                href={getEmailAction(email).url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  padding: "var(--space-sm) var(--space-lg)",
+                  background: "var(--color-surface-secondary)",
+                  color: "var(--color-action-primary)",
+                  border: "1px solid var(--color-border-light)",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "var(--font-size-sm)",
+                  fontWeight: "var(--font-weight-medium)",
+                  fontFamily: "var(--font-display)",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {getEmailAction(email).label}
+              </a>
+            </div>
+
             {/* Hidden input for mobile autofill */}
             <input
               ref={hiddenOtpRef}
@@ -684,6 +741,15 @@ export function Login({ ctx }: { ctx: any }) {
                 />
               ))}
             </div>
+
+            <p style={{
+              fontSize: "var(--font-size-sm)",
+              color: "var(--color-text-secondary)",
+              textAlign: "center",
+              margin: "0 0 var(--space-md) 0",
+            }}>
+              Tap the button in the email to sign in instantly, or enter the code above
+            </p>
 
             {error && (
               <div style={{
