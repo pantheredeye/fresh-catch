@@ -116,7 +116,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   // OTP digit state
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const hiddenOtpRef = useRef<HTMLInputElement | null>(null);
 
   // Capture URL params: ?b=
   useEffect(() => {
@@ -170,25 +169,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     handlePasskeyLogin();
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // WebOTP API - auto-read OTP from SMS/email on Android Chrome
-  useEffect(() => {
-    if (screen !== "otp") return;
-    if (!("OTPCredential" in window)) return;
-
-    const ac = new AbortController();
-    (navigator.credentials as any)
-      .get({ otp: { transport: ["email"] }, signal: ac.signal })
-      .then((otpCredential: any) => {
-        if (otpCredential?.code) {
-          const code = otpCredential.code.slice(0, 6);
-          fillDigits(code);
-          submitOtp(code);
-        }
-      })
-      .catch(() => {});
-
-    return () => ac.abort();
-  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fillDigits = (code: string) => {
     const chars = code.replace(/\D/g, "").slice(0, 6).split("");
@@ -449,15 +429,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     }
   };
 
-  const handleHiddenOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const code = e.target.value.replace(/\D/g, "").slice(0, 6);
-    if (code) {
-      fillDigits(code);
-      if (code.length === 6) {
-        submitOtp(code);
-      }
-    }
-  };
 
   const resetToEmail = () => {
     setScreen("email");
@@ -610,26 +581,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
                 {getEmailAction(email).label}
               </a>
             </div>
-
-            {/* Hidden input for mobile autofill */}
-            <input
-              ref={hiddenOtpRef}
-              type="text"
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              pattern="[0-9]{6}"
-              onChange={handleHiddenOtpChange}
-              style={{
-                position: "absolute",
-                opacity: 0,
-                width: "1px",
-                height: "1px",
-                overflow: "hidden",
-                pointerEvents: "none",
-              }}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
 
             {/* 6 digit inputs */}
             <div
