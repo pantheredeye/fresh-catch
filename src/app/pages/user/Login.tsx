@@ -97,6 +97,7 @@ function Spinner() {
 
 export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string }) {
   const [email, setEmail] = useState("");
+  const [emailPrefilled, setEmailPrefilled] = useState(false);
   const [screen, setScreen] = useState<Screen>("email");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -122,6 +123,17 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     const params = new URLSearchParams(window.location.search);
     const b = params.get("b");
     if (b) setBSlug(b);
+  }, []);
+
+  // Prefill remembered email
+  useEffect(() => {
+    try {
+      const remembered = localStorage.getItem("fc_email");
+      if (remembered) {
+        setEmail(remembered);
+        setEmailPrefilled(true);
+      }
+    } catch {}
   }, []);
 
   const withBParam = (url: string) =>
@@ -219,6 +231,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
         return;
       }
 
+      try { localStorage.setItem("fc_email", email.trim()); } catch {}
       setLoading(false);
       navigateAfterOtp({
         isAdmin: result.isAdmin!,
@@ -305,6 +318,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
       const result = await finishPasskeyLogin(authResponse);
 
       if (result && typeof result === "object" && result.success) {
+        try { localStorage.setItem("fc_email", email.trim()); } catch {}
         setLoading(false);
         goToSuccess(result.isAdmin);
       } else {
@@ -461,11 +475,24 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
                 autoComplete="email"
                 placeholder="your@email.com"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                onChange={(e) => { setEmail(e.target.value); setError(""); if (emailPrefilled) setEmailPrefilled(false); }}
                 required
                 disabled={disabled}
                 size="lg"
               />
+              {emailPrefilled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    try { localStorage.removeItem("fc_email"); } catch {}
+                    setEmail("");
+                    setEmailPrefilled(false);
+                  }}
+                  style={linkStyle}
+                >
+                  Not you? Use a different email
+                </button>
+              )}
               {error && <div style={errorStyle}>{error}</div>}
               <Button type="submit" variant="primary" size="lg" fullWidth disabled={disabled}>
                 {loading ? <><Spinner />Sending code...</> : "Continue"}
