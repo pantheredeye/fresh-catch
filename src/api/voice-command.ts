@@ -7,7 +7,6 @@ import { env } from "cloudflare:workers";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AppContext } from "@/worker";
 import { db } from "@/db";
-import { hasAdminAccess } from "@/utils/permissions";
 import {
   voiceTools,
   mcpFormat,
@@ -128,12 +127,10 @@ export async function handleVoiceCommand(
   request: Request,
   ctx: AppContext,
 ): Promise<Response> {
-  // Auth checks
+  // Auth checks — any authenticated user with an org context can use voice commands.
+  // Tool scoping is handled by role-based filtering in voice-tools.ts.
   if (!ctx.user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!hasAdminAccess(ctx)) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   if (!ctx.currentOrganization) {
     return Response.json({ error: "No organization context" }, { status: 403 });

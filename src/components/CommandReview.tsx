@@ -49,11 +49,28 @@ interface MarketCatchFormData {
 
 // --- Props ---
 
+interface OrderItem {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+interface OrderFormData {
+  items: OrderItem[];
+  pickupMarketId: string;
+  pickupDate: string;
+  customerNote: string;
+  contactName: string;
+  contactEmail: string;
+}
+
 interface CommandReviewProps {
   result: VoiceCommandResult;
   onSave: (intent: string, data: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
   onRetry: () => void;
+  /** Customer mode shows friendlier labels and requires explicit confirmation for write ops */
+  mode?: "admin" | "customer";
 }
 
 // --- Helpers ---
@@ -582,18 +599,151 @@ function MarketCatchReviewForm({
   );
 }
 
+// --- Customer Review Forms ---
+
+function OrderReviewForm({
+  data,
+  onChange,
+}: {
+  data: OrderFormData;
+  onChange: (d: OrderFormData) => void;
+}) {
+  const updateItem = (i: number, field: keyof OrderItem, value: string | number) => {
+    const items = [...data.items];
+    items[i] = { ...items[i], [field]: value };
+    onChange({ ...data, items });
+  };
+
+  const removeItem = (i: number) => {
+    onChange({ ...data, items: data.items.filter((_, idx) => idx !== i) });
+  };
+
+  const addItem = () => {
+    onChange({ ...data, items: [...data.items, { name: "", quantity: 1, unit: "lb" }] });
+  };
+
+  return (
+    <>
+      <div className="cr-field">
+        <label className="cr-label">Items</label>
+        {data.items.map((item, i) => (
+          <div key={i} className="cr-item-row">
+            <input
+              className="cr-input cr-input--name"
+              value={item.name}
+              onChange={(e) => updateItem(i, "name", e.target.value)}
+              placeholder="Item name"
+            />
+            <input
+              className="cr-input"
+              type="number"
+              min={1}
+              value={item.quantity}
+              onChange={(e) => updateItem(i, "quantity", Number(e.target.value) || 1)}
+              style={{ width: "60px" }}
+            />
+            <input
+              className="cr-input"
+              value={item.unit}
+              onChange={(e) => updateItem(i, "unit", e.target.value)}
+              placeholder="unit"
+              style={{ width: "60px" }}
+            />
+            <button
+              className="cr-remove"
+              onClick={() => removeItem(i)}
+              title="Remove item"
+            >
+              &times;
+            </button>
+          </div>
+        ))}
+        <button className="cr-btn cr-btn--secondary" onClick={addItem}>
+          + Add Item
+        </button>
+      </div>
+      <div className="cr-field">
+        <label className="cr-label">Pickup Date</label>
+        <input
+          type="date"
+          className="cr-input cr-input--date"
+          value={toDateInputValue(data.pickupDate)}
+          min={getTodayStr()}
+          onChange={(e) => onChange({ ...data, pickupDate: e.target.value ? toEndOfDay(e.target.value) : "" })}
+        />
+      </div>
+      <div className="cr-field">
+        <label className="cr-label">Note (optional)</label>
+        <textarea
+          className="cr-textarea"
+          value={data.customerNote}
+          onChange={(e) => onChange({ ...data, customerNote: e.target.value })}
+          placeholder="Any special requests..."
+          rows={2}
+        />
+      </div>
+      <div className="cr-field">
+        <label className="cr-label">Your Name</label>
+        <input
+          className="cr-input"
+          value={data.contactName}
+          onChange={(e) => onChange({ ...data, contactName: e.target.value })}
+          placeholder="Name for the order"
+        />
+      </div>
+      <div className="cr-field">
+        <label className="cr-label">Email</label>
+        <input
+          className="cr-input"
+          type="email"
+          value={data.contactEmail}
+          onChange={(e) => onChange({ ...data, contactEmail: e.target.value })}
+          placeholder="Email for confirmation"
+        />
+      </div>
+    </>
+  );
+}
+
+function ReadOnlyResultForm({ result }: { result: VoiceCommandResult }) {
+  return (
+    <div className="cr-field">
+      <p className="cr-readonly-result">{result.interpretation}</p>
+      {Object.entries(result.data).length > 0 && (
+        <div className="cr-readonly-data">
+          {Object.entries(result.data).map(([key, value]) => (
+            <div key={key} className="cr-readonly-row">
+              <span className="cr-readonly-key">{key}</span>
+              <span className="cr-readonly-value">
+                {typeof value === "object" ? JSON.stringify(value) : String(value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Confidence Warning ---
 
 function ConfidenceWarning({
   result,
   onRetry,
   onIntentChange,
+  mode = "admin",
 }: {
   result: VoiceCommandResult;
   onRetry: () => void;
   onIntentChange: (intent: string) => void;
+  mode?: "admin" | "customer";
 }) {
   const [showIntentPicker, setShowIntentPicker] = useState(false);
+
+  const availableTools = Object.entries(voiceTools).filter(([, tool]) => {
+    if (mode === "admin") return true;
+    return tool.roles?.includes("customer");
+  });
 
   return (
     <div className="cr-low-confidence">
@@ -621,7 +771,7 @@ function ConfidenceWarning({
             }}
           >
             <option value="">Select action...</option>
-            {Object.entries(voiceTools).map(([intent, tool]) => (
+            {availableTools.map(([intent, tool]) => (
               <option key={intent} value={intent}>
                 {tool.description}
               </option>
@@ -640,6 +790,7 @@ export function CommandReview({
   onSave,
   onCancel,
   onRetry,
+  mode = "admin",
 }: CommandReviewProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -721,6 +872,17 @@ export function CommandReview({
     items: parseCatchPreview(result.data.catchPreview),
   }));
 
+  const [orderData, setOrderData] = useState<OrderFormData>(() => ({
+    items: Array.isArray(result.data.items)
+      ? (result.data.items as OrderItem[])
+      : [],
+    pickupMarketId: (result.data.pickupMarketId as string) || "",
+    pickupDate: (result.data.pickupDate as string) || "",
+    customerNote: (result.data.customerNote as string) || "",
+    contactName: (result.data.contactName as string) || "",
+    contactEmail: (result.data.contactEmail as string) || "",
+  }));
+
   // Escape key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -786,6 +948,16 @@ export function CommandReview({
             rawTranscript: activeResult.rawTranscript,
           };
           break;
+        case "order":
+          data = {
+            ...orderData,
+            rawTranscript: activeResult.rawTranscript,
+          };
+          break;
+        case "read-only":
+          // Read-only intents don't save — just close
+          onCancel();
+          return;
         default:
           data = activeResult.data;
       }
@@ -795,7 +967,7 @@ export function CommandReview({
     } finally {
       setSaving(false);
     }
-  }, [activeResult, catchData, marketData, popupData, marketUpdateData, marketCatchData, onSave]);
+  }, [activeResult, catchData, marketData, popupData, marketUpdateData, marketCatchData, orderData, onSave, onCancel]);
 
   // Determine if save is enabled
   const canSave = (() => {
@@ -810,6 +982,10 @@ export function CommandReview({
         return marketUpdateData.marketId.length > 0 && Object.keys(marketUpdateData.changes).length > 0;
       case "market-catch":
         return marketCatchData.marketId.length > 0 && marketCatchData.items.length > 0;
+      case "order":
+        return orderData.items.length > 0 && orderData.pickupMarketId.length > 0;
+      case "read-only":
+        return false; // No save for read-only
       default:
         return true;
     }
@@ -826,6 +1002,7 @@ export function CommandReview({
               result={activeResult}
               onRetry={onRetry}
               onIntentChange={handleIntentChange}
+              mode={mode}
             />
           )}
           {activeResult.confidence >= 0.7 && activeResult.confidence < 0.8 && (
@@ -860,23 +1037,43 @@ export function CommandReview({
           {activeResult.reviewType === "market-catch" && (
             <MarketCatchReviewForm data={marketCatchData} onChange={setMarketCatchData} />
           )}
+          {activeResult.reviewType === "order" && (
+            <OrderReviewForm data={orderData} onChange={setOrderData} />
+          )}
+          {activeResult.reviewType === "read-only" && (
+            <ReadOnlyResultForm result={activeResult} />
+          )}
         </div>
 
         {/* Actions */}
         <div className="cr-actions">
-          <button
-            className="cr-btn cr-btn--primary"
-            onClick={handleSave}
-            disabled={saving || !canSave}
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
-          <button className="cr-btn cr-btn--secondary" onClick={onCancel}>
-            Cancel
-          </button>
-          <button className="cr-btn cr-btn--outline" onClick={onRetry}>
-            Re-record
-          </button>
+          {activeResult.reviewType === "read-only" ? (
+            <button className="cr-btn cr-btn--primary" onClick={onCancel}>
+              Done
+            </button>
+          ) : (
+            <>
+              <button
+                className="cr-btn cr-btn--primary"
+                onClick={handleSave}
+                disabled={saving || !canSave}
+              >
+                {saving
+                  ? "Saving..."
+                  : mode === "customer" && activeResult.reviewType === "order"
+                    ? "Place Order"
+                    : mode === "customer"
+                      ? "Confirm"
+                      : "Save"}
+              </button>
+              <button className="cr-btn cr-btn--secondary" onClick={onCancel}>
+                Cancel
+              </button>
+              <button className="cr-btn cr-btn--outline" onClick={onRetry}>
+                Re-record
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

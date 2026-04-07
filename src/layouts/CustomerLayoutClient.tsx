@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Header } from "@/components/Header";
+import { CommandBar } from "@/components/CommandBar";
+import { CommandReview } from "@/components/CommandReview";
+import { executeMcpTool } from "@/api/mcp-tool-call";
 import type { User } from "@/db";
+import type { VoiceCommandResult } from "@/api/voice-tools";
 import { CustomerFooter } from "./CustomerFooter";
 import "./CustomerLayout.css";
 import "@/components/UserMenu.css";
@@ -38,6 +42,37 @@ export function CustomerLayoutClient({
   csrfToken: string;
   children: React.ReactNode;
 }) {
+  const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }, []);
+
+  const handleCommandResult = useCallback((result: VoiceCommandResult) => {
+    setCommandResult(result);
+  }, []);
+
+  const handleReviewSave = useCallback(async (intent: string, data: Record<string, unknown>) => {
+    const { rawTranscript, _original, ...toolArgs } = data;
+    const result = await executeMcpTool(csrfToken, intent, toolArgs);
+    if (!result.success) {
+      throw new Error(result.error || `Failed to execute ${intent}`);
+    }
+    setCommandResult(null);
+    showToast(intent === "create_order" ? "Order placed!" : "Done!");
+    window.location.reload();
+  }, [showToast, csrfToken]);
+
+  const handleReviewCancel = useCallback(() => {
+    setCommandResult(null);
+  }, []);
+
+  const handleReviewRetry = useCallback(() => {
+    setCommandResult(null);
+  }, []);
+
   const accentStyle = useMemo(() => {
     const hex = browsingOrganization?.accentColor;
     if (!hex) return undefined;
@@ -63,6 +98,22 @@ export function CustomerLayoutClient({
       <main className="customer-main">{children}</main>
 
       <CustomerFooter />
+
+      {user && (
+        <>
+          <CommandBar onResult={handleCommandResult} hintContext="customer" />
+          {commandResult && (
+            <CommandReview
+              result={commandResult}
+              onSave={handleReviewSave}
+              onCancel={handleReviewCancel}
+              onRetry={handleReviewRetry}
+              mode="customer"
+            />
+          )}
+        </>
+      )}
+      {toast && <div className="cr-toast">{toast}</div>}
     </div>
   );
 }
