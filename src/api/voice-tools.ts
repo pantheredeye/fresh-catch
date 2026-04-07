@@ -28,6 +28,12 @@ export const GetMarketVendorsInputSchema = z.object({
 });
 export type GetMarketVendorsInput = z.infer<typeof GetMarketVendorsInputSchema>;
 
+export const GetOrderStatusInputSchema = z.object({
+  orderId: z.string().optional().describe("Order ID to look up"),
+  latest: z.boolean().optional().describe("If true, return the most recent order"),
+});
+export type GetOrderStatusInput = z.infer<typeof GetOrderStatusInputSchema>;
+
 // --- Zod input schemas for write tools ---
 
 export const CreateOrderInputSchema = z.object({
@@ -188,6 +194,24 @@ export const voiceTools: Record<string, VoiceTool> = {
       },
     },
     reviewType: "order",
+    roles: ["customer"],
+  },
+  get_order_status: {
+    description:
+      "Get status of an order by ID or retrieve the customer's latest order",
+    schema: {
+      orderId: {
+        type: "string",
+        optional: true,
+        description: "Order ID to look up",
+      },
+      latest: {
+        type: "boolean",
+        optional: true,
+        description: "If true, return the most recent order",
+      },
+    },
+    reviewType: "read-only",
     roles: ["customer"],
   },
   update_catch: {
