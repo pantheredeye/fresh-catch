@@ -20,6 +20,14 @@ export const GetMarketsInputSchema = z.object({
 });
 export type GetMarketsInput = z.infer<typeof GetMarketsInputSchema>;
 
+export const GetVendorPopupsInputSchema = z.object({});
+export type GetVendorPopupsInput = z.infer<typeof GetVendorPopupsInputSchema>;
+
+export const GetMarketVendorsInputSchema = z.object({
+  marketId: z.string().describe("ID of the market to list vendors for"),
+});
+export type GetMarketVendorsInput = z.infer<typeof GetMarketVendorsInputSchema>;
+
 // --- Types ---
 
 export type VoiceCommandResult = {
@@ -177,6 +185,25 @@ export const voiceTools: Record<string, VoiceTool> = {
         type: "string",
         optional: true,
         description: "Filter by market type (regular or popup)",
+      },
+    },
+    reviewType: "read-only",
+    roles: ["customer", "owner", "manager"],
+  },
+  get_vendor_popups: {
+    description:
+      "Returns upcoming popup markets for the org with name, schedule, expiresAt, and location",
+    schema: {},
+    reviewType: "read-only",
+    roles: ["customer", "owner", "manager"],
+  },
+  get_market_vendors: {
+    description:
+      "Returns list of vendors at a specific market with name and slug",
+    schema: {
+      marketId: {
+        type: "string",
+        description: "ID of the market to list vendors for",
       },
     },
     reviewType: "read-only",
