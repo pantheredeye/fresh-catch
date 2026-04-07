@@ -355,6 +355,7 @@ export function createMcpRequestHandler(options: {
           tool_name: name,
           input_hash: hashInput(args),
           result_status: result.isError ? "error" : "success",
+          caller_role: callerRole ?? "unknown",
           timestamp: startMs,
           duration_ms: durationMs,
         });

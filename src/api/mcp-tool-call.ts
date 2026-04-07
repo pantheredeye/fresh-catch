@@ -63,6 +63,7 @@ export async function executeMcpTool(
       tool_name: toolName,
       input_hash: hashInput(args),
       result_status: result.isError ? "error" : "success",
+      caller_role: callerRole,
       timestamp: startMs,
       duration_ms: durationMs,
     });

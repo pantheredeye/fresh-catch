@@ -11,6 +11,7 @@ export type ToolCallRow = {
   tool_name: string;
   input_hash: string;
   result_status: ToolCallStatus;
+  caller_role: string;
   timestamp: number;
   duration_ms: number;
   [key: string]: SqlStorageValue;
@@ -92,6 +93,7 @@ export class McpDurableObject extends DurableObject {
         tool_name TEXT NOT NULL,
         input_hash TEXT NOT NULL,
         result_status TEXT NOT NULL CHECK(result_status IN ('success', 'error')),
+        caller_role TEXT NOT NULL DEFAULT 'unknown',
         timestamp INTEGER NOT NULL,
         duration_ms INTEGER NOT NULL
       )
@@ -103,6 +105,10 @@ export class McpDurableObject extends DurableObject {
 
     this.sql.exec(`
       CREATE INDEX IF NOT EXISTS idx_tool_calls_timestamp ON tool_calls(timestamp)
+    `);
+
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tool_calls_caller_role ON tool_calls(caller_role)
     `);
 
     this.sql.exec(`
@@ -173,13 +179,14 @@ export class McpDurableObject extends DurableObject {
     this.ensureSchema();
     const id = crypto.randomUUID();
     this.sql.exec(
-      `INSERT INTO tool_calls (id, session_id, tool_name, input_hash, result_status, timestamp, duration_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tool_calls (id, session_id, tool_name, input_hash, result_status, caller_role, timestamp, duration_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       entry.session_id,
       entry.tool_name,
       entry.input_hash,
       entry.result_status,
+      entry.caller_role,
       entry.timestamp,
       entry.duration_ms,
     );
@@ -204,6 +211,17 @@ export class McpDurableObject extends DurableObject {
         `SELECT * FROM tool_calls WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC`,
         startMs,
         endMs,
+      )
+      .toArray();
+  }
+
+  /** Query audit log by caller role. */
+  getCallsByCallerRole(role: string): ToolCallRow[] {
+    this.ensureSchema();
+    return this.sql
+      .exec<ToolCallRow>(
+        `SELECT * FROM tool_calls WHERE caller_role = ? ORDER BY timestamp DESC`,
+        role,
       )
       .toArray();
   }
