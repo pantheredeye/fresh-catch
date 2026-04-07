@@ -263,6 +263,39 @@ export class ChatDurableObject extends DurableObject {
         content: m.content,
       }));
 
+    // Check response cache before calling Claude API
+    const mcpId = this.env.MCP_DURABLE_OBJECT.idFromName(conversation.organizationId);
+    const mcpStub = this.env.MCP_DURABLE_OBJECT.get(mcpId);
+    const cached = await mcpStub.getCachedResponse(customerMessage);
+    if (cached !== null) {
+      // Cache hit — skip Claude API call entirely
+      const aiMessage = await db.message.create({
+        data: {
+          conversationId: this.conversationId,
+          content: cached,
+          senderType: "ai",
+          senderId: null,
+        },
+      });
+      await db.conversation.update({
+        where: { id: this.conversationId },
+        data: { lastMessageAt: aiMessage.createdAt },
+      });
+      const aiOutgoing: OutgoingMessage = {
+        type: "message",
+        id: aiMessage.id,
+        content: aiMessage.content,
+        senderType: aiMessage.senderType,
+        senderId: aiMessage.senderId,
+        createdAt: aiMessage.createdAt.toISOString(),
+      };
+      const aiPayload = JSON.stringify(aiOutgoing);
+      for (const socket of this.ctx.getWebSockets()) {
+        socket.send(aiPayload);
+      }
+      return;
+    }
+
     const result = await generateAiResponse({
       apiKey,
       customerMessage,
@@ -273,11 +306,18 @@ export class ChatDurableObject extends DurableObject {
       },
     });
 
+    // Cache successful responses for future identical queries
+    if (result.ok) {
+      try {
+        mcpStub.cacheResponse(customerMessage, result.text);
+      } catch (err) {
+        console.error("[ChatDO] Failed to cache response:", err);
+      }
+    }
+
     // Log gap if AI couldn't answer
     if (!result.ok) {
       try {
-        const mcpId = this.env.MCP_DURABLE_OBJECT.idFromName(conversation.organizationId);
-        const mcpStub = this.env.MCP_DURABLE_OBJECT.get(mcpId);
         mcpStub.logGap({
           conversation_id: this.conversationId!,
           question: customerMessage,

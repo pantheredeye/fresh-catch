@@ -1,10 +1,22 @@
 "use server";
 
+import { env } from "cloudflare:workers";
 import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { requireCsrf } from "@/session/csrf";
+
+/** Invalidate AI response cache when catch data changes */
+function invalidateResponseCache(organizationId: string): void {
+  try {
+    const doId = env.MCP_DURABLE_OBJECT.idFromName(organizationId);
+    const stub = env.MCP_DURABLE_OBJECT.get(doId);
+    stub.invalidateResponseCache();
+  } catch (err) {
+    console.error("[catch-functions] Failed to invalidate cache:", err);
+  }
+}
 
 interface CatchContent {
   headline: string;
@@ -38,6 +50,8 @@ export async function publishCatch(csrfToken: string, content: CatchContent, raw
     },
   });
 
+  invalidateResponseCache(organizationId);
+
   return { success: true };
 }
 
@@ -57,6 +71,8 @@ export async function clearCatch(csrfToken: string) {
     },
     data: { status: "archived" },
   });
+
+  invalidateResponseCache(ctx.currentOrganization.id);
 
   return { success: true };
 }

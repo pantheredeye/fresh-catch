@@ -32,6 +32,15 @@ export type GapLogRow = {
   [key: string]: SqlStorageValue;
 };
 
+export type ResponseCacheRow = {
+  cache_key: string;
+  response_text: string;
+  created_at: number;
+  expires_at: number;
+  hit_count: number;
+  [key: string]: SqlStorageValue;
+};
+
 /**
  * Per-org Durable Object for MCP session state, tool call audit logging,
  * and rate limiting. Uses SQLite storage for structured data.
@@ -89,6 +98,20 @@ export class McpDurableObject extends DurableObject {
 
     this.sql.exec(`
       CREATE INDEX IF NOT EXISTS idx_gap_log_timestamp ON gap_log(timestamp)
+    `);
+
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS response_cache (
+        cache_key TEXT PRIMARY KEY,
+        response_text TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        hit_count INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS idx_response_cache_expires ON response_cache(expires_at)
     `);
 
     this.schemaReady = true;
@@ -189,6 +212,68 @@ export class McpDurableObject extends DurableObject {
         limit,
       )
       .toArray();
+  }
+
+  // --- Response cache ---
+
+  /** Normalize a query string for cache key: lowercase, trim, collapse whitespace. */
+  private normalizeCacheKey(query: string): string {
+    return query.toLowerCase().trim().replace(/\s+/g, " ");
+  }
+
+  /** Look up a cached response. Returns text if hit, null if miss/expired. */
+  getCachedResponse(query: string): string | null {
+    this.ensureSchema();
+    const key = this.normalizeCacheKey(query);
+    const now = Date.now();
+
+    // Delete expired entries opportunistically
+    this.sql.exec(`DELETE FROM response_cache WHERE expires_at <= ?`, now);
+
+    const rows = this.sql
+      .exec<ResponseCacheRow>(
+        `SELECT * FROM response_cache WHERE cache_key = ? AND expires_at > ?`,
+        key,
+        now,
+      )
+      .toArray();
+
+    if (rows.length === 0) return null;
+
+    // Bump hit count
+    this.sql.exec(
+      `UPDATE response_cache SET hit_count = hit_count + 1 WHERE cache_key = ?`,
+      key,
+    );
+
+    return rows[0].response_text;
+  }
+
+  /** Store a response in the cache with a TTL in milliseconds. */
+  cacheResponse(query: string, responseText: string, ttlMs: number = 5 * 60 * 1000): void {
+    this.ensureSchema();
+    const key = this.normalizeCacheKey(query);
+    const now = Date.now();
+
+    this.sql.exec(
+      `INSERT INTO response_cache (cache_key, response_text, created_at, expires_at, hit_count)
+       VALUES (?, ?, ?, ?, 0)
+       ON CONFLICT(cache_key) DO UPDATE SET
+         response_text = excluded.response_text,
+         created_at = excluded.created_at,
+         expires_at = excluded.expires_at,
+         hit_count = 0`,
+      key,
+      responseText,
+      now,
+      now + ttlMs,
+    );
+  }
+
+  /** Invalidate all cached responses (e.g., when catch/market data changes). */
+  invalidateResponseCache(): void {
+    this.ensureSchema();
+    this.sql.exec(`DELETE FROM response_cache`);
   }
 
   /** Get current rate limit state for a tier. */

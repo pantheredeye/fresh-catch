@@ -1,10 +1,22 @@
 "use server";
 
+import { env } from "cloudflare:workers";
 import { requestInfo } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { requireCsrf } from "@/session/csrf";
+
+/** Invalidate AI response cache when market data changes */
+function invalidateResponseCache(organizationId: string): void {
+  try {
+    const doId = env.MCP_DURABLE_OBJECT.idFromName(organizationId);
+    const stub = env.MCP_DURABLE_OBJECT.get(doId);
+    stub.invalidateResponseCache();
+  } catch (err) {
+    console.error("[market-functions] Failed to invalidate cache:", err);
+  }
+}
 
 const FIELD_LIMITS = {
   name: 200,
@@ -73,6 +85,8 @@ export async function createMarket(csrfToken: string, data: {
     },
   });
 
+  invalidateResponseCache(ctx.currentOrganization.id);
+
   return market;
 }
 
@@ -133,6 +147,8 @@ export async function updateMarket(
     },
   });
 
+  invalidateResponseCache(ctx.currentOrganization.id);
+
   return market;
 }
 
@@ -161,6 +177,7 @@ export async function deleteMarket(csrfToken: string, id: string) {
     where: { id },
   });
 
+  invalidateResponseCache(ctx.currentOrganization.id);
 
   return { success: true };
 }
