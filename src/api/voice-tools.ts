@@ -5,6 +5,21 @@
  *   - mcpFormat(): MCP Tool[] definitions for the Model Context Protocol server
  */
 
+import { z } from "zod";
+
+// --- Zod input schemas for read-only tools ---
+
+export const ListCatchInputSchema = z.object({
+  itemName: z.string().optional().describe("Filter by item name (partial match)"),
+});
+export type ListCatchInput = z.infer<typeof ListCatchInputSchema>;
+
+export const GetMarketsInputSchema = z.object({
+  activeOnly: z.boolean().optional().describe("Only return active markets"),
+  type: z.enum(["regular", "popup"]).optional().describe("Filter by market type"),
+});
+export type GetMarketsInput = z.infer<typeof GetMarketsInputSchema>;
+
 // --- Types ---
 
 export type VoiceCommandResult = {
@@ -137,6 +152,35 @@ export const voiceTools: Record<string, VoiceTool> = {
       },
     },
     reviewType: "market-catch",
+  },
+  list_catch: {
+    description: "Returns current catch listing for the org",
+    schema: {
+      itemName: {
+        type: "string",
+        optional: true,
+        description: "Filter by item name (partial match)",
+      },
+    },
+    reviewType: "read-only",
+    roles: ["customer", "owner", "manager"],
+  },
+  get_markets: {
+    description: "Returns market schedule for the org",
+    schema: {
+      activeOnly: {
+        type: "boolean",
+        optional: true,
+        description: "Only return active markets",
+      },
+      type: {
+        type: "string",
+        optional: true,
+        description: "Filter by market type (regular or popup)",
+      },
+    },
+    reviewType: "read-only",
+    roles: ["customer", "owner", "manager"],
   },
 };
 
