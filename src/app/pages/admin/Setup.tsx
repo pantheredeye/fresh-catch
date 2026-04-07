@@ -110,11 +110,11 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
 
     try {
       // 1. Get a challenge from the worker for business owner registration
-      setMessage('Generating passkey challenge...');
+      setMessage('Generating security challenge...');
       const options = await startBusinessOwnerRegistration(username);
 
       // 2. Ask the browser to sign the challenge
-      setMessage('Please complete passkey authentication...');
+      setMessage('Please complete biometric authentication...');
       const registration = await startRegistration({ optionsJSON: options });
 
       // 3. Give the signed challenge to the worker to finish the registration process
@@ -193,7 +193,7 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
           >
             {isLoggedIn
               ? `Logged in as ${ctx.user?.username}. Set up your business below.`
-              : 'Register your business owner account with secure passkey authentication'}
+              : 'Register your business owner account with secure biometric authentication'}
           </p>
         </div>
 

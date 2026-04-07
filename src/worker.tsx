@@ -111,9 +111,10 @@ export default defineApp([
       throw error;
     }
 
-    // Ensure a session exists for all visitors (needed for OTP storage)
+    // Ensure a session exists for all visitors (needed for OTP storage).
+    // The cookie is set on the response; subsequent requests will have it.
     if (!ctx.session) {
-      ctx.session = await sessions.save(response.headers, {}) as Session;
+      await sessions.save(response.headers, {});
     }
 
     if (ctx.session?.userId) {

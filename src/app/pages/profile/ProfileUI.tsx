@@ -118,7 +118,7 @@ export function ProfileUI({ csrfToken, user }: ProfileUIProps) {
                 color: 'var(--color-text-tertiary)',
                 marginTop: 'var(--space-xs)',
               }}>
-                Your email is used for passkey login
+                Your email is used for sign-in
               </p>
             </div>
 
@@ -300,7 +300,7 @@ export function ProfileUI({ csrfToken, user }: ProfileUIProps) {
               color: 'var(--color-text-tertiary)',
               marginBottom: 'var(--space-xs)',
             }}>
-              Passkeys: {user.credentials.length}
+              Registered devices: {user.credentials.length}
             </p>
             <p style={{
               fontSize: 'var(--font-size-sm)',
