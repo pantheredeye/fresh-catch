@@ -146,6 +146,7 @@ export default defineApp([
       body: request.body,
     });
     mcpRequest.headers.set("X-Org-Id", org.id);
+    mcpRequest.headers.set("X-Org-Name", org.name);
 
     return stub.fetch(mcpRequest);
   },

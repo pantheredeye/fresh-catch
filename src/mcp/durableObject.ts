@@ -156,6 +156,8 @@ export class McpDurableObject extends DurableObject {
   async fetch(request: Request): Promise<Response> {
     const organizationId =
       request.headers.get("X-Org-Id") ?? "unknown";
+    const orgName =
+      request.headers.get("X-Org-Name") ?? undefined;
     const sessionId =
       request.headers.get("X-Session-Id") ?? crypto.randomUUID();
 
@@ -163,6 +165,7 @@ export class McpDurableObject extends DurableObject {
     // needs its own McpServer instance for transport isolation
     const handler = createMcpRequestHandler({
       organizationId,
+      orgName,
       sessionId,
       mcpDO: this,
     });

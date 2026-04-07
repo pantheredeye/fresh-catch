@@ -18,6 +18,7 @@ import {
   handleGetVendorPopups,
   handleGetMarketVendors,
 } from "./tool-handlers";
+import { db } from "@/db";
 import type { McpDurableObject } from "@/mcp/durableObject";
 
 // --- Types ---
@@ -64,6 +65,138 @@ const toolRegistry: Record<string, ToolRegistration> = {
   },
 };
 
+// --- Resource + prompt helpers ---
+
+async function readCatchResource(organizationId: string): Promise<string> {
+  try {
+    const catchUpdate = await db.catchUpdate.findFirst({
+      where: { organizationId, status: "live" },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!catchUpdate) {
+      return JSON.stringify({ items: [], message: "No catch currently available." });
+    }
+
+    const content = JSON.parse(catchUpdate.formattedContent) as {
+      headline?: string;
+      items?: Array<{ name: string; note: string }>;
+      summary?: string;
+    };
+
+    return JSON.stringify({
+      headline: content.headline ?? null,
+      items: content.items ?? [],
+      summary: content.summary ?? null,
+      updatedAt: catchUpdate.createdAt.toISOString(),
+    });
+  } catch {
+    return JSON.stringify({ items: [], message: "Error reading catch data." });
+  }
+}
+
+async function readMarketsResource(organizationId: string): Promise<string> {
+  try {
+    const markets = await db.market.findMany({
+      where: { organizationId, active: true },
+      orderBy: [{ county: "asc" }, { city: "asc" }, { name: "asc" }],
+    });
+
+    return JSON.stringify({
+      markets: markets.map((m) => ({
+        id: m.id,
+        name: m.name,
+        schedule: m.schedule,
+        type: m.type,
+        active: m.active,
+        locationDetails: m.locationDetails,
+        customerInfo: m.customerInfo,
+        county: m.county,
+        city: m.city,
+      })),
+    });
+  } catch {
+    return JSON.stringify({ markets: [], message: "Error reading market data." });
+  }
+}
+
+function buildVendorAssistantPrompt(orgName: string): string {
+  return `You are a friendly assistant for ${orgName}, a local seafood vendor.
+
+## Personality
+- Warm and knowledgeable, like chatting with someone at the fish counter
+- Enthusiastic about fresh seafood without being salesy
+- Use casual, approachable language — not corporate speak
+- If you don't know something, say so honestly
+
+## What you can do
+- Answer questions about today's fresh catch (what's available, pricing notes, preparation tips)
+- Share market schedule and location details
+- Help customers find which markets the vendor attends
+- Provide general seafood knowledge (cooking tips, seasonality, sustainability)
+
+## Guidelines
+- Always check the current catch data before answering "what's fresh" questions
+- When listing items, include the vendor's own notes/descriptions
+- If no catch data is available, let the customer know and suggest checking back
+- Keep responses concise — customers want quick answers
+- Reference specific market names and schedules when relevant`;
+}
+
+function registerResourcesAndPrompts(
+  server: McpServer,
+  organizationId: string,
+  orgName?: string,
+): void {
+  // Resources
+  server.resource(
+    "today-catch",
+    "catch://today",
+    { description: "Current catch listing — what's fresh today" },
+    async () => ({
+      contents: [
+        {
+          uri: "catch://today",
+          mimeType: "application/json",
+          text: await readCatchResource(organizationId),
+        },
+      ],
+    }),
+  );
+
+  server.resource(
+    "market-schedule",
+    "markets://schedule",
+    { description: "Market schedule with locations and times" },
+    async () => ({
+      contents: [
+        {
+          uri: "markets://schedule",
+          mimeType: "application/json",
+          text: await readMarketsResource(organizationId),
+        },
+      ],
+    }),
+  );
+
+  // Prompts
+  server.prompt(
+    "vendor-assistant",
+    "System prompt for a vendor-side AI assistant with full admin context",
+    async () => ({
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: buildVendorAssistantPrompt(orgName ?? "this seafood vendor"),
+          },
+        },
+      ],
+    }),
+  );
+}
+
 // --- Server creation ---
 
 function createServer(): McpServer {
@@ -78,6 +211,8 @@ function createServer(): McpServer {
     });
   }
 
+  registerResourcesAndPrompts(server, "");
+
   return server;
 }
 
@@ -89,10 +224,11 @@ function createServer(): McpServer {
  */
 export function createMcpRequestHandler(options: {
   organizationId: string;
+  orgName?: string;
   sessionId: string;
   mcpDO: McpDurableObject;
 }): (request: Request, env: unknown, ctx: ExecutionContext) => Promise<Response> {
-  const { organizationId, sessionId, mcpDO } = options;
+  const { organizationId, orgName, sessionId, mcpDO } = options;
 
   const server = new McpServer({
     name: "fresh-catch",
@@ -137,6 +273,8 @@ export function createMcpRequestHandler(options: {
       return result;
     });
   }
+
+  registerResourcesAndPrompts(server, organizationId, orgName);
 
   return createMcpHandler(server);
 }
