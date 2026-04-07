@@ -8,6 +8,8 @@ import { db } from "@/db";
 import {
   ListCatchInputSchema,
   GetMarketsInputSchema,
+  GetVendorPopupsInputSchema,
+  GetMarketVendorsInputSchema,
   type ListCatchInput,
   type GetMarketsInput,
 } from "./voice-tools";
@@ -111,6 +113,103 @@ export async function handleGetMarkets(
         county: m.county,
         city: m.city,
       })),
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleGetVendorPopups(
+  rawInput: unknown,
+  organizationId: string,
+): Promise<ToolResult> {
+  const parsed = GetVendorPopupsInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+
+  try {
+    const now = new Date();
+    const popups = await db.market.findMany({
+      where: {
+        organizationId,
+        type: "popup",
+        expiresAt: { gt: now },
+        cancelledAt: null,
+      },
+      orderBy: { expiresAt: "asc" },
+    });
+
+    return textResult({
+      popups: popups.map((m) => ({
+        id: m.id,
+        name: m.name,
+        schedule: m.schedule,
+        expiresAt: m.expiresAt?.toISOString() ?? null,
+        locationDetails: m.locationDetails,
+        county: m.county,
+        city: m.city,
+      })),
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleGetMarketVendors(
+  rawInput: unknown,
+  _organizationId: string,
+): Promise<ToolResult> {
+  const parsed = GetMarketVendorsInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const { marketId } = parsed.data;
+
+  try {
+    // Look up the target market (cross-org read)
+    const market = await db.market.findUnique({
+      where: { id: marketId },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    if (!market) {
+      return errorResult(`Market not found: ${marketId}`);
+    }
+
+    // Find all markets with the same name to identify co-vendors
+    const coMarkets = await db.market.findMany({
+      where: {
+        name: market.name,
+        active: true,
+      },
+      include: {
+        organization: { select: { name: true, slug: true } },
+      },
+    });
+
+    // Deduplicate by org slug, expose only public data
+    const seen = new Set<string>();
+    const vendors: Array<{ name: string; slug: string }> = [];
+    for (const m of coMarkets) {
+      if (!seen.has(m.organization.slug)) {
+        seen.add(m.organization.slug);
+        vendors.push({
+          name: m.organization.name,
+          slug: m.organization.slug,
+        });
+      }
+    }
+
+    return textResult({
+      marketName: market.name,
+      vendors,
     });
   } catch (err) {
     return errorResult(
