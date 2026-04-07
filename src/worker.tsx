@@ -29,6 +29,7 @@ import { rateLimitAuth } from "@/rate-limit/middleware";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
+export { McpDurableObject } from "./mcp/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {

@@ -25,6 +25,10 @@
       {
         "name": "RATE_LIMIT_DURABLE_OBJECT",
         "class_name": "RateLimitDurableObject"
+      },
+      {
+        "name": "MCP_DURABLE_OBJECT",
+        "class_name": "McpDurableObject"
       }
     ]
   },
@@ -52,6 +56,12 @@
       "tag": "v3",
       "new_classes": [
         "RateLimitDurableObject"
+      ]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": [
+        "McpDurableObject"
       ]
     }
   ],
