@@ -115,6 +115,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   // OTP digit state
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const successLinkRef = useRef<HTMLAnchorElement>(null);
 
   // Capture URL params: ?b=
   useEffect(() => {
@@ -151,7 +152,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   useEffect(() => {
     if (screen !== "success") return;
     const timer = setTimeout(() => {
-      window.location.href = redirectUrl;
+      successLinkRef.current?.click();
     }, 500);
     return () => clearTimeout(timer);
   }, [screen, redirectUrl]);
@@ -786,6 +787,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
           <div style={{ textAlign: "center" }}>
             <h1 style={headingStyle}>You're in!</h1>
             <a
+              ref={successLinkRef}
               href={redirectUrl}
               style={{
                 color: "var(--color-action-primary)",
