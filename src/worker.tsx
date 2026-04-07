@@ -22,6 +22,7 @@ import { Session } from "./session/durableObject";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
+import { validateApiKey } from "@/utils/api-keys";
 import { getServerCard } from "@/api/mcp-server";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
@@ -120,30 +121,34 @@ export default defineApp([
       return new Response("Not Found", { status: 404 });
     }
 
-    // Auth: session cookie or dev secret
+    // Auth: API key or session cookie
     let authenticated = false;
+    let authRole: string | undefined;
 
-    // Path 1: Session cookie — verify session org matches URL org
-    try {
-      const session = await sessions.load(request);
-      if (session?.userId && session?.currentOrganizationId === org.id) {
+    const authHeader = request.headers.get("Authorization");
+
+    // Path 1: API key — hash provided key and compare against org's stored hash
+    if (authHeader?.startsWith("Bearer ")) {
+      const providedKey = authHeader.slice(7);
+      if (org.apiKeyHash && await validateApiKey(providedKey, org.apiKeyHash)) {
         authenticated = true;
-      } else if (session?.userId && session?.currentOrganizationId !== org.id) {
-        return new Response("Forbidden – org mismatch", { status: 403 });
+        authRole = "owner";
+      } else {
+        return new Response("Unauthorized", { status: 401 });
       }
-    } catch {
-      // Session load failed — fall through to dev secret
     }
 
-    // Path 2: Dev secret (Phase 1 testing only)
+    // Path 2: Session cookie — verify session org matches URL org
     if (!authenticated) {
-      const authHeader = request.headers.get("Authorization");
-      const devSecret = env.DEV_MCP_SECRET;
-      if (
-        devSecret &&
-        authHeader === `Bearer ${devSecret}`
-      ) {
-        authenticated = true;
+      try {
+        const session = await sessions.load(request);
+        if (session?.userId && session?.currentOrganizationId === org.id) {
+          authenticated = true;
+        } else if (session?.userId && session?.currentOrganizationId !== org.id) {
+          return new Response("Forbidden – org mismatch", { status: 403 });
+        }
+      } catch {
+        // Session load failed — no valid auth
       }
     }
 
@@ -162,6 +167,9 @@ export default defineApp([
     });
     mcpRequest.headers.set("X-Org-Id", org.id);
     mcpRequest.headers.set("X-Org-Name", org.name);
+    if (authRole) {
+      mcpRequest.headers.set("X-Role", authRole);
+    }
 
     return stub.fetch(mcpRequest);
   },
