@@ -13,6 +13,7 @@ import {
   type VoiceCommandResult,
   type BusinessContext,
 } from "@/api/voice-tools";
+import { toolRegistry } from "@/api/mcp-server";
 
 /** Transcribe audio via Whisper or extract text from JSON body. */
 async function getTranscript(request: Request): Promise<string> {
@@ -288,6 +289,22 @@ export async function handleVoiceCommand(
   const interpretation =
     textBlock?.text ?? `Using ${toolUseBlock.name}`;
 
+  // For read-only tools, execute the query server-side and include results
+  let queryResult: Record<string, unknown> | undefined;
+  if (tool.reviewType === "read-only") {
+    const registeredTool = toolRegistry[toolUseBlock.name];
+    if (registeredTool) {
+      try {
+        const result = await registeredTool.handler(data, orgId, role);
+        if (!result.isError && result.content[0]?.text) {
+          queryResult = JSON.parse(result.content[0].text);
+        }
+      } catch {
+        // Query execution failure is non-fatal — UI will show interpretation fallback
+      }
+    }
+  }
+
   return Response.json({
     intent: toolUseBlock.name,
     confidence: 1,
@@ -295,5 +312,6 @@ export async function handleVoiceCommand(
     interpretation,
     rawTranscript,
     reviewType: tool.reviewType,
+    ...(queryResult && { queryResult }),
   } satisfies VoiceCommandResult);
 }

@@ -154,6 +154,8 @@ export type VoiceCommandResult = {
   interpretation: string;
   rawTranscript: string;
   reviewType: string;
+  /** For read-only tools: pre-executed query result data */
+  queryResult?: Record<string, unknown>;
 };
 
 type SchemaField = {

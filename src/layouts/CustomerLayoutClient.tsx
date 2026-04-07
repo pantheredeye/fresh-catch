@@ -4,6 +4,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
+import { QueryResultOverlay } from "@/components/QueryResultOverlay";
 import { executeMcpTool } from "@/api/mcp-tool-call";
 import type { User } from "@/db";
 import type { VoiceCommandResult } from "@/api/voice-tools";
@@ -43,6 +44,7 @@ export function CustomerLayoutClient({
   children: React.ReactNode;
 }) {
   const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
+  const [queryResult, setQueryResult] = useState<VoiceCommandResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
@@ -51,7 +53,11 @@ export function CustomerLayoutClient({
   }, []);
 
   const handleCommandResult = useCallback((result: VoiceCommandResult) => {
-    setCommandResult(result);
+    if (result.reviewType === "read-only") {
+      setQueryResult(result);
+    } else {
+      setCommandResult(result);
+    }
   }, []);
 
   const handleReviewSave = useCallback(async (intent: string, data: Record<string, unknown>) => {
@@ -109,6 +115,12 @@ export function CustomerLayoutClient({
               onCancel={handleReviewCancel}
               onRetry={handleReviewRetry}
               mode="customer"
+            />
+          )}
+          {queryResult && (
+            <QueryResultOverlay
+              result={queryResult}
+              onDismiss={() => setQueryResult(null)}
             />
           )}
         </>
