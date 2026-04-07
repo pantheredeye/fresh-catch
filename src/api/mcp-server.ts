@@ -11,12 +11,20 @@ import {
   GetMarketsInputSchema,
   GetVendorPopupsInputSchema,
   GetMarketVendorsInputSchema,
+  CreateOrderInputSchema,
+  UpdateCatchInputSchema,
+  UpdateMarketCatchInputSchema,
+  SendMessageInputSchema,
 } from "./voice-tools";
 import {
   handleListCatch,
   handleGetMarkets,
   handleGetVendorPopups,
   handleGetMarketVendors,
+  handleCreateOrder,
+  handleUpdateCatch,
+  handleUpdateMarketCatch,
+  handleSendMessage,
 } from "./tool-handlers";
 import { db } from "@/db";
 import type { McpDurableObject, ToolTier } from "@/mcp/durableObject";
@@ -31,6 +39,7 @@ type ToolResult = {
 type ToolHandlerFn = (
   rawInput: unknown,
   organizationId: string,
+  callerRole?: string,
 ) => Promise<ToolResult>;
 
 type ToolRegistration = {
@@ -75,6 +84,30 @@ const toolRegistry: Record<string, ToolRegistration> = {
     schema: GetMarketVendorsInputSchema.shape,
     handler: handleGetMarketVendors,
     tier: "read",
+  },
+  create_order: {
+    description: "Customer creates an order for pickup at a market",
+    schema: CreateOrderInputSchema.shape,
+    handler: handleCreateOrder,
+    tier: "write",
+  },
+  update_catch: {
+    description: "Update today's fresh catch with what's available",
+    schema: UpdateCatchInputSchema.shape,
+    handler: handleUpdateCatch,
+    tier: "write",
+  },
+  update_market_catch: {
+    description: "Update what fish are available at a specific market",
+    schema: UpdateMarketCatchInputSchema.shape,
+    handler: handleUpdateMarketCatch,
+    tier: "write",
+  },
+  send_message: {
+    description: "Send a chat message in a conversation",
+    schema: SendMessageInputSchema.shape,
+    handler: handleSendMessage,
+    tier: "write",
   },
 };
 
@@ -220,7 +253,7 @@ function createServer(): McpServer {
 
   for (const [name, tool] of Object.entries(toolRegistry)) {
     server.tool(name, tool.description, tool.schema, async (args) => {
-      return tool.handler(args, "");
+      return tool.handler(args, "", undefined);
     });
   }
 
@@ -239,9 +272,10 @@ export function createMcpRequestHandler(options: {
   organizationId: string;
   orgName?: string;
   sessionId: string;
+  callerRole?: string;
   mcpDO: McpDurableObject;
 }): (request: Request, env: unknown, ctx: ExecutionContext) => Promise<Response> {
-  const { organizationId, orgName, sessionId, mcpDO } = options;
+  const { organizationId, orgName, sessionId, callerRole, mcpDO } = options;
 
   const server = new McpServer({
     name: "fresh-catch",
@@ -276,7 +310,7 @@ export function createMcpRequestHandler(options: {
       let result: ToolResult;
 
       try {
-        result = await tool.handler(args, organizationId);
+        result = await tool.handler(args, organizationId, callerRole);
       } catch (err) {
         result = {
           isError: true,

@@ -1,15 +1,21 @@
 /**
- * MCP tool handler implementations for read-only tools.
- * Each handler takes validated input + organizationId, queries D1, returns structured data.
+ * MCP tool handler implementations.
+ * Each handler takes validated input + organizationId + optional callerRole,
+ * queries D1, returns structured data.
  * Errors are returned as { isError: true, content: [...] }, never thrown.
  */
 
+import { env } from "cloudflare:workers";
 import { db } from "@/db";
 import {
   ListCatchInputSchema,
   GetMarketsInputSchema,
   GetVendorPopupsInputSchema,
   GetMarketVendorsInputSchema,
+  CreateOrderInputSchema,
+  UpdateCatchInputSchema,
+  UpdateMarketCatchInputSchema,
+  SendMessageInputSchema,
   type ListCatchInput,
   type GetMarketsInput,
 } from "./voice-tools";
@@ -30,6 +36,21 @@ function errorResult(message: string): ToolResult {
     isError: true,
     content: [{ type: "text", text: message }],
   };
+}
+
+function checkRole(callerRole: string | undefined, allowedRoles: string[]): ToolResult | null {
+  if (!callerRole || !allowedRoles.includes(callerRole)) {
+    return errorResult(`Forbidden: requires role ${allowedRoles.join(" or ")}, got ${callerRole ?? "none"}`);
+  }
+  return null;
+}
+
+function invalidateResponseCache(organizationId: string): void {
+  try {
+    const doId = env.MCP_DURABLE_OBJECT.idFromName(organizationId);
+    const stub = env.MCP_DURABLE_OBJECT.get(doId);
+    stub.invalidateResponseCache();
+  } catch { /* cache invalidation must not crash the handler */ }
 }
 
 export async function handleListCatch(
@@ -210,6 +231,248 @@ export async function handleGetMarketVendors(
     return textResult({
       marketName: market.name,
       vendors,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+// --- Write tool handlers ---
+
+export async function handleCreateOrder(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["customer"]);
+  if (roleErr) return roleErr;
+
+  const parsed = CreateOrderInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  if (input.items.length === 0) {
+    return errorResult("Items array must not be empty");
+  }
+
+  try {
+    // Validate pickup market belongs to org
+    const market = await db.market.findFirst({
+      where: { id: input.pickupMarketId, organizationId },
+    });
+    if (!market) {
+      return errorResult(`Market not found or does not belong to this organization: ${input.pickupMarketId}`);
+    }
+
+    // Get next order number with retry for unique constraint
+    let orderNumber = 1;
+    const lastOrder = await db.order.findFirst({
+      where: { organizationId },
+      orderBy: { orderNumber: "desc" },
+    });
+    if (lastOrder) {
+      orderNumber = lastOrder.orderNumber + 1;
+    }
+
+    const order = await db.order.create({
+      data: {
+        userId: "mcp-api",
+        organizationId,
+        orderNumber,
+        contactName: "MCP Order",
+        items: JSON.stringify(input.items),
+        preferredDate: new Date(input.pickupDate),
+        notes: input.customerNote,
+        status: "pending",
+      },
+    });
+
+    return textResult({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: "pending",
+      itemCount: input.items.length,
+    });
+  } catch (err) {
+    // Retry once on unique constraint violation (race condition on orderNumber)
+    if (err instanceof Error && err.message.includes("UNIQUE")) {
+      try {
+        const lastOrder = await db.order.findFirst({
+          where: { organizationId },
+          orderBy: { orderNumber: "desc" },
+        });
+        const retryNumber = (lastOrder?.orderNumber ?? 0) + 1;
+
+        const order = await db.order.create({
+          data: {
+            userId: "mcp-api",
+            organizationId,
+            orderNumber: retryNumber,
+            contactName: "MCP Order",
+            items: JSON.stringify(input.items),
+            preferredDate: new Date(input.pickupDate),
+            notes: input.customerNote,
+            status: "pending",
+          },
+        });
+
+        return textResult({
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          status: "pending",
+          itemCount: input.items.length,
+        });
+      } catch (retryErr) {
+        return errorResult(
+          `Database error: ${retryErr instanceof Error ? retryErr.message : String(retryErr)}`,
+        );
+      }
+    }
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleUpdateCatch(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["owner", "manager"]);
+  if (roleErr) return roleErr;
+
+  const parsed = UpdateCatchInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    // Archive existing live catch
+    await db.catchUpdate.updateMany({
+      where: { organizationId, status: "live" },
+      data: { status: "archived" },
+    });
+
+    // Create new live catch
+    await db.catchUpdate.create({
+      data: {
+        organizationId,
+        recordedBy: "mcp-api",
+        rawTranscript: "MCP tool call",
+        formattedContent: JSON.stringify({
+          headline: input.headline,
+          items: input.items,
+          summary: input.summary,
+        }),
+        status: "live",
+      },
+    });
+
+    invalidateResponseCache(organizationId);
+
+    return textResult({
+      published: true,
+      headline: input.headline,
+      itemCount: input.items.length,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleUpdateMarketCatch(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["owner", "manager"]);
+  if (roleErr) return roleErr;
+
+  const parsed = UpdateMarketCatchInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    // Verify market exists and belongs to org
+    const market = await db.market.findFirst({
+      where: { id: input.marketId, organizationId },
+    });
+    if (!market) {
+      return errorResult(`Market not found or does not belong to this organization: ${input.marketId}`);
+    }
+
+    // Update market catch preview
+    await db.market.update({
+      where: { id: input.marketId },
+      data: { catchPreview: JSON.stringify({ items: input.catchPreview }) },
+    });
+
+    invalidateResponseCache(organizationId);
+
+    return textResult({
+      updated: true,
+      marketId: input.marketId,
+      itemCount: input.catchPreview.length,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleSendMessage(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["owner", "manager", "customer"]);
+  if (roleErr) return roleErr;
+
+  const parsed = SendMessageInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    // Verify conversation exists and belongs to org
+    const conversation = await db.conversation.findFirst({
+      where: { id: input.conversationId, organizationId },
+    });
+    if (!conversation) {
+      return errorResult(`Conversation not found or does not belong to this organization: ${input.conversationId}`);
+    }
+
+    // Create message
+    await db.message.create({
+      data: {
+        conversationId: input.conversationId,
+        content: input.text,
+        senderType: callerRole === "customer" ? "customer" : "vendor",
+        senderId: "mcp-api",
+      },
+    });
+
+    // Update conversation lastMessageAt
+    await db.conversation.update({
+      where: { id: input.conversationId },
+      data: { lastMessageAt: new Date() },
+    });
+
+    return textResult({
+      sent: true,
+      conversationId: input.conversationId,
     });
   } catch (err) {
     return errorResult(

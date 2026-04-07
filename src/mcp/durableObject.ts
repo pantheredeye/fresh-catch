@@ -426,6 +426,8 @@ export class McpDurableObject extends DurableObject {
       request.headers.get("X-Org-Name") ?? undefined;
     const sessionId =
       request.headers.get("X-Session-Id") ?? crypto.randomUUID();
+    const callerRole =
+      request.headers.get("X-Role") ?? undefined;
 
     // Create a fresh handler per request — each MCP SSE connection
     // needs its own McpServer instance for transport isolation
@@ -433,6 +435,7 @@ export class McpDurableObject extends DurableObject {
       organizationId,
       orgName,
       sessionId,
+      callerRole,
       mcpDO: this,
     });
 
