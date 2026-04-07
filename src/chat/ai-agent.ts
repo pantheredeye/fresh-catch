@@ -4,7 +4,8 @@
  */
 
 import type { MessageParam, Tool, ToolUseBlock, ToolResultBlockParam } from "@anthropic-ai/sdk/resources/messages";
-import { createClaudeClient } from "./claude-client";
+import { createClaudeClient, classifyQuery, getModelConfig } from "./claude-client";
+import type { TokenUsage, QueryComplexity } from "./claude-client";
 import { voiceTools } from "@/api/voice-tools";
 import {
   handleListCatch,
@@ -30,7 +31,7 @@ export interface AiAgentOptions {
 export type GapReason = "no_tool" | "insufficient_data" | "model_uncertain" | "api_error" | "max_rounds";
 
 export type AiAgentResult =
-  | { ok: true; text: string }
+  | { ok: true; text: string; usage: TokenUsage; complexity: QueryComplexity; model: string }
   | { ok: false; text: string; error: string; gapReason: GapReason };
 
 // Max tool-use rounds to prevent infinite loops
@@ -119,6 +120,10 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
   const tools = buildClaudeTools();
   const system = buildSystemPrompt(orgContext.orgName);
 
+  // Classify query complexity for model routing
+  const complexity = classifyQuery(customerMessage);
+  const modelConfig = getModelConfig(complexity);
+
   // Build messages: history + latest customer message
   const messages: MessageParam[] = [
     ...conversationHistory,
@@ -126,12 +131,16 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
   ];
 
   let round = 0;
+  // Accumulate token usage across tool-use rounds
+  const totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
 
   while (round < MAX_TOOL_ROUNDS) {
     const result = await client.chat({
       messages,
       tools: tools.length > 0 ? tools : undefined,
       system,
+      model: modelConfig.model,
+      maxTokens: modelConfig.maxTokens,
     });
 
     if (!result.ok) {
@@ -143,6 +152,9 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
       };
     }
 
+    totalUsage.inputTokens += result.usage.inputTokens;
+    totalUsage.outputTokens += result.usage.outputTokens;
+
     // If Claude stopped with end_turn or no tool use, extract text and return
     if (result.stopReason !== "tool_use") {
       const text = result.content
@@ -150,7 +162,13 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
         .map((block) => "text" in block ? block.text : "")
         .join("\n");
 
-      return { ok: true, text: text || FALLBACK_MESSAGE };
+      return {
+        ok: true,
+        text: text || FALLBACK_MESSAGE,
+        usage: totalUsage,
+        complexity,
+        model: modelConfig.model,
+      };
     }
 
     // Claude wants to use tools — execute them and feed results back

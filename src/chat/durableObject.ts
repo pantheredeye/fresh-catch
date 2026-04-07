@@ -263,9 +263,42 @@ export class ChatDurableObject extends DurableObject {
         content: m.content,
       }));
 
-    // Check response cache before calling Claude API
+    // Get McpDO stub for this org
     const mcpId = this.env.MCP_DURABLE_OBJECT.idFromName(conversation.organizationId);
     const mcpStub = this.env.MCP_DURABLE_OBJECT.get(mcpId);
+
+    // Check budget before any API call
+    const budget = await mcpStub.checkBudget();
+    if (!budget.allowed) {
+      const vendorName = conversation.organization.name;
+      const budgetMsg = `I can't help right now, please message ${vendorName} directly.`;
+      const aiMessage = await db.message.create({
+        data: {
+          conversationId: this.conversationId,
+          content: budgetMsg,
+          senderType: "ai",
+          senderId: null,
+        },
+      });
+      await db.conversation.update({
+        where: { id: this.conversationId },
+        data: { lastMessageAt: aiMessage.createdAt },
+      });
+      const aiOutgoing: OutgoingMessage = {
+        type: "message",
+        id: aiMessage.id,
+        content: aiMessage.content,
+        senderType: aiMessage.senderType,
+        senderId: aiMessage.senderId,
+        createdAt: aiMessage.createdAt.toISOString(),
+      };
+      for (const socket of this.ctx.getWebSockets()) {
+        socket.send(JSON.stringify(aiOutgoing));
+      }
+      return;
+    }
+
+    // Check response cache before calling Claude API
     const cached = await mcpStub.getCachedResponse(customerMessage);
     if (cached !== null) {
       // Cache hit — skip Claude API call entirely
@@ -306,8 +339,18 @@ export class ChatDurableObject extends DurableObject {
       },
     });
 
-    // Cache successful responses for future identical queries
+    // Record token usage and cache successful responses
     if (result.ok) {
+      try {
+        mcpStub.recordApiUsage({
+          model: result.model,
+          complexity: result.complexity,
+          inputTokens: result.usage.inputTokens,
+          outputTokens: result.usage.outputTokens,
+        });
+      } catch (err) {
+        console.error("[ChatDO] Failed to record API usage:", err);
+      }
       try {
         mcpStub.cacheResponse(customerMessage, result.text);
       } catch (err) {
