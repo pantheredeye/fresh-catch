@@ -28,6 +28,62 @@ export const GetMarketVendorsInputSchema = z.object({
 });
 export type GetMarketVendorsInput = z.infer<typeof GetMarketVendorsInputSchema>;
 
+// --- Zod input schemas for write tools ---
+
+export const CreateOrderInputSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        name: z.string().describe("Item name"),
+        quantity: z.number().describe("Quantity requested"),
+        unit: z.string().describe("Unit of measure (e.g. lbs, each)"),
+      }),
+    )
+    .describe("Items to order"),
+  pickupMarketId: z.string().describe("ID of the market for pickup"),
+  pickupDate: z.string().describe("Desired pickup date (ISO format)"),
+  customerNote: z
+    .string()
+    .optional()
+    .describe("Optional note from the customer"),
+});
+export type CreateOrderInput = z.infer<typeof CreateOrderInputSchema>;
+
+export const UpdateCatchInputSchema = z.object({
+  headline: z.string().describe("Short catchy headline"),
+  items: z
+    .array(
+      z.object({
+        name: z.string().describe("Fish/item name"),
+        note: z.string().describe("Colorful description"),
+      }),
+    )
+    .describe("Fish items with descriptions"),
+  summary: z.string().describe("One-sentence summary"),
+});
+export type UpdateCatchInput = z.infer<typeof UpdateCatchInputSchema>;
+
+export const UpdateMarketCatchInputSchema = z.object({
+  marketId: z
+    .string()
+    .describe("ID of market to update (matched from context)"),
+  catchPreview: z
+    .array(
+      z.object({
+        name: z.string().describe("Fish/item name"),
+        note: z.string().describe("Description"),
+      }),
+    )
+    .describe("Items available at this market"),
+});
+export type UpdateMarketCatchInput = z.infer<typeof UpdateMarketCatchInputSchema>;
+
+export const SendMessageInputSchema = z.object({
+  conversationId: z.string().describe("ID of the conversation"),
+  text: z.string().describe("Message text to send"),
+});
+export type SendMessageInput = z.infer<typeof SendMessageInputSchema>;
+
 // --- Types ---
 
 export type VoiceCommandResult = {
@@ -56,6 +112,30 @@ type VoiceTool = {
 // --- Registry ---
 
 export const voiceTools: Record<string, VoiceTool> = {
+  create_order: {
+    description: "Customer creates an order for pickup at a market",
+    schema: {
+      items: {
+        type: "array of { name: string, quantity: number, unit: string }",
+        description: "Items to order",
+      },
+      pickupMarketId: {
+        type: "string",
+        description: "ID of the market for pickup",
+      },
+      pickupDate: {
+        type: "string",
+        description: "Desired pickup date (ISO format)",
+      },
+      customerNote: {
+        type: "string",
+        optional: true,
+        description: "Optional note from the customer",
+      },
+    },
+    reviewType: "order",
+    roles: ["customer"],
+  },
   update_catch: {
     description: "Update today's fresh catch with what's available",
     schema: {
@@ -67,6 +147,7 @@ export const voiceTools: Record<string, VoiceTool> = {
       summary: { type: "string", description: "One-sentence summary" },
     },
     reviewType: "catch",
+    roles: ["owner", "manager"],
   },
   create_market: {
     description: "Add a new recurring market",
@@ -160,6 +241,19 @@ export const voiceTools: Record<string, VoiceTool> = {
       },
     },
     reviewType: "market-catch",
+    roles: ["owner", "manager"],
+  },
+  send_message: {
+    description: "Send a chat message in a conversation",
+    schema: {
+      conversationId: {
+        type: "string",
+        description: "ID of the conversation",
+      },
+      text: { type: "string", description: "Message text to send" },
+    },
+    reviewType: "message",
+    roles: ["owner", "manager", "customer"],
   },
   list_catch: {
     description: "Returns current catch listing for the org",
