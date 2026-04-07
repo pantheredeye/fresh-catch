@@ -16,7 +16,7 @@ interface UseVoiceRecorderOptions {
 }
 
 function getSupportedMimeType(): string {
-  if (typeof MediaRecorder === "undefined") return "audio/webm";
+  if (typeof MediaRecorder === "undefined") return "audio/mp4";
   const types = [
     "audio/webm;codecs=opus",
     "audio/mp4",
@@ -25,7 +25,8 @@ function getSupportedMimeType(): string {
   for (const type of types) {
     if (MediaRecorder.isTypeSupported(type)) return type;
   }
-  return "audio/webm";
+  // Safari fallback — mp4 is most likely supported even if isTypeSupported lies
+  return "audio/mp4";
 }
 
 export function useVoiceRecorder({
@@ -97,7 +98,8 @@ export function useVoiceRecorder({
       });
       streamRef.current = stream;
 
-      const audioCtx = new AudioContext();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const audioCtx = new AudioCtx();
       audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();

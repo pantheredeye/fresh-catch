@@ -7,6 +7,7 @@
   right: 0;
   bottom: 0;
   background: var(--color-surface-overlay);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   z-index: 1100;
   display: flex;
@@ -75,12 +76,13 @@
 .qr-body {
   padding: var(--space-lg);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   flex: 1;
 }
 
 /* Dismiss button */
 .qr-dismiss {
-  margin: var(--space-sm) var(--space-lg) var(--space-lg);
+  margin: var(--space-sm) var(--space-lg) max(var(--space-lg), env(safe-area-inset-bottom));
   padding: var(--space-sm) var(--space-lg);
   background: var(--color-action-primary);
   color: var(--color-text-inverse);

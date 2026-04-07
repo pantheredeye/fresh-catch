@@ -55,7 +55,7 @@
 
 @media (max-width: 768px) {
   .command-bar__fab {
-    bottom: var(--space-md);
+    bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
     right: var(--space-md);
   }
 }
@@ -85,7 +85,9 @@
 /* Sheet content */
 .command-bar__content {
   padding: var(--space-lg) var(--space-md) var(--space-xl);
+  padding-bottom: max(var(--space-xl), env(safe-area-inset-bottom));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -145,6 +147,7 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: all var(--duration-normal) var(--ease-out);
 }
 
