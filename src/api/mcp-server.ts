@@ -13,6 +13,9 @@ import {
   GetMarketVendorsInputSchema,
   CreateOrderInputSchema,
   UpdateCatchInputSchema,
+  CreateMarketInputSchema,
+  CreatePopupInputSchema,
+  UpdateMarketInputSchema,
   UpdateMarketCatchInputSchema,
   SendMessageInputSchema,
 } from "./voice-tools";
@@ -23,6 +26,9 @@ import {
   handleGetMarketVendors,
   handleCreateOrder,
   handleUpdateCatch,
+  handleCreateMarket,
+  handleCreatePopup,
+  handleUpdateMarket,
   handleUpdateMarketCatch,
   handleSendMessage,
 } from "./tool-handlers";
@@ -51,7 +57,7 @@ type ToolRegistration = {
 
 // --- Rate limit config ---
 
-const TIER_LIMITS: Record<ToolTier, { maxCalls: number; windowMs: number }> = {
+export const TIER_LIMITS: Record<ToolTier, { maxCalls: number; windowMs: number }> = {
   read: { maxCalls: 1000, windowMs: 60_000 },
   write: { maxCalls: 100, windowMs: 60_000 },
   llm: { maxCalls: 10, windowMs: 60_000 },
@@ -59,7 +65,7 @@ const TIER_LIMITS: Record<ToolTier, { maxCalls: number; windowMs: number }> = {
 
 // --- Tool registry mapping ---
 
-const toolRegistry: Record<string, ToolRegistration> = {
+export const toolRegistry: Record<string, ToolRegistration> = {
   list_catch: {
     description: "Returns current catch listing for the org",
     schema: ListCatchInputSchema.shape,
@@ -95,6 +101,24 @@ const toolRegistry: Record<string, ToolRegistration> = {
     description: "Update today's fresh catch with what's available",
     schema: UpdateCatchInputSchema.shape,
     handler: handleUpdateCatch,
+    tier: "write",
+  },
+  create_market: {
+    description: "Add a new recurring market",
+    schema: CreateMarketInputSchema.shape,
+    handler: handleCreateMarket,
+    tier: "write",
+  },
+  create_popup: {
+    description: "Create a temporary popup market event",
+    schema: CreatePopupInputSchema.shape,
+    handler: handleCreatePopup,
+    tier: "write",
+  },
+  update_market: {
+    description: "Update details on an existing market",
+    schema: UpdateMarketInputSchema.shape,
+    handler: handleUpdateMarket,
     tier: "write",
   },
   update_market_catch: {

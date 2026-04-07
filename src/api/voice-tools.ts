@@ -86,6 +86,42 @@ export const UpdateMarketCatchInputSchema = z.object({
 });
 export type UpdateMarketCatchInput = z.infer<typeof UpdateMarketCatchInputSchema>;
 
+export const CreateMarketInputSchema = z.object({
+  name: z.string().describe("Market name"),
+  schedule: z.string().describe("Schedule description"),
+  locationDetails: z.string().optional().describe("Location info"),
+  customerInfo: z.string().optional().describe("Customer-facing info"),
+  catchPreview: z.string().optional().describe("JSON: { items: [{ name, note }] }"),
+  active: z.boolean().optional().describe("Whether market is active"),
+});
+export type CreateMarketInput = z.infer<typeof CreateMarketInputSchema>;
+
+export const CreatePopupInputSchema = z.object({
+  name: z.string().describe("Popup name"),
+  schedule: z.string().describe("When the popup happens"),
+  expiresAt: z.string().optional().describe("ISO date when popup expires"),
+  locationDetails: z.string().optional().describe("Location info"),
+  customerInfo: z.string().optional().describe("Customer-facing info"),
+  catchPreview: z.string().optional().describe("JSON: { items: [{ name, note }] }"),
+  notes: z.string().optional().describe("Internal notes"),
+  active: z.boolean().optional().describe("Whether popup is active"),
+});
+export type CreatePopupInput = z.infer<typeof CreatePopupInputSchema>;
+
+export const UpdateMarketInputSchema = z.object({
+  marketId: z.string().describe("ID of market to update"),
+  name: z.string().optional().describe("New name"),
+  schedule: z.string().optional().describe("New schedule"),
+  locationDetails: z.string().optional().describe("New location info"),
+  customerInfo: z.string().optional().describe("New customer-facing info"),
+  active: z.boolean().optional().describe("Active state"),
+  type: z.string().optional().describe("Market type"),
+  expiresAt: z.string().optional().describe("Expiration date"),
+  catchPreview: z.string().optional().describe("Catch preview JSON"),
+  notes: z.string().optional().describe("Internal notes"),
+});
+export type UpdateMarketInput = z.infer<typeof UpdateMarketInputSchema>;
+
 export const SendMessageInputSchema = z.object({
   conversationId: z.string().describe("ID of the conversation"),
   text: z.string().describe("Message text to send"),

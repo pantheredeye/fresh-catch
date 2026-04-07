@@ -5,12 +5,7 @@ import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
 import { AdminChatBubble, AdminChatSheet } from "@/app/pages/admin/chat";
-import { publishCatch } from "@/app/pages/admin/catch/catch-functions";
-import {
-  createMarket,
-  updateMarket,
-  updateMarketCatchPreview,
-} from "@/app/pages/admin/market-functions";
+import { executeMcpTool } from "@/api/mcp-tool-call";
 import type { User } from "@/db";
 import type { VoiceCommandResult } from "@/api/voice-tools";
 import "./AdminLayout.css";
@@ -56,69 +51,16 @@ export function AdminLayoutClient({
   }, []);
 
   const handleReviewSave = useCallback(async (intent: string, data: Record<string, unknown>) => {
-    switch (intent) {
-      case "update_catch": {
-        const content = {
-          headline: data.headline as string,
-          items: data.items as { name: string; note: string }[],
-          summary: data.summary as string,
-        };
-        const result = await publishCatch(csrfToken, content, (data.rawTranscript as string) || "");
-        if (!result.success) throw new Error(result.error || "Failed to publish catch");
-        break;
-      }
-      case "create_market": {
-        await createMarket(csrfToken, {
-          name: data.name as string,
-          schedule: (data.schedule as string) || "",
-          locationDetails: (data.locationDetails as string) || null,
-          customerInfo: (data.customerInfo as string) || null,
-          active: (data.active as boolean) ?? true,
-          catchPreview: (data.catchPreview as string) || null,
-          rawTranscript: (data.rawTranscript as string) || null,
-        });
-        break;
-      }
-      case "create_popup": {
-        await createMarket(csrfToken, {
-          name: data.name as string,
-          schedule: (data.schedule as string) || "",
-          type: "popup",
-          expiresAt: (data.expiresAt as string) || null,
-          locationDetails: (data.locationDetails as string) || null,
-          customerInfo: (data.customerInfo as string) || null,
-          active: (data.active as boolean) ?? true,
-          catchPreview: (data.catchPreview as string) || null,
-          notes: (data.notes as string) || null,
-          rawTranscript: (data.rawTranscript as string) || null,
-        });
-        break;
-      }
-      case "update_market": {
-        const { marketId, rawTranscript, ...fields } = data;
-        await updateMarket(csrfToken, marketId as string, {
-          ...fields,
-          rawTranscript: (rawTranscript as string) || null,
-        } as Parameters<typeof updateMarket>[2]);
-        break;
-      }
-      case "update_market_catch": {
-        await updateMarketCatchPreview(
-          csrfToken,
-          data.marketId as string,
-          data.catchPreview as string,
-          (data.rawTranscript as string) || null,
-        );
-        break;
-      }
-      default:
-        throw new Error(`Unknown intent: ${intent}`);
+    // Strip rawTranscript and _original from args — not part of MCP tool schemas
+    const { rawTranscript, _original, ...toolArgs } = data;
+    const result = await executeMcpTool(csrfToken, intent, toolArgs);
+    if (!result.success) {
+      throw new Error(result.error || `Failed to execute ${intent}`);
     }
     setCommandResult(null);
     showToast("Saved!");
-    // Trigger page refresh
     window.location.reload();
-  }, [showToast]);
+  }, [showToast, csrfToken]);
 
   const handleReviewCancel = useCallback(() => {
     setCommandResult(null);

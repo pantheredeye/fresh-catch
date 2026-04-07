@@ -14,6 +14,9 @@ import {
   GetMarketVendorsInputSchema,
   CreateOrderInputSchema,
   UpdateCatchInputSchema,
+  CreateMarketInputSchema,
+  CreatePopupInputSchema,
+  UpdateMarketInputSchema,
   UpdateMarketCatchInputSchema,
   SendMessageInputSchema,
   type ListCatchInput,
@@ -425,6 +428,144 @@ export async function handleUpdateMarketCatch(
       updated: true,
       marketId: input.marketId,
       itemCount: input.catchPreview.length,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleCreateMarket(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["owner", "manager"]);
+  if (roleErr) return roleErr;
+
+  const parsed = CreateMarketInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    const market = await db.market.create({
+      data: {
+        organizationId,
+        name: input.name,
+        schedule: input.schedule,
+        locationDetails: input.locationDetails || null,
+        customerInfo: input.customerInfo || null,
+        active: input.active ?? true,
+        type: "regular",
+        catchPreview: input.catchPreview || null,
+      },
+    });
+
+    invalidateResponseCache(organizationId);
+
+    return textResult({
+      created: true,
+      marketId: market.id,
+      name: market.name,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleCreatePopup(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["owner", "manager"]);
+  if (roleErr) return roleErr;
+
+  const parsed = CreatePopupInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    const market = await db.market.create({
+      data: {
+        organizationId,
+        name: input.name,
+        schedule: input.schedule,
+        type: "popup",
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        locationDetails: input.locationDetails || null,
+        customerInfo: input.customerInfo || null,
+        active: input.active ?? true,
+        catchPreview: input.catchPreview || null,
+        notes: input.notes || null,
+      },
+    });
+
+    invalidateResponseCache(organizationId);
+
+    return textResult({
+      created: true,
+      marketId: market.id,
+      name: market.name,
+      type: "popup",
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleUpdateMarket(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["owner", "manager"]);
+  if (roleErr) return roleErr;
+
+  const parsed = UpdateMarketInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    const market = await db.market.findFirst({
+      where: { id: input.marketId, organizationId },
+    });
+    if (!market) {
+      return errorResult(`Market not found or does not belong to this organization: ${input.marketId}`);
+    }
+
+    const updated = await db.market.update({
+      where: { id: input.marketId },
+      data: {
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.schedule !== undefined && { schedule: input.schedule }),
+        ...(input.locationDetails !== undefined && { locationDetails: input.locationDetails || null }),
+        ...(input.customerInfo !== undefined && { customerInfo: input.customerInfo || null }),
+        ...(input.active !== undefined && { active: input.active }),
+        ...(input.type !== undefined && { type: input.type }),
+        ...(input.expiresAt !== undefined && { expiresAt: input.expiresAt ? new Date(input.expiresAt) : null }),
+        ...(input.catchPreview !== undefined && { catchPreview: input.catchPreview || null }),
+        ...(input.notes !== undefined && { notes: input.notes || null }),
+      },
+    });
+
+    invalidateResponseCache(organizationId);
+
+    return textResult({
+      updated: true,
+      marketId: updated.id,
+      name: updated.name,
     });
   } catch (err) {
     return errorResult(
