@@ -12,6 +12,7 @@ import {
   handleGetMarkets,
   handleGetVendorPopups,
   handleGetMarketVendors,
+  handleCreateOrder,
 } from "@/api/tool-handlers";
 
 // --- Types ---
@@ -19,6 +20,8 @@ import {
 export interface OrgContext {
   organizationId: string;
   orgName: string;
+  customerName?: string | null;
+  customerEmail?: string | null;
 }
 
 export interface AiAgentOptions {
@@ -42,11 +45,12 @@ const FALLBACK_MESSAGE = "Sorry, I'm having trouble right now. A team member wil
 // --- Tool conversion ---
 
 /** Map tool names to their handler functions */
-const toolHandlers: Record<string, (rawInput: unknown, orgId: string) => Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }>> = {
+const toolHandlers: Record<string, (rawInput: unknown, orgId: string, callerRole?: string) => Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }>> = {
   list_catch: handleListCatch,
   get_markets: handleGetMarkets,
   get_vendor_popups: handleGetVendorPopups,
   get_market_vendors: handleGetMarketVendors,
+  create_order: handleCreateOrder,
 };
 
 /** Convert customer-accessible voiceTools to Anthropic Tool[] format */
@@ -82,7 +86,7 @@ function buildClaudeTools(): Tool[] {
 
 // --- System prompt ---
 
-function buildSystemPrompt(orgName: string): string {
+function buildSystemPrompt(orgName: string, customerName?: string | null, customerEmail?: string | null): string {
   return `You are a friendly assistant for ${orgName}, a local seafood vendor.
 
 ## Personality
@@ -96,6 +100,16 @@ function buildSystemPrompt(orgName: string): string {
 - Share market schedule and location details
 - Help customers find which markets the vendor attends
 - Provide general seafood knowledge (cooking tips, seasonality, sustainability)
+- Help customers place orders for pickup at a market
+
+## Ordering — IMPORTANT
+When a customer wants to place an order, you MUST follow this confirmation flow:
+1. **Propose the order first** — summarize what they want (items, quantities, pickup market, pickup date) and ask for confirmation. Example: "I can set aside 4 lbs Mahi for pickup Saturday at Adobe Ranch. Want me to place that order?"
+2. **Wait for explicit confirmation** — only call create_order after the customer says "yes", "confirm", "place it", or similar affirmative.
+3. **If they say no or want changes** — adjust the proposal and ask again. Never execute create_order without confirmation.
+4. **After placing** — confirm with a friendly message like "Done! Order placed — the vendor will confirm shortly."
+
+NEVER call create_order without the customer explicitly confirming the proposed order. If you're unsure about any detail (which market, what date, quantities), ask before proposing.
 
 ## Guidelines
 - Always check the current catch data before answering "what's fresh" questions
@@ -103,7 +117,15 @@ function buildSystemPrompt(orgName: string): string {
 - If no catch data is available, let the customer know and suggest checking back
 - Keep responses concise — customers want quick answers
 - Reference specific market names and schedules when relevant
-- You're chatting with a customer, keep it conversational`;
+- You're chatting with a customer, keep it conversational${
+    customerName || customerEmail
+      ? `
+
+## Current Customer
+${customerName ? `- Name: ${customerName}` : ""}${customerEmail ? `\n- Email: ${customerEmail}` : ""}
+When placing orders, automatically include the customer's name and email as contactName and contactEmail in the create_order tool call.`
+      : ""
+  }`;
 }
 
 // --- Agent core ---
@@ -118,7 +140,7 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
 
   const client = createClaudeClient(apiKey);
   const tools = buildClaudeTools();
-  const system = buildSystemPrompt(orgContext.orgName);
+  const system = buildSystemPrompt(orgContext.orgName, orgContext.customerName, orgContext.customerEmail);
 
   // Classify query complexity for model routing
   const complexity = classifyQuery(customerMessage);
@@ -194,7 +216,7 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
         }
 
         try {
-          const handlerResult = await handler(toolUse.input, orgContext.organizationId);
+          const handlerResult = await handler(toolUse.input, orgContext.organizationId, "customer");
           const text = handlerResult.content.map((c) => c.text).join("\n");
 
           return {

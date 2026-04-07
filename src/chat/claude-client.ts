@@ -56,7 +56,7 @@ export function getModelConfig(complexity: QueryComplexity): {
   if (complexity === "simple") {
     return { model: MODEL_HAIKU, maxTokens: 256 };
   }
-  return { model: MODEL_SONNET, maxTokens: 512 };
+  return { model: MODEL_SONNET, maxTokens: 1024 };
 }
 
 export interface ChatOptions {

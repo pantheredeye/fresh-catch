@@ -336,6 +336,8 @@ export class ChatDurableObject extends DurableObject {
       orgContext: {
         organizationId: conversation.organizationId,
         orgName: conversation.organization.name,
+        customerName: conversation.customerName,
+        customerEmail: conversation.customerEmail,
       },
     });
 

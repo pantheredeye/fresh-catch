@@ -46,6 +46,14 @@ export const CreateOrderInputSchema = z.object({
     .string()
     .optional()
     .describe("Optional note from the customer"),
+  contactName: z
+    .string()
+    .optional()
+    .describe("Customer name for the order"),
+  contactEmail: z
+    .string()
+    .optional()
+    .describe("Customer email for the order"),
 });
 export type CreateOrderInput = z.infer<typeof CreateOrderInputSchema>;
 
@@ -131,6 +139,16 @@ export const voiceTools: Record<string, VoiceTool> = {
         type: "string",
         optional: true,
         description: "Optional note from the customer",
+      },
+      contactName: {
+        type: "string",
+        optional: true,
+        description: "Customer name for the order",
+      },
+      contactEmail: {
+        type: "string",
+        optional: true,
+        description: "Customer email for the order",
       },
     },
     reviewType: "order",
