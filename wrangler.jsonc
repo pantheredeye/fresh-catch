@@ -66,6 +66,9 @@
       ]
     }
   ],
+  "secrets": [
+    "ANTHROPIC_API_KEY"
+  ],
   "ai": {
     "binding": "AI"
   },
