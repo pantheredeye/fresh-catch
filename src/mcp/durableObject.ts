@@ -1,15 +1,155 @@
 import { DurableObject } from "cloudflare:workers";
 
+export type ToolCallStatus = "success" | "error";
+export type ToolTier = "read" | "write" | "llm";
+
+export type ToolCallRow = {
+  id: string;
+  session_id: string;
+  tool_name: string;
+  input_hash: string;
+  result_status: ToolCallStatus;
+  timestamp: number;
+  duration_ms: number;
+  [key: string]: SqlStorageValue;
+};
+
+export type RateLimitRow = {
+  tool_tier: ToolTier;
+  window_start: number;
+  call_count: number;
+  [key: string]: SqlStorageValue;
+};
+
 /**
  * Per-org Durable Object for MCP session state, tool call audit logging,
  * and rate limiting. Uses SQLite storage for structured data.
  */
 export class McpDurableObject extends DurableObject {
   private sql: SqlStorage;
+  private schemaReady = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
+  }
+
+  /** Lazily create tables on first access. Idempotent. */
+  private ensureSchema(): void {
+    if (this.schemaReady) return;
+
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS tool_calls (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        tool_name TEXT NOT NULL,
+        input_hash TEXT NOT NULL,
+        result_status TEXT NOT NULL CHECK(result_status IN ('success', 'error')),
+        timestamp INTEGER NOT NULL,
+        duration_ms INTEGER NOT NULL
+      )
+    `);
+
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tool_calls_tool_name ON tool_calls(tool_name)
+    `);
+
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tool_calls_timestamp ON tool_calls(timestamp)
+    `);
+
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS rate_limits (
+        tool_tier TEXT PRIMARY KEY CHECK(tool_tier IN ('read', 'write', 'llm')),
+        window_start INTEGER NOT NULL,
+        call_count INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+
+    this.schemaReady = true;
+  }
+
+  /** Log a tool call to the audit table. */
+  logToolCall(entry: Omit<ToolCallRow, "id">): void {
+    this.ensureSchema();
+    const id = crypto.randomUUID();
+    this.sql.exec(
+      `INSERT INTO tool_calls (id, session_id, tool_name, input_hash, result_status, timestamp, duration_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      id,
+      entry.session_id,
+      entry.tool_name,
+      entry.input_hash,
+      entry.result_status,
+      entry.timestamp,
+      entry.duration_ms,
+    );
+  }
+
+  /** Query audit log by tool name. */
+  getCallsByToolName(toolName: string): ToolCallRow[] {
+    this.ensureSchema();
+    return this.sql
+      .exec<ToolCallRow>(
+        `SELECT * FROM tool_calls WHERE tool_name = ? ORDER BY timestamp DESC`,
+        toolName,
+      )
+      .toArray();
+  }
+
+  /** Query audit log by time range (inclusive). */
+  getCallsByTimeRange(startMs: number, endMs: number): ToolCallRow[] {
+    this.ensureSchema();
+    return this.sql
+      .exec<ToolCallRow>(
+        `SELECT * FROM tool_calls WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC`,
+        startMs,
+        endMs,
+      )
+      .toArray();
+  }
+
+  /**
+   * Increment rate limit counter for a tier within the given window.
+   * Returns the updated call count.
+   */
+  incrementRateLimit(tier: ToolTier, windowStartMs: number): number {
+    this.ensureSchema();
+
+    // Reset counter if window has changed, otherwise increment
+    this.sql.exec(
+      `INSERT INTO rate_limits (tool_tier, window_start, call_count)
+       VALUES (?, ?, 1)
+       ON CONFLICT(tool_tier) DO UPDATE SET
+         call_count = CASE
+           WHEN window_start = excluded.window_start THEN call_count + 1
+           ELSE 1
+         END,
+         window_start = excluded.window_start`,
+      tier,
+      windowStartMs,
+    );
+
+    const row = this.sql
+      .exec<RateLimitRow>(
+        `SELECT * FROM rate_limits WHERE tool_tier = ?`,
+        tier,
+      )
+      .one();
+
+    return row.call_count;
+  }
+
+  /** Get current rate limit state for a tier. */
+  getRateLimit(tier: ToolTier): RateLimitRow | null {
+    this.ensureSchema();
+    const rows = this.sql
+      .exec<RateLimitRow>(
+        `SELECT * FROM rate_limits WHERE tool_tier = ?`,
+        tier,
+      )
+      .toArray();
+    return rows[0] ?? null;
   }
 
   async fetch(request: Request): Promise<Response> {
