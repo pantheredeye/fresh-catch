@@ -28,6 +28,17 @@ export const GetMarketVendorsInputSchema = z.object({
 });
 export type GetMarketVendorsInput = z.infer<typeof GetMarketVendorsInputSchema>;
 
+export const GetVendorMarketLocationInputSchema = z.object({
+  vendorSlug: z.string().describe("Organization slug of the vendor"),
+  marketId: z.string().describe("ID of the market to check"),
+});
+export type GetVendorMarketLocationInput = z.infer<typeof GetVendorMarketLocationInputSchema>;
+
+export const GetCountyVendorsInputSchema = z.object({
+  county: z.string().describe("County name to search for vendors"),
+});
+export type GetCountyVendorsInput = z.infer<typeof GetCountyVendorsInputSchema>;
+
 export const GetOrderStatusInputSchema = z.object({
   orderId: z.string().optional().describe("Order ID to look up"),
   latest: z.boolean().optional().describe("If true, return the most recent order"),
@@ -376,6 +387,34 @@ export const voiceTools: Record<string, VoiceTool> = {
       marketId: {
         type: "string",
         description: "ID of the market to list vendors for",
+      },
+    },
+    reviewType: "read-only",
+    roles: ["customer", "owner", "manager"],
+  },
+  get_vendor_market_location: {
+    description:
+      "Returns a vendor's booth/location details at a specific market",
+    schema: {
+      vendorSlug: {
+        type: "string",
+        description: "Organization slug of the vendor",
+      },
+      marketId: {
+        type: "string",
+        description: "ID of the market to check",
+      },
+    },
+    reviewType: "read-only",
+    roles: ["customer", "owner", "manager"],
+  },
+  get_county_vendors: {
+    description:
+      "Returns vendors operating in a given county",
+    schema: {
+      county: {
+        type: "string",
+        description: "County name to search for vendors",
       },
     },
     reviewType: "read-only",

@@ -12,6 +12,8 @@ import {
   GetMarketsInputSchema,
   GetVendorPopupsInputSchema,
   GetMarketVendorsInputSchema,
+  GetVendorMarketLocationInputSchema,
+  GetCountyVendorsInputSchema,
   CreateOrderInputSchema,
   UpdateCatchInputSchema,
   CreateMarketInputSchema,
@@ -233,6 +235,120 @@ export async function handleGetMarketVendors(
 
     return textResult({
       marketName: market.name,
+      vendors,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleGetVendorMarketLocation(
+  rawInput: unknown,
+  _organizationId: string,
+): Promise<ToolResult> {
+  const parsed = GetVendorMarketLocationInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const { vendorSlug, marketId } = parsed.data;
+
+  try {
+    // Look up target market (cross-org read)
+    const market = await db.market.findUnique({
+      where: { id: marketId },
+    });
+    if (!market) {
+      return errorResult(`Market not found: ${marketId}`);
+    }
+
+    // Look up vendor org by slug
+    const org = await db.organization.findUnique({
+      where: { slug: vendorSlug },
+    });
+    if (!org) {
+      return errorResult(`Vendor not found: ${vendorSlug}`);
+    }
+
+    // Find vendor's market entry with matching name (cross-org market name matching)
+    const vendorMarket = await db.market.findFirst({
+      where: {
+        organizationId: org.id,
+        name: market.name,
+        active: true,
+      },
+    });
+
+    if (!vendorMarket) {
+      return textResult({
+        vendorName: org.name,
+        vendorSlug: org.slug,
+        marketName: market.name,
+        location: null,
+      });
+    }
+
+    return textResult({
+      vendorName: org.name,
+      vendorSlug: org.slug,
+      marketName: market.name,
+      location: vendorMarket.locationDetails ?? null,
+      schedule: vendorMarket.schedule,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleGetCountyVendors(
+  rawInput: unknown,
+  _organizationId: string,
+): Promise<ToolResult> {
+  const parsed = GetCountyVendorsInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const { county } = parsed.data;
+
+  try {
+    // Find all active markets in the county (cross-org read)
+    // D1/SQLite doesn't support mode:"insensitive", so match exact county string
+    const markets = await db.market.findMany({
+      where: {
+        county,
+        active: true,
+      },
+      include: {
+        organization: { select: { name: true, slug: true } },
+      },
+    });
+
+    // Group by org slug, deduplicate
+    const vendorMap = new Map<string, { name: string; slug: string; type: Set<string> }>();
+    for (const m of markets) {
+      const existing = vendorMap.get(m.organization.slug);
+      if (existing) {
+        existing.type.add(m.type);
+      } else {
+        vendorMap.set(m.organization.slug, {
+          name: m.organization.name,
+          slug: m.organization.slug,
+          type: new Set([m.type]),
+        });
+      }
+    }
+
+    const vendors = Array.from(vendorMap.values()).map((v) => ({
+      name: v.name,
+      slug: v.slug,
+      type: v.type.size === 1 ? [...v.type][0] : [...v.type].join(", "),
+    }));
+
+    return textResult({
+      county,
       vendors,
     });
   } catch (err) {
