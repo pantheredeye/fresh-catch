@@ -9,7 +9,7 @@ type SheetState = "closed" | "peek" | "full";
 interface ChatMessage {
   id: string;
   content: string;
-  senderType: "customer" | "vendor";
+  senderType: "customer" | "vendor" | "ai";
   senderId: string | null;
   createdAt: string;
 }
@@ -141,8 +141,8 @@ export function ChatSheet({
           setMessages(data.messages);
         } else if (data.type === "message") {
           setMessages((prev) => [...prev, data]);
-          // Show email prompt after first vendor message
-          if (data.senderType === "vendor") {
+          // Show email prompt after first vendor/AI message
+          if (data.senderType === "vendor" || data.senderType === "ai") {
             setEmailPromptState((prev) => (prev === "pending" ? "shown" : prev));
           }
         }
@@ -503,36 +503,56 @@ export function ChatSheet({
                   </p>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      display: "flex",
-                      justifyContent:
-                        msg.senderType === "customer" ? "flex-end" : "flex-start",
-                    }}
-                  >
+                messages.map((msg) => {
+                  const isCustomer = msg.senderType === "customer";
+                  const isAi = msg.senderType === "ai";
+                  return (
                     <div
+                      key={msg.id}
                       style={{
-                        maxWidth: "80%",
-                        padding: "var(--space-sm) var(--space-md)",
-                        borderRadius: "var(--radius-md)",
-                        fontSize: "var(--font-size-lg)",
-                        lineHeight: "var(--line-height-base)",
-                        background:
-                          msg.senderType === "customer"
-                            ? "var(--color-action-primary)"
-                            : "var(--color-surface-secondary)",
-                        color:
-                          msg.senderType === "customer"
-                            ? "var(--color-text-inverse)"
-                            : "var(--color-text-primary)",
+                        display: "flex",
+                        justifyContent: isCustomer ? "flex-end" : "flex-start",
                       }}
                     >
-                      {msg.content}
+                      <div
+                        style={{
+                          maxWidth: "80%",
+                          padding: "var(--space-sm) var(--space-md)",
+                          borderRadius: "var(--radius-md)",
+                          fontSize: "var(--font-size-lg)",
+                          lineHeight: "var(--line-height-base)",
+                          background: isCustomer
+                            ? "var(--color-action-primary)"
+                            : isAi
+                              ? "var(--color-surface-tertiary, var(--color-surface-secondary))"
+                              : "var(--color-surface-secondary)",
+                          color: isCustomer
+                            ? "var(--color-text-inverse)"
+                            : "var(--color-text-primary)",
+                          border: isAi
+                            ? "1px solid var(--color-border-subtle)"
+                            : "none",
+                        }}
+                      >
+                        {isAi && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              fontSize: "var(--font-size-xs)",
+                              fontWeight: 600,
+                              color: "var(--color-text-tertiary)",
+                              marginBottom: "var(--space-xs)",
+                              letterSpacing: "0.02em",
+                            }}
+                          >
+                            AI
+                          </span>
+                        )}
+                        {isAi ? <div>{msg.content}</div> : msg.content}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
 
               {/* Email prompt - shown after first vendor reply */}

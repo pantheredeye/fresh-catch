@@ -12,7 +12,7 @@ import { getConversation, markAsRead } from "@/chat/functions";
 interface ChatMessage {
   id: string;
   content: string;
-  senderType: "customer" | "vendor";
+  senderType: "customer" | "vendor" | "ai";
   senderId: string | null;
   createdAt: string;
 }
@@ -205,36 +205,57 @@ export function ChatThread({
             </p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: "flex",
-                justifyContent:
-                  msg.senderType === "vendor" ? "flex-end" : "flex-start",
-              }}
-            >
+          messages.map((msg) => {
+            const isVendor = msg.senderType === "vendor";
+            const isAi = msg.senderType === "ai";
+            const isOurSide = isVendor || isAi;
+            return (
               <div
+                key={msg.id}
                 style={{
-                  maxWidth: "80%",
-                  padding: "var(--space-sm) var(--space-md)",
-                  borderRadius: "var(--radius-md)",
-                  fontSize: "var(--font-size-lg)",
-                  lineHeight: "var(--line-height-base)",
-                  background:
-                    msg.senderType === "vendor"
-                      ? "var(--color-action-primary)"
-                      : "var(--color-surface-secondary)",
-                  color:
-                    msg.senderType === "vendor"
-                      ? "var(--color-text-inverse)"
-                      : "var(--color-text-primary)",
+                  display: "flex",
+                  justifyContent: isOurSide ? "flex-end" : "flex-start",
                 }}
               >
-                {msg.content}
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    padding: "var(--space-sm) var(--space-md)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "var(--font-size-lg)",
+                    lineHeight: "var(--line-height-base)",
+                    background: isVendor
+                      ? "var(--color-action-primary)"
+                      : isAi
+                        ? "var(--color-surface-tertiary, var(--color-surface-secondary))"
+                        : "var(--color-surface-secondary)",
+                    color: isVendor
+                      ? "var(--color-text-inverse)"
+                      : "var(--color-text-primary)",
+                    border: isAi
+                      ? "1px solid var(--color-border-subtle)"
+                      : "none",
+                  }}
+                >
+                  {isAi && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        fontSize: "var(--font-size-xs)",
+                        fontWeight: 600,
+                        color: "var(--color-text-tertiary)",
+                        marginBottom: "var(--space-xs)",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      AI
+                    </span>
+                  )}
+                  {isAi ? <div>{msg.content}</div> : msg.content}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
