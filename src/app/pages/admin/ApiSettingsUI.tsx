@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Badge } from "@/design-system";
-import { createApiKey } from "./api-key-functions";
+import { createApiKey, revokeApiKey, regenerateApiKey } from "./api-key-functions";
 import "./admin.css";
 
 export function ApiSettingsUI({
@@ -27,10 +27,42 @@ export function ApiSettingsUI({
     startTransition(async () => {
       const result = await createApiKey(csrfToken, orgId);
       if (result.success) {
-        setRawKey(result.key);
-        setKeyPrefix(result.prefix);
+        setRawKey(result.key!);
+        setKeyPrefix(result.prefix!);
       } else {
-        setError(result.error);
+        setError(result.error!);
+      }
+    });
+  };
+
+  const handleRegenerate = () => {
+    if (!confirm("Regenerate API key? The current key will stop working immediately.")) return;
+    setError(null);
+    setCopied(false);
+
+    startTransition(async () => {
+      const result = await regenerateApiKey(csrfToken, orgId);
+      if (result.success) {
+        setRawKey(result.key!);
+        setKeyPrefix(result.prefix!);
+      } else {
+        setError(result.error!);
+      }
+    });
+  };
+
+  const handleRevoke = () => {
+    if (!confirm("Revoke API key? External MCP clients will immediately lose access.")) return;
+    setError(null);
+    setCopied(false);
+    setRawKey(null);
+
+    startTransition(async () => {
+      const result = await revokeApiKey(csrfToken, orgId);
+      if (result.success) {
+        setKeyPrefix(null);
+      } else {
+        setError(result.error!);
       }
     });
   };
@@ -110,14 +142,33 @@ export function ApiSettingsUI({
           </div>
         )}
 
-        <div style={{ width: "100%" }}>
-          <Button
-            variant="primary"
-            onClick={handleGenerate}
-            disabled={isPending}
-          >
-            {isPending ? "Generating..." : keyPrefix ? "Regenerate Key" : "Generate API Key"}
-          </Button>
+        <div style={{ display: "flex", gap: "var(--space-sm)", width: "100%" }}>
+          {keyPrefix ? (
+            <>
+              <Button
+                variant="primary"
+                onClick={handleRegenerate}
+                disabled={isPending}
+              >
+                {isPending ? "Regenerating..." : "Regenerate Key"}
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleRevoke}
+                disabled={isPending}
+              >
+                {isPending ? "Revoking..." : "Revoke Key"}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={handleGenerate}
+              disabled={isPending}
+            >
+              {isPending ? "Generating..." : "Generate API Key"}
+            </Button>
+          )}
         </div>
 
         {error && (

@@ -29,3 +29,49 @@ export async function createApiKey(csrfToken: string, orgId: string) {
     return { success: false as const, error: "Failed to generate API key" };
   }
 }
+
+export async function revokeApiKey(csrfToken: string, orgId: string) {
+  requireCsrf(csrfToken);
+
+  const { ctx } = requestInfo;
+
+  if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
+    return { success: false as const, error: "Admin access required" };
+  }
+
+  try {
+    await db.organization.update({
+      where: { id: orgId },
+      data: { apiKeyHash: null, apiKeyPrefix: null },
+    });
+
+    return { success: true as const };
+  } catch (error) {
+    console.error("Failed to revoke API key:", error);
+    return { success: false as const, error: "Failed to revoke API key" };
+  }
+}
+
+export async function regenerateApiKey(csrfToken: string, orgId: string) {
+  requireCsrf(csrfToken);
+
+  const { ctx } = requestInfo;
+
+  if (!hasAdminAccess(ctx) || orgId !== ctx.currentOrganization?.id) {
+    return { success: false as const, error: "Admin access required" };
+  }
+
+  try {
+    const { key, hash, prefix } = await generateApiKey();
+
+    await db.organization.update({
+      where: { id: orgId },
+      data: { apiKeyHash: hash, apiKeyPrefix: prefix },
+    });
+
+    return { success: true as const, key, prefix };
+  } catch (error) {
+    console.error("Failed to regenerate API key:", error);
+    return { success: false as const, error: "Failed to regenerate API key" };
+  }
+}
