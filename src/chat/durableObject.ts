@@ -11,6 +11,11 @@ interface SendMessage {
   senderId?: string;
 }
 
+interface PresencePayload {
+  type: "vendor-presence";
+  vendorOnline: boolean;
+}
+
 interface OutgoingMessage {
   type: "message";
   id: string;
@@ -40,8 +45,30 @@ export class ChatDurableObject extends DurableObject {
     return parts[parts.length - 1];
   }
 
+  /** Check if any vendor WebSocket connections are active */
+  isVendorOnline(): boolean {
+    return this.ctx.getWebSockets("vendor").length > 0;
+  }
+
+  /** Broadcast vendor presence state to all customer sockets */
+  private broadcastVendorPresence(): void {
+    const payload: PresencePayload = {
+      type: "vendor-presence",
+      vendorOnline: this.isVendorOnline(),
+    };
+    const msg = JSON.stringify(payload);
+    for (const socket of this.ctx.getWebSockets("customer")) {
+      socket.send(msg);
+    }
+  }
+
   async fetch(request: Request): Promise<Response> {
+    // Non-WebSocket: presence query endpoint
     if (request.headers.get("Upgrade") !== "websocket") {
+      const url = new URL(request.url);
+      if (url.searchParams.get("presence") === "1") {
+        return Response.json({ vendorOnline: this.isVendorOnline() });
+      }
       return new Response("Expected WebSocket upgrade", { status: 400 });
     }
 
@@ -77,6 +104,11 @@ export class ChatDurableObject extends DurableObject {
     };
 
     server.send(JSON.stringify(historyPayload));
+
+    // If vendor just connected, notify customers
+    if (role === "vendor") {
+      this.broadcastVendorPresence();
+    }
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -180,10 +212,19 @@ export class ChatDurableObject extends DurableObject {
     reason: string,
     wasClean: boolean,
   ): Promise<void> {
+    const tags = this.ctx.getTags(ws);
     ws.close(code, reason);
+    // If a vendor disconnected, broadcast updated presence to customers
+    if (tags.includes("vendor")) {
+      this.broadcastVendorPresence();
+    }
   }
 
   async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
+    const tags = this.ctx.getTags(ws);
     ws.close(1011, "WebSocket error");
+    if (tags.includes("vendor")) {
+      this.broadcastVendorPresence();
+    }
   }
 }
