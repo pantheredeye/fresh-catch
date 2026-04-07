@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import { db, setupDb } from "@/db";
 import { sendChatReplyNotificationEmail } from "@/utils/email";
+import type { MessageParam } from "@anthropic-ai/sdk/resources/messages";
+import { generateAiResponse } from "./ai-agent";
 
 const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -203,6 +205,89 @@ export class ChatDurableObject extends DurableObject {
     const payload = JSON.stringify(outgoing);
     for (const socket of this.ctx.getWebSockets()) {
       socket.send(payload);
+    }
+
+    // AI auto-reply: if customer message + vendor offline, generate AI response
+    if (parsed.senderType === "customer" && !this.isVendorOnline()) {
+      try {
+        const apiKey = (this.env as unknown as Record<string, string>).ANTHROPIC_API_KEY;
+        if (apiKey) {
+          await this.handleAiResponse(parsed.content, apiKey);
+        }
+      } catch (err) {
+        console.error("[ChatDO] AI response failed:", err);
+      }
+    }
+  }
+
+  /** Generate and broadcast an AI response for an offline vendor */
+  private async handleAiResponse(
+    customerMessage: string,
+    apiKey: string,
+  ): Promise<void> {
+    if (!this.conversationId) return;
+
+    // Load conversation with org context
+    const conversation = await db.conversation.findUnique({
+      where: { id: this.conversationId },
+      include: { organization: true },
+    });
+    if (!conversation) return;
+
+    // Build conversation history from recent messages
+    const recentMessages = await db.message.findMany({
+      where: { conversationId: this.conversationId },
+      orderBy: { createdAt: "asc" },
+      take: 20,
+    });
+
+    const conversationHistory: MessageParam[] = recentMessages
+      .slice(0, -1) // exclude the just-sent customer message
+      .map((m) => ({
+        role: (m.senderType === "customer" ? "user" : "assistant") as
+          | "user"
+          | "assistant",
+        content: m.content,
+      }));
+
+    const result = await generateAiResponse({
+      apiKey,
+      customerMessage,
+      conversationHistory,
+      orgContext: {
+        organizationId: conversation.organizationId,
+        orgName: conversation.organization.name,
+      },
+    });
+
+    // Persist AI message
+    const aiMessage = await db.message.create({
+      data: {
+        conversationId: this.conversationId,
+        content: result.text,
+        senderType: "ai",
+        senderId: null,
+      },
+    });
+
+    await db.conversation.update({
+      where: { id: this.conversationId },
+      data: { lastMessageAt: aiMessage.createdAt },
+    });
+
+    // Broadcast AI message to all connected sockets
+    const aiOutgoing: OutgoingMessage = {
+      type: "message",
+      id: aiMessage.id,
+      content: aiMessage.content,
+      senderType: aiMessage.senderType,
+      senderId: aiMessage.senderId,
+      createdAt: aiMessage.createdAt.toISOString(),
+    };
+
+    const aiPayload = JSON.stringify(aiOutgoing);
+    for (const socket of this.ctx.getWebSockets()) {
+      socket.send(aiPayload);
     }
   }
 
