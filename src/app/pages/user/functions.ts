@@ -65,11 +65,18 @@ export async function requestOtp(email: string) {
   });
   const hint = user?.credentials && user.credentials.length > 0 ? "passkey" : undefined;
 
-  // Send OTP email (fire-and-forget)
+  // Send OTP email
   if (otp) {
-    sendOtpEmail({ to: email, code: otp.code }).catch((err) =>
-      console.error("[OTP] Email send failed:", err)
-    );
+    try {
+      const result = await sendOtpEmail({ to: email, code: otp.code });
+      if (result.success) {
+        console.log(`[OTP] Email sent to ${email}`);
+      } else {
+        console.warn(`[OTP] Email send failed for ${email}:`, result.error);
+      }
+    } catch (err) {
+      console.warn(`[OTP] Email send error for ${email}:`, err);
+    }
   }
 
   await delay;
