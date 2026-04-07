@@ -24,7 +24,6 @@ import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
-import { handleMcpTest } from "@/api/mcp-test";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 import { rateLimitAuth } from "@/rate-limit/middleware";
 export { SessionDurableObject } from "./session/durableObject";
@@ -82,13 +81,6 @@ function validateOrigin(): RouteMiddleware {
 }
 
 export default defineApp([
-  // MCP test endpoint — before session/auth since it handles its own protocol
-  async ({ request }) => {
-    const url = new URL(request.url);
-    if (url.pathname === "/mcp-test") {
-      return handleMcpTest(request);
-    }
-  },
   // Stripe webhook — must run before session/auth AND origin middleware to preserve raw body
   // (Stripe sends POST from its own origin with signature verification)
   async ({ request }) => {
