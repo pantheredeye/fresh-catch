@@ -104,7 +104,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   const [resendCooldown, setResendCooldown] = useState(0);
   const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState("/");
-  const [countdown, setCountdown] = useState(0);
   const [bSlug, setBSlug] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [needsName, setNeedsName] = useState(false);
@@ -148,18 +147,14 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     return () => clearTimeout(timer);
   }, [rateLimitCooldown]);
 
-  // Redirect countdown on success screen
+  // Brief flash then redirect on success screen
   useEffect(() => {
-    if (screen !== "success" || countdown <= 0) return;
+    if (screen !== "success") return;
     const timer = setTimeout(() => {
-      if (countdown === 1) {
-        window.location.href = redirectUrl;
-      } else {
-        setCountdown(countdown - 1);
-      }
-    }, 1000);
+      window.location.href = redirectUrl;
+    }, 500);
     return () => clearTimeout(timer);
-  }, [screen, countdown, redirectUrl]);
+  }, [screen, redirectUrl]);
 
   // Auto-trigger passkey authentication on mount
   const passkeyTriggered = useRef(false);
@@ -183,7 +178,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     const destination = withBParam(admin ? "/admin" : "/");
     setRedirectUrl(destination);
     setScreen("success");
-    setCountdown(2);
   };
 
   // Determine next screen after OTP verification
@@ -786,12 +780,6 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
         {screen === "success" && (
           <div style={{ textAlign: "center" }}>
             <h1 style={headingStyle}>You're in!</h1>
-            <p style={{
-              ...subtextStyle,
-              margin: "0 0 var(--space-md) 0",
-            }}>
-              Redirecting in {countdown}...
-            </p>
             <a
               href={redirectUrl}
               style={{

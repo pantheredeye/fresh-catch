@@ -25,7 +25,7 @@ import { TextInput, Button, Container, Card } from "@/design-system";
  * 2. **Enhanced User Experience Design**
  *    - Decision: Progressive feedback with status messages and auto-redirect
  *    - Context: WebAuthn can be confusing, users need clear guidance
- *    - Implementation: Loading states, step-by-step messages, 3-second countdown
+ *    - Implementation: Loading states, step-by-step messages, brief flash redirect
  *    - Rationale: Professional feel, reduces user anxiety, clear success indication
  *
  * 3. **Modern Design System Integration**
@@ -59,7 +59,6 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
   const [slug, setSlug] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
-  const [countdown, setCountdown] = useState(0);
 
   // Auto-generate slug from business name
   useEffect(() => {
@@ -91,7 +90,6 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
 
         setStatus('success');
         setMessage(`Success! Your business "${businessName}" is ready.`);
-        setCountdown(3);
 
       } catch (error) {
         setStatus('error');
@@ -129,7 +127,6 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
 
       setStatus('success');
       setMessage(`Welcome, ${username}! Your business account is ready.`);
-      setCountdown(3);
 
     } catch (error) {
       setStatus('error');
@@ -137,19 +134,14 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
     }
   };
 
-  // Countdown and redirect on success
+  // Brief flash then redirect on success
   useEffect(() => {
-    if (status === 'success' && countdown > 0) {
-      const timer = setTimeout(() => {
-        if (countdown === 1) {
-          window.location.href = '/admin';
-        } else {
-          setCountdown(countdown - 1);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [status, countdown]);
+    if (status !== 'success') return;
+    const timer = setTimeout(() => {
+      window.location.href = '/admin';
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   const getStatusBg = () => {
     switch (status) {
@@ -296,9 +288,6 @@ export function Setup({ ctx, csrfToken }: { ctx: any; csrfToken: string }) {
             )}
             <span>
               {message}
-              {status === 'success' && countdown > 0 && (
-                <> Redirecting in {countdown}...</>
-              )}
             </span>
           </div>
         )}
