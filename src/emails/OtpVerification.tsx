@@ -7,15 +7,13 @@ import {
   Text,
   Heading,
   Hr,
-  Link,
 } from '@react-email/components';
 
 interface OtpVerificationProps {
   code: string;
-  magicUrl: string;
 }
 
-export function OtpVerification({ code, magicUrl }: OtpVerificationProps) {
+export function OtpVerification({ code }: OtpVerificationProps) {
   return (
     <Html>
       <Head />
@@ -23,13 +21,7 @@ export function OtpVerification({ code, magicUrl }: OtpVerificationProps) {
         <Container style={container}>
           <Heading style={h1}>Sign in to Fresh Catch</Heading>
 
-          <Section style={buttonSection}>
-            <Link href={magicUrl} style={buttonStyle}>
-              Sign In to Fresh Catch
-            </Link>
-          </Section>
-
-          <Text style={dividerText}>Or enter this code:</Text>
+          <Text style={text}>Enter this code to sign in:</Text>
 
           <Section style={codeSection}>
             <Text style={codeText}>{code}</Text>
@@ -74,34 +66,6 @@ const h1 = {
   fontWeight: 'bold',
   margin: '40px 0',
   padding: '0 40px',
-};
-
-const buttonSection = {
-  textAlign: 'center' as const,
-  margin: '24px 40px',
-};
-
-const buttonStyle = {
-  display: 'inline-block',
-  width: '100%',
-  maxWidth: '320px',
-  backgroundColor: '#0066cc',
-  color: '#ffffff',
-  fontSize: '18px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  padding: '16px',
-  borderRadius: '8px',
-  boxSizing: 'border-box' as const,
-};
-
-const dividerText = {
-  color: '#64748b',
-  fontSize: '14px',
-  lineHeight: '22px',
-  margin: '24px 40px 16px',
-  textAlign: 'center' as const,
 };
 
 const text = {

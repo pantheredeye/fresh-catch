@@ -117,26 +117,12 @@ export function getSessionStub(request: Request, sessionEnv: Env): DurableObject
 }
 
 /**
- * Save OTP via session DO. Returns OTP state with generated code and magic token.
+ * Save OTP via session DO. Returns OTP state with generated code.
  */
-export async function saveOtp(request: Request, sessionEnv: Env, email: string, deviceId: string): Promise<OtpState | null> {
+export async function saveOtp(request: Request, sessionEnv: Env, email: string): Promise<OtpState | null> {
   const stub = getSessionStub(request, sessionEnv);
   if (!stub) return null;
-  return stub.saveOtp(email, deviceId);
-}
-
-/**
- * Verify magic token via session DO.
- */
-export async function verifyMagicTokenViaSession(
-  request: Request,
-  sessionEnv: Env,
-  token: string,
-  submittedDeviceId: string,
-): Promise<{ valid: boolean; email?: string; expired?: boolean; sameDevice?: boolean } | null> {
-  const stub = getSessionStub(request, sessionEnv);
-  if (!stub) return null;
-  return stub.verifyMagicToken(token, submittedDeviceId);
+  return stub.saveOtp(email);
 }
 
 /**

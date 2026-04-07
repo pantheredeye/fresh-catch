@@ -15,8 +15,6 @@ export interface OtpState {
   email: string;
   createdAt: number;
   attempts: number;
-  magicToken: string;
-  deviceId: string;
 }
 
 export class SessionDurableObject extends DurableObject {
@@ -98,16 +96,7 @@ export class SessionDurableObject extends DurableObject {
     this.session = undefined;
   }
 
-  private generateMagicToken(): string {
-    const bytes = new Uint8Array(64);
-    crypto.getRandomValues(bytes);
-    return btoa(String.fromCharCode(...bytes))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-  }
-
-  async saveOtp(email: string, deviceId: string): Promise<OtpState> {
+  async saveOtp(email: string): Promise<OtpState> {
     const bytes = new Uint8Array(4);
     crypto.getRandomValues(bytes);
     // Generate 6-digit zero-padded code from random bytes
@@ -119,8 +108,6 @@ export class SessionDurableObject extends DurableObject {
       email,
       createdAt: Date.now(),
       attempts: 0,
-      magicToken: this.generateMagicToken(),
-      deviceId,
     };
 
     await this.ctx.storage.put<OtpState>("otp", otp);
@@ -168,46 +155,6 @@ export class SessionDurableObject extends DurableObject {
     // Success: clear OTP (single use)
     await this.clearOtp();
     return { valid: true, email: otp.email };
-  }
-
-  async verifyMagicToken(
-    token: string,
-    submittedDeviceId: string,
-  ): Promise<{ valid: boolean; email?: string; expired?: boolean; sameDevice?: boolean }> {
-    const otp = await this.ctx.storage.get<OtpState>("otp");
-
-    if (!otp || !otp.magicToken) {
-      return { valid: false };
-    }
-
-    // Check TTL (10 minutes)
-    if (Date.now() - otp.createdAt > 10 * 60 * 1000) {
-      await this.clearOtp();
-      return { valid: false, expired: true };
-    }
-
-    // Constant-time comparison (XOR-based, no early exit)
-    const a = new TextEncoder().encode(otp.magicToken);
-    const b = new TextEncoder().encode(token);
-    let mismatch = a.length !== b.length ? 1 : 0;
-    const len = Math.min(a.length, b.length);
-    for (let i = 0; i < len; i++) {
-      mismatch |= a[i] ^ b[i];
-    }
-
-    if (mismatch !== 0) {
-      return { valid: false };
-    }
-
-    const sameDevice = otp.deviceId === submittedDeviceId;
-
-    // Same-device: clear OTP state (single use)
-    // Cross-device: keep OTP so user can still enter code on original device
-    if (sameDevice) {
-      await this.clearOtp();
-    }
-
-    return { valid: true, email: otp.email, sameDevice };
   }
 
   async clearOtp(): Promise<void> {

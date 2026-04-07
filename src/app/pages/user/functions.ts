@@ -53,30 +53,10 @@ export async function requestOtp(email: string) {
     };
   }
 
-  const { request, response } = requestInfo;
-
-  // Generate deviceId for magic link device binding
-  const deviceIdBytes = new Uint8Array(16);
-  crypto.getRandomValues(deviceIdBytes);
-  const deviceId = btoa(String.fromCharCode(...deviceIdBytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  // Set fc_device cookie
-  const isDevServer = !!import.meta.env.VITE_IS_DEV_SERVER;
-  const cookieParts = [
-    `fc_device=${deviceId}`,
-    "HttpOnly",
-    "SameSite=Strict",
-    "Max-Age=600",
-    "Path=/",
-  ];
-  if (!isDevServer) cookieParts.push("Secure");
-  response.headers.append("Set-Cookie", cookieParts.join("; "));
+  const { request } = requestInfo;
 
   // Generate OTP via session DO (session guaranteed by middleware)
-  const otp = await saveOtp(request, env, email, deviceId);
+  const otp = await saveOtp(request, env, email);
 
   // Check if user has passkey credentials (hint for client)
   const user = await db.user.findFirst({
@@ -85,11 +65,9 @@ export async function requestOtp(email: string) {
   });
   const hint = user?.credentials && user.credentials.length > 0 ? "passkey" : undefined;
 
-  // Send email with magic link (fire-and-forget)
+  // Send OTP email (fire-and-forget)
   if (otp) {
-    const appUrl = (env.APP_URL || "https://market.digitalglue.dev").replace(/\/$/, "");
-    const magicUrl = `${appUrl}/auth/verify?token=${otp.magicToken}`;
-    sendOtpEmail({ to: email, code: otp.code, magicUrl }).catch((err) =>
+    sendOtpEmail({ to: email, code: otp.code }).catch((err) =>
       console.error("[OTP] Email send failed:", err)
     );
   }
