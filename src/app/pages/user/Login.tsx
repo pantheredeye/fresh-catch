@@ -358,6 +358,11 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   };
 
   const handlePasskeySetup = async () => {
+    if (!email.trim()) {
+      goToSuccess(isAdmin);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
