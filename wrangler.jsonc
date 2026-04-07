@@ -37,7 +37,8 @@
     "WEBAUTHN_RP_ID": "market.digitalglue.dev",
     "ADMIN_EMAIL": "barrett@digitalglue.dev",
     "STRIPE_PUBLISHABLE_KEY": "",
-    "APP_URL": "https://market.digitalglue.dev"
+    "APP_URL": "https://market.digitalglue.dev",
+    "DEV_MCP_SECRET": ""
   },
   "migrations": [
     {

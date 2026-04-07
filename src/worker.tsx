@@ -97,11 +97,43 @@ export default defineApp([
     if (!mcpMatch) return;
 
     await setupDb(env);
+    setupSessionStore(env);
 
     const orgSlug = mcpMatch[1];
     const org = await db.organization.findUnique({ where: { slug: orgSlug } });
     if (!org) {
       return new Response("Not Found", { status: 404 });
+    }
+
+    // Auth: session cookie or dev secret
+    let authenticated = false;
+
+    // Path 1: Session cookie — verify session org matches URL org
+    try {
+      const session = await sessions.load(request);
+      if (session?.userId && session?.currentOrganizationId === org.id) {
+        authenticated = true;
+      } else if (session?.userId && session?.currentOrganizationId !== org.id) {
+        return new Response("Forbidden – org mismatch", { status: 403 });
+      }
+    } catch {
+      // Session load failed — fall through to dev secret
+    }
+
+    // Path 2: Dev secret (Phase 1 testing only)
+    if (!authenticated) {
+      const authHeader = request.headers.get("Authorization");
+      const devSecret = env.DEV_MCP_SECRET;
+      if (
+        devSecret &&
+        authHeader === `Bearer ${devSecret}`
+      ) {
+        authenticated = true;
+      }
+    }
+
+    if (!authenticated) {
+      return new Response("Unauthorized", { status: 401 });
     }
 
     const doId = env.MCP_DURABLE_OBJECT.idFromName(org.id);
