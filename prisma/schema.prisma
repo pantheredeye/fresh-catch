@@ -300,7 +300,7 @@ model Conversation {
 model Message {
   id             String   @id @default(uuid())
   conversationId String
-  senderType     String // "customer" | "vendor"
+  senderType     String // "customer" | "vendor" | "ai"
   senderId       String? // User ID if authenticated, null for anonymous
   content        String
   readAt         DateTime? // Null until read by recipient
