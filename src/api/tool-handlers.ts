@@ -45,7 +45,7 @@ function errorResult(message: string): ToolResult {
 
 function checkRole(callerRole: string | undefined, allowedRoles: string[]): ToolResult | null {
   if (!callerRole || !allowedRoles.includes(callerRole)) {
-    return errorResult(`Forbidden: requires role ${allowedRoles.join(" or ")}, got ${callerRole ?? "none"}`);
+    return errorResult("Forbidden: you do not have permission to use this tool");
   }
   return null;
 }

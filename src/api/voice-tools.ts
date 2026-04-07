@@ -260,6 +260,7 @@ export const voiceTools: Record<string, VoiceTool> = {
       },
     },
     reviewType: "market-create",
+    roles: ["owner", "manager"],
   },
   create_popup: {
     description: "Create a temporary popup market event",
@@ -290,6 +291,7 @@ export const voiceTools: Record<string, VoiceTool> = {
       },
     },
     reviewType: "popup-create",
+    roles: ["owner", "manager"],
   },
   update_market: {
     description: "Update details on an existing market (name match)",
@@ -316,6 +318,7 @@ export const voiceTools: Record<string, VoiceTool> = {
       },
     },
     reviewType: "market-update",
+    roles: ["owner", "manager"],
   },
   update_market_catch: {
     description: "Update what fish are available at a specific market",

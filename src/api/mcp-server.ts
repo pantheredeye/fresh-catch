@@ -20,6 +20,7 @@ import {
   UpdateMarketInputSchema,
   UpdateMarketCatchInputSchema,
   SendMessageInputSchema,
+  voiceTools,
 } from "./voice-tools";
 import {
   handleListCatch,
@@ -322,8 +323,17 @@ export function createMcpRequestHandler(options: {
     version: "1.0.0",
   });
 
+  // Filter tools by caller role — only register tools the caller can use
+  const filteredRegistry = Object.fromEntries(
+    Object.entries(toolRegistry).filter(([name]) => {
+      if (callerRole === "owner" || callerRole === "manager") return true;
+      const voiceTool = voiceTools[name];
+      return voiceTool?.roles?.includes(callerRole ?? "") ?? false;
+    }),
+  );
+
   // Register tools with rate-limit + audit-logging wrapper
-  for (const [name, tool] of Object.entries(toolRegistry)) {
+  for (const [name, tool] of Object.entries(filteredRegistry)) {
     server.tool(name, tool.description, tool.schema, async (args) => {
       const startMs = Date.now();
 
@@ -405,6 +415,15 @@ function hashInput(input: unknown): string {
 // --- Server card ---
 
 export function getServerCard(): Record<string, unknown> {
+  // Only expose read-tier tools in the public server card to avoid
+  // leaking admin tool names to unauthenticated callers
+  const publicTools = Object.entries(toolRegistry)
+    .filter(([, tool]) => tool.tier === "read")
+    .map(([name, tool]) => ({
+      name,
+      description: tool.description,
+    }));
+
   return {
     name: "fresh-catch",
     version: "1.0.0",
@@ -412,11 +431,7 @@ export function getServerCard(): Record<string, unknown> {
     endpoint: "/mcp/{orgSlug}",
     transport: "streamable-http",
     capabilities: {
-      tools: Object.entries(toolRegistry).map(([name, tool]) => ({
-        name,
-        description: tool.description,
-        tier: tool.tier,
-      })),
+      tools: publicTools,
       resources: [
         { name: "today-catch", uri: "catch://today", description: "Current catch listing" },
         { name: "market-schedule", uri: "markets://schedule", description: "Market schedule with locations" },
