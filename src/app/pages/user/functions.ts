@@ -346,21 +346,6 @@ export async function startPasskeyLogin(email: string) {
   return options;
 }
 
-export async function startConditionalPasskeyLogin() {
-  const { rpID } = getWebAuthnConfig(requestInfo.request);
-  const { response } = requestInfo;
-
-  const options = await generateAuthenticationOptions({
-    rpID,
-    userVerification: "preferred",
-    allowCredentials: [],
-  });
-
-  await sessions.save(response.headers, { challenge: options.challenge });
-
-  return options;
-}
-
 export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
   const { request, response } = requestInfo;
   const { origin } = new URL(request.url);
