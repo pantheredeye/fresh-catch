@@ -1,7 +1,8 @@
 /**
- * Voice tool registry + buildCommandPrompt.
- * Defines all voice actions and generates LLM system prompts.
- * Phase 1: prompt generation. Phase 3: becomes Agents SDK tool definitions.
+ * Voice tool registry — single source of truth for all voice/MCP actions.
+ * Exports two formats:
+ *   - buildCommandPrompt(): LLM system prompt for voice command interpretation
+ *   - mcpFormat(): MCP Tool[] definitions for the Model Context Protocol server
  */
 
 // --- Types ---
@@ -250,4 +251,49 @@ Rules:
 - If you cannot determine the intent, use confidence: 0 and interpretation explaining why
 - For update_market: ONLY include fields the user explicitly wants to change. Do NOT echo back unchanged fields. The current values are shown above for each market.
 - If multiple markets partially match the name, set confidence lower and mention the ambiguity in interpretation`;
+}
+
+// --- MCP format export ---
+
+import type { Tool as McpTool } from "@modelcontextprotocol/sdk/types.js";
+
+/** Map a SchemaField.type string to a JSON Schema type. */
+function toJsonSchemaType(fieldType: string): object {
+  const lower = fieldType.toLowerCase();
+  if (lower === "string") return { type: "string" };
+  if (lower === "number" || lower === "integer") return { type: "number" };
+  if (lower === "boolean") return { type: "boolean" };
+  // Complex or freeform types (e.g. "array of { name, note }") → string with description
+  return { type: "string" };
+}
+
+/**
+ * Convert voice tool registry into MCP Tool definitions.
+ * Role filtering works the same as buildCommandPrompt:
+ * owner/manager see all tools, other roles only see tools with matching roles[].
+ */
+export function mcpFormat(role: string = "owner"): McpTool[] {
+  const filtered = filterToolsByRole(voiceTools, role);
+
+  return Object.entries(filtered).map(([name, tool]) => {
+    const properties: Record<string, object> = {};
+    const required: string[] = [];
+
+    for (const [fieldName, field] of Object.entries(tool.schema)) {
+      const prop: Record<string, unknown> = { ...toJsonSchemaType(field.type) };
+      if (field.description) prop.description = field.description;
+      properties[fieldName] = prop;
+      if (!field.optional) required.push(fieldName);
+    }
+
+    return {
+      name,
+      description: tool.description,
+      inputSchema: {
+        type: "object" as const,
+        properties,
+        ...(required.length > 0 ? { required } : {}),
+      },
+    };
+  });
 }
