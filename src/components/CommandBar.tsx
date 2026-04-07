@@ -11,16 +11,27 @@ type InputMode = "voice" | "text";
 const HINT_CONTEXTS: Record<string, string[]> = {
   catch: ["what's fresh today", "update the catch"],
   markets: ["add market", "create popup", "update details"],
+  customer: ["what's fresh today", "check my order", "market hours"],
   default: ["update catch", "add market", "create popup"],
 };
 
 interface CommandBarProps {
   onResult: (result: VoiceCommandResult) => void;
   hintContext?: string;
+  /** When true, hides the built-in FAB trigger (caller controls open state) */
+  externalTrigger?: boolean;
+  /** Controlled open state (use with externalTrigger) */
+  isOpen?: boolean;
+  /** Called when the sheet wants to close (use with externalTrigger) */
+  onClose?: () => void;
 }
 
-export function CommandBar({ onResult, hintContext }: CommandBarProps) {
-  const [open, setOpen] = useState(false);
+export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onClose }: CommandBarProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalTrigger ? (isOpen ?? false) : internalOpen;
+  const setOpen = externalTrigger
+    ? (v: boolean) => { if (!v && onClose) onClose(); else setInternalOpen(v); }
+    : setInternalOpen;
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [textInput, setTextInput] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -118,14 +129,16 @@ export function CommandBar({ onResult, hintContext }: CommandBarProps) {
 
   return (
     <>
-      {/* FAB */}
-      <button
-        className={`command-bar__fab${open ? " command-bar__fab--hidden" : ""}`}
-        onClick={() => setOpen(true)}
-        aria-label="Open command bar"
-      >
-        🎙️
-      </button>
+      {/* FAB - hidden when controlled externally */}
+      {!externalTrigger && (
+        <button
+          className={`command-bar__fab${open ? " command-bar__fab--hidden" : ""}`}
+          onClick={() => setOpen(true)}
+          aria-label="Open command bar"
+        >
+          🎙️
+        </button>
+      )}
 
       {/* Backdrop */}
       <div

@@ -8,6 +8,8 @@ import { trackShare } from '../share-functions';
 import { getUnreadCountForConversation, markAsRead } from '@/chat/functions';
 import { getStoredConversationId, storeConversationId } from './NamePrompt';
 import { ChatSheet } from './ChatSheet';
+import { CommandBar } from '@/components/CommandBar';
+import type { VoiceCommandResult } from '@/api/voice-tools';
 import './BottomNavigation.css';
 
 /**
@@ -28,6 +30,12 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
   const [shareUrl, setShareUrl] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
+
+  const handleCommandResult = useCallback((_result: VoiceCommandResult) => {
+    setCommandBarOpen(false);
+    // TODO: handle command result (navigate, display inline, etc.)
+  }, []);
 
   // Poll unread count every 30s when chat is closed
   const fetchUnread = useCallback(async () => {
@@ -155,6 +163,30 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
             Quick Order
           </a>
 
+          {/* Mic - opens CommandBar in customer mode */}
+          <button
+            onClick={() => setCommandBarOpen(true)}
+            aria-label="Voice command"
+            className={`bottom-nav-mic${commandBarOpen ? ' bottom-nav-mic--active' : ''}`}
+            style={{
+              padding: 'var(--space-sm)',
+              color: commandBarOpen ? 'var(--color-text-inverse)' : 'var(--color-action-primary)',
+              fontSize: 'var(--font-size-md)',
+              borderRadius: 'var(--radius-full)',
+              background: commandBarOpen ? 'var(--color-action-primary)' : 'transparent',
+              border: `1.5px solid ${commandBarOpen ? 'var(--color-action-primary)' : 'var(--color-border-light)'}`,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            🎙️
+          </button>
+
           <Menu.Root>
             <Menu.Trigger className="bottom-nav-menu-trigger">
               <span className="trigger-icon">⋯</span>
@@ -204,6 +236,15 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
         title="Fresh Catch Seafood Markets"
         description="Share our marketplace with friends and family"
         onShareAction={(shareType) => trackShare(shareType)}
+      />
+
+      {/* Command Bar (customer mode) */}
+      <CommandBar
+        onResult={handleCommandResult}
+        hintContext="customer"
+        externalTrigger
+        isOpen={commandBarOpen}
+        onClose={() => setCommandBarOpen(false)}
       />
 
       {/* Chat Sheet */}
