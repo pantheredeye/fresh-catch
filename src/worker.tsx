@@ -90,6 +90,24 @@ export default defineApp([
       return handleStripeWebhook(request);
     }
   },
+  // MCP endpoint — before origin validation (external MCP clients send cross-origin requests)
+  async ({ request }) => {
+    const url = new URL(request.url);
+    const mcpMatch = url.pathname.match(/^\/mcp\/([^/]+)(\/.*)?$/);
+    if (!mcpMatch) return;
+
+    await setupDb(env);
+
+    const orgSlug = mcpMatch[1];
+    const org = await db.organization.findUnique({ where: { slug: orgSlug } });
+    if (!org) {
+      return new Response("Not Found", { status: 404 });
+    }
+
+    const doId = env.MCP_DURABLE_OBJECT.idFromName(org.id);
+    const stub = env.MCP_DURABLE_OBJECT.get(doId);
+    return stub.fetch(request);
+  },
   validateOrigin(),
   setCommonHeaders(),
   async ({ ctx, request, response }) => {
