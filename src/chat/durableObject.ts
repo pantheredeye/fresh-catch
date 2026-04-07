@@ -35,9 +35,16 @@ interface HistoryPayload {
 export class ChatDurableObject extends DurableObject {
   private conversationId: string | null = null;
   private lastEmailSentAt: number = 0;
+  /** When true, vendor has taken over this conversation — suppress AI replies */
+  private vendorTakeover: boolean = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    // Restore takeover flag from DO storage (survives evictions)
+    this.ctx.blockConcurrencyWhile(async () => {
+      this.vendorTakeover =
+        (await this.ctx.storage.get<boolean>("vendorTakeover")) ?? false;
+    });
   }
 
   private getConversationId(request: Request): string {
@@ -160,6 +167,12 @@ export class ChatDurableObject extends DurableObject {
       data: { lastMessageAt: created.createdAt },
     });
 
+    // Vendor takeover: suppress AI when vendor sends a message
+    if (parsed.senderType === "vendor" && !this.vendorTakeover) {
+      this.vendorTakeover = true;
+      await this.ctx.storage.put("vendorTakeover", true);
+    }
+
     // Notify customer via email if offline
     if (parsed.senderType === "vendor") {
       const customerSockets = this.ctx.getWebSockets("customer");
@@ -207,8 +220,8 @@ export class ChatDurableObject extends DurableObject {
       socket.send(payload);
     }
 
-    // AI auto-reply: if customer message + vendor offline, generate AI response
-    if (parsed.senderType === "customer" && !this.isVendorOnline()) {
+    // AI auto-reply: if customer message + vendor offline + no takeover
+    if (parsed.senderType === "customer" && !this.isVendorOnline() && !this.vendorTakeover) {
       try {
         const apiKey = (this.env as unknown as Record<string, string>).ANTHROPIC_API_KEY;
         if (apiKey) {
@@ -299,8 +312,13 @@ export class ChatDurableObject extends DurableObject {
   ): Promise<void> {
     const tags = this.ctx.getTags(ws);
     ws.close(code, reason);
-    // If a vendor disconnected, broadcast updated presence to customers
+    // If a vendor disconnected, clear takeover and broadcast presence
     if (tags.includes("vendor")) {
+      // Only clear if no other vendor sockets remain
+      if (!this.isVendorOnline()) {
+        this.vendorTakeover = false;
+        this.ctx.storage.put("vendorTakeover", false);
+      }
       this.broadcastVendorPresence();
     }
   }
@@ -309,6 +327,10 @@ export class ChatDurableObject extends DurableObject {
     const tags = this.ctx.getTags(ws);
     ws.close(1011, "WebSocket error");
     if (tags.includes("vendor")) {
+      if (!this.isVendorOnline()) {
+        this.vendorTakeover = false;
+        this.ctx.storage.put("vendorTakeover", false);
+      }
       this.broadcastVendorPresence();
     }
   }
