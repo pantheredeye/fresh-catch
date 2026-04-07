@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { createMcpRequestHandler } from "@/api/mcp-server";
 
 export type ToolCallStatus = "success" | "error";
 export type ToolTier = "read" | "write" | "llm";
@@ -153,10 +154,34 @@ export class McpDurableObject extends DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
-    // MCP request routing will be wired in a later step
-    const url = new URL(request.url);
-    return new Response(JSON.stringify({ status: "ok", path: url.pathname }), {
-      headers: { "Content-Type": "application/json" },
+    const organizationId =
+      request.headers.get("X-Org-Id") ?? "unknown";
+    const sessionId =
+      request.headers.get("X-Session-Id") ?? crypto.randomUUID();
+
+    // Create a fresh handler per request — each MCP SSE connection
+    // needs its own McpServer instance for transport isolation
+    const handler = createMcpRequestHandler({
+      organizationId,
+      sessionId,
+      mcpDO: this,
     });
+
+    // ExecutionContext shim for createMcpHandler (DO doesn't have a native one)
+    const ctxShim = {
+      waitUntil: () => {},
+      passThroughOnException: () => {},
+    } as unknown as ExecutionContext;
+
+    try {
+      return await handler(request, this.env, ctxShim);
+    } catch (err) {
+      return new Response(
+        JSON.stringify({
+          error: err instanceof Error ? err.message : "Internal server error",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
   }
 }

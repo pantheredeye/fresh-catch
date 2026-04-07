@@ -138,7 +138,16 @@ export default defineApp([
 
     const doId = env.MCP_DURABLE_OBJECT.idFromName(org.id);
     const stub = env.MCP_DURABLE_OBJECT.get(doId);
-    return stub.fetch(request);
+
+    // Forward org/session context to the DO via headers
+    const mcpRequest = new Request(request.url, {
+      method: request.method,
+      headers: new Headers(request.headers),
+      body: request.body,
+    });
+    mcpRequest.headers.set("X-Org-Id", org.id);
+
+    return stub.fetch(mcpRequest);
   },
   validateOrigin(),
   setCommonHeaders(),
