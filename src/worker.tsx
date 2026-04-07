@@ -22,7 +22,6 @@ import { Session } from "./session/durableObject";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
-import { handleMagicLinkVerify } from "@/app/pages/user/magic-link-handler";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
@@ -213,13 +212,6 @@ export default defineApp([
     }
   },
   resolveBrowsingOrg(),
-  // Magic link verify — before render() to return raw Response (no RSC wrapping)
-  async ({ request }) => {
-    const url = new URL(request.url);
-    if (request.method === "GET" && url.pathname === "/auth/verify") {
-      return handleMagicLinkVerify(request);
-    }
-  },
   // WebSocket upgrade handler for chat — before render() to avoid RSC processing
   async ({ ctx, request }) => {
     const url = new URL(request.url);

@@ -12,18 +12,15 @@ export function LoginPage(requestInfo: RequestInfo) {
   const { ctx } = requestInfo;
 
   // If already logged in, auto-redirect to home
-  // Exception: ?flow=name means magic-link user still needs to provide their name
   if (ctx.user) {
     const url = new URL(requestInfo.request.url);
-    if (url.searchParams.get("flow") !== "name") {
-      const bSlug = url.searchParams.get("b");
-      const base = ctx.currentOrganization ? '/admin' : '/';
-      const destination = bSlug ? `${base}?b=${bSlug}` : base;
-      return new Response(null, {
-        status: 302,
-        headers: { Location: destination },
-      });
-    }
+    const bSlug = url.searchParams.get("b");
+    const base = ctx.currentOrganization ? '/admin' : '/';
+    const destination = bSlug ? `${base}?b=${bSlug}` : base;
+    return new Response(null, {
+      status: 302,
+      headers: { Location: destination },
+    });
   }
 
   return <Login ctx={requestInfo.ctx} csrfToken={requestInfo.ctx?.session?.csrfToken ?? ""} />;
