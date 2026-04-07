@@ -15,7 +15,6 @@ declare namespace Cloudflare {
 		AUTH_SECRET_KEY: string;
 		RESEND_API_KEY: string;
 		DEV_MCP_SECRET: string;
-		ANTHROPIC_API_KEY: string;
 		SESSION_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").SessionDurableObject>;
 		CHAT_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").ChatDurableObject>;
 		RATE_LIMIT_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").RateLimitDurableObject>;

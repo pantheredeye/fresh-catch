@@ -80,6 +80,10 @@ model Organization {
   // Branding
   accentColor String? // Hex color for vendor storefront theming (e.g., "#FF6B6B")
 
+  // API key for external MCP access (only hash stored, never raw key)
+  apiKeyHash   String?
+  apiKeyPrefix String?
+
   memberships   Membership[] // Relationship: Organization can have multiple members
   markets       Market[] // Relationship: Organization can have multiple markets
   orders        Order[] // Relationship: Organization can have multiple orders
