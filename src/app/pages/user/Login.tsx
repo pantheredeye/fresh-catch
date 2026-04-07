@@ -314,7 +314,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
         goToSuccess(result.isAdmin);
       } else {
         setPasskeyDismissed(true);
-        setError("Passkey verification failed. Try the code instead.");
+        setError("Verification failed. Try the code instead.");
         setLoading(false);
       }
     } catch {
@@ -637,7 +637,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
               textAlign: "center",
               margin: "0 0 var(--space-md) 0",
             }}>
-              Tap the button in the email to sign in instantly, or enter the code above
+              Enter the 6-digit code from your email
             </p>
 
             {error && (
