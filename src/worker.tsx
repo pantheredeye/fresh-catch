@@ -22,6 +22,7 @@ import { Session } from "./session/durableObject";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
+import { getServerCard } from "@/api/mcp-server";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
@@ -88,6 +89,20 @@ export default defineApp([
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/stripe/webhook") {
       return handleStripeWebhook(request);
+    }
+  },
+  // MCP server card — public discovery endpoint
+  async ({ request }) => {
+    const url = new URL(request.url);
+    if (url.pathname === "/.well-known/mcp.json") {
+      return new Response(JSON.stringify(getServerCard()), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
     }
   },
   // MCP endpoint — before origin validation (external MCP clients send cross-origin requests)

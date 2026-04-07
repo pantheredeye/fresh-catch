@@ -19,7 +19,7 @@ import {
   handleGetMarketVendors,
 } from "./tool-handlers";
 import { db } from "@/db";
-import type { McpDurableObject } from "@/mcp/durableObject";
+import type { McpDurableObject, ToolTier } from "@/mcp/durableObject";
 
 // --- Types ---
 
@@ -37,6 +37,15 @@ type ToolRegistration = {
   description: string;
   schema: Record<string, unknown>;
   handler: ToolHandlerFn;
+  tier: ToolTier;
+};
+
+// --- Rate limit config ---
+
+const TIER_LIMITS: Record<ToolTier, { maxCalls: number; windowMs: number }> = {
+  read: { maxCalls: 1000, windowMs: 60_000 },
+  write: { maxCalls: 100, windowMs: 60_000 },
+  llm: { maxCalls: 10, windowMs: 60_000 },
 };
 
 // --- Tool registry mapping ---
@@ -46,22 +55,26 @@ const toolRegistry: Record<string, ToolRegistration> = {
     description: "Returns current catch listing for the org",
     schema: ListCatchInputSchema.shape,
     handler: handleListCatch,
+    tier: "read",
   },
   get_markets: {
     description: "Returns market schedule for the org",
     schema: GetMarketsInputSchema.shape,
     handler: handleGetMarkets,
+    tier: "read",
   },
   get_vendor_popups: {
     description:
       "Returns upcoming popup markets with name, schedule, expiresAt, and location",
     schema: GetVendorPopupsInputSchema.shape,
     handler: handleGetVendorPopups,
+    tier: "read",
   },
   get_market_vendors: {
     description: "Returns list of vendors at a specific market",
     schema: GetMarketVendorsInputSchema.shape,
     handler: handleGetMarketVendors,
+    tier: "read",
   },
 };
 
@@ -235,10 +248,31 @@ export function createMcpRequestHandler(options: {
     version: "1.0.0",
   });
 
-  // Register tools with audit-logging wrapper
+  // Register tools with rate-limit + audit-logging wrapper
   for (const [name, tool] of Object.entries(toolRegistry)) {
     server.tool(name, tool.description, tool.schema, async (args) => {
       const startMs = Date.now();
+
+      // Rate limit check
+      const limit = TIER_LIMITS[tool.tier];
+      const windowStart = startMs - (startMs % limit.windowMs);
+      try {
+        const count = mcpDO.incrementRateLimit(tool.tier, windowStart);
+        if (count > limit.maxCalls) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: `Rate limit exceeded for ${tool.tier} tier: ${limit.maxCalls} calls per ${limit.windowMs / 1000}s. Try again later.`,
+              },
+            ],
+          };
+        }
+      } catch {
+        // Rate limiting must never crash the tool call
+      }
+
       let result: ToolResult;
 
       try {
@@ -291,6 +325,32 @@ function hashInput(input: unknown): string {
     hash = ((hash << 5) - hash + char) | 0;
   }
   return hash.toString(36);
+}
+
+// --- Server card ---
+
+export function getServerCard(): Record<string, unknown> {
+  return {
+    name: "fresh-catch",
+    version: "1.0.0",
+    description: "Fresh Catch seafood vendor MCP server",
+    endpoint: "/mcp/{orgSlug}",
+    transport: "streamable-http",
+    capabilities: {
+      tools: Object.entries(toolRegistry).map(([name, tool]) => ({
+        name,
+        description: tool.description,
+        tier: tool.tier,
+      })),
+      resources: [
+        { name: "today-catch", uri: "catch://today", description: "Current catch listing" },
+        { name: "market-schedule", uri: "markets://schedule", description: "Market schedule with locations" },
+      ],
+      prompts: [
+        { name: "vendor-assistant", description: "System prompt for vendor-side AI assistant" },
+      ],
+    },
+  };
 }
 
 // --- Standalone server for testing ---
