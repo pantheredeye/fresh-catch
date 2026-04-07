@@ -3,6 +3,7 @@ import { createMcpRequestHandler } from "@/api/mcp-server";
 
 export type ToolCallStatus = "success" | "error";
 export type ToolTier = "read" | "write" | "llm";
+export type GapReason = "no_tool" | "insufficient_data" | "model_uncertain" | "api_error" | "max_rounds";
 
 export type ToolCallRow = {
   id: string;
@@ -19,6 +20,15 @@ export type RateLimitRow = {
   tool_tier: ToolTier;
   window_start: number;
   call_count: number;
+  [key: string]: SqlStorageValue;
+};
+
+export type GapLogRow = {
+  id: string;
+  conversation_id: string;
+  question: string;
+  reason: GapReason;
+  timestamp: number;
   [key: string]: SqlStorageValue;
 };
 
@@ -65,6 +75,20 @@ export class McpDurableObject extends DurableObject {
         window_start INTEGER NOT NULL,
         call_count INTEGER NOT NULL DEFAULT 0
       )
+    `);
+
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS gap_log (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        question TEXT NOT NULL,
+        reason TEXT NOT NULL CHECK(reason IN ('no_tool', 'insufficient_data', 'model_uncertain', 'api_error', 'max_rounds')),
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    this.sql.exec(`
+      CREATE INDEX IF NOT EXISTS idx_gap_log_timestamp ON gap_log(timestamp)
     `);
 
     this.schemaReady = true;
@@ -139,6 +163,32 @@ export class McpDurableObject extends DurableObject {
       .one();
 
     return row.call_count;
+  }
+
+  /** Log an unanswered customer question. */
+  logGap(entry: { conversation_id: string; question: string; reason: GapReason }): void {
+    this.ensureSchema();
+    const id = crypto.randomUUID();
+    this.sql.exec(
+      `INSERT INTO gap_log (id, conversation_id, question, reason, timestamp)
+       VALUES (?, ?, ?, ?, ?)`,
+      id,
+      entry.conversation_id,
+      entry.question,
+      entry.reason,
+      Date.now(),
+    );
+  }
+
+  /** Query gap log entries, newest first. */
+  getGaps(limit = 100): GapLogRow[] {
+    this.ensureSchema();
+    return this.sql
+      .exec<GapLogRow>(
+        `SELECT * FROM gap_log ORDER BY timestamp DESC LIMIT ?`,
+        limit,
+      )
+      .toArray();
   }
 
   /** Get current rate limit state for a tier. */

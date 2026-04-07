@@ -27,9 +27,11 @@ export interface AiAgentOptions {
   orgContext: OrgContext;
 }
 
+export type GapReason = "no_tool" | "insufficient_data" | "model_uncertain" | "api_error" | "max_rounds";
+
 export type AiAgentResult =
   | { ok: true; text: string }
-  | { ok: false; text: string; error: string };
+  | { ok: false; text: string; error: string; gapReason: GapReason };
 
 // Max tool-use rounds to prevent infinite loops
 const MAX_TOOL_ROUNDS = 5;
@@ -137,6 +139,7 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
         ok: false,
         text: FALLBACK_MESSAGE,
         error: result.error,
+        gapReason: "api_error",
       };
     }
 
@@ -204,5 +207,6 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
     ok: false,
     text: FALLBACK_MESSAGE,
     error: `Exceeded max tool rounds (${MAX_TOOL_ROUNDS})`,
+    gapReason: "max_rounds",
   };
 }

@@ -9,6 +9,7 @@ import { TeamPage } from "./team/TeamPage";
 import { CatchPage } from "./catch/CatchPage";
 import { MessagesPage } from "./messages/MessagesPage";
 import { BrandingSettingsPage } from "./BrandingSettingsPage";
+import { GapsPage } from "./gaps/GapsPage";
 
 export const adminRoutes = [
   route("/", AdminDashboard),        // /admin landing page
@@ -21,4 +22,5 @@ export const adminRoutes = [
   route("/team", TeamPage),           // /admin/team
   route("/catch", CatchPage),         // /admin/catch
   route("/messages", MessagesPage),    // /admin/messages
+  route("/gaps", GapsPage),            // /admin/gaps
 ];

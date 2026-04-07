@@ -273,6 +273,21 @@ export class ChatDurableObject extends DurableObject {
       },
     });
 
+    // Log gap if AI couldn't answer
+    if (!result.ok) {
+      try {
+        const mcpId = this.env.MCP_DURABLE_OBJECT.idFromName(conversation.organizationId);
+        const mcpStub = this.env.MCP_DURABLE_OBJECT.get(mcpId);
+        mcpStub.logGap({
+          conversation_id: this.conversationId!,
+          question: customerMessage,
+          reason: result.gapReason,
+        });
+      } catch (err) {
+        console.error("[ChatDO] Failed to log gap:", err);
+      }
+    }
+
     // Persist AI message
     const aiMessage = await db.message.create({
       data: {
