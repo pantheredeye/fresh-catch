@@ -9,6 +9,7 @@ import { TeamPage } from "./team/TeamPage";
 import { CatchPage } from "./catch/CatchPage";
 import { MessagesPage } from "./messages/MessagesPage";
 import { BrandingSettingsPage } from "./BrandingSettingsPage";
+import { ApiSettingsPage } from "./ApiSettingsPage";
 import { GapsPage } from "./gaps/GapsPage";
 
 export const adminRoutes = [
@@ -19,6 +20,7 @@ export const adminRoutes = [
   route("/orders/print", PrintOrdersPage), // /admin/orders/print
   route("/settings/stripe", StripeSettingsPage), // /admin/settings/stripe
   route("/settings/branding", BrandingSettingsPage), // /admin/settings/branding
+  route("/settings/api", ApiSettingsPage),             // /admin/settings/api
   route("/team", TeamPage),           // /admin/team
   route("/catch", CatchPage),         // /admin/catch
   route("/messages", MessagesPage),    // /admin/messages
