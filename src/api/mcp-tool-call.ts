@@ -4,12 +4,16 @@ import { env } from "cloudflare:workers";
 import { requestInfo } from "rwsdk/worker";
 import { requireCsrf } from "@/session/csrf";
 import { hasAdminAccess } from "@/utils/permissions";
+import { voiceTools } from "./voice-tools";
 import { toolRegistry, TIER_LIMITS } from "./mcp-server";
 
 /**
- * Execute an MCP tool from the admin command bar.
+ * Execute an MCP tool from the command bar (admin or customer).
  * Uses the same tool registry, handlers, rate limits, and audit logging
  * as external MCP clients — just invoked via server function instead of HTTP.
+ *
+ * Admin callers: full tool access.
+ * Customer callers: only tools with roles: ["customer"] in voice-tools registry.
  */
 export async function executeMcpTool(
   csrfToken: string,
@@ -20,8 +24,19 @@ export async function executeMcpTool(
 
   const { ctx } = requestInfo;
 
-  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
-    return { success: false, error: "Admin access required" };
+  if (!ctx.user || !ctx.currentOrganization) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  const callerRole = ctx.currentOrganization.role ?? "owner";
+  const isAdmin = hasAdminAccess(ctx);
+
+  // Customer callers: verify tool allows customer role
+  if (!isAdmin) {
+    const voiceTool = voiceTools[toolName];
+    if (!voiceTool?.roles?.includes(callerRole)) {
+      return { success: false, error: "You don't have access to this tool" };
+    }
   }
 
   const tool = toolRegistry[toolName];
@@ -30,7 +45,6 @@ export async function executeMcpTool(
   }
 
   const organizationId = ctx.currentOrganization.id;
-  const callerRole = ctx.currentOrganization.role ?? "owner";
   const startMs = Date.now();
 
   // Rate limit via McpDO

@@ -14,6 +14,7 @@ import {
   GetMarketVendorsInputSchema,
   GetVendorMarketLocationInputSchema,
   GetCountyVendorsInputSchema,
+  GetOrderStatusInputSchema,
   CreateOrderInputSchema,
   UpdateCatchInputSchema,
   CreateMarketInputSchema,
@@ -350,6 +351,57 @@ export async function handleGetCountyVendors(
     return textResult({
       county,
       vendors,
+    });
+  } catch (err) {
+    return errorResult(
+      `Database error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+export async function handleGetOrderStatus(
+  rawInput: unknown,
+  organizationId: string,
+  callerRole?: string,
+): Promise<ToolResult> {
+  const roleErr = checkRole(callerRole, ["customer"]);
+  if (roleErr) return roleErr;
+
+  const parsed = GetOrderStatusInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return errorResult(`Invalid input: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
+
+  try {
+    let order;
+    if (input.orderId) {
+      order = await db.order.findFirst({
+        where: { id: input.orderId, organizationId },
+      });
+    } else {
+      // Default: latest order for this org
+      order = await db.order.findFirst({
+        where: { organizationId },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    if (!order) {
+      return textResult({ found: false, message: "No order found." });
+    }
+
+    return textResult({
+      found: true,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      items: order.items,
+      contactName: order.contactName,
+      preferredDate: order.preferredDate?.toISOString() ?? null,
+      price: order.price,
+      totalDue: order.totalDue,
+      createdAt: order.createdAt.toISOString(),
     });
   } catch (err) {
     return errorResult(

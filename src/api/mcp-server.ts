@@ -13,6 +13,7 @@ import {
   GetMarketVendorsInputSchema,
   GetVendorMarketLocationInputSchema,
   GetCountyVendorsInputSchema,
+  GetOrderStatusInputSchema,
   CreateOrderInputSchema,
   UpdateCatchInputSchema,
   CreateMarketInputSchema,
@@ -29,6 +30,7 @@ import {
   handleGetMarketVendors,
   handleGetVendorMarketLocation,
   handleGetCountyVendors,
+  handleGetOrderStatus,
   handleCreateOrder,
   handleUpdateCatch,
   handleCreateMarket,
@@ -106,6 +108,12 @@ export const toolRegistry: Record<string, ToolRegistration> = {
     description: "Returns vendors operating in a given county",
     schema: GetCountyVendorsInputSchema.shape,
     handler: handleGetCountyVendors,
+    tier: "read",
+  },
+  get_order_status: {
+    description: "Get status of an order by ID or retrieve the latest order",
+    schema: GetOrderStatusInputSchema.shape,
+    handler: handleGetOrderStatus,
     tier: "read",
   },
   create_order: {
