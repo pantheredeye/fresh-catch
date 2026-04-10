@@ -3,7 +3,7 @@
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { isOwner } from "@/utils/permissions";
-import { sessions } from "@/session/store";
+import { sessions, resilientDO } from "@/session/store";
 import { requireCsrf } from "@/session/csrf";
 
 function assertOwner() {
@@ -181,9 +181,13 @@ export async function acceptInvite(csrfToken: string, token: string) {
     },
   });
 
+  const ROLE_RANK: Record<string, number> = { owner: 3, admin: 2, manager: 1 };
+
   if (existingMembership) {
-    // Update role if invite grants different role
-    if (existingMembership.role !== invite.role) {
+    const currentRank = ROLE_RANK[existingMembership.role] ?? 0;
+    const inviteRank = ROLE_RANK[invite.role] ?? 0;
+    // Only upgrade, never downgrade
+    if (inviteRank > currentRank) {
       await db.membership.update({
         where: {
           userId_organizationId: {
@@ -210,12 +214,18 @@ export async function acceptInvite(csrfToken: string, token: string) {
     data: { status: "accepted", acceptedBy: ctx.user.id },
   });
 
-  // Update session to this org context
-  await sessions.save(response.headers, {
-    userId: ctx.user.id,
+  // Update session to this org context — use the effective role (may be higher than invite)
+  const effectiveRole = existingMembership
+    ? (ROLE_RANK[existingMembership.role] ?? 0) >= (ROLE_RANK[invite.role] ?? 0)
+      ? existingMembership.role
+      : invite.role
+    : invite.role;
+  const userId = ctx.user!.id;
+  await resilientDO(() => sessions.save(response.headers, {
+    userId,
     currentOrganizationId: invite.organizationId,
-    role: invite.role,
-  });
+    role: effectiveRole,
+  }), "acceptInvite.save");
 
   return { success: true, orgName: invite.organization.name };
 }

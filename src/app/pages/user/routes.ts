@@ -1,14 +1,14 @@
 import { route } from "rwsdk/router";
 import { LoginPage } from "./LoginPage";
 import { AcceptInvitePage } from "./AcceptInvitePage";
-import { sessions } from "@/session/store";
+import { sessions, resilientDO } from "@/session/store";
 
 export const userRoutes = [
   route("/login", LoginPage),
   route("/join/invite", AcceptInvitePage),
   route("/logout", async function ({ request }) {
     const headers = new Headers();
-    await sessions.remove(request, headers);
+    await resilientDO(() => sessions.remove(request, headers), "logout.remove");
     headers.set("Location", "/");
 
     return new Response(null, {

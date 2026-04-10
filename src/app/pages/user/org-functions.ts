@@ -1,7 +1,7 @@
 "use server";
 
 import { requestInfo } from "rwsdk/worker";
-import { sessions } from "@/session/store";
+import { sessions, resilientDO } from "@/session/store";
 import { db } from "@/db";
 import { requireCsrf } from "@/session/csrf";
 
@@ -9,7 +9,7 @@ export async function listUserOrganizations() {
   const { ctx } = requestInfo;
 
   if (!ctx.user) {
-    throw new Error("Must be logged in");
+    return [];
   }
 
   const memberships = await db.membership.findMany({
@@ -57,11 +57,12 @@ export async function switchOrganization(csrfToken: string, orgId: string) {
   }
 
   // Update session with new org context
-  await sessions.save(response.headers, {
-    userId: ctx.user.id,
+  const userId = ctx.user!.id;
+  await resilientDO(() => sessions.save(response.headers, {
+    userId,
     currentOrganizationId: orgId,
     role: membership.role,
-  });
+  }), "switchOrg.save");
 
   // Touch membership updatedAt for most-recently-used sorting
   await db.membership.update({

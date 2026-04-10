@@ -8,7 +8,7 @@ import {
   AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions, rotateSession, saveOtp, verifyOtpViaSession } from "@/session/store";
+import { sessions, rotateSession, saveOtp, verifyOtpViaSession, resilientDO } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
@@ -371,7 +371,7 @@ export async function startPasskeyRegistration(username: string) {
     },
   });
 
-  await sessions.save(response.headers, { challenge: options.challenge });
+  await resilientDO(() => sessions.save(response.headers, { challenge: options.challenge }), "startPasskeyReg.save");
 
   return options;
 }
@@ -387,7 +387,7 @@ export async function finishPasskeyRegistration(
     return { success: false, error: "Not authenticated" };
   }
 
-  const session = await sessions.load(request);
+  const session = await resilientDO(() => sessions.load(request), "finishPasskeyReg.load");
   const challenge = session?.challenge;
 
   if (!challenge) {
@@ -396,7 +396,7 @@ export async function finishPasskeyRegistration(
 
   // Reject expired challenges
   if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await sessions.save(response.headers, { challenge: null });
+    await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishPasskeyReg.expiry");
     return { success: false, error: "Challenge expired" };
   }
 
@@ -411,13 +411,18 @@ export async function finishPasskeyRegistration(
     return { success: false, error: "Verification failed" };
   }
 
-  await sessions.save(response.headers, { challenge: null });
+  await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishPasskeyReg.clearChallenge");
 
-  // Create credential for existing logged-in user only
-  await db.credential.create({
-    data: {
+  // Create or update credential (upsert guards against duplicate registration from double-clicks / retries)
+  await db.credential.upsert({
+    where: { credentialId: verification.registrationInfo.credential.id },
+    create: {
       userId: ctx.session.userId,
       credentialId: verification.registrationInfo.credential.id,
+      publicKey: verification.registrationInfo.credential.publicKey,
+      counter: verification.registrationInfo.credential.counter,
+    },
+    update: {
       publicKey: verification.registrationInfo.credential.publicKey,
       counter: verification.registrationInfo.credential.counter,
     },
@@ -448,7 +453,7 @@ export async function startPasskeyLogin(email: string) {
     allowCredentials,
   });
 
-  await sessions.save(response.headers, { challenge: options.challenge });
+  await resilientDO(() => sessions.save(response.headers, { challenge: options.challenge }), "startPasskeyLogin.save");
 
   return options;
 }
@@ -457,7 +462,7 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON, invi
   const { request, response } = requestInfo;
   const { origin } = new URL(request.url);
 
-  const session = await sessions.load(request);
+  const session = await resilientDO(() => sessions.load(request), "finishPasskeyLogin.load");
   const challenge = session?.challenge;
 
   if (!challenge) {
@@ -466,7 +471,7 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON, invi
 
   // Reject expired challenges
   if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await sessions.save(response.headers, { challenge: null });
+    await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishPasskeyLogin.expiry");
     return false;
   }
 

@@ -17,7 +17,7 @@ import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
-import { sessions, setupSessionStore } from "./session/store";
+import { sessions, setupSessionStore, resilientDO } from "./session/store";
 import { Session } from "./session/durableObject";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
@@ -171,7 +171,7 @@ const app = defineApp([
     // Path 2: Session cookie — verify session org matches URL org
     if (!authenticated) {
       try {
-        const session = await sessions.load(request);
+        const session = await resilientDO(() => sessions.load(request), "mcp.load");
         if (session?.userId && session?.currentOrganizationId === org.id) {
           authenticated = true;
         } else if (session?.userId && session?.currentOrganizationId !== org.id) {
@@ -210,10 +210,10 @@ const app = defineApp([
     setupSessionStore(env);
 
     try {
-      ctx.session = await sessions.load(request);
+      ctx.session = await resilientDO(() => sessions.load(request), "middleware.load");
     } catch (error) {
       if (error instanceof ErrorResponse && error.code === 401) {
-        await sessions.remove(request, response.headers);
+        await resilientDO(() => sessions.remove(request, response.headers), "middleware.remove401");
         response.headers.set("Location", "/login");
 
         return new Response(null, {
@@ -228,7 +228,7 @@ const app = defineApp([
     // Ensure a session exists for all visitors (needed for OTP storage).
     // The cookie is set on the response; subsequent requests will have it.
     if (!ctx.session) {
-      await sessions.save(response.headers, {});
+      await resilientDO(() => sessions.save(response.headers, {}), "middleware.initSession");
     }
 
     if (ctx.session?.userId) {
@@ -248,7 +248,7 @@ const app = defineApp([
 
       // Check if user is soft deleted
       if (ctx.user?.deletedAt) {
-        await sessions.remove(request, response.headers);
+        await resilientDO(() => sessions.remove(request, response.headers), "middleware.removeDeleted");
         response.headers.set("Location", "/");
 
         return new Response(null, {
@@ -265,12 +265,12 @@ const app = defineApp([
           ctx.user.memberships[0];
 
         // Update the session with organization context
-        await sessions.save(response.headers, {
-          userId: ctx.session.userId,
+        await resilientDO(() => sessions.save(response.headers, {
+          userId: ctx.session!.userId,
           currentOrganizationId: defaultMembership.organizationId,
           role: defaultMembership.role,
-          csrfToken: ctx.session.csrfToken,
-        });
+          csrfToken: ctx.session!.csrfToken,
+        }), "middleware.setDefaultOrg");
 
         // Update the session object in context
         ctx.session.currentOrganizationId = defaultMembership.organizationId;
@@ -294,22 +294,22 @@ const app = defineApp([
 
           // Sync session role if it drifted from DB
           if (ctx.session.role !== currentMembership.role) {
-            await sessions.save(response.headers, {
-              userId: ctx.session.userId,
-              currentOrganizationId: ctx.session.currentOrganizationId,
+            await resilientDO(() => sessions.save(response.headers, {
+              userId: ctx.session!.userId,
+              currentOrganizationId: ctx.session!.currentOrganizationId,
               role: currentMembership.role,
-              csrfToken: ctx.session.csrfToken,
-            });
+              csrfToken: ctx.session!.csrfToken,
+            }), "middleware.syncRole");
             ctx.session.role = currentMembership.role;
           }
         } else {
           // Membership revoked — clear org context and redirect
-          await sessions.save(response.headers, {
-            userId: ctx.session.userId,
+          await resilientDO(() => sessions.save(response.headers, {
+            userId: ctx.session!.userId,
             currentOrganizationId: null,
             role: null,
-            csrfToken: ctx.session.csrfToken,
-          });
+            csrfToken: ctx.session!.csrfToken,
+          }), "middleware.revokedMembership");
           response.headers.set("Location", "/");
           return new Response(null, { status: 302, headers: response.headers });
         }

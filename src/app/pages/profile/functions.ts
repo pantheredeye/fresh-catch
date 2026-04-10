@@ -2,7 +2,7 @@
 
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
-import { sessions } from "@/session/store";
+import { sessions, resilientDO } from "@/session/store";
 import { requireCsrf } from "@/session/csrf";
 
 interface UpdateProfileData {
@@ -103,7 +103,7 @@ export async function deleteAccount(csrfToken: string) {
     });
 
     // Clear session and redirect
-    await sessions.remove(request, response.headers);
+    await resilientDO(() => sessions.remove(request, response.headers), "deleteAccount.remove");
     response.headers.set("Location", "/");
 
     return new Response(null, {

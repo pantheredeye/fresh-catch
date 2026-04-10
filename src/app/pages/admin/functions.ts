@@ -5,7 +5,7 @@ import {
   RegistrationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions } from "@/session/store";
+import { sessions, resilientDO } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
@@ -120,11 +120,12 @@ export async function createBusinessForLoggedInUser(
   }
 
   // Update session with organization context
-  await sessions.save(response.headers, {
-    userId: ctx.user.id,
+  const userId = ctx.user!.id;
+  await resilientDO(() => sessions.save(response.headers, {
+    userId,
     currentOrganizationId: organization.id,
     role: "owner",
-  });
+  }), "createBusiness.save");
 
   console.log(`✅ Business created for ${ctx.user.username}: ${businessName}`);
   return { success: true };
@@ -146,7 +147,7 @@ export async function startBusinessOwnerRegistration(username: string) {
     },
   });
 
-  await sessions.save(response.headers, { challenge: options.challenge });
+  await resilientDO(() => sessions.save(response.headers, { challenge: options.challenge }), "startBizReg.save");
 
   return options;
 }
@@ -160,7 +161,7 @@ export async function finishBusinessOwnerRegistration(
   const { request, response } = requestInfo;
   const { origin } = new URL(request.url);
 
-  const session = await sessions.load(request);
+  const session = await resilientDO(() => sessions.load(request), "finishBizReg.load");
   const challenge = session?.challenge;
 
   if (!challenge) {
@@ -169,7 +170,7 @@ export async function finishBusinessOwnerRegistration(
 
   // Reject expired challenges
   if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await sessions.save(response.headers, { challenge: null });
+    await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishBizReg.expiry");
     return false;
   }
 
@@ -184,7 +185,7 @@ export async function finishBusinessOwnerRegistration(
     return false;
   }
 
-  await sessions.save(response.headers, { challenge: null });
+  await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishBizReg.clearChallenge");
 
   // Look for existing user with this username
   let user = await db.user.findUnique({
@@ -261,11 +262,11 @@ export async function finishBusinessOwnerRegistration(
   }
 
   // Auto-login: Create session with user and organization context
-  await sessions.save(response.headers, {
+  await resilientDO(() => sessions.save(response.headers, {
     userId: user.id,
     currentOrganizationId: organization.id,
     role: existingMembership?.role || "owner",
-  });
+  }), "finishBizReg.login");
 
   console.log(`✅ Business owner setup complete for ${username} at ${businessName}`);
   return true;

@@ -56,7 +56,10 @@ export async function rotateSession(
 ): Promise<void> {
   // Load current session to preserve data not explicitly provided
   let dataToPreserve = sessionData;
-  const currentSession = await sessions.load(request) as Session | null;
+  const currentSession = await resilientDO(
+    () => sessions.load(request) as Promise<Session | null>,
+    "rotateSession.load",
+  );
 
   if (!dataToPreserve) {
     if (!currentSession) {
@@ -74,16 +77,16 @@ export async function rotateSession(
   }
 
   // Revoke old session (invalidates old session ID)
-  await sessions.remove(request, responseHeaders);
+  await resilientDO(() => sessions.remove(request, responseHeaders), "rotateSession.remove");
 
   // Create new session with fresh ID, preserving user data
-  await sessions.save(responseHeaders, {
+  await resilientDO(() => sessions.save(responseHeaders, {
     userId: dataToPreserve.userId ?? null,
     currentOrganizationId: dataToPreserve.currentOrganizationId ?? null,
     role: dataToPreserve.role ?? null,
     ...(dataToPreserve.challenge !== undefined ? { challenge: dataToPreserve.challenge } : {}),
     ...(dataToPreserve.csrfToken ? { csrfToken: dataToPreserve.csrfToken } : {}),
-  }, saveOptions);
+  }, saveOptions), "rotateSession.save");
 }
 
 /**
@@ -110,6 +113,24 @@ function unpackSessionId(packed: string): string | null {
   } catch {
     console.error("Session cookie corrupted: invalid base64 in session ID");
     return null;
+  }
+}
+
+/**
+ * Retry a DO operation once on failure (handles DO eviction after idle).
+ * Logs the error and retries; if both attempts fail, throws.
+ */
+export async function resilientDO<T>(op: () => Promise<T>, label = "session"): Promise<T> {
+  try {
+    return await op();
+  } catch (err) {
+    console.warn(`[${label}] DO operation failed, retrying once:`, err);
+    try {
+      return await op();
+    } catch (retryErr) {
+      console.error(`[${label}] DO operation failed after retry:`, retryErr);
+      throw retryErr;
+    }
   }
 }
 
