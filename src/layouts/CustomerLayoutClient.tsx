@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
+import { ErrorBoundary } from "@/app/ErrorBoundary";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
 import { QueryResultOverlay } from "@/components/QueryResultOverlay";
+import { VoiceCommandProvider } from "@/contexts/VoiceCommandContext";
 import { executeMcpTool } from "@/api/mcp-tool-call";
 import type { User } from "@/db";
 import type { VoiceCommandResult } from "@/api/voice-tools";
@@ -43,6 +45,7 @@ export function CustomerLayoutClient({
   csrfToken: string;
   children: React.ReactNode;
 }) {
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
   const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
   const [queryResult, setQueryResult] = useState<VoiceCommandResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -62,14 +65,15 @@ export function CustomerLayoutClient({
 
   const handleReviewSave = useCallback(async (intent: string, data: Record<string, unknown>) => {
     const { rawTranscript, _original, ...toolArgs } = data;
-    const result = await executeMcpTool(csrfToken, intent, toolArgs);
+    const targetOrg = browsingOrganization?.id ?? currentOrganization?.id;
+    const result = await executeMcpTool(csrfToken, intent, toolArgs, targetOrg);
     if (!result.success) {
       throw new Error(result.error || `Failed to execute ${intent}`);
     }
     setCommandResult(null);
     showToast(intent === "create_order" ? "Order placed!" : "Done!");
     window.location.reload();
-  }, [showToast, csrfToken]);
+  }, [showToast, csrfToken, browsingOrganization?.id, currentOrganization?.id]);
 
   const handleReviewCancel = useCallback(() => {
     setCommandResult(null);
@@ -92,6 +96,7 @@ export function CustomerLayoutClient({
   }, [browsingOrganization?.accentColor]);
 
   return (
+    <ErrorBoundary>
     <div className="customer-layout" data-surface="vendor" data-vendor={browsingOrganization?.slug ?? currentOrganization?.slug ?? undefined} style={accentStyle}>
       <Header
         variant="customer"
@@ -101,13 +106,15 @@ export function CustomerLayoutClient({
         csrfToken={csrfToken}
       />
 
-      <main className="customer-main">{children}</main>
+      <VoiceCommandProvider onOpen={() => setCommandBarOpen(true)}>
+        <main className="customer-main">{children}</main>
+      </VoiceCommandProvider>
 
       <CustomerFooter />
 
       {user && (
         <>
-          <CommandBar onResult={handleCommandResult} hintContext="customer" />
+          <CommandBar onResult={handleCommandResult} hintContext="customer" targetOrgId={browsingOrganization?.id ?? currentOrganization?.id ?? undefined} isOpen={commandBarOpen} onClose={() => setCommandBarOpen(false)} />
           {commandResult && (
             <CommandReview
               result={commandResult}
@@ -127,5 +134,6 @@ export function CustomerLayoutClient({
       )}
       {toast && <div className="cr-toast">{toast}</div>}
     </div>
+    </ErrorBoundary>
   );
 }

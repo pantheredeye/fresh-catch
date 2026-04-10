@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { ErrorBoundary } from "@/app/ErrorBoundary";
 import { Header } from "@/components/Header";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
 import { QueryResultOverlay } from "@/components/QueryResultOverlay";
 import { AdminChatBubble, AdminChatSheet } from "@/app/pages/admin/chat";
+import { getPendingOrderCount } from "@/app/pages/admin/order-functions";
+import { NotificationBadge } from "@/design-system";
 import { executeMcpTool } from "@/api/mcp-tool-call";
 import type { User } from "@/db";
 import type { VoiceCommandResult } from "@/api/voice-tools";
@@ -38,10 +41,25 @@ export function AdminLayoutClient({
   csrfToken: string;
   children: React.ReactNode;
 }) {
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
   const [commandResult, setCommandResult] = useState<VoiceCommandResult | null>(null);
   const [queryResult, setQueryResult] = useState<VoiceCommandResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+
+  useEffect(() => {
+    if (!currentOrganization?.id) return;
+    const fetch = async () => {
+      try {
+        const count = await getPendingOrderCount(currentOrganization.id);
+        setPendingOrderCount(count);
+      } catch { /* noop */ }
+    };
+    fetch();
+    const interval = setInterval(fetch, 30_000);
+    return () => clearInterval(interval);
+  }, [currentOrganization?.id]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -59,14 +77,14 @@ export function AdminLayoutClient({
   const handleReviewSave = useCallback(async (intent: string, data: Record<string, unknown>) => {
     // Strip rawTranscript and _original from args — not part of MCP tool schemas
     const { rawTranscript, _original, ...toolArgs } = data;
-    const result = await executeMcpTool(csrfToken, intent, toolArgs);
+    const result = await executeMcpTool(csrfToken, intent, toolArgs, currentOrganization?.id);
     if (!result.success) {
       throw new Error(result.error || `Failed to execute ${intent}`);
     }
     setCommandResult(null);
     showToast("Saved!");
     window.location.reload();
-  }, [showToast, csrfToken]);
+  }, [showToast, csrfToken, currentOrganization?.id]);
 
   const handleReviewCancel = useCallback(() => {
     setCommandResult(null);
@@ -91,6 +109,7 @@ export function AdminLayoutClient({
   }
 
   return (
+    <ErrorBoundary>
     <div className="admin-layout" data-surface="admin">
       <header className="admin-header">
         {/* Exit Admin section - above unified header */}
@@ -116,9 +135,16 @@ export function AdminLayoutClient({
           <a href="/admin" className="admin-nav-item">
             Markets
           </a>
-          <a href="/admin/orders" className="admin-nav-item">
-            Orders
-          </a>
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <a href="/admin/orders" className="admin-nav-item">
+              Orders
+            </a>
+            {pendingOrderCount > 0 && (
+              <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
+                {pendingOrderCount}
+              </NotificationBadge>
+            )}
+          </div>
           {isOwner && (
             <a href="/admin/team" className="admin-nav-item">
               Team
@@ -127,6 +153,9 @@ export function AdminLayoutClient({
           <a href="/admin/messages" className="admin-nav-item">
             Messages
           </a>
+          <a href="/admin/insights" className="admin-nav-item">
+            Insights
+          </a>
           <a href="/admin/settings/stripe" className="admin-nav-item">
             Settings
           </a>
@@ -134,7 +163,7 @@ export function AdminLayoutClient({
       </header>
 
       <main className="admin-main content-wrapper">{children}</main>
-      <CommandBar onResult={handleCommandResult} />
+      <CommandBar onResult={handleCommandResult} targetOrgId={currentOrganization?.id} isOpen={commandBarOpen} onClose={() => setCommandBarOpen(false)} />
       {commandResult && (
         <CommandReview
           result={commandResult}
@@ -150,7 +179,7 @@ export function AdminLayoutClient({
         />
       )}
       {toast && <Toast message={toast} />}
-      <AdminChatBubble organizationId={currentOrganization?.id} onClick={() => setChatOpen(true)} />
+      <AdminChatBubble organizationId={currentOrganization?.id} onChatClick={() => setChatOpen(true)} onVoiceClick={() => setCommandBarOpen(true)} />
       {currentOrganization && (
         <AdminChatSheet
           isOpen={chatOpen}
@@ -159,5 +188,6 @@ export function AdminLayoutClient({
         />
       )}
     </div>
+    </ErrorBoundary>
   );
 }

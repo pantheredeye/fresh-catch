@@ -32,6 +32,7 @@ export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
 export { McpDurableObject } from "./mcp/durableObject";
+export { SignalDurableObject } from "./signal/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
@@ -83,7 +84,36 @@ function validateOrigin(): RouteMiddleware {
   };
 }
 
-export default defineApp([
+/**
+ * Static HTML error page returned when an unhandled exception escapes the
+ * RSC render pipeline. Avoids whitescreen by providing a meaningful 500 page.
+ */
+function errorHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fresh Catch — Error</title>
+  <style>
+    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9f7f4; color: #1a2b3d; text-align: center; }
+    .wrap { max-width: 400px; padding: 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p { color: #6b7280; margin-bottom: 1.5rem; }
+    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066cc; color: #fff; border-radius: 8px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Something went wrong</h1>
+    <p>We hit an unexpected error. Please try again.</p>
+    <a href="/">Go Home</a>
+  </div>
+</body>
+</html>`;
+}
+
+const app = defineApp([
   // Stripe webhook — must run before session/auth AND origin middleware to preserve raw body
   // (Stripe sends POST from its own origin with signature verification)
   async ({ request }) => {
@@ -406,3 +436,19 @@ export default defineApp([
     route("*", () => new Response("Not Found", { status: 404 })),
   ]),
 ]);
+
+// Wrap the RWSDK app to catch unhandled errors that escape the RSC pipeline.
+// Without this, Cloudflare Workers returns a raw 500 with null body → whitescreen.
+export default {
+  async fetch(request: Request, ...args: unknown[]) {
+    try {
+      return await (app as { fetch: (...a: unknown[]) => Promise<Response> }).fetch(request, ...args);
+    } catch (error) {
+      console.error("Unhandled worker error:", error);
+      return new Response(errorHtml(), {
+        status: 500,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+  },
+};
