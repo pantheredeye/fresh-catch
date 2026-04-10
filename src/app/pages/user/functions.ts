@@ -18,6 +18,58 @@ import { sendOtpEmail } from "@/utils/email";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ROLE_RANK: Record<string, number> = { owner: 3, admin: 2, manager: 1 };
+
+/** Auto-accept a pending invite for a user. Returns invite info or null. */
+async function processInviteToken(userId: string, userEmail: string, inviteToken: string) {
+  const invite = await db.invite.findUnique({
+    where: { token: inviteToken },
+    include: { organization: true },
+  });
+
+  if (!invite || invite.status !== "pending") return null;
+  if (invite.expiresAt && invite.expiresAt < new Date()) return null;
+
+  // Validate email match if invite specifies one
+  if (invite.email) {
+    if (userEmail.toLowerCase() !== invite.email.toLowerCase()) return null;
+  }
+
+  // Check existing membership — only upgrade, never downgrade
+  const existing = await db.membership.findUnique({
+    where: { userId_organizationId: { userId, organizationId: invite.organizationId } },
+  });
+
+  if (existing) {
+    const currentRank = ROLE_RANK[existing.role] ?? 0;
+    const inviteRank = ROLE_RANK[invite.role] ?? 0;
+    if (inviteRank > currentRank) {
+      await db.membership.update({
+        where: { userId_organizationId: { userId, organizationId: invite.organizationId } },
+        data: { role: invite.role },
+      });
+    }
+  } else {
+    await db.membership.create({
+      data: { userId, organizationId: invite.organizationId, role: invite.role },
+    });
+  }
+
+  await db.invite.update({
+    where: { id: invite.id },
+    data: { status: "accepted", acceptedBy: userId },
+  });
+
+  const effectiveRole = existing
+    ? (ROLE_RANK[existing.role] ?? 0) >= (ROLE_RANK[invite.role] ?? 0) ? existing.role : invite.role
+    : invite.role;
+
+  return {
+    organizationId: invite.organizationId,
+    orgName: invite.organization.name,
+    role: effectiveRole,
+  };
+}
 function isValidEmail(email: string): boolean {
   return typeof email === "string" && email.length <= 254 && EMAIL_RE.test(email);
 }
@@ -33,18 +85,13 @@ function getWebAuthnConfig(request: Request) {
   };
 }
 
-export async function requestOtp(email: string) {
-  // Anti-enumeration: add random delay (200-500ms) to normalize response times
-  const delay = new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
-
+export async function sendOtpForEmail(email: string) {
   if (!isValidEmail(email)) {
-    await delay;
     return { success: false, error: "Invalid email" };
   }
 
   const rl = await checkRateLimit("otpSend");
   if (!rl.allowed) {
-    await delay;
     return {
       success: false,
       error: "Too many attempts. Try again later.",
@@ -54,18 +101,8 @@ export async function requestOtp(email: string) {
   }
 
   const { request } = requestInfo;
-
-  // Generate OTP via session DO (session guaranteed by middleware)
   const otp = await saveOtp(request, env, email);
 
-  // Check if user has passkey credentials (hint for client)
-  const user = await db.user.findFirst({
-    where: { username: email, deletedAt: null },
-    include: { credentials: true },
-  });
-  const hint = user?.credentials && user.credentials.length > 0 ? "passkey" : undefined;
-
-  // Send OTP email
   if (otp) {
     try {
       const result = await sendOtpEmail({ to: email, code: otp.code });
@@ -79,12 +116,42 @@ export async function requestOtp(email: string) {
     }
   }
 
-  await delay;
-  // Never reveal account existence
-  return { success: true, hint };
+  return { success: true };
 }
 
-export async function verifyOtp(code: string, name?: string) {
+export async function requestOtp(email: string) {
+  // Anti-enumeration: add random delay (200-500ms) to normalize response times
+  const delay = new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
+
+  if (!isValidEmail(email)) {
+    await delay;
+    return { success: false, error: "Invalid email" };
+  }
+
+  // Check if user has passkey credentials FIRST — skip OTP if so
+  const user = await db.user.findFirst({
+    where: { username: email, deletedAt: null },
+    include: { credentials: true },
+  });
+  const hasPasskey = user?.credentials && user.credentials.length > 0;
+
+  if (hasPasskey) {
+    await delay;
+    return { success: true, hint: "passkey" as const };
+  }
+
+  // No passkey — generate and send OTP
+  const otpResult = await sendOtpForEmail(email);
+  await delay;
+
+  if (!otpResult.success) {
+    return otpResult;
+  }
+
+  return { success: true, hint: "otp" as const };
+}
+
+export async function verifyOtp(code: string, name?: string, inviteToken?: string) {
   if (!code || typeof code !== "string") {
     return { success: false, error: "Code required" };
   }
@@ -170,7 +237,7 @@ export async function verifyOtp(code: string, name?: string) {
     }
 
     // Reload memberships after creation
-    user = await db.user.findUniqueOrThrow({
+    const reloaded = await db.user.findUnique({
       where: { id: user.id },
       include: {
         memberships: {
@@ -180,6 +247,10 @@ export async function verifyOtp(code: string, name?: string) {
         credentials: true,
       },
     });
+    if (!reloaded) {
+      return { success: false, error: "Account creation failed. Please try again." };
+    }
+    user = reloaded;
   } else {
     // Existing user: link to browsed vendor if not already a member
     const vendorOrg = ctx.browsingOrganization;
@@ -192,7 +263,7 @@ export async function verifyOtp(code: string, name?: string) {
           data: { userId: user.id, organizationId: vendorOrg.id, role: "customer" },
         });
         // Reload memberships
-        user = await db.user.findUniqueOrThrow({
+        const reloadedUser = await db.user.findUnique({
           where: { id: user.id },
           include: {
             memberships: {
@@ -202,7 +273,31 @@ export async function verifyOtp(code: string, name?: string) {
             credentials: true,
           },
         });
+        if (!reloadedUser) {
+          return { success: false, error: "Account not found. Please try again." };
+        }
+        user = reloadedUser;
       }
+    }
+  }
+
+  // Auto-accept invite if token provided
+  let inviteResult: { organizationId: string; orgName: string; role: string } | null = null;
+  if (inviteToken) {
+    inviteResult = await processInviteToken(user.id, email, inviteToken);
+    if (inviteResult) {
+      // Reload memberships after invite acceptance
+      const inviteReloaded = await db.user.findUnique({
+        where: { id: user.id },
+        include: {
+          memberships: { include: { organization: true }, orderBy: { updatedAt: "desc" } },
+          credentials: true,
+        },
+      });
+      if (!inviteReloaded) {
+        return { success: false, error: "Account not found. Please try again." };
+      }
+      user = inviteReloaded;
     }
   }
 
@@ -210,28 +305,33 @@ export async function verifyOtp(code: string, name?: string) {
     (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
   );
 
-  // Set default organization context — prefer business org for admins
-  const businessMembership = user.memberships.find(
-    (m) => m.organization.type === "business"
-  );
-  const defaultMembership = businessMembership ?? user.memberships[0];
+  // If invite accepted, land in that org; otherwise prefer business org
+  const sessionOrg = inviteResult
+    ? { organizationId: inviteResult.organizationId, role: inviteResult.role }
+    : (() => {
+        const biz = user.memberships.find((m) => m.organization.type === "business");
+        const def = biz ?? user.memberships[0];
+        return { organizationId: def?.organizationId ?? null, role: def?.role ?? null };
+      })();
 
   await rotateSession(
     request,
     response.headers,
     {
       userId: user.id,
-      currentOrganizationId: defaultMembership?.organizationId ?? null,
-      role: defaultMembership?.role ?? null,
+      currentOrganizationId: sessionOrg.organizationId,
+      role: sessionOrg.role,
     },
     { maxAge: true }
   );
 
   return {
     success: true,
-    isAdmin,
+    isAdmin: isAdmin || !!(inviteResult && (inviteResult.role === "owner" || inviteResult.role === "manager")),
     needsName: !user.name,
     hasPasskey: user.credentials.length > 0,
+    inviteAccepted: !!inviteResult,
+    inviteOrgName: inviteResult?.orgName,
   };
 }
 
@@ -353,7 +453,7 @@ export async function startPasskeyLogin(email: string) {
   return options;
 }
 
-export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
+export async function finishPasskeyLogin(login: AuthenticationResponseJSON, inviteToken?: string) {
   const { request, response } = requestInfo;
   const { origin } = new URL(request.url);
 
@@ -433,37 +533,52 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON) {
     return { success: false, isAdmin: false };
   }
 
-  const isAdmin = user.memberships.some(
+  // Auto-accept invite if token provided
+  let inviteResult: { organizationId: string; orgName: string; role: string } | null = null;
+  if (inviteToken) {
+    inviteResult = await processInviteToken(user.id, user.email ?? user.username, inviteToken);
+  }
+
+  // Reload memberships if invite changed them
+  const freshUser = inviteResult
+    ? await db.user.findUnique({
+        where: { id: user.id },
+        include: { memberships: { include: { organization: true }, orderBy: { updatedAt: "desc" } } },
+      })
+    : user;
+
+  if (!freshUser) {
+    return { success: false, isAdmin: false };
+  }
+
+  const isAdmin = freshUser.memberships.some(
     (m) => (m.role === "owner" || m.role === "manager") && m.organization.type === "business"
   );
 
-  if (user.memberships.length > 0) {
-    const businessMembership = user.memberships.find(
-      (m) => m.organization.type === "business"
-    );
-    const defaultMembership = businessMembership ?? user.memberships[0];
-    await rotateSession(
-      request,
-      response.headers,
-      {
-        userId: user.id,
-        currentOrganizationId: defaultMembership.organizationId,
-        role: defaultMembership.role,
-        challenge: null,
-      },
-      { maxAge: true }
-    );
-  } else {
-    await rotateSession(
-      request,
-      response.headers,
-      {
-        userId: user.id,
-        challenge: null,
-      },
-      { maxAge: true }
-    );
-  }
+  const sessionOrg = inviteResult
+    ? { organizationId: inviteResult.organizationId, role: inviteResult.role }
+    : (() => {
+        const biz = freshUser.memberships.find((m) => m.organization.type === "business");
+        const def = biz ?? freshUser.memberships[0];
+        return def ? { organizationId: def.organizationId, role: def.role } : null;
+      })();
 
-  return { success: true, isAdmin };
+  await rotateSession(
+    request,
+    response.headers,
+    {
+      userId: user.id,
+      currentOrganizationId: sessionOrg?.organizationId ?? null,
+      role: sessionOrg?.role ?? null,
+      challenge: null,
+    },
+    { maxAge: true }
+  );
+
+  return {
+    success: true,
+    isAdmin: isAdmin || !!(inviteResult && (inviteResult.role === "owner" || inviteResult.role === "manager")),
+    inviteAccepted: !!inviteResult,
+    inviteOrgName: inviteResult?.orgName,
+  };
 }
