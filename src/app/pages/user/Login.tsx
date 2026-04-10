@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   requestOtp,
+  sendOtpForEmail,
   verifyOtp,
   updateName,
   startPasskeyLogin,
@@ -56,7 +57,7 @@ const errorStyle: React.CSSProperties = {
   marginTop: "calc(-1 * var(--space-xs))",
 };
 
-function getEmailAction(email: string): { label: string; url: string } {
+function getEmailAction(email: string): { label: string; url: string } | null {
   const domain = email.split("@")[1]?.toLowerCase();
   switch (domain) {
     case "gmail.com":
@@ -72,8 +73,10 @@ function getEmailAction(email: string): { label: string; url: string } {
     case "proton.me":
     case "protonmail.com":
       return { label: "Open Proton Mail", url: "https://mail.proton.me" };
+    case "aol.com":
+      return { label: "Open AOL Mail", url: "https://mail.aol.com" };
     default:
-      return { label: "Open Email", url: "mailto:" };
+      return null;
   }
 }
 
@@ -118,12 +121,32 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
   const successLinkRef = useRef<HTMLAnchorElement>(null);
 
-  // Capture URL params: ?b=
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+
+  // Capture URL params: ?b=, ?invite=, ?code=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const b = params.get("b");
     if (b) setBSlug(b);
-  }, []);
+    const invite = params.get("invite");
+    if (invite) setInviteToken(invite);
+    const code = params.get("code");
+    if (code) {
+      // Strip code param from URL to avoid leaking in browser history
+      const url = new URL(window.location.href);
+      url.searchParams.delete("code");
+      window.history.replaceState({}, "", url.pathname + url.search);
+      // Auto-populate OTP digits from deep link
+      const cleaned = code.replace(/\D/g, "").slice(0, 6);
+      if (cleaned.length === 6) {
+        setScreen("otp");
+        const codeDigits = cleaned.split("");
+        setDigits(codeDigits);
+        // Auto-submit after a brief delay to let state settle
+        setTimeout(() => submitOtp(cleaned), 100);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Prefill remembered email
   useEffect(() => {
@@ -194,7 +217,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
   };
 
   // Determine next screen after OTP verification
-  const navigateAfterOtp = (result: { isAdmin: boolean; needsName?: boolean; hasPasskey?: boolean }) => {
+  const navigateAfterOtp = (result: { isAdmin: boolean; needsName?: boolean; hasPasskey?: boolean; inviteAccepted?: boolean; inviteOrgName?: string }) => {
     setIsAdmin(result.isAdmin);
     setNeedsName(result.needsName ?? false);
     setHasPasskey(result.hasPasskey ?? false);
@@ -214,7 +237,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     setError("");
 
     try {
-      const result = await verifyOtp(code);
+      const result = await verifyOtp(code, undefined, inviteToken ?? undefined);
 
       if (result.rateLimited) {
         setRateLimitCooldown(result.retryAfterSeconds ?? 30);
@@ -255,7 +278,13 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     setError("");
 
     try {
-      const result = await requestOtp(trimmed);
+      const result = await requestOtp(trimmed) as {
+        success: boolean;
+        error?: string;
+        rateLimited?: boolean;
+        retryAfterSeconds?: number;
+        hint?: "passkey" | "otp";
+      };
 
       if (result.rateLimited) {
         setRateLimitCooldown(result.retryAfterSeconds ?? 30);
@@ -294,7 +323,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     setError("");
 
     try {
-      const result = await requestOtp(email.trim());
+      const result = await sendOtpForEmail(email.trim());
       if (result.rateLimited) {
         setRateLimitCooldown(result.retryAfterSeconds ?? 30);
         setError(`Too many attempts. Wait ${result.retryAfterSeconds ?? 30}s.`);
@@ -315,7 +344,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     try {
       const options = await startPasskeyLogin(email.trim());
       const authResponse = await startAuthentication({ optionsJSON: options });
-      const result = await finishPasskeyLogin(authResponse);
+      const result = await finishPasskeyLogin(authResponse, inviteToken ?? undefined);
 
       if (result && typeof result === "object" && result.success) {
         try { localStorage.setItem("fc_email", email.trim()); } catch {}
@@ -333,12 +362,28 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
     }
   };
 
-  const handlePasskeyPromptFallback = () => {
-    setScreen("otp");
-    setResendCooldown(30);
-    setDigits(["", "", "", "", "", ""]);
+  const handlePasskeyPromptFallback = async () => {
+    setLoading(true);
     setError("");
-    setTimeout(() => digitRefs.current[0]?.focus(), 50);
+
+    try {
+      const result = await sendOtpForEmail(email.trim());
+
+      if (result.rateLimited) {
+        setRateLimitCooldown(result.retryAfterSeconds ?? 30);
+        setError(`Too many attempts. Wait ${result.retryAfterSeconds ?? 30}s.`);
+        setLoading(false);
+        return;
+      }
+
+      setScreen("otp");
+      setResendCooldown(30);
+      setDigits(["", "", "", "", "", ""]);
+      setTimeout(() => digitRefs.current[0]?.focus(), 50);
+    } catch {
+      setError("Something went wrong. Try again.");
+    }
+    setLoading(false);
   };
 
   const handleNameSubmit = async () => {
@@ -460,8 +505,8 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
         {screen === "email" && (
           <>
             <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-              <h1 style={headingStyle}>Welcome</h1>
-              <p style={subtextStyle}>Sign in or create an account</p>
+              <h1 style={headingStyle}>{inviteToken ? "Accept your invite" : "Welcome"}</h1>
+              <p style={subtextStyle}>{inviteToken ? "Sign in or create an account to join" : "Sign in or create an account"}</p>
             </div>
 
             <form
@@ -585,29 +630,31 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
               </p>
             </div>
 
-            {/* Open Email button */}
-            <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
-              <a
-                href={getEmailAction(email).url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "inline-block",
-                  padding: "var(--space-sm) var(--space-lg)",
-                  background: "var(--color-surface-secondary)",
-                  color: "var(--color-action-primary)",
-                  border: "1px solid var(--color-border-light)",
-                  borderRadius: "var(--radius-md)",
-                  fontSize: "var(--font-size-sm)",
-                  fontWeight: "var(--font-weight-medium)",
-                  fontFamily: "var(--font-display)",
-                  textDecoration: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {getEmailAction(email).label}
-              </a>
-            </div>
+            {/* Open Email button (only for known providers) */}
+            {getEmailAction(email) && (
+              <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
+                <a
+                  href={getEmailAction(email)!.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-block",
+                    padding: "var(--space-sm) var(--space-lg)",
+                    background: "var(--color-surface-secondary)",
+                    color: "var(--color-action-primary)",
+                    border: "1px solid var(--color-border-light)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "var(--font-size-sm)",
+                    fontWeight: "var(--font-weight-medium)",
+                    fontFamily: "var(--font-display)",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {getEmailAction(email)!.label}
+                </a>
+              </div>
+            )}
 
             {/* 6 digit inputs */}
             <div
@@ -625,6 +672,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
                   ref={(el) => { digitRefs.current[i] = el; }}
                   type="text"
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   pattern="[0-9]"
                   maxLength={1}
                   value={digit}
@@ -812,7 +860,7 @@ export function Login({ ctx, csrfToken = "" }: { ctx: any; csrfToken?: string })
         {/* Success Screen */}
         {screen === "success" && (
           <div style={{ textAlign: "center" }}>
-            <h1 style={headingStyle}>You're in!</h1>
+            <h1 style={headingStyle}>{inviteToken ? "Welcome to the team!" : "You're in!"}</h1>
             <a
               ref={successLinkRef}
               href={redirectUrl}

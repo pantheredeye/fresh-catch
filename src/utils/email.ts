@@ -25,10 +25,11 @@ interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
+  text?: string;
   from?: string;
 }
 
-async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
+async function sendEmail({ to, subject, html, text, from }: SendEmailOptions) {
   // Skip in development if no API key configured
   if (!env.RESEND_API_KEY) {
     console.log('[Email] Skipping (no API key):', { to, subject });
@@ -39,10 +40,11 @@ async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
     const resend = getResendClient();
 
     const result = await resend.emails.send({
-      from: from || 'Fresh Catch <orders@freshcatch.app>', // Update with your verified domain
+      from: from || 'Fresh Catch <orders@digitalglue.dev>',
       to,
       subject,
       html,
+      ...(text ? { text } : {}),
     });
 
     console.log('[Email] Sent successfully:', { to, subject, id: result.data?.id });
@@ -55,14 +57,39 @@ async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
 
 export async function sendOtpEmail(data: { to: string; code: string }) {
   // Inline HTML — @react-email render() uses react-dom/server which is
-  // blocked in RWSDK's RSC environment
-  const html = `<!DOCTYPE html><html><head></head><body style="background-color:#f6f9fc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif"><div style="background-color:#ffffff;margin:0 auto;padding:20px 0 48px;margin-bottom:64px;max-width:600px"><h1 style="color:#1a2b3d;font-size:32px;font-weight:bold;margin:40px 0;padding:0 40px">Sign in to Fresh Catch</h1><p style="color:#64748b;font-size:16px;line-height:26px;margin:16px 40px">Enter this code to sign in:</p><div style="text-align:center;margin:0 40px 24px;background:#f8fafc;border:2px solid #0066cc;border-radius:12px;padding:24px"><p style="color:#1a2b3d;font-size:36px;font-weight:bold;letter-spacing:8px;margin:0;font-family:monospace">${data.code}</p></div><p style="color:#64748b;font-size:16px;line-height:26px;margin:16px 40px">Expires in 10 minutes.</p><hr style="border-color:#e0e0e0;margin:26px 40px"/><p style="color:#8898aa;font-size:12px;line-height:16px;margin:0 40px;text-align:center">If you didn't request this, ignore this email.</p></div></body></html>`;
+  // blocked in RWSDK's RSC environment.
+  // Structure optimized for iOS auto-fill: code-first text, minimal nesting,
+  // plain text MIME part for reliable heuristic parsing.
+  const appUrl = env.APP_URL || 'https://market.digitalglue.dev';
+  const deepLink = `${appUrl}/login?code=${data.code}`;
+  const webOtpOrigin = new URL(appUrl).hostname;
+
+  const html = `<!DOCTYPE html>
+<html><head></head>
+<body style="background-color:#f6f9fc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif">
+<div style="background-color:#ffffff;margin:0 auto;padding:32px 40px;max-width:600px">
+  <p style="color:#1a2b3d;font-size:18px;font-weight:600;line-height:28px;margin:0 0 24px 0">${data.code} is your verification code for Fresh Catch.</p>
+  <div style="text-align:center;margin:0 0 24px;background:#f8fafc;border:2px solid #0066cc;border-radius:12px;padding:24px">
+    <p style="color:#1a2b3d;font-size:36px;font-weight:bold;letter-spacing:8px;margin:0;font-family:monospace;-webkit-user-select:all;user-select:all;cursor:pointer">${data.code}</p>
+    <p style="color:#94a3b8;font-size:12px;margin:12px 0 0 0">Tap code to select, then copy</p>
+  </div>
+  <div style="text-align:center;margin:0 0 24px">
+    <a href="${deepLink}" style="display:inline-block;padding:12px 32px;background:#0066cc;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;border-radius:8px">Sign in to Fresh Catch</a>
+  </div>
+  <p style="color:#64748b;font-size:14px;line-height:22px;margin:0 0 24px 0">This code expires in 10 minutes.</p>
+  <hr style="border:none;border-top:1px solid #e0e0e0;margin:0 0 16px 0"/>
+  <p style="color:#8898aa;font-size:12px;line-height:16px;margin:0;text-align:center">If you didn't request this, ignore this email.</p>
+</div>
+</body></html>`;
+
+  const text = `${data.code} is your verification code for Fresh Catch.\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, ignore this email.\n\n@${webOtpOrigin} #${data.code}`;
 
   return sendEmail({
     to: data.to,
     subject: `${data.code} is your Fresh Catch code`,
     html,
-    from: 'Fresh Catch <auth@freshcatch.app>',
+    text,
+    from: 'Fresh Catch <auth@digitalglue.dev>',
   });
 }
 
@@ -108,6 +135,7 @@ export async function sendOrderConfirmedEmail(data: {
   adminNotes?: string;
   preferredDate?: string;
   businessName: string;
+  isUpdate?: boolean;
 }) {
   const html = await render(
     OrderConfirmed({
@@ -128,7 +156,9 @@ export async function sendOrderConfirmedEmail(data: {
 
   return sendEmail({
     to: data.to,
-    subject: `Order #${data.orderNumber} Confirmed - ${data.businessName}`,
+    subject: data.isUpdate
+      ? `Order #${data.orderNumber} Updated - ${data.businessName}`
+      : `Order #${data.orderNumber} Confirmed - ${data.businessName}`,
     html,
   });
 }
@@ -199,7 +229,7 @@ export async function sendChatReplyNotificationEmail(data: {
   chatPath: string;
   businessName: string;
 }) {
-  const appUrl = env.APP_URL || 'https://freshcatch.app';
+  const appUrl = env.APP_URL || 'https://market.digitalglue.dev';
   const chatUrl = `${appUrl}${data.chatPath}`;
 
   const html = await render(
