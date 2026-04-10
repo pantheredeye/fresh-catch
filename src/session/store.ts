@@ -104,14 +104,20 @@ function getSessionIdFromCookie(request: Request, cookieName = "session_id"): st
   }
 }
 
-function unpackSessionId(packed: string): string {
-  return atob(packed).split(":")[0];
+function unpackSessionId(packed: string): string | null {
+  try {
+    return atob(packed).split(":")[0];
+  } catch {
+    console.error("Session cookie corrupted: invalid base64 in session ID");
+    return null;
+  }
 }
 
 export function getSessionStub(request: Request, sessionEnv: Env): DurableObjectStub<SessionDurableObject> | null {
   const sessionId = getSessionIdFromCookie(request);
   if (!sessionId) return null;
   const unsignedId = unpackSessionId(sessionId);
+  if (!unsignedId) return null;
   const doId = sessionEnv.SESSION_DURABLE_OBJECT.idFromName(unsignedId);
   return sessionEnv.SESSION_DURABLE_OBJECT.get(doId);
 }
