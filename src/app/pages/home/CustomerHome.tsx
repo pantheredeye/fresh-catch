@@ -66,6 +66,7 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
       quickActions={getQuickActions(vendorSlug)}
       marketName={marketName}
       ctx={ctx}
+      facebookPageUrl="https://www.facebook.com/facebook"
     />
   );
 }

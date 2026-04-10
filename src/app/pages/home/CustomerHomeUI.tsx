@@ -11,7 +11,8 @@ import {
   CompactMarketRow,
   PopupCard,
   BottomNavigation,
-  InstallBanner
+  InstallBanner,
+  FacebookFeed
 } from "./components";
 
 type Market = {
@@ -63,7 +64,8 @@ export function CustomerHomeUI({
   quickActions,
   marketName,
   ctx,
-  chatConversationId
+  chatConversationId,
+  facebookPageUrl
 }: {
   markets: Market[];
   popups: PopupMarket[];
@@ -72,6 +74,7 @@ export function CustomerHomeUI({
   marketName?: string;
   ctx: AppContext;
   chatConversationId?: string;
+  facebookPageUrl?: string;
 }) {
   const [favorites, toggleFavorite] = useFavorites();
   const vendorSlug = ctx.browsingOrganization?.slug;
@@ -115,6 +118,9 @@ export function CustomerHomeUI({
 
       {/* PWA Install Banner - shows after interaction */}
       <InstallBanner />
+
+      {/* Facebook Page Feed - shows if vendor has a Facebook page configured */}
+      {facebookPageUrl && <FacebookFeed pageUrl={facebookPageUrl} />}
 
       {/* Popup Markets Section - Only show if popups exist */}
       {popups.length > 0 && (
