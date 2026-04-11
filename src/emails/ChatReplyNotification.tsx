@@ -14,6 +14,7 @@ interface ChatReplyNotificationProps {
   customerName: string;
   vendorName: string;
   messagePreview: string;
+  messageCount?: number;
   chatUrl: string;
   businessName: string;
 }
@@ -22,6 +23,7 @@ export function ChatReplyNotification({
   customerName,
   vendorName,
   messagePreview,
+  messageCount = 1,
   chatUrl,
   businessName,
 }: ChatReplyNotificationProps) {
@@ -30,19 +32,26 @@ export function ChatReplyNotification({
       <Head />
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>You have a new reply!</Heading>
+          <Heading style={h1}>
+            {messageCount > 1 ? `You have ${messageCount} new messages!` : "You have a new reply!"}
+          </Heading>
 
           <Text style={text}>
             Hi {customerName},
           </Text>
 
           <Text style={text}>
-            {vendorName} from {businessName} just replied to your message.
+            {messageCount > 1
+              ? `${vendorName} from ${businessName} sent you ${messageCount} messages while you were away.`
+              : `${vendorName} from ${businessName} just replied to your message.`}
           </Text>
 
           <Section style={messageBox}>
             <Text style={previewLabel}>{vendorName} wrote:</Text>
             <Text style={previewText}>"{messagePreview}"</Text>
+            {messageCount > 1 && (
+              <Text style={moreMessages}>and {messageCount - 1} more message{messageCount - 1 > 1 ? "s" : ""}</Text>
+            )}
           </Section>
 
           <Section style={ctaSection}>
@@ -117,6 +126,12 @@ const previewText = {
   lineHeight: '24px',
   margin: '0',
   fontStyle: 'italic' as const,
+};
+
+const moreMessages = {
+  color: '#8898aa',
+  fontSize: '14px',
+  margin: '8px 0 0 0',
 };
 
 const ctaSection = {

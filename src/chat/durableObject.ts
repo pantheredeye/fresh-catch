@@ -6,7 +6,7 @@ import { generateAiResponse } from "./ai-agent";
 import { handleListCatch, handleGetMarkets, handleGetVendorPopups } from "@/api/tool-handlers";
 import { formatToolResult } from "./tool-formatter";
 
-const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
+const BATCH_ALARM_MS = 15 * 60 * 1000; // 15 minutes
 
 interface SendMessage {
   type: "message";
@@ -49,14 +49,12 @@ interface HistoryPayload {
 
 export class ChatDurableObject extends DurableObject {
   private conversationId: string | null = null;
-  private lastEmailSentAt: number = 0;
   /** When true, vendor has taken over this conversation — suppress AI replies */
   private vendorTakeover: boolean = false;
   private conversationVerified: boolean = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    // Restore takeover flag from DO storage (survives evictions)
     this.ctx.blockConcurrencyWhile(async () => {
       this.vendorTakeover =
         (await this.ctx.storage.get<boolean>("vendorTakeover")) ?? false;
@@ -131,6 +129,12 @@ export class ChatDurableObject extends DurableObject {
     };
 
     server.send(JSON.stringify(historyPayload));
+
+    // If customer reconnected, cancel pending email alarm
+    if (role === "customer") {
+      await this.ctx.storage.deleteAlarm();
+      await this.ctx.storage.delete("pendingEmailMessages");
+    }
 
     // If vendor just connected, notify customers
     if (role === "vendor") {
@@ -213,34 +217,19 @@ export class ChatDurableObject extends DurableObject {
       await this.ctx.storage.put("vendorTakeover", true);
     }
 
-    // Notify customer via email if offline
+    // Queue email notification if customer is offline
     if (parsed.senderType === "vendor") {
       const customerSockets = this.ctx.getWebSockets("customer");
       if (customerSockets.length === 0) {
-        const now = Date.now();
-        if (now - this.lastEmailSentAt > EMAIL_DEBOUNCE_MS) {
-          const conversation = await db.conversation.findUnique({
-            where: { id: this.conversationId },
-            include: { organization: true },
-          });
-          if (conversation?.customerEmail) {
-            try {
-              await sendChatReplyNotificationEmail({
-                to: conversation.customerEmail,
-                customerName: conversation.customerName,
-                vendorName: conversation.organization.name,
-                messagePreview:
-                  parsed.content.length > 100
-                    ? parsed.content.slice(0, 100) + "…"
-                    : parsed.content,
-                chatPath: `/v/${conversation.organization.slug}?chat=${conversation.id}`,
-                businessName: conversation.organization.name,
-              });
-              this.lastEmailSentAt = now;
-            } catch (err) {
-              console.error("[ChatDO] Failed to send notification email:", err);
-            }
-          }
+        const preview = parsed.content.length > 100
+          ? parsed.content.slice(0, 100) + "…"
+          : parsed.content;
+        const pending = (await this.ctx.storage.get<string[]>("pendingEmailMessages")) ?? [];
+        pending.push(preview);
+        await this.ctx.storage.put("pendingEmailMessages", pending);
+        // Set alarm only if this is the first pending message
+        if (pending.length === 1) {
+          await this.ctx.storage.setAlarm(Date.now() + BATCH_ALARM_MS);
         }
       }
     }
@@ -535,6 +524,46 @@ export class ChatDurableObject extends DurableObject {
     for (const socket of this.ctx.getWebSockets()) {
       socket.send(aiPayload);
     }
+  }
+
+  /** DO alarm handler — send batched email notification */
+  async alarm(): Promise<void> {
+    await setupDb(this.env);
+    const pending = await this.ctx.storage.get<string[]>("pendingEmailMessages");
+    if (!pending || pending.length === 0) return;
+
+    // If customer came back online, skip sending
+    if (this.ctx.getWebSockets("customer").length > 0) {
+      await this.ctx.storage.delete("pendingEmailMessages");
+      return;
+    }
+
+    if (!this.conversationId) {
+      this.conversationId = this.ctx.id.toString();
+    }
+
+    const conversation = await db.conversation.findUnique({
+      where: { id: this.conversationId },
+      include: { organization: true },
+    });
+
+    if (conversation?.customerEmail) {
+      try {
+        await sendChatReplyNotificationEmail({
+          to: conversation.customerEmail,
+          customerName: conversation.customerName,
+          vendorName: conversation.organization.name,
+          messagePreview: pending[pending.length - 1],
+          messageCount: pending.length,
+          chatPath: `/v/${conversation.organization.slug}?chat=${conversation.id}`,
+          businessName: conversation.organization.name,
+        });
+      } catch (err) {
+        console.error("[ChatDO] Failed to send batched notification email:", err);
+      }
+    }
+
+    await this.ctx.storage.delete("pendingEmailMessages");
   }
 
   async webSocketClose(

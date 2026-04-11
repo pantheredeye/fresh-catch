@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { NamePrompt, getStoredConversationId, clearStoredConversationId } from "./NamePrompt";
-import { conversationExists } from "@/chat/functions";
-import { EmailPromptBubble } from "./EmailPromptBubble";
+import { conversationExists, saveCustomerEmail } from "@/chat/functions";
 import { ChatQuickActions } from "./ChatQuickActions";
 
 type SheetState = "closed" | "peek" | "full";
@@ -15,8 +14,6 @@ interface ChatMessage {
   senderId: string | null;
   createdAt: string;
 }
-
-type EmailPromptState = "pending" | "shown" | "submitted" | "dismissed";
 
 interface ChatSheetProps {
   isOpen: boolean;
@@ -61,18 +58,6 @@ function useReducedMotion(): boolean {
   return reduced;
 }
 
-function getEmailPromptKey(convId: string): string {
-  return `fresh-catch-email-prompt-${convId}`;
-}
-
-function loadEmailPromptState(convId: string): EmailPromptState {
-  try {
-    const stored = localStorage.getItem(getEmailPromptKey(convId));
-    if (stored === "submitted" || stored === "dismissed") return stored;
-  } catch { /* noop */ }
-  return "pending";
-}
-
 export function ChatSheet({
   isOpen,
   onClose,
@@ -84,8 +69,10 @@ export function ChatSheet({
   const [sheetState, setSheetState] = useState<SheetState>("closed");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [emailPromptState, setEmailPromptState] = useState<EmailPromptState>("pending");
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [emailCollected, setEmailCollected] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [vendorOnline, setVendorOnline] = useState<boolean | null>(null);
 
   // Restore conversationId from localStorage on mount, validate it still exists
@@ -107,12 +94,6 @@ export function ChatSheet({
     return () => { cancelled = true; };
   }, [organizationId]);
 
-  // Restore email prompt state from localStorage
-  useEffect(() => {
-    if (!conversationId) return;
-    const state = loadEmailPromptState(conversationId);
-    setEmailPromptState(state);
-  }, [conversationId]);
   const [inputValue, setInputValue] = useState("");
   const [sendCooldown, setSendCooldown] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -160,10 +141,6 @@ export function ChatSheet({
           }
         } else if (data.type === "message") {
           setMessages((prev) => [...prev, data]);
-          // Show email prompt after first vendor/AI message
-          if (data.senderType === "vendor" || data.senderType === "ai") {
-            setEmailPromptState((prev) => (prev === "pending" ? "shown" : prev));
-          }
         } else if (data.type === "vendor-presence") {
           setVendorOnline(data.vendorOnline);
         }
@@ -543,7 +520,7 @@ export function ChatSheet({
           </div>
         </div>
 
-        {/* Vendor presence status bar */}
+        {/* Vendor presence status bar + inline email collection */}
         {conversationId && vendorOnline !== null && (
           <div
             style={{
@@ -551,14 +528,11 @@ export function ChatSheet({
               background: "var(--color-surface-secondary)",
               fontSize: "var(--font-size-sm)",
               color: "var(--color-text-tertiary)",
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-xs)",
               flexShrink: 0,
             }}
           >
             {vendorOnline ? (
-              <>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-xs)" }}>
                 <span
                   style={{
                     width: 8,
@@ -570,9 +544,76 @@ export function ChatSheet({
                   }}
                 />
                 Online
-              </>
+              </div>
+            ) : emailCollected ? (
+              <div style={{ padding: "var(--space-xs) 0" }}>
+                We&apos;ll email you when {vendorName ?? "they"} reply
+              </div>
             ) : (
-              <span>{vendorName ?? "Vendor"} is away</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)", padding: "var(--space-xs) 0" }}>
+                <span>{vendorName ?? "Vendor"} is away. Get notified when they reply?</span>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const trimmed = emailInput.trim();
+                    if (!trimmed) return;
+                    setEmailSaving(true);
+                    setEmailError(null);
+                    const result = await saveCustomerEmail(conversationId, trimmed);
+                    setEmailSaving(false);
+                    if (result.success) {
+                      setEmailCollected(true);
+                    } else {
+                      setEmailError(result.error ?? "Something went wrong");
+                    }
+                  }}
+                  style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}
+                >
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={emailInput}
+                    onChange={(e) => { setEmailInput(e.target.value); if (emailError) setEmailError(null); }}
+                    disabled={emailSaving}
+                    style={{
+                      flex: 1,
+                      fontSize: "var(--font-size-sm)",
+                      padding: "var(--space-xs) var(--space-sm)",
+                      border: emailError ? "1px solid var(--color-status-error)" : "1px solid var(--color-border-input)",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--color-surface-primary)",
+                      color: "var(--color-text-primary)",
+                      outline: "none",
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                    }}
+                    aria-label="Email address for notifications"
+                  />
+                  <button
+                    type="submit"
+                    disabled={emailSaving || !emailInput.trim()}
+                    style={{
+                      padding: "var(--space-xs) var(--space-sm)",
+                      borderRadius: "var(--radius-md)",
+                      border: "none",
+                      background: emailSaving ? "var(--color-surface-secondary)" : "var(--color-action-primary)",
+                      color: "var(--color-text-inverse)",
+                      fontSize: "var(--font-size-sm)",
+                      fontWeight: 600,
+                      cursor: emailSaving ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {emailSaving ? "Saving..." : "Notify me"}
+                  </button>
+                </form>
+                {emailError && (
+                  <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-status-error)" }}>
+                    {emailError}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -674,37 +715,6 @@ export function ChatSheet({
                     </div>
                   );
                 })
-              )}
-
-              {/* Email prompt - shown after first vendor reply */}
-              {emailPromptState === "shown" && vendorName && conversationId && (
-                <EmailPromptBubble
-                  conversationId={conversationId}
-                  vendorName={vendorName}
-                  onDismiss={() => {
-                    setEmailPromptState("dismissed");
-                    try { localStorage.setItem(getEmailPromptKey(conversationId), "dismissed"); } catch { /* noop */ }
-                  }}
-                  onSubmitted={(email) => {
-                    setSubmittedEmail(email);
-                    setEmailPromptState("submitted");
-                    try { localStorage.setItem(getEmailPromptKey(conversationId), "submitted"); } catch { /* noop */ }
-                  }}
-                />
-              )}
-
-              {/* Email submitted confirmation */}
-              {emailPromptState === "submitted" && submittedEmail && (
-                <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                  <p style={{
-                    margin: 0,
-                    fontSize: "var(--font-size-sm)",
-                    color: "var(--color-text-tertiary)",
-                    fontStyle: "italic",
-                  }}>
-                    We&apos;ll notify you at {submittedEmail}
-                  </p>
-                </div>
               )}
 
               <div ref={messagesEndRef} />

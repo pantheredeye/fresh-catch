@@ -226,25 +226,32 @@ export async function sendChatReplyNotificationEmail(data: {
   customerName: string;
   vendorName: string;
   messagePreview: string;
+  messageCount?: number;
   chatPath: string;
   businessName: string;
 }) {
   const appUrl = env.APP_URL || 'https://market.digitalglue.dev';
   const chatUrl = `${appUrl}${data.chatPath}`;
+  const count = data.messageCount ?? 1;
 
   const html = await render(
     ChatReplyNotification({
       customerName: data.customerName,
       vendorName: data.vendorName,
       messagePreview: data.messagePreview,
+      messageCount: count,
       chatUrl,
       businessName: data.businessName,
     })
   );
 
+  const subject = count > 1
+    ? `${data.vendorName} sent you ${count} messages`
+    : `${data.vendorName} from ${data.businessName} replied to your message`;
+
   return sendEmail({
     to: data.to,
-    subject: `${data.vendorName} from ${data.businessName} replied to your message`,
+    subject,
     html,
   });
 }

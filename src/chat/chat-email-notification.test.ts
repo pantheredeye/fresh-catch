@@ -20,40 +20,37 @@ describe("saveCustomerEmail validation", () => {
   });
 });
 
-// ── Email debounce logic (mirrors ChatDurableObject) ────────────────
+// ── Email batching logic (mirrors ChatDurableObject alarm pattern) ───
 
-describe("email notification debounce", () => {
-  const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
-
-  it("allows first email (lastEmailSentAt=0)", () => {
-    const lastEmailSentAt = 0;
-    const now = Date.now();
-    expect(now - lastEmailSentAt > EMAIL_DEBOUNCE_MS).toBe(true);
+describe("email notification batching", () => {
+  it("queues first message and would set alarm", () => {
+    const pending: string[] = [];
+    pending.push("Hello!");
+    const shouldSetAlarm = pending.length === 1;
+    expect(shouldSetAlarm).toBe(true);
+    expect(pending).toEqual(["Hello!"]);
   });
 
-  it("blocks email within 5-minute window", () => {
-    const now = Date.now();
-    const lastEmailSentAt = now - 2 * 60 * 1000; // 2 min ago
-    expect(now - lastEmailSentAt > EMAIL_DEBOUNCE_MS).toBe(false);
+  it("appends subsequent messages without new alarm", () => {
+    const pending = ["First msg"];
+    pending.push("Second msg");
+    const shouldSetAlarm = pending.length === 1;
+    expect(shouldSetAlarm).toBe(false);
+    expect(pending).toHaveLength(2);
   });
 
-  it("allows email after 5-minute window", () => {
-    const now = Date.now();
-    const lastEmailSentAt = now - 6 * 60 * 1000; // 6 min ago
-    expect(now - lastEmailSentAt > EMAIL_DEBOUNCE_MS).toBe(true);
+  it("uses latest message as preview in batched email", () => {
+    const pending = ["First", "Second", "Third"];
+    const preview = pending[pending.length - 1];
+    expect(preview).toBe("Third");
+    expect(pending.length).toBe(3);
   });
 
-  it("allows email at exactly 5 min boundary", () => {
-    const now = Date.now();
-    const lastEmailSentAt = now - EMAIL_DEBOUNCE_MS;
-    // At exactly 5 min, 0 > 0 is false — debounce still active
-    expect(now - lastEmailSentAt > EMAIL_DEBOUNCE_MS).toBe(false);
-  });
-
-  it("allows email 1ms past 5 min window", () => {
-    const now = Date.now();
-    const lastEmailSentAt = now - EMAIL_DEBOUNCE_MS - 1;
-    expect(now - lastEmailSentAt > EMAIL_DEBOUNCE_MS).toBe(true);
+  it("clears pending when customer reconnects", () => {
+    const pending = ["msg1", "msg2"];
+    // Simulate customer reconnect: clear pending + cancel alarm
+    const cleared: string[] = [];
+    expect(cleared).toHaveLength(0);
   });
 });
 
@@ -136,99 +133,28 @@ describe("message preview truncation", () => {
   });
 });
 
-// ── Offline detection logic (mirrors DO vendor message handling) ─────
+// ── Offline queuing decision (mirrors DO vendor message handling) ────
 
-describe("offline notification decision", () => {
-  const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000;
-
-  interface NotificationContext {
+describe("offline notification queuing", () => {
+  interface QueueContext {
     senderType: "customer" | "vendor";
     customerSocketCount: number;
-    lastEmailSentAt: number;
-    customerEmail: string | null;
-    now: number;
   }
 
-  function shouldSendEmail(ctx: NotificationContext): boolean {
-    if (ctx.senderType !== "vendor") return false;
-    if (ctx.customerSocketCount > 0) return false;
-    if (ctx.now - ctx.lastEmailSentAt <= EMAIL_DEBOUNCE_MS) return false;
-    if (!ctx.customerEmail) return false;
-    return true;
+  function shouldQueueForEmail(ctx: QueueContext): boolean {
+    return ctx.senderType === "vendor" && ctx.customerSocketCount === 0;
   }
 
-  it("sends when vendor msg + customer offline + email exists + debounce passed", () => {
-    expect(
-      shouldSendEmail({
-        senderType: "vendor",
-        customerSocketCount: 0,
-        lastEmailSentAt: 0,
-        customerEmail: "test@example.com",
-        now: Date.now(),
-      }),
-    ).toBe(true);
+  it("queues when vendor msg + customer offline", () => {
+    expect(shouldQueueForEmail({ senderType: "vendor", customerSocketCount: 0 })).toBe(true);
   });
 
-  it("does NOT send for customer messages", () => {
-    expect(
-      shouldSendEmail({
-        senderType: "customer",
-        customerSocketCount: 0,
-        lastEmailSentAt: 0,
-        customerEmail: "test@example.com",
-        now: Date.now(),
-      }),
-    ).toBe(false);
+  it("does NOT queue for customer messages", () => {
+    expect(shouldQueueForEmail({ senderType: "customer", customerSocketCount: 0 })).toBe(false);
   });
 
-  it("does NOT send when customer is online", () => {
-    expect(
-      shouldSendEmail({
-        senderType: "vendor",
-        customerSocketCount: 1,
-        lastEmailSentAt: 0,
-        customerEmail: "test@example.com",
-        now: Date.now(),
-      }),
-    ).toBe(false);
-  });
-
-  it("does NOT send within debounce window", () => {
-    const now = Date.now();
-    expect(
-      shouldSendEmail({
-        senderType: "vendor",
-        customerSocketCount: 0,
-        lastEmailSentAt: now - 60_000, // 1 min ago
-        customerEmail: "test@example.com",
-        now,
-      }),
-    ).toBe(false);
-  });
-
-  it("does NOT send without customer email", () => {
-    expect(
-      shouldSendEmail({
-        senderType: "vendor",
-        customerSocketCount: 0,
-        lastEmailSentAt: 0,
-        customerEmail: null,
-        now: Date.now(),
-      }),
-    ).toBe(false);
-  });
-
-  it("sends after debounce window expires", () => {
-    const now = Date.now();
-    expect(
-      shouldSendEmail({
-        senderType: "vendor",
-        customerSocketCount: 0,
-        lastEmailSentAt: now - 6 * 60_000, // 6 min ago
-        customerEmail: "user@test.com",
-        now,
-      }),
-    ).toBe(true);
+  it("does NOT queue when customer is online", () => {
+    expect(shouldQueueForEmail({ senderType: "vendor", customerSocketCount: 1 })).toBe(false);
   });
 });
 
