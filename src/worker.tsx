@@ -85,6 +85,21 @@ function validateOrigin(): RouteMiddleware {
 }
 
 /**
+ * Redirect that is safe during RSC server actions. A plain `new Response(null, { status: 302 })`
+ * crashes the RSC client (`body.getReader()` on null). For server actions we throw instead,
+ * letting the client-side catch block handle it gracefully.
+ */
+function safeRedirect(request: Request, location: string, headers?: Headers): Response {
+  const url = new URL(request.url);
+  if (url.searchParams.has("__rsc_action_id")) {
+    throw new Error(`Session expired, redirect to ${location}`);
+  }
+  const h = headers ?? new Headers();
+  h.set("Location", location);
+  return new Response(null, { status: 302, headers: h });
+}
+
+/**
  * Static HTML error page returned when an unhandled exception escapes the
  * RSC render pipeline. Avoids whitescreen by providing a meaningful 500 page.
  */
@@ -214,12 +229,7 @@ const app = defineApp([
     } catch (error) {
       if (error instanceof ErrorResponse && error.code === 401) {
         await resilientDO(() => sessions.remove(request, response.headers), "middleware.remove401");
-        response.headers.set("Location", "/login");
-
-        return new Response(null, {
-          status: 302,
-          headers: response.headers,
-        });
+        return safeRedirect(request, "/login", response.headers);
       }
 
       throw error;
@@ -249,12 +259,7 @@ const app = defineApp([
       // Check if user is soft deleted
       if (ctx.user?.deletedAt) {
         await resilientDO(() => sessions.remove(request, response.headers), "middleware.removeDeleted");
-        response.headers.set("Location", "/");
-
-        return new Response(null, {
-          status: 302,
-          headers: response.headers,
-        });
+        return safeRedirect(request, "/", response.headers);
       }
 
       // If session lacks organization context, set it from user's memberships
@@ -393,12 +398,9 @@ const app = defineApp([
       ...darkModeTestRoutes,
 
       route("/protected", [
-        ({ ctx }) => {
+        ({ ctx, request }) => {
           if (!ctx.user) {
-            return new Response(null, {
-              status: 302,
-              headers: { Location: "/login" },
-            });
+            return safeRedirect(request, "/login");
           }
         },
         Home,
@@ -417,13 +419,8 @@ const app = defineApp([
     // Admin routes with admin header + nav
     prefix("/admin", [
       ({ ctx, request, response }) => {
-        // Allow RSC server actions through — they handle their own auth
-        const url = new URL(request.url);
-        if (url.searchParams.has("__rsc_action_id")) return;
-
         if (!ctx.user) {
-          response.headers.set("Location", "/login");
-          return new Response(null, { status: 302, headers: response.headers });
+          return safeRedirect(request, "/login", response.headers);
         }
         if (!hasAdminAccess(ctx)) {
           return new Response("Forbidden", { status: 403 });
