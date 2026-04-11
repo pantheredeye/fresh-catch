@@ -85,6 +85,7 @@ export function ChatSheet({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [emailPromptState, setEmailPromptState] = useState<EmailPromptState>("pending");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [vendorOnline, setVendorOnline] = useState<boolean | null>(null);
 
   // Restore conversationId from localStorage on mount, validate it still exists
   useEffect(() => {
@@ -153,12 +154,17 @@ export function ChatSheet({
         const data = JSON.parse(event.data);
         if (data.type === "history") {
           setMessages(data.messages);
+          if (typeof data.vendorOnline === "boolean") {
+            setVendorOnline(data.vendorOnline);
+          }
         } else if (data.type === "message") {
           setMessages((prev) => [...prev, data]);
           // Show email prompt after first vendor/AI message
           if (data.senderType === "vendor" || data.senderType === "ai") {
             setEmailPromptState((prev) => (prev === "pending" ? "shown" : prev));
           }
+        } else if (data.type === "vendor-presence") {
+          setVendorOnline(data.vendorOnline);
         }
       });
 
@@ -516,6 +522,40 @@ export function ChatSheet({
           </div>
         </div>
 
+        {/* Vendor presence status bar */}
+        {conversationId && vendorOnline !== null && (
+          <div
+            style={{
+              padding: "var(--space-xs) var(--space-md)",
+              background: "var(--color-surface-secondary)",
+              fontSize: "var(--font-size-sm)",
+              color: "var(--color-text-tertiary)",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-xs)",
+              flexShrink: 0,
+            }}
+          >
+            {vendorOnline ? (
+              <>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "var(--radius-full)",
+                    background: "var(--color-status-success)",
+                    display: "inline-block",
+                    flexShrink: 0,
+                  }}
+                />
+                Online
+              </>
+            ) : (
+              <span>{vendorName ?? "Vendor"} is away</span>
+            )}
+          </div>
+        )}
+
         {/* Content: name prompt or message thread */}
         {!conversationId ? (
           <NamePrompt
@@ -557,7 +597,9 @@ export function ChatSheet({
                       margin: 0,
                     }}
                   >
-                    Say hi to {vendorName ?? "us"}! We usually respond within a few hours.
+                    {vendorOnline === false
+                      ? `Message ${vendorName ?? "us"} — they'll see it when they're back online.`
+                      : `Say hi to ${vendorName ?? "us"}! We usually respond within a few hours.`}
                   </p>
                 </div>
               ) : (
@@ -663,6 +705,7 @@ export function ChatSheet({
               <div style={{ flex: 1, position: "relative" }}>
                 <textarea
                   ref={inputRef}
+                  name="message"
                   value={inputValue}
                   onChange={(e) => {
                     if (e.target.value.length <= MAX_CHARS) {

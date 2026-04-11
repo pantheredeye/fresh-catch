@@ -30,6 +30,7 @@ interface OutgoingMessage {
 interface HistoryPayload {
   type: "history";
   messages: OutgoingMessage[];
+  vendorOnline: boolean;
 }
 
 export class ChatDurableObject extends DurableObject {
@@ -104,6 +105,7 @@ export class ChatDurableObject extends DurableObject {
 
     const historyPayload: HistoryPayload = {
       type: "history",
+      vendorOnline: this.isVendorOnline(),
       messages: messages.map((m) => ({
         type: "message" as const,
         id: m.id,
@@ -253,14 +255,6 @@ export class ChatDurableObject extends DurableObject {
       } catch {}
     }
 
-    // AI auto-reply: if customer message + vendor offline + no takeover
-    if (parsed.senderType === "customer" && !this.isVendorOnline() && !this.vendorTakeover) {
-      try {
-        await this.handleAiResponse(parsed.content);
-      } catch (err) {
-        console.error("[ChatDO] AI response failed:", err);
-      }
-    }
   }
 
   /** Generate and broadcast an AI response for an offline vendor */
