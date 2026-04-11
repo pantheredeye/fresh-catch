@@ -303,17 +303,17 @@ export function ChatSheet({
     [handleSend],
   );
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    dragStartY.current = e.touches[0].clientY;
-    dragCurrentY.current = e.touches[0].clientY;
+  const handleDragStart = useCallback((clientY: number) => {
+    dragStartY.current = clientY;
+    dragCurrentY.current = clientY;
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleDragMove = useCallback((clientY: number) => {
     if (dragStartY.current === null) return;
-    dragCurrentY.current = e.touches[0].clientY;
+    dragCurrentY.current = clientY;
   }, []);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleDragEnd = useCallback(() => {
     if (dragStartY.current === null || dragCurrentY.current === null) return;
 
     const delta = dragCurrentY.current - dragStartY.current;
@@ -334,6 +334,36 @@ export function ChatSheet({
     dragStartY.current = null;
     dragCurrentY.current = null;
   }, [sheetState, onClose]);
+
+  // Touch events
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    handleDragStart(e.touches[0].clientY);
+  }, [handleDragStart]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    handleDragMove(e.touches[0].clientY);
+  }, [handleDragMove]);
+
+  const handleTouchEnd = useCallback(() => {
+    handleDragEnd();
+  }, [handleDragEnd]);
+
+  // Mouse events (desktop drag)
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    handleDragStart(e.clientY);
+
+    const onMouseMove = (ev: MouseEvent) => {
+      handleDragMove(ev.clientY);
+    };
+    const onMouseUp = () => {
+      handleDragEnd();
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, [handleDragStart, handleDragMove, handleDragEnd]);
 
   // Unmount after close transition completes
   const [shouldRender, setShouldRender] = useState(false);
@@ -412,42 +442,49 @@ export function ChatSheet({
           willChange: "transform",
         }}
       >
-        {/* Drag handle - touch events ONLY on this element */}
+        {/* Drag zone: handle + header */}
         <div
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "var(--space-sm) 0",
             cursor: "grab",
             touchAction: "none",
             flexShrink: 0,
+            userSelect: "none",
+            WebkitUserSelect: "none",
           }}
         >
+          {/* Drag pill */}
           <div
             style={{
-              width: 40,
-              height: 4,
-              borderRadius: "var(--radius-full)",
-              background: "var(--color-border-subtle)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "var(--space-sm) 0",
             }}
-          />
-        </div>
+          >
+            <div
+              style={{
+                width: 40,
+                height: 4,
+                borderRadius: "var(--radius-full)",
+                background: "var(--color-border-subtle)",
+              }}
+            />
+          </div>
 
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: `0 var(--space-md) var(--space-sm)`,
-            borderBottom: "1px solid var(--color-border-subtle)",
-            flexShrink: 0,
-          }}
-        >
+          {/* Header */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: `0 var(--space-md) var(--space-sm)`,
+              borderBottom: "1px solid var(--color-border-subtle)",
+            }}
+          >
           <h2
             style={{
               margin: 0,
@@ -476,6 +513,7 @@ export function ChatSheet({
           >
             &#x2715;
           </button>
+          </div>
         </div>
 
         {/* Content: name prompt or message thread */}
