@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, type FormEvent } from "react"
 import { NamePrompt, getStoredConversationId, clearStoredConversationId } from "./NamePrompt";
 import { conversationExists } from "@/chat/functions";
 import { EmailPromptBubble } from "./EmailPromptBubble";
+import { ChatQuickActions } from "./ChatQuickActions";
 
 type SheetState = "closed" | "peek" | "full";
 
@@ -284,6 +285,26 @@ export function ChatSheet({
       setSheetState("peek");
     }
   }, [keyboardOpen]); // intentionally not depending on sheetState to avoid loops
+
+  const handleQuickAction = useCallback(
+    (tool: string, args: Record<string, unknown>, optimisticText: string) => {
+      // Insert optimistic customer message
+      const optimistic: ChatMessage = {
+        id: `optimistic-${Date.now()}`,
+        content: optimisticText,
+        senderType: "customer",
+        senderId: null,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
+      // Send ai-action via WebSocket
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "ai-action", tool, args }));
+      }
+    },
+    [],
+  );
 
   const canSend = inputValue.trim().length > 0 && !sendCooldown;
 
@@ -688,6 +709,9 @@ export function ChatSheet({
 
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Quick action chips */}
+            <ChatQuickActions onAction={handleQuickAction} />
 
             {/* Input area */}
             <form

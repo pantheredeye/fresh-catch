@@ -3,6 +3,8 @@ import { db, setupDb } from "@/db";
 import { sendChatReplyNotificationEmail } from "@/utils/email";
 import type { ChatMessage } from "@/ai/workers-ai-client";
 import { generateAiResponse } from "./ai-agent";
+import { handleListCatch, handleGetMarkets, handleGetVendorPopups } from "@/api/tool-handlers";
+import { formatToolResult } from "./tool-formatter";
 
 const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -12,6 +14,18 @@ interface SendMessage {
   senderType: "customer" | "vendor";
   senderId?: string;
 }
+
+interface AiActionMessage {
+  type: "ai-action";
+  tool: string;
+  args: Record<string, unknown>;
+}
+
+const ALLOWED_QUICK_TOOLS: Record<string, (rawInput: unknown, orgId: string) => Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }>> = {
+  list_catch: handleListCatch,
+  get_markets: handleGetMarkets,
+  get_vendor_popups: handleGetVendorPopups,
+};
 
 interface PresencePayload {
   type: "vendor-presence";
@@ -134,13 +148,21 @@ export class ChatDurableObject extends DurableObject {
 
     await setupDb(this.env);
 
-    let parsed: SendMessage;
+    let raw: { type?: string };
     try {
-      parsed = JSON.parse(message);
+      raw = JSON.parse(message);
     } catch {
       ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" }));
       return;
     }
+
+    // Route ai-action messages to the quick-action handler
+    if (raw.type === "ai-action") {
+      await this.handleQuickAction(ws, raw as AiActionMessage);
+      return;
+    }
+
+    const parsed = raw as SendMessage;
 
     if (parsed.type !== "message" || !parsed.content || !parsed.senderType) {
       ws.send(
@@ -255,6 +277,95 @@ export class ChatDurableObject extends DurableObject {
       } catch {}
     }
 
+  }
+
+  /** Handle quick-action chip: call tool directly, format, persist, broadcast */
+  private async handleQuickAction(
+    ws: WebSocket,
+    action: AiActionMessage,
+  ): Promise<void> {
+    if (!this.conversationId) return;
+
+    const handler = ALLOWED_QUICK_TOOLS[action.tool];
+    if (!handler) {
+      ws.send(JSON.stringify({ type: "error", message: "Unknown tool" }));
+      return;
+    }
+
+    // Verify conversation & get orgId
+    const conversation = await db.conversation.findUnique({
+      where: { id: this.conversationId },
+      include: { organization: true },
+    });
+    if (!conversation) return;
+
+    // Budget check via McpDO
+    const mcpId = this.env.MCP_DURABLE_OBJECT.idFromName(conversation.organizationId);
+    const mcpStub = this.env.MCP_DURABLE_OBJECT.get(mcpId);
+    const budget = await mcpStub.checkBudget();
+    if (!budget.allowed) {
+      const vendorName = conversation.organization.name;
+      const msg = `I can't help right now, please message ${vendorName} directly.`;
+      const aiMessage = await db.message.create({
+        data: {
+          conversationId: this.conversationId,
+          content: msg,
+          senderType: "ai",
+          senderId: null,
+        },
+      });
+      await db.conversation.update({
+        where: { id: this.conversationId },
+        data: { lastMessageAt: aiMessage.createdAt },
+      });
+      const payload = JSON.stringify({
+        type: "message",
+        id: aiMessage.id,
+        content: aiMessage.content,
+        senderType: aiMessage.senderType,
+        senderId: aiMessage.senderId,
+        createdAt: aiMessage.createdAt.toISOString(),
+      } satisfies OutgoingMessage);
+      for (const socket of this.ctx.getWebSockets()) {
+        socket.send(payload);
+      }
+      return;
+    }
+
+    // Execute tool handler directly (no LLM)
+    const result = await handler(action.args, conversation.organizationId);
+    const resultText = result.content[0]?.text ?? "{}";
+    const formatted = result.isError
+      ? "Sorry, something went wrong. Please try again."
+      : formatToolResult(action.tool, resultText);
+
+    // Persist AI message
+    const aiMessage = await db.message.create({
+      data: {
+        conversationId: this.conversationId,
+        content: formatted,
+        senderType: "ai",
+        senderId: null,
+      },
+    });
+    await db.conversation.update({
+      where: { id: this.conversationId },
+      data: { lastMessageAt: aiMessage.createdAt },
+    });
+
+    // Broadcast to all sockets
+    const outgoing: OutgoingMessage = {
+      type: "message",
+      id: aiMessage.id,
+      content: aiMessage.content,
+      senderType: aiMessage.senderType,
+      senderId: aiMessage.senderId,
+      createdAt: aiMessage.createdAt.toISOString(),
+    };
+    const payload = JSON.stringify(outgoing);
+    for (const socket of this.ctx.getWebSockets()) {
+      socket.send(payload);
+    }
   }
 
   /** Generate and broadcast an AI response for an offline vendor */

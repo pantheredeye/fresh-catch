@@ -7,6 +7,7 @@ export { FreshSheet } from './FreshSheet';
 export { PopupCard } from './PopupCard';
 export { VendorDirectory } from './VendorDirectory';
 export { ChatSheet } from './ChatSheet';
+export { ChatQuickActions } from './ChatQuickActions';
 export { NamePrompt } from './NamePrompt';
 export { EmailPromptBubble } from './EmailPromptBubble';
 export { CompactMarketRow } from './CompactMarketRow';
