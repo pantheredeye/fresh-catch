@@ -6,10 +6,10 @@ import { ShareModal, NotificationBadge } from '@/design-system';
 import { getCurrentOrgShareUrl } from '@/utils/share';
 import { trackShare } from '../share-functions';
 import { getUnreadCountForConversation, markAsRead } from '@/chat/functions';
+import { getUpdatedOrderCount } from '@/app/pages/orders/functions';
 import { getStoredConversationId, storeConversationId } from './NamePrompt';
 import { ChatSheet } from './ChatSheet';
-import { CommandBar } from '@/components/CommandBar';
-import type { VoiceCommandResult } from '@/api/voice-tools';
+import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
 import './BottomNavigation.css';
 
 /**
@@ -30,11 +30,20 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
   const [shareUrl, setShareUrl] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [commandBarOpen, setCommandBarOpen] = useState(false);
+  const [orderUpdateCount, setOrderUpdateCount] = useState(0);
+  const { openCommandBar } = useVoiceCommand();
 
-  const handleCommandResult = useCallback((_result: VoiceCommandResult) => {
-    setCommandBarOpen(false);
-    // TODO: handle command result (navigate, display inline, etc.)
+  // Timeout wrapper — prevents server function hangs from blocking the UI.
+  // rwsdk 1.0.8 corrupts RSC stream state on mid-render throws, so we must
+  // never let a hung POST propagate; AbortController isn't available for
+  // server functions, so we race against a timer.
+  const withTimeout = useCallback(<T,>(fn: () => Promise<T>, ms = 8_000): Promise<T> => {
+    return Promise.race([
+      fn(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), ms)
+      ),
+    ]);
   }, []);
 
   // Poll unread count every 30s when chat is closed
@@ -43,29 +52,48 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
     const convId = getStoredConversationId(organizationId);
     if (!convId) return;
     try {
-      const count = await getUnreadCountForConversation(convId, 'customer');
+      const count = await withTimeout(() => getUnreadCountForConversation(convId, 'customer'));
       setUnreadCount(count);
     } catch {
       // Silently fail — badge just won't update
     }
-  }, [organizationId]);
+  }, [organizationId, withTimeout]);
 
+  // Poll order updates every 30s
+  const fetchOrderUpdates = useCallback(async () => {
+    try {
+      const lastViewed = localStorage.getItem('fresh-catch-orders-last-viewed') || new Date(0).toISOString();
+      const count = await withTimeout(() => getUpdatedOrderCount(lastViewed));
+      setOrderUpdateCount(count);
+    } catch {
+      // Silently fail
+    }
+  }, [withTimeout]);
+
+  // Stagger initial fetches to avoid concurrent D1/DO cold-start contention.
+  // Poll every 30s after that.
   useEffect(() => {
     if (chatOpen || !organizationId) return;
-    fetchUnread();
+    const delay = setTimeout(fetchUnread, 2_000); // 2s after mount
     const interval = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(interval);
+    return () => { clearTimeout(delay); clearInterval(interval); };
   }, [chatOpen, organizationId, fetchUnread]);
 
-  // When chat opens, reset badge and mark messages as read
-  const handleChatToggle = useCallback(async () => {
+  useEffect(() => {
+    const delay = setTimeout(fetchOrderUpdates, 4_000); // 4s after mount
+    const interval = setInterval(fetchOrderUpdates, 30_000);
+    return () => { clearTimeout(delay); clearInterval(interval); };
+  }, [fetchOrderUpdates]);
+
+  // When chat opens, reset badge and mark messages as read (fire-and-forget)
+  const handleChatToggle = useCallback(() => {
     const opening = !chatOpen;
     setChatOpen(opening);
     if (opening && organizationId) {
       setUnreadCount(0);
       const convId = getStoredConversationId(organizationId);
       if (convId) {
-        try { await markAsRead(convId, 'customer'); } catch { /* noop */ }
+        markAsRead(convId, 'customer').catch(() => { /* stale or missing — ignore */ });
       }
     }
   }, [chatOpen, organizationId]);
@@ -163,18 +191,18 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
             Quick Order
           </a>
 
-          {/* Mic - opens CommandBar in customer mode */}
+          {/* Mic - opens CommandBar via layout context */}
           <button
-            onClick={() => setCommandBarOpen(true)}
+            onClick={openCommandBar}
             aria-label="Voice command"
-            className={`bottom-nav-mic${commandBarOpen ? ' bottom-nav-mic--active' : ''}`}
+            className="bottom-nav-mic"
             style={{
               padding: 'var(--space-sm)',
-              color: commandBarOpen ? 'var(--color-text-inverse)' : 'var(--color-action-primary)',
+              color: 'var(--color-action-primary)',
               fontSize: 'var(--font-size-md)',
               borderRadius: 'var(--radius-full)',
-              background: commandBarOpen ? 'var(--color-action-primary)' : 'transparent',
-              border: `1.5px solid ${commandBarOpen ? 'var(--color-action-primary)' : 'var(--color-border-light)'}`,
+              background: 'transparent',
+              border: '1.5px solid var(--color-border-light)',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -188,10 +216,17 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
           </button>
 
           <Menu.Root>
-            <Menu.Trigger className="bottom-nav-menu-trigger">
-              <span className="trigger-icon">⋯</span>
-              <span className="close-icon">✕</span>
-            </Menu.Trigger>
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <Menu.Trigger className="bottom-nav-menu-trigger">
+                <span className="trigger-icon">⋯</span>
+                <span className="close-icon">✕</span>
+              </Menu.Trigger>
+              {orderUpdateCount > 0 && (
+                <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
+                  {orderUpdateCount}
+                </NotificationBadge>
+              )}
+            </div>
             <Menu.Portal>
               <Menu.Positioner className="bottom-nav-menu-positioner" side="top" sideOffset={8}>
                 <Menu.Popup className="bottom-nav-menu-popup">
@@ -200,6 +235,25 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
                     render={<a href="/profile" />}
                   >
                     <span className="menu-icon">👤</span> Profile
+                  </Menu.Item>
+                  <Menu.Item
+                    className="bottom-nav-menu-item"
+                    render={<a href="/orders" />}
+                  >
+                    <span className="menu-icon">📋</span> Orders
+                    {orderUpdateCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        padding: '2px 8px',
+                        background: 'var(--color-action-secondary)',
+                        color: 'var(--color-text-inverse)',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: 'var(--font-size-xs)',
+                        fontWeight: 'var(--font-weight-bold)',
+                      }}>
+                        {orderUpdateCount}
+                      </span>
+                    )}
                   </Menu.Item>
                   <Menu.Item
                     className="bottom-nav-menu-item"
@@ -236,15 +290,6 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
         title="Fresh Catch Seafood Markets"
         description="Share our marketplace with friends and family"
         onShareAction={(shareType) => trackShare(shareType)}
-      />
-
-      {/* Command Bar (customer mode) */}
-      <CommandBar
-        onResult={handleCommandResult}
-        hintContext="customer"
-        externalTrigger
-        isOpen={commandBarOpen}
-        onClose={() => setCommandBarOpen(false)}
       />
 
       {/* Chat Sheet */}

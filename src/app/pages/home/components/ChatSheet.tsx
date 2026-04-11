@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
-import { NamePrompt, getStoredConversationId } from "./NamePrompt";
+import { NamePrompt, getStoredConversationId, clearStoredConversationId } from "./NamePrompt";
+import { conversationExists } from "@/chat/functions";
 import { EmailPromptBubble } from "./EmailPromptBubble";
 
 type SheetState = "closed" | "peek" | "full";
@@ -85,10 +86,23 @@ export function ChatSheet({
   const [emailPromptState, setEmailPromptState] = useState<EmailPromptState>("pending");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
-  // Restore conversationId from localStorage on mount
+  // Restore conversationId from localStorage on mount, validate it still exists
   useEffect(() => {
     const stored = getStoredConversationId(organizationId);
-    if (stored) setConversationId(stored);
+    if (!stored) return;
+    let cancelled = false;
+    conversationExists(stored).then((exists) => {
+      if (cancelled) return;
+      if (exists) {
+        setConversationId(stored);
+      } else {
+        clearStoredConversationId(organizationId);
+      }
+    }).catch(() => {
+      // Network error — still try to use it, WebSocket will handle if stale
+      if (!cancelled) setConversationId(stored);
+    });
+    return () => { cancelled = true; };
   }, [organizationId]);
 
   // Restore email prompt state from localStorage
@@ -160,6 +174,12 @@ export function ChatSheet({
       });
 
       ws.addEventListener("error", () => {
+        // If WS fails immediately (e.g. stale conversation), clear stored ID
+        if (ws.readyState !== WebSocket.OPEN) {
+          clearStoredConversationId(organizationId);
+          setConversationId(null);
+          setMessages([]);
+        }
         ws.close();
       });
     }

@@ -23,6 +23,14 @@ export function storeConversationId(organizationId: string, conversationId: stri
   }
 }
 
+export function clearStoredConversationId(organizationId: string) {
+  try {
+    localStorage.removeItem(getStorageKey(organizationId));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 interface NamePromptProps {
   organizationId: string;
   onConversationCreated: (conversationId: string) => void;

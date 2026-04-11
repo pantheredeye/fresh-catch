@@ -1,6 +1,6 @@
 "use server";
 
-import { requestInfo } from "rwsdk/worker";
+import { requestInfo, serverQuery } from "rwsdk/worker";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 
@@ -28,10 +28,10 @@ export async function createConversation({
   return { conversationId: conversation.id };
 }
 
-export async function getMessages(
+export const getMessages = serverQuery(async (
   conversationId: string,
   cursor?: string,
-) {
+) => {
   const { ctx } = requestInfo;
 
   const conversation = await db.conversation.findUnique({
@@ -62,9 +62,9 @@ export async function getMessages(
   const nextCursor = hasMore ? page[page.length - 1].id : null;
 
   return { messages: page, nextCursor };
-}
+});
 
-export async function getConversation(conversationId: string) {
+export const getConversation = serverQuery(async (conversationId: string) => {
   const { ctx } = requestInfo;
 
   const conversation = await db.conversation.findUnique({
@@ -93,9 +93,9 @@ export async function getConversation(conversationId: string) {
   conversation.messages.reverse();
 
   return conversation;
-}
+});
 
-export async function getConversations(organizationId: string) {
+export const getConversations = serverQuery(async (organizationId: string) => {
   const { ctx } = requestInfo;
 
   if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
@@ -123,10 +123,10 @@ export async function getConversations(organizationId: string) {
       messages: undefined,
     };
   });
-}
+});
 
 // Enriches getConversations results with unread counts in a single query
-export async function getConversationsWithUnread(organizationId: string) {
+export const getConversationsWithUnread = serverQuery(async (organizationId: string) => {
   const conversations = await getConversations(organizationId);
 
   // Count unread customer messages per conversation (messages admin hasn't read)
@@ -148,7 +148,7 @@ export async function getConversationsWithUnread(organizationId: string) {
     ...conv,
     unreadCount: countMap.get(conv.id) ?? 0,
   }));
-}
+});
 
 export async function markAsRead(
   conversationId: string,
@@ -161,17 +161,13 @@ export async function markAsRead(
     where: { id: conversationId },
   });
 
-  if (!conversation) {
-    throw new Error("Conversation not found");
-  }
+  if (!conversation) return;
 
   // Auth: anonymous conversations (customerId=null) use conversation ID as bearer token
   const isAnonymous = conversation.customerId === null;
   const isOwner = conversation.customerId !== null && conversation.customerId === ctx.user?.id;
   const isOrgMember = conversation.organizationId === ctx.currentOrganization?.id;
-  if (!isAnonymous && !isOwner && !isOrgMember) {
-    throw new Error("Access denied");
-  }
+  if (!isAnonymous && !isOwner && !isOrgMember) return;
 
   // Mark messages from the OTHER senderType as read
   const otherSenderType = senderType === "customer" ? "vendor" : "customer";
@@ -186,10 +182,10 @@ export async function markAsRead(
   });
 }
 
-export async function getUnreadCount(
+export const getUnreadCount = serverQuery(async (
   organizationId: string,
   senderType: "customer" | "vendor",
-) {
+) => {
   const { ctx } = requestInfo;
 
   if (
@@ -208,12 +204,12 @@ export async function getUnreadCount(
       readAt: null,
     },
   });
-}
+});
 
-export async function getUnreadCountForConversation(
+export const getUnreadCountForConversation = serverQuery(async (
   conversationId: string,
   senderType: "customer" | "vendor",
-) {
+) => {
   const conversation = await db.conversation.findUnique({
     where: { id: conversationId },
   });
@@ -230,7 +226,15 @@ export async function getUnreadCountForConversation(
       readAt: null,
     },
   });
-}
+});
+
+export const conversationExists = serverQuery(async (conversationId: string) => {
+  const conversation = await db.conversation.findUnique({
+    where: { id: conversationId },
+    select: { id: true },
+  });
+  return !!conversation;
+});
 
 export async function saveCustomerEmail(
   conversationId: string,
