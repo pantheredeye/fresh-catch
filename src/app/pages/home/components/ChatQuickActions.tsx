@@ -9,6 +9,8 @@ interface QuickAction {
   /** Optimistic message shown as customer bubble */
   optimisticText?: string;
   disabled?: boolean;
+  /** If true, triggers onAskAi instead of onAction */
+  isAskAi?: boolean;
   variant?: "default" | "coral";
 }
 
@@ -38,15 +40,16 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     label: "Ask AI",
-    disabled: true,
+    isAskAi: true,
   },
 ];
 
 interface ChatQuickActionsProps {
   onAction: (tool: string, args: Record<string, unknown>, optimisticText: string) => void;
+  onAskAi?: () => void;
 }
 
-export function ChatQuickActions({ onAction }: ChatQuickActionsProps) {
+export function ChatQuickActions({ onAction, onAskAi }: ChatQuickActionsProps) {
   return (
     <div
       style={{
@@ -84,7 +87,9 @@ export function ChatQuickActions({ onAction }: ChatQuickActionsProps) {
             key={action.label}
             disabled={action.disabled}
             onClick={() => {
-              if (action.tool && !action.disabled) {
+              if (action.isAskAi && onAskAi) {
+                onAskAi();
+              } else if (action.tool && !action.disabled) {
                 onAction(action.tool, action.args ?? {}, action.optimisticText ?? action.label);
               }
             }}

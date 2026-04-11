@@ -74,6 +74,7 @@ export function ChatSheet({
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [vendorOnline, setVendorOnline] = useState<boolean | null>(null);
+  const [aiMode, setAiMode] = useState(false);
 
   // Restore conversationId from localStorage on mount, validate it still exists
   useEffect(() => {
@@ -289,15 +290,19 @@ export function ChatSheet({
     const text = inputValue.trim();
     if (!text || sendCooldown) return;
 
-    // Send via WebSocket
+    // Send via WebSocket — ai-query when in AI mode, message otherwise
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "message", content: text, senderType: "customer" }));
+      if (aiMode) {
+        wsRef.current.send(JSON.stringify({ type: "ai-query", content: text }));
+      } else {
+        wsRef.current.send(JSON.stringify({ type: "message", content: text, senderType: "customer" }));
+      }
     }
 
     setInputValue("");
     setSendCooldown(true);
     setTimeout(() => setSendCooldown(false), SEND_COOLDOWN_MS);
-  }, [inputValue, sendCooldown]);
+  }, [inputValue, sendCooldown, aiMode]);
 
   const handleFormSubmit = useCallback(
     (e: FormEvent) => {
@@ -721,7 +726,53 @@ export function ChatSheet({
             </div>
 
             {/* Quick action chips */}
-            <ChatQuickActions onAction={handleQuickAction} />
+            <ChatQuickActions onAction={handleQuickAction} onAskAi={() => setAiMode(true)} />
+
+            {/* AI mode indicator pill */}
+            {aiMode && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-xs)",
+                  padding: "var(--space-xs) var(--space-md)",
+                  flexShrink: 0,
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "var(--space-xs)",
+                    padding: "var(--space-xs) var(--space-sm)",
+                    background: "var(--color-surface-tertiary, var(--color-surface-secondary))",
+                    color: "var(--color-text-secondary)",
+                    borderRadius: "var(--radius-full)",
+                    fontSize: "var(--font-size-sm)",
+                  }}
+                >
+                  Asking AI
+                  <button
+                    type="button"
+                    onClick={() => setAiMode(false)}
+                    aria-label="Exit AI mode"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: "0 2px",
+                      cursor: "pointer",
+                      color: "var(--color-text-secondary)",
+                      fontSize: "var(--font-size-sm)",
+                      lineHeight: 1,
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    &#x2715;
+                  </button>
+                </span>
+              </div>
+            )}
 
             {/* Input area */}
             <form
@@ -752,7 +803,7 @@ export function ChatSheet({
                       handleSend();
                     }
                   }}
-                  placeholder="Type a message..."
+                  placeholder={aiMode ? "Ask about seafood, markets, orders..." : "Type a message..."}
                   rows={1}
                   aria-label="Message input"
                   style={{

@@ -21,6 +21,11 @@ interface AiActionMessage {
   args: Record<string, unknown>;
 }
 
+interface AiQueryMessage {
+  type: "ai-query";
+  content: string;
+}
+
 const ALLOWED_QUICK_TOOLS: Record<string, (rawInput: unknown, orgId: string) => Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }>> = {
   list_catch: handleListCatch,
   get_markets: handleGetMarkets,
@@ -166,6 +171,12 @@ export class ChatDurableObject extends DurableObject {
       return;
     }
 
+    // Route ai-query messages (customer opted into AI mode)
+    if (raw.type === "ai-query") {
+      await this.handleAiQuery(ws, raw as AiQueryMessage);
+      return;
+    }
+
     const parsed = raw as SendMessage;
 
     if (parsed.type !== "message" || !parsed.content || !parsed.senderType) {
@@ -268,6 +279,59 @@ export class ChatDurableObject extends DurableObject {
 
   }
 
+  /** Handle customer-initiated AI query (Ask AI mode) */
+  private async handleAiQuery(
+    ws: WebSocket,
+    query: AiQueryMessage,
+  ): Promise<void> {
+    if (!this.conversationId || !query.content?.trim()) return;
+
+    // Verify conversation exists
+    if (!this.conversationVerified) {
+      const conv = await db.conversation.findUnique({
+        where: { id: this.conversationId },
+        select: { id: true },
+      });
+      if (!conv) {
+        ws.send(JSON.stringify({ type: "error", message: "Conversation not ready." }));
+        return;
+      }
+      this.conversationVerified = true;
+    }
+
+    // Persist customer message to D1
+    const customerMsg = await db.message.create({
+      data: {
+        conversationId: this.conversationId,
+        content: query.content,
+        senderType: "customer",
+        senderId: null,
+      },
+    });
+
+    await db.conversation.update({
+      where: { id: this.conversationId },
+      data: { lastMessageAt: customerMsg.createdAt },
+    });
+
+    // Broadcast customer message to all sockets
+    const customerOutgoing: OutgoingMessage = {
+      type: "message",
+      id: customerMsg.id,
+      content: customerMsg.content,
+      senderType: customerMsg.senderType,
+      senderId: customerMsg.senderId,
+      createdAt: customerMsg.createdAt.toISOString(),
+    };
+    const customerPayload = JSON.stringify(customerOutgoing);
+    for (const socket of this.ctx.getWebSockets()) {
+      socket.send(customerPayload);
+    }
+
+    // Generate AI response (reuses full budget/cache/AI/persist/broadcast flow)
+    await this.handleAiResponse(query.content, "customer-chat");
+  }
+
   /** Handle quick-action chip: call tool directly, format, persist, broadcast */
   private async handleQuickAction(
     ws: WebSocket,
@@ -357,9 +421,10 @@ export class ChatDurableObject extends DurableObject {
     }
   }
 
-  /** Generate and broadcast an AI response for an offline vendor */
+  /** Generate and broadcast an AI response */
   private async handleAiResponse(
     customerMessage: string,
+    guardrail?: string,
   ): Promise<void> {
     if (!this.conversationId) return;
 
@@ -461,6 +526,7 @@ export class ChatDurableObject extends DurableObject {
         customerName: conversation.customerName,
         customerEmail: conversation.customerEmail,
       },
+      guardrail,
     });
 
     // Record token usage and cache successful responses

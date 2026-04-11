@@ -35,6 +35,8 @@ export interface AiAgentOptions {
   customerMessage: string;
   conversationHistory: ChatMessage[];
   orgContext: OrgContext;
+  /** When set, prepends topic guardrail to system prompt (e.g. 'customer-chat') */
+  guardrail?: string;
 }
 
 export type GapReason = "no_tool" | "insufficient_data" | "model_uncertain" | "api_error" | "max_rounds";
@@ -145,10 +147,14 @@ When placing orders, automatically include the customer's name and email as cont
  * and feed results back until model produces a final text response.
  */
 export async function generateAiResponse(options: AiAgentOptions): Promise<AiAgentResult> {
-  const { customerMessage, conversationHistory, orgContext } = options;
+  const { customerMessage, conversationHistory, orgContext, guardrail } = options;
 
   const tools = buildTools();
-  const system = buildSystemPrompt(orgContext.orgName, orgContext.customerName, orgContext.customerEmail);
+  let system = buildSystemPrompt(orgContext.orgName, orgContext.customerName, orgContext.customerEmail);
+
+  if (guardrail) {
+    system = `IMPORTANT: Only answer questions about seafood, this vendor's products, markets, orders, and related topics. If the customer asks about something unrelated, politely say: "I can only help with seafood and market questions. Want to ask about what's fresh today?"\n\n${system}`;
+  }
 
   // Classify query complexity for model routing
   const complexity = classifyQuery(customerMessage);
