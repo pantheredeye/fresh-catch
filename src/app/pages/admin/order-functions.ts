@@ -1,7 +1,7 @@
 "use server";
 
 import { env } from "cloudflare:workers";
-import { requestInfo } from "rwsdk/worker";
+import { requestInfo, serverQuery } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
@@ -183,6 +183,109 @@ export async function confirmOrder(
     return { success: false, error: 'Failed to confirm order' };
   }
 }
+
+export async function updateConfirmedOrder(
+  csrfToken: string,
+  orderId: string,
+  newPrice: number,
+  adminNotes: string,
+) {
+  requireCsrf(csrfToken);
+
+  const { ctx } = requestInfo;
+
+  if (!hasAdminAccess(ctx) || !ctx.currentOrganization) {
+    return { success: false, error: "Admin access required" };
+  }
+
+  try {
+    const order = await db.order.findFirst({
+      where: { id: orderId, organizationId: ctx.currentOrganization.id },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            platformFeeBps: true,
+            feeModel: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    if (order.status !== 'confirmed' && order.status !== 'completed') {
+      return { success: false, error: "Only confirmed or completed orders can be updated" };
+    }
+
+    if (!Number.isFinite(newPrice) || newPrice <= 0) {
+      return { success: false, error: "Price must be a positive number" };
+    }
+
+    const { platformFeeBps, feeModel } = order.organization;
+    const { customerTotal, platformFee } = calculatePlatformFee(
+      newPrice,
+      platformFeeBps,
+      feeModel as FeeModel,
+    );
+
+    await db.order.update({
+      where: { id: orderId },
+      data: {
+        price: newPrice,
+        platformFeeBps,
+        platformFee,
+        totalDue: customerTotal,
+        adminNotes: adminNotes.trim() || null,
+      },
+    });
+
+    // Send update email to customer
+    const customerEmail = order.contactEmail;
+    if (customerEmail) {
+      try {
+        await sendOrderConfirmedEmail({
+          to: customerEmail,
+          customerName: order.contactName,
+          orderNumber: order.orderNumber,
+          items: order.items,
+          priceCents: newPrice,
+          platformFeeCents: platformFee,
+          feeModel,
+          totalDueCents: customerTotal,
+          adminNotes: adminNotes.trim() || undefined,
+          preferredDate: order.preferredDate?.toISOString(),
+          businessName: order.organization.name,
+          isUpdate: true,
+        });
+      } catch (emailError) {
+        console.error('Failed to send update email:', emailError);
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update order:', error);
+    return { success: false, error: 'Failed to update order' };
+  }
+}
+
+export const getPendingOrderCount = serverQuery(async (organizationId: string) => {
+  const { ctx } = requestInfo;
+  if (!hasAdminAccess(ctx) || ctx.currentOrganization?.id !== organizationId) {
+    return 0;
+  }
+  try {
+    return await db.order.count({
+      where: { organizationId, status: 'pending' },
+    });
+  } catch {
+    return 0;
+  }
+});
 
 export async function completeOrder(csrfToken: string, orderId: string) {
   requireCsrf(csrfToken);

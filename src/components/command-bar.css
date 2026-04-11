@@ -1,4 +1,4 @@
-/* CommandBar: FAB + half-sheet overlay */
+/* CommandBar: half-sheet overlay */
 
 /* Backdrop overlay when half-sheet is open */
 .command-bar__backdrop {
@@ -14,50 +14,6 @@
 .command-bar__backdrop--open {
   opacity: 1;
   pointer-events: auto;
-}
-
-/* FAB */
-.command-bar__fab {
-  position: fixed;
-  bottom: var(--space-lg);
-  right: var(--space-lg);
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-full);
-  border: none;
-  background: var(--color-action-primary);
-  color: var(--color-text-inverse);
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 999;
-  box-shadow: var(--shadow-lg);
-  transition: transform var(--duration-normal) var(--ease-out),
-    box-shadow var(--duration-normal) var(--ease-out);
-}
-
-.command-bar__fab:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg), 0 4px 12px rgba(0, 102, 204, 0.25);
-}
-
-.command-bar__fab:active {
-  transform: translateY(0);
-}
-
-.command-bar__fab--hidden {
-  pointer-events: none;
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-@media (max-width: 768px) {
-  .command-bar__fab {
-    bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
-    right: var(--space-md);
-  }
 }
 
 /* Half-sheet */

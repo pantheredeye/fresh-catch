@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { NotificationBadge } from '@/design-system';
 import { getUnreadCount } from '@/chat/functions';
 
-export function AdminChatBubble({ organizationId, onClick }: {
+export function AdminChatBubble({ organizationId, onChatClick, onVoiceClick }: {
   organizationId?: string | null;
-  onClick?: () => void;
+  onChatClick?: () => void;
+  onVoiceClick?: () => void;
 }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -27,48 +28,75 @@ export function AdminChatBubble({ organizationId, onClick }: {
     return () => clearInterval(interval);
   }, [organizationId, fetchUnread]);
 
+  const sharedStyle = {
+    width: '48px',
+    height: '48px',
+    borderRadius: 'var(--radius-full)',
+    border: 'none',
+    boxShadow: 'var(--shadow-lg)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '20px',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  } as const;
+
   return (
     <>
     <style>{`
-      .admin-chat-bubble:focus-visible {
+      .admin-action-bubble:focus-visible {
         outline: 2px solid var(--color-action-primary);
         outline-offset: 2px;
       }
       @media (prefers-reduced-motion: reduce) {
-        .admin-chat-bubble { transition: none !important; }
+        .admin-action-bubble { transition: none !important; }
       }
     `}</style>
-    <button
-      className="admin-chat-bubble"
-      onClick={onClick}
-      style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        width: '56px',
-        height: '56px',
-        borderRadius: 'var(--radius-full)',
-        background: 'var(--color-gradient-primary)',
-        color: 'var(--color-text-inverse)',
-        border: 'none',
-        boxShadow: 'var(--shadow-lg)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '24px',
-        zIndex: 300,
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      }}
-      aria-label={unreadCount > 0 ? `Chat — ${unreadCount} unread` : 'Chat'}
-    >
-      💬
-      {unreadCount > 0 && (
-        <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
-          {unreadCount}
-        </NotificationBadge>
-      )}
-    </button>
+    <div style={{
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      zIndex: 300,
+    }}>
+      {/* Voice button (top) */}
+      <button
+        className="admin-action-bubble"
+        onClick={onVoiceClick}
+        style={{
+          ...sharedStyle,
+          background: 'var(--color-action-primary)',
+          color: 'var(--color-text-inverse)',
+        }}
+        aria-label="Voice command"
+      >
+        🎙️
+      </button>
+
+      {/* Chat button (bottom) */}
+      <div style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          className="admin-action-bubble"
+          onClick={onChatClick}
+          style={{
+            ...sharedStyle,
+            background: 'var(--color-gradient-primary)',
+            color: 'var(--color-text-inverse)',
+          }}
+          aria-label={unreadCount > 0 ? `Chat — ${unreadCount} unread` : 'Chat'}
+        >
+          💬
+        </button>
+        {unreadCount > 0 && (
+          <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
+            {unreadCount}
+          </NotificationBadge>
+        )}
+      </div>
+    </div>
     </>
   );
 }

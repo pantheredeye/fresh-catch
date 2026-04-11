@@ -1,11 +1,11 @@
 "use server";
 
-import { requestInfo } from "rwsdk/worker";
+import { requestInfo, serverQuery } from "rwsdk/worker";
 import { sessions, resilientDO } from "@/session/store";
 import { db } from "@/db";
 import { requireCsrf } from "@/session/csrf";
 
-export async function listUserOrganizations() {
+export const listUserOrganizations = serverQuery(async () => {
   const { ctx } = requestInfo;
 
   if (!ctx.user) {
@@ -31,7 +31,7 @@ export async function listUserOrganizations() {
     slug: m.organization.slug,
     role: m.role,
   }));
-}
+});
 
 export async function switchOrganization(csrfToken: string, orgId: string) {
   requireCsrf(csrfToken);

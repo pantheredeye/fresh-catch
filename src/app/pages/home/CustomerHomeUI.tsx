@@ -119,9 +119,6 @@ export function CustomerHomeUI({
       {/* PWA Install Banner - shows after interaction */}
       <InstallBanner />
 
-      {/* Facebook Page Feed - shows if vendor has a Facebook page configured */}
-      {facebookPageUrl && <FacebookFeed pageUrl={facebookPageUrl} />}
-
       {/* Popup Markets Section - Only show if popups exist */}
       {popups.length > 0 && (
         <PopupSection popups={popups} vendorSlug={vendorSlug} />
@@ -145,6 +142,9 @@ export function CustomerHomeUI({
         onToggleFavorite={toggleFavorite}
         vendorSlug={vendorSlug}
       />
+
+      {/* Facebook Page Feed - shows if vendor has a Facebook page configured */}
+      {facebookPageUrl && <FacebookFeed pageUrl={facebookPageUrl} />}
 
       {/* Bottom Navigation */}
       <BottomNavigation

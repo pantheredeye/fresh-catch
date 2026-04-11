@@ -18,20 +18,16 @@ const HINT_CONTEXTS: Record<string, string[]> = {
 interface CommandBarProps {
   onResult: (result: VoiceCommandResult) => void;
   hintContext?: string;
-  /** When true, hides the built-in FAB trigger (caller controls open state) */
-  externalTrigger?: boolean;
-  /** Controlled open state (use with externalTrigger) */
-  isOpen?: boolean;
-  /** Called when the sheet wants to close (use with externalTrigger) */
-  onClose?: () => void;
+  /** Target organization for voice commands (e.g. vendor being browsed) */
+  targetOrgId?: string;
+  /** Controlled open state */
+  isOpen: boolean;
+  /** Called when the sheet wants to close */
+  onClose: () => void;
 }
 
-export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onClose }: CommandBarProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = externalTrigger ? (isOpen ?? false) : internalOpen;
-  const setOpen = externalTrigger
-    ? (v: boolean) => { if (!v && onClose) onClose(); else setInternalOpen(v); }
-    : setInternalOpen;
+export function CommandBar({ onResult, hintContext, targetOrgId, isOpen, onClose }: CommandBarProps) {
+  const open = isOpen;
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [textInput, setTextInput] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -40,13 +36,17 @@ export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onC
 
   const hints = HINT_CONTEXTS[hintContext ?? "default"] ?? HINT_CONTEXTS.default;
 
+  const voiceUrl = targetOrgId
+    ? `/api/voice/command?targetOrgId=${encodeURIComponent(targetOrgId)}`
+    : "/api/voice/command";
+
   const uploadAudio = useCallback(
     async (blob: Blob) => {
       setProcessing(true);
       setError(null);
       try {
         const buffer = await blob.arrayBuffer();
-        const response = await fetch("/api/voice/command", {
+        const response = await fetch(voiceUrl, {
           method: "POST",
           headers: { "Content-Type": blob.type },
           body: buffer,
@@ -54,40 +54,40 @@ export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onC
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const result = (await response.json()) as VoiceCommandResult;
         onResult(result);
-        setOpen(false);
+        onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
         setProcessing(false);
       }
     },
-    [onResult],
+    [onResult, voiceUrl],
   );
 
   const recorder = useVoiceRecorder({ onAudioReady: uploadAudio });
 
-  const submitText = useCallback(async () => {
-    const text = textInput.trim();
+  const submitText = useCallback(async (overrideText?: string) => {
+    const text = (overrideText ?? textInput).trim();
     if (!text) return;
     setProcessing(true);
     setError(null);
     try {
-      const response = await fetch("/api/voice/command", {
+      const response = await fetch(voiceUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
       if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const result = (await response.json()) as VoiceCommandResult;
-      setTextInput("");
+      if (!overrideText) setTextInput("");
       onResult(result);
-      setOpen(false);
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setProcessing(false);
     }
-  }, [textInput, onResult]);
+  }, [textInput, onResult, voiceUrl]);
 
   const handleMicTap = useCallback(() => {
     if (recorder.state === "recording") {
@@ -105,8 +105,15 @@ export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onC
     recorder.setState("idle");
     setProcessing(false);
     setError(null);
-    setOpen(false);
+    onClose();
   }, [recorder]);
+
+  // Reset recorder when sheet closes
+  useEffect(() => {
+    if (!open) {
+      recorder.setState("idle");
+    }
+  }, [open]);
 
   // Escape key closes
   useEffect(() => {
@@ -119,8 +126,11 @@ export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onC
   }, [open, handleClose]);
 
   const handleHintClick = (hint: string) => {
-    setInputMode("text");
-    setTextInput(hint);
+    if (inputMode === "voice") {
+      submitText(hint);
+    } else {
+      setTextInput(hint);
+    }
   };
 
   const isRecording = recorder.state === "recording";
@@ -129,17 +139,6 @@ export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onC
 
   return (
     <>
-      {/* FAB - hidden when controlled externally */}
-      {!externalTrigger && (
-        <button
-          className={`command-bar__fab${open ? " command-bar__fab--hidden" : ""}`}
-          onClick={() => setOpen(true)}
-          aria-label="Open command bar"
-        >
-          🎙️
-        </button>
-      )}
-
       {/* Backdrop */}
       <div
         className={`command-bar__backdrop${open ? " command-bar__backdrop--open" : ""}`}
@@ -222,7 +221,7 @@ export function CommandBar({ onResult, hintContext, externalTrigger, isOpen, onC
               />
               <button
                 className="command-bar__submit"
-                onClick={submitText}
+                onClick={() => submitText()}
                 disabled={!textInput.trim()}
               >
                 Send

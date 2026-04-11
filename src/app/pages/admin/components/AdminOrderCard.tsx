@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { Button, Card, TextInput, Textarea } from "@/design-system";
-import { confirmOrder, completeOrder, cancelOrderAdmin, markAsPaid } from "../order-functions";
+import { confirmOrder, updateConfirmedOrder, completeOrder, cancelOrderAdmin, markAsPaid } from "../order-functions";
 import { getPaymentStatus, type PaymentStatus } from "@/utils/payments";
 import { formatCents, parseDollars, calculatePlatformFee, type FeeModel } from "@/utils/money";
 import type { AppContext } from "@/worker";
@@ -55,6 +55,7 @@ interface AdminOrderCardProps {
 
 export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [priceInput, setPriceInput] = useState(order.price ? String(order.price / 100) : '');
   const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
   const [isPending, startTransition] = useTransition();
@@ -190,6 +191,34 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
     });
   };
 
+  const handleUpdatePrice = async () => {
+    setErrorMessage(null);
+    if (!priceInput.trim()) {
+      setErrorMessage('Please enter a price');
+      return;
+    }
+    let priceInCents: number;
+    try {
+      priceInCents = parseDollars(priceInput);
+    } catch {
+      setErrorMessage('Please enter a valid price (e.g. 45.50)');
+      return;
+    }
+    if (priceInCents <= 0) {
+      setErrorMessage('Please enter a valid price');
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updateConfirmedOrder(csrfToken, order.id, priceInCents, adminNotes);
+      if (result.success) {
+        setIsPriceEditing(false);
+      } else {
+        setErrorMessage(result.error || 'Failed to update order');
+      }
+    });
+  };
+
   const handleMarkPaid = async (overrideAmountCents?: number) => {
     let amountCents: number;
     if (overrideAmountCents != null) {
@@ -321,6 +350,17 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
               >
                 Mark Complete
               </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setPriceInput(order.price ? String(order.price / 100) : '');
+                  setAdminNotes(order.adminNotes || '');
+                  setIsPriceEditing(!isPriceEditing);
+                }}
+              >
+                {isPriceEditing ? 'Cancel Edit' : 'Edit Price'}
+              </Button>
               {paymentStatus !== 'paid' && paymentStatus !== 'overpaid' && (
                 <Button
                   variant="secondary"
@@ -333,14 +373,29 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
             </>
           )}
 
-          {order.status === 'completed' && paymentStatus !== 'paid' && paymentStatus !== 'overpaid' && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowPaymentModal(!showPaymentModal)}
-            >
-              Record Payment
-            </Button>
+          {order.status === 'completed' && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setPriceInput(order.price ? String(order.price / 100) : '');
+                  setAdminNotes(order.adminNotes || '');
+                  setIsPriceEditing(!isPriceEditing);
+                }}
+              >
+                {isPriceEditing ? 'Cancel Edit' : 'Edit Price'}
+              </Button>
+              {paymentStatus !== 'paid' && paymentStatus !== 'overpaid' && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowPaymentModal(!showPaymentModal)}
+                >
+                  Record Payment
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -605,6 +660,103 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit Price Form (confirmed/completed orders) */}
+      {isPriceEditing && (order.status === 'confirmed' || order.status === 'completed') && (
+        <div style={{
+          padding: 'var(--space-md)',
+          background: 'var(--color-status-warning-bg)',
+          borderRadius: 'var(--radius-sm)',
+          marginTop: 'var(--space-md)'
+        }}>
+          <h3 style={{
+            fontSize: 'var(--font-size-md)',
+            fontWeight: 'var(--font-weight-semibold)',
+            marginBottom: 'var(--space-md)'
+          }}>
+            Update Price
+          </h3>
+
+          <TextInput
+            label="New Price ($)"
+            placeholder="45.50"
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            required
+            size="md"
+            helperText="Enter dollar amount (e.g. 45.50)"
+          />
+
+          {feePreview && (
+            <div style={{
+              padding: 'var(--space-sm) var(--space-md)',
+              background: 'var(--color-surface-secondary)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: 'var(--space-sm)',
+            }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-xs)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-secondary)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Items</span>
+                  <span>{formatCents(feePreview.basePriceCents)}</span>
+                </div>
+                {feePreview.platformFee > 0 && feeModel !== "vendor" && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Platform fee ({(feeBps / 100).toFixed(0)}%)</span>
+                    <span>{formatCents(feePreview.platformFee)}</span>
+                  </div>
+                )}
+                <div style={{
+                  borderTop: '1px solid var(--color-border-subtle)',
+                  marginTop: 'var(--space-xs)',
+                  paddingTop: 'var(--space-xs)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontWeight: 'var(--font-weight-bold)',
+                  fontSize: 'var(--font-size-md)',
+                  color: 'var(--color-text-primary)',
+                }}>
+                  <span>Customer total</span>
+                  <span>{formatCents(feePreview.customerTotal)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Textarea
+            label="Notes to Customer"
+            placeholder="Pickup details, preparation notes, etc..."
+            value={adminNotes}
+            onChange={(e) => setAdminNotes(e.target.value)}
+            rows={3}
+            helperText="Optional message to customer"
+          />
+
+          <div className="flex gap-sm mt-md">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleUpdatePrice}
+              disabled={isPending || !priceInput.trim()}
+              fullWidth
+            >
+              {isPending ? 'Updating...' : 'Update Price'}
+            </Button>
+            <Button
+              variant="cancel"
+              size="md"
+              onClick={() => setIsPriceEditing(false)}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
 

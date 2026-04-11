@@ -16,6 +16,7 @@ export function NewOrderPage({ ctx }: RequestInfo) {
 
   const defaultContact = {
     name: ctx.user.name || ctx.user.username,
+    email: ctx.user.email || '',
     phone: ctx.user.phone || ''
   };
 

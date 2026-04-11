@@ -4,7 +4,6 @@
  * Sends transcript to Claude with MCP tool definitions, returns structured VoiceCommandResult.
  */
 import { env } from "cloudflare:workers";
-import Anthropic from "@anthropic-ai/sdk";
 import type { AppContext } from "@/worker";
 import { db } from "@/db";
 import {
@@ -14,6 +13,7 @@ import {
   type BusinessContext,
 } from "@/api/voice-tools";
 import { toolRegistry } from "@/api/mcp-server";
+import type { WorkersAiTool } from "@/ai/workers-ai-client";
 
 /** Transcribe audio via Whisper or extract text from JSON body. */
 async function getTranscript(request: Request): Promise<string> {
@@ -113,14 +113,15 @@ Rules:
 - If you cannot determine the intent, do not use any tool — respond with text explaining why`;
 }
 
-/** Convert MCP tools to Anthropic SDK tool format. */
-function toAnthropicTools(
-  role: string,
-): Anthropic.Messages.Tool[] {
+/** Convert MCP tools to Workers AI (OpenAI-compatible) tool format. */
+function toWorkersAiTools(role: string): WorkersAiTool[] {
   return mcpFormat(role).map((tool) => ({
-    name: tool.name,
-    description: tool.description ?? "",
-    input_schema: tool.inputSchema as Anthropic.Messages.Tool["input_schema"],
+    type: "function" as const,
+    function: {
+      name: tool.name,
+      description: tool.description ?? "",
+      parameters: tool.inputSchema as WorkersAiTool["function"]["parameters"],
+    },
   }));
 }
 
@@ -128,12 +129,42 @@ export async function handleVoiceCommand(
   request: Request,
   ctx: AppContext,
 ): Promise<Response> {
-  // Auth checks — any authenticated user with an org context can use voice commands.
-  // Tool scoping is handled by role-based filtering in voice-tools.ts.
+  // Auth: require authenticated user. Org context resolved from targetOrgId or session.
   if (!ctx.user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!ctx.currentOrganization) {
+
+  // Resolve target org + role: targetOrgId param takes priority over session org
+  const reqUrl = new URL(request.url);
+  const targetOrgId = reqUrl.searchParams.get("targetOrgId");
+
+  let orgId: string;
+  let role: string;
+
+  if (targetOrgId && targetOrgId !== ctx.currentOrganization?.id) {
+    // Check if user has a membership in the target org
+    const membership = ctx.user.memberships?.find(
+      (m) => m.organizationId === targetOrgId,
+    );
+    if (membership) {
+      orgId = targetOrgId;
+      role = membership.role;
+    } else {
+      // No membership = browsing customer. Verify org exists.
+      const targetOrg = await db.organization.findUnique({
+        where: { id: targetOrgId },
+        select: { id: true },
+      });
+      if (!targetOrg) {
+        return Response.json({ error: "Organization not found" }, { status: 404 });
+      }
+      orgId = targetOrgId;
+      role = "customer";
+    }
+  } else if (ctx.currentOrganization) {
+    orgId = ctx.currentOrganization.id;
+    role = ctx.currentOrganization.role;
+  } else {
     return Response.json({ error: "No organization context" }, { status: 403 });
   }
 
@@ -150,8 +181,6 @@ export async function handleVoiceCommand(
   }
 
   // Fetch org's markets for business context
-  const orgId = ctx.currentOrganization.id;
-  const role = ctx.currentOrganization.role;
   const markets = await db.market.findMany({
     where: { organizationId: orgId },
     select: {
@@ -170,28 +199,29 @@ export async function handleVoiceCommand(
 
   const businessContext: BusinessContext = { markets };
   const systemPrompt = buildSystemPrompt(businessContext, role);
-  const tools = toAnthropicTools(role);
+  const tools = toWorkersAiTools(role);
 
   // Check for explicit ?marketId targeting from admin UI
-  const url = new URL(request.url);
-  const explicitMarketId = url.searchParams.get("marketId");
+  const explicitMarketId = reqUrl.searchParams.get("marketId");
 
-  // Call Claude with MCP tool definitions
-  let response: Anthropic.Messages.Message;
+  // Call Workers AI (Kimi K2.5) with tool definitions
+  type AiToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+  type AiResponse = { response?: string; tool_calls?: AiToolCall[] };
+
+  let aiResult: AiResponse;
   try {
-    const client = new Anthropic({
-      apiKey: (env as unknown as { ANTHROPIC_API_KEY: string }).ANTHROPIC_API_KEY,
-    });
+    const ai = (env as unknown as { AI: { run: (model: string, input: Record<string, unknown>) => Promise<Record<string, unknown>> } }).AI;
 
-    response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+    aiResult = (await ai.run("@cf/moonshotai/kimi-k2.5", {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: rawTranscript },
+      ],
       max_tokens: 1024,
-      system: systemPrompt,
       tools,
-      messages: [{ role: "user", content: rawTranscript }],
-    });
+    })) as AiResponse;
   } catch (err) {
-    console.error("Claude MCP resolution failed:", err);
+    console.error("Workers AI tool resolution failed:", err);
     return Response.json(
       {
         error: "MCP tool resolution failed",
@@ -201,52 +231,47 @@ export async function handleVoiceCommand(
     );
   }
 
-  // Extract tool use from response
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use",
-  );
+  // Extract tool call from response
+  const toolCall = aiResult.tool_calls?.[0];
 
-  if (!toolUseBlock) {
-    // Claude didn't pick a tool — ambiguous or unrecognized input
-    const textBlock = response.content.find(
-      (block): block is Anthropic.Messages.TextBlock => block.type === "text",
-    );
+  if (!toolCall) {
+    // Model didn't pick a tool — ambiguous or unrecognized input
     return Response.json({
       intent: "unknown",
       confidence: 0,
       data: {},
       interpretation:
-        textBlock?.text ?? "Could not determine the intended action.",
+        aiResult.response ?? "Could not determine the intended action.",
       rawTranscript,
       reviewType: "unknown",
     } satisfies VoiceCommandResult);
   }
 
   // Validate tool is known
-  const tool = voiceTools[toolUseBlock.name];
+  const tool = voiceTools[toolCall.function.name];
   if (!tool) {
     return Response.json({
-      intent: toolUseBlock.name,
+      intent: toolCall.function.name,
       confidence: 0,
-      data: toolUseBlock.input as Record<string, unknown>,
-      interpretation: `Unknown tool "${toolUseBlock.name}".`,
+      data: {},
+      interpretation: `Unknown tool "${toolCall.function.name}".`,
       rawTranscript,
       reviewType: "unknown",
     } satisfies VoiceCommandResult);
   }
 
-  const data = toolUseBlock.input as Record<string, unknown>;
+  const data = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
 
   // For market-specific intents, verify marketId and inject _original
   if (
-    toolUseBlock.name === "update_market" ||
-    toolUseBlock.name === "update_market_catch"
+    toolCall.function.name === "update_market" ||
+    toolCall.function.name === "update_market_catch"
   ) {
     const targetMarketId = explicitMarketId || (data.marketId as string);
 
     if (!targetMarketId) {
       return Response.json({
-        intent: toolUseBlock.name,
+        intent: toolCall.function.name,
         confidence: 0,
         data,
         interpretation: "Could not determine which market to update.",
@@ -258,7 +283,7 @@ export async function handleVoiceCommand(
     const matchedMarket = markets.find((m) => m.id === targetMarketId);
     if (!matchedMarket) {
       return Response.json({
-        intent: toolUseBlock.name,
+        intent: toolCall.function.name,
         confidence: 0,
         data,
         interpretation: `Market ID "${targetMarketId}" not found in your markets.`,
@@ -282,17 +307,14 @@ export async function handleVoiceCommand(
     };
   }
 
-  // Build interpretation from any text block Claude included
-  const textBlock = response.content.find(
-    (block): block is Anthropic.Messages.TextBlock => block.type === "text",
-  );
+  // Build interpretation from response text
   const interpretation =
-    textBlock?.text ?? `Using ${toolUseBlock.name}`;
+    aiResult.response ?? `Using ${toolCall.function.name}`;
 
   // For read-only tools, execute the query server-side and include results
   let queryResult: Record<string, unknown> | undefined;
   if (tool.reviewType === "read-only") {
-    const registeredTool = toolRegistry[toolUseBlock.name];
+    const registeredTool = toolRegistry[toolCall.function.name];
     if (registeredTool) {
       try {
         const result = await registeredTool.handler(data, orgId, role);
@@ -305,8 +327,20 @@ export async function handleVoiceCommand(
     }
   }
 
+  // Signal: fire-and-forget voice command to Signal Agent
+  try {
+    const signalEnv = env as unknown as Env;
+    const signalStub = signalEnv.SIGNAL_DURABLE_OBJECT.get(
+      signalEnv.SIGNAL_DURABLE_OBJECT.idFromName(orgId),
+    );
+    signalStub.ingest({
+      type: "voice", source: "command-bar", content: rawTranscript,
+      intent: toolCall.function.name, role, orgId, timestamp: Date.now(),
+    }).catch(() => {});
+  } catch {}
+
   return Response.json({
-    intent: toolUseBlock.name,
+    intent: toolCall.function.name,
     confidence: 1,
     data,
     interpretation,

@@ -1,6 +1,6 @@
 "use server";
 
-import { requestInfo } from "rwsdk/worker";
+import { requestInfo, serverQuery } from "rwsdk/worker";
 
 import { db } from "@/db";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/utils/email";
@@ -363,6 +363,24 @@ export async function createCheckoutSession(csrfToken: string, orderId: string, 
     return { success: false as const, error: "Failed to create checkout session" };
   }
 }
+
+export const getUpdatedOrderCount = serverQuery(async (sinceTimestamp: string) => {
+  const { ctx } = requestInfo;
+
+  if (!ctx.user) return 0;
+
+  try {
+    return await db.order.count({
+      where: {
+        userId: ctx.user.id,
+        updatedAt: { gt: new Date(sinceTimestamp) },
+        status: { not: 'pending' },
+      },
+    });
+  } catch {
+    return 0;
+  }
+});
 
 export async function cancelOrder(csrfToken: string, orderId: string) {
   requireCsrf(csrfToken);

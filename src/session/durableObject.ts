@@ -34,28 +34,29 @@ export class SessionDurableObject extends DurableObject {
       .replace(/=+$/, "");
   }
 
-  async saveSession({
-    userId = null,
-    challenge = null,
-    currentOrganizationId = null,
-    role = null,
-    csrfToken,
-  }: {
+  async saveSession(data: {
     userId?: string | null;
     challenge?: string | null;
     currentOrganizationId?: string | null;
     role?: string | null;
     csrfToken?: string;
   }): Promise<Session> {
+    // Merge with existing session to avoid wiping auth state
+    // when only updating a single field (e.g., challenge for passkey)
+    const existing = this.session ?? await this.ctx.storage.get<Session>("session");
+
     const session: Session = {
-      userId,
-      challenge,
-      challengeCreatedAt: challenge ? Date.now() : null,
-      createdAt: Date.now(),
-      currentOrganizationId,
-      role,
-      // Preserve existing CSRF token on session updates; generate fresh one for new sessions
-      csrfToken: csrfToken ?? this.session?.csrfToken ?? this.generateCsrfToken(),
+      userId: data.userId !== undefined ? data.userId : (existing?.userId ?? null),
+      challenge: data.challenge !== undefined ? data.challenge : (existing?.challenge ?? null),
+      challengeCreatedAt: data.challenge !== undefined
+        ? (data.challenge ? Date.now() : null)
+        : (existing?.challengeCreatedAt ?? null),
+      createdAt: existing?.createdAt ?? Date.now(),
+      currentOrganizationId: data.currentOrganizationId !== undefined
+        ? data.currentOrganizationId
+        : (existing?.currentOrganizationId ?? null),
+      role: data.role !== undefined ? data.role : (existing?.role ?? null),
+      csrfToken: data.csrfToken ?? existing?.csrfToken ?? this.generateCsrfToken(),
     };
 
     await this.ctx.storage.put<Session>("session", session);

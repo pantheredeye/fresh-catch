@@ -483,3 +483,39 @@
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 }
+
+/* Mobile: stack item inputs, reduce padding */
+@media (max-width: 480px) {
+  .cr-overlay {
+    padding: var(--space-sm);
+  }
+
+  .cr-header {
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+  }
+
+  .cr-body {
+    padding: var(--space-md);
+  }
+
+  .cr-actions {
+    padding: var(--space-md);
+  }
+
+  .cr-item-row {
+    flex-wrap: wrap;
+    padding: var(--space-sm);
+    background: var(--color-surface-secondary);
+    border-radius: var(--radius-md);
+    gap: var(--space-xs);
+  }
+
+  .cr-input--name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .cr-input--note {
+    flex: 1 1 100%;
+  }
+}

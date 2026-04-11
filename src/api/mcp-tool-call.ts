@@ -3,7 +3,6 @@
 import { env } from "cloudflare:workers";
 import { requestInfo } from "rwsdk/worker";
 import { requireCsrf } from "@/session/csrf";
-import { hasAdminAccess } from "@/utils/permissions";
 import { voiceTools } from "./voice-tools";
 import { toolRegistry, TIER_LIMITS } from "./mcp-server";
 
@@ -19,19 +18,36 @@ export async function executeMcpTool(
   csrfToken: string,
   toolName: string,
   args: Record<string, unknown>,
+  targetOrgId?: string,
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   requireCsrf(csrfToken);
 
   const { ctx } = requestInfo;
 
-  if (!ctx.user || !ctx.currentOrganization) {
+  if (!ctx.user) {
     return { success: false, error: "Authentication required" };
   }
 
-  const callerRole = ctx.currentOrganization.role ?? "owner";
-  const isAdmin = hasAdminAccess(ctx);
+  // Resolve target org + role from memberships
+  let organizationId: string;
+  let callerRole: string;
 
-  // Customer callers: verify tool allows customer role
+  if (targetOrgId && targetOrgId !== ctx.currentOrganization?.id) {
+    const membership = ctx.user.memberships?.find(
+      (m) => m.organizationId === targetOrgId,
+    );
+    organizationId = targetOrgId;
+    callerRole = membership?.role ?? "customer";
+  } else if (ctx.currentOrganization) {
+    organizationId = ctx.currentOrganization.id;
+    callerRole = ctx.currentOrganization.role ?? "owner";
+  } else {
+    return { success: false, error: "No organization context" };
+  }
+
+  const isAdmin = ["owner", "manager"].includes(callerRole);
+
+  // Verify tool allows caller's role
   if (!isAdmin) {
     const voiceTool = voiceTools[toolName];
     if (!voiceTool?.roles?.includes(callerRole)) {
@@ -43,8 +59,6 @@ export async function executeMcpTool(
   if (!tool) {
     return { success: false, error: `Unknown tool: ${toolName}` };
   }
-
-  const organizationId = ctx.currentOrganization.id;
   const startMs = Date.now();
 
   // Rate limit via McpDO
@@ -66,6 +80,17 @@ export async function executeMcpTool(
 
   // Execute handler
   const result = await tool.handler(args, organizationId, callerRole);
+
+  // Signal: fire-and-forget tool call to Signal Agent
+  try {
+    const signalStub = env.SIGNAL_DURABLE_OBJECT.get(
+      env.SIGNAL_DURABLE_OBJECT.idFromName(organizationId),
+    );
+    signalStub.ingest({
+      type: "tool", source: "mcp", content: toolName,
+      intent: toolName, role: callerRole, orgId: organizationId, timestamp: Date.now(),
+    }).catch(() => {});
+  } catch {}
 
   // Audit log via McpDO
   const durationMs = Date.now() - startMs;

@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { db, setupDb } from "@/db";
 import { sendChatReplyNotificationEmail } from "@/utils/email";
-import type { MessageParam } from "@anthropic-ai/sdk/resources/messages";
+import type { ChatMessage } from "@/ai/workers-ai-client";
 import { generateAiResponse } from "./ai-agent";
 
 const EMAIL_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
@@ -37,6 +37,7 @@ export class ChatDurableObject extends DurableObject {
   private lastEmailSentAt: number = 0;
   /** When true, vendor has taken over this conversation — suppress AI replies */
   private vendorTakeover: boolean = false;
+  private conversationVerified: boolean = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -84,6 +85,7 @@ export class ChatDurableObject extends DurableObject {
     await setupDb(this.env);
 
     this.conversationId = this.getConversationId(request);
+    this.conversationVerified = false;
 
     const url = new URL(request.url);
     const role = url.searchParams.get("role") || "customer";
@@ -149,6 +151,20 @@ export class ChatDurableObject extends DurableObject {
     if (!this.conversationId) {
       // Fallback: retrieve from the first connected socket or DO id
       this.conversationId = this.ctx.id.toString();
+    }
+
+    // Verify conversation exists in D1 (guards against replication lag)
+    if (!this.conversationVerified) {
+      const conv = await db.conversation.findUnique({
+        where: { id: this.conversationId },
+        select: { id: true },
+      });
+      if (!conv) {
+        ws.send(JSON.stringify({ type: "error", message: "Conversation not ready. Please retry." }));
+        ws.close(4000, "Conversation not found");
+        return;
+      }
+      this.conversationVerified = true;
     }
 
     // Persist message to D1
@@ -220,13 +236,27 @@ export class ChatDurableObject extends DurableObject {
       socket.send(payload);
     }
 
+    // Signal: fire-and-forget customer interaction to Signal Agent
+    if (parsed.senderType === "customer" && this.conversationId) {
+      try {
+        const conv = await db.conversation.findUnique({
+          where: { id: this.conversationId },
+          select: { organizationId: true },
+        });
+        if (conv) {
+          const signalId = this.env.SIGNAL_DURABLE_OBJECT.idFromName(conv.organizationId);
+          this.env.SIGNAL_DURABLE_OBJECT.get(signalId).ingest({
+            type: "chat", source: "websocket", content: parsed.content,
+            role: "customer", orgId: conv.organizationId, timestamp: Date.now(),
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+
     // AI auto-reply: if customer message + vendor offline + no takeover
     if (parsed.senderType === "customer" && !this.isVendorOnline() && !this.vendorTakeover) {
       try {
-        const apiKey = (this.env as unknown as Record<string, string>).ANTHROPIC_API_KEY;
-        if (apiKey) {
-          await this.handleAiResponse(parsed.content, apiKey);
-        }
+        await this.handleAiResponse(parsed.content);
       } catch (err) {
         console.error("[ChatDO] AI response failed:", err);
       }
@@ -236,7 +266,6 @@ export class ChatDurableObject extends DurableObject {
   /** Generate and broadcast an AI response for an offline vendor */
   private async handleAiResponse(
     customerMessage: string,
-    apiKey: string,
   ): Promise<void> {
     if (!this.conversationId) return;
 
@@ -254,7 +283,7 @@ export class ChatDurableObject extends DurableObject {
       take: 20,
     });
 
-    const conversationHistory: MessageParam[] = recentMessages
+    const conversationHistory: ChatMessage[] = recentMessages
       .slice(0, -1) // exclude the just-sent customer message
       .map((m) => ({
         role: (m.senderType === "customer" ? "user" : "assistant") as
@@ -330,7 +359,6 @@ export class ChatDurableObject extends DurableObject {
     }
 
     const result = await generateAiResponse({
-      apiKey,
       customerMessage,
       conversationHistory,
       orgContext: {
@@ -411,7 +439,15 @@ export class ChatDurableObject extends DurableObject {
     wasClean: boolean,
   ): Promise<void> {
     const tags = this.ctx.getTags(ws);
-    ws.close(code, reason);
+
+    // RFC 6455: 1005/1006 are reserved and must not be sent in close frames
+    const safeCode = code === 1005 || code === 1006 ? 1000 : code;
+    try {
+      ws.close(safeCode, reason);
+    } catch {
+      // Socket already closed
+    }
+
     // If a vendor disconnected, clear takeover and broadcast presence
     if (tags.includes("vendor")) {
       // Only clear if no other vendor sockets remain

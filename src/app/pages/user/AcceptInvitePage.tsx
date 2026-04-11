@@ -17,6 +17,10 @@ export async function AcceptInvitePage({ ctx, request }: RequestInfo) {
   });
 
   if (!invite || invite.status !== "pending") {
+    // If invite was accepted and user is the acceptor, show friendly "you're in" message
+    if (invite?.status === "accepted" && ctx.user && invite.acceptedBy === ctx.user.id) {
+      return <AlreadyMember orgName={invite.organization.name} />;
+    }
     return (
       <InviteError
         message={
@@ -61,10 +65,10 @@ function PleaseLoginFirst({ token, orgName, role }: { token: string; orgName: st
             You've been invited to join as <strong>{roleLabel}</strong>.
           </p>
           <p style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-lg)" }}>
-            Please log in or create an account first, then come back to accept.
+            Sign in or create an account to accept.
           </p>
           <a
-            href="/login"
+            href={`/login?invite=${encodeURIComponent(token)}`}
             style={{
               display: "inline-block",
               padding: "12px 24px",
@@ -76,7 +80,39 @@ function PleaseLoginFirst({ token, orgName, role }: { token: string; orgName: st
               fontSize: "var(--font-size-md)",
             }}
           >
-            Go to Login
+            Continue
+          </a>
+        </div>
+      </Card>
+    </Container>
+  );
+}
+
+function AlreadyMember({ orgName }: { orgName: string }) {
+  return (
+    <Container size="sm">
+      <Card variant="centered" maxWidth="450px">
+        <div style={{ textAlign: "center", padding: "var(--space-lg)" }}>
+          <h1 style={{ fontSize: "var(--font-size-2xl)", color: "var(--color-text-primary)", marginBottom: "var(--space-md)" }}>
+            You're already in!
+          </h1>
+          <p style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-lg)" }}>
+            You're a member of <strong>{orgName}</strong>.
+          </p>
+          <a
+            href="/admin"
+            style={{
+              display: "inline-block",
+              padding: "12px 24px",
+              background: "var(--color-action-primary)",
+              color: "var(--color-text-inverse)",
+              textDecoration: "none",
+              borderRadius: "var(--radius-sm)",
+              fontWeight: "var(--font-weight-semibold)",
+              fontSize: "var(--font-size-md)",
+            }}
+          >
+            Go to Dashboard
           </a>
         </div>
       </Card>

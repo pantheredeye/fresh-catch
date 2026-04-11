@@ -1,5 +1,5 @@
 "use server";
-import { requestInfo } from "rwsdk/worker";
+import { requestInfo, serverQuery } from "rwsdk/worker";
 
 export type ShareType = "organization" | "market";
 
@@ -28,7 +28,7 @@ export function generateShareUrl(options: ShareOptions): string {
 /**
  * Get current organization share URL from context
  */
-export async function getCurrentOrgShareUrl(): Promise<string> {
+export const getCurrentOrgShareUrl = serverQuery(async (): Promise<string> => {
   const { ctx } = requestInfo;
   const slug = ctx.currentOrganization?.slug;
 
@@ -40,7 +40,7 @@ export async function getCurrentOrgShareUrl(): Promise<string> {
     type: "organization",
     organizationSlug: slug,
   });
-}
+});
 
 /**
  * Generate social media share URLs

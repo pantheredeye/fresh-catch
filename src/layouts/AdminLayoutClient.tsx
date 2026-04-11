@@ -50,15 +50,18 @@ export function AdminLayoutClient({
 
   useEffect(() => {
     if (!currentOrganization?.id) return;
-    const fetch = async () => {
+    const fetchCount = async () => {
       try {
-        const count = await getPendingOrderCount(currentOrganization.id);
+        const count = await Promise.race([
+          getPendingOrderCount(currentOrganization.id),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8_000)),
+        ]);
         setPendingOrderCount(count);
       } catch { /* noop */ }
     };
-    fetch();
-    const interval = setInterval(fetch, 30_000);
-    return () => clearInterval(interval);
+    const delay = setTimeout(fetchCount, 2_000);
+    const interval = setInterval(fetchCount, 30_000);
+    return () => { clearTimeout(delay); clearInterval(interval); };
   }, [currentOrganization?.id]);
 
   const showToast = useCallback((msg: string) => {

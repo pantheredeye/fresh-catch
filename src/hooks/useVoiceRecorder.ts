@@ -120,6 +120,7 @@ export function useVoiceRecorder({
         const blob = new Blob(chunksRef.current, { type: mimeType });
         blobRef.current = blob;
         cleanup();
+        setState("processing");
         onAudioReadyRef.current(blob);
       };
 

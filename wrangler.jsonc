@@ -29,6 +29,10 @@
       {
         "name": "MCP_DURABLE_OBJECT",
         "class_name": "McpDurableObject"
+      },
+      {
+        "name": "SIGNAL_DURABLE_OBJECT",
+        "class_name": "SignalDurableObject"
       }
     ]
   },
@@ -64,11 +68,15 @@
       "new_sqlite_classes": [
         "McpDurableObject"
       ]
+    },
+    {
+      "tag": "v5",
+      "new_sqlite_classes": [
+        "SignalDurableObject"
+      ]
     }
   ],
-  "secrets": [
-    "ANTHROPIC_API_KEY"
-  ],
+  "secrets": [],
   "ai": {
     "binding": "AI"
   },

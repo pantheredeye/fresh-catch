@@ -11,6 +11,7 @@ import { MessagesPage } from "./messages/MessagesPage";
 import { BrandingSettingsPage } from "./BrandingSettingsPage";
 import { ApiSettingsPage } from "./ApiSettingsPage";
 import { GapsPage } from "./gaps/GapsPage";
+import { InsightsPage } from "./insights/InsightsPage";
 
 export const adminRoutes = [
   route("/", AdminDashboard),        // /admin landing page
@@ -25,4 +26,5 @@ export const adminRoutes = [
   route("/catch", CatchPage),         // /admin/catch
   route("/messages", MessagesPage),    // /admin/messages
   route("/gaps", GapsPage),            // /admin/gaps
+  route("/insights", InsightsPage),    // /admin/insights
 ];

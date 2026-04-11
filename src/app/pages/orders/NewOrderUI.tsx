@@ -10,13 +10,14 @@ interface NewOrderUIProps {
   vendorId: string;
   defaultContact: {
     name: string;
+    email: string;
     phone: string;
   };
 }
 
 export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: NewOrderUIProps) {
   const [contactName, setContactName] = useState(defaultContact.name);
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactEmail, setContactEmail] = useState(defaultContact.email);
   const [contactPhone, setContactPhone] = useState(defaultContact.phone);
   const [items, setItems] = useState("");
   const [preferredDate, setPreferredDate] = useState("");

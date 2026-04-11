@@ -36,9 +36,10 @@ interface OrderCardProps {
   ctx: AppContext;
   csrfToken: string;
   feeModel?: FeeModel | null;
+  isUpdated?: boolean;
 }
 
-export function OrderCard({ order, viewMode, ctx, csrfToken, feeModel }: OrderCardProps) {
+export function OrderCard({ order, viewMode, ctx, csrfToken, feeModel, isUpdated }: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -133,8 +134,22 @@ export function OrderCard({ order, viewMode, ctx, csrfToken, feeModel }: OrderCa
         gap: 'var(--space-sm)'
       }}>
         <div>
-          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-action-primary)', marginBottom: 'var(--space-xs)' }}>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-action-primary)', marginBottom: 'var(--space-xs)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
             Order #{order.orderNumber}
+            {isUpdated && (
+              <span style={{
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 'var(--font-weight-semibold)',
+                padding: '2px 8px',
+                background: 'var(--color-action-secondary)',
+                color: 'var(--color-text-inverse)',
+                borderRadius: 'var(--radius-full)',
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--letter-spacing-wide)',
+              }}>
+                Updated
+              </span>
+            )}
           </div>
           {viewMode === 'customer' && order.organization && (
             <div style={{

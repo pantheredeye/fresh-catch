@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Container, Button } from "@/design-system";
 import { OrderCard, PaymentStatusBanner } from "./components";
 import type { AppContext } from "@/worker";
@@ -36,6 +37,16 @@ interface CustomerOrdersUIProps {
 }
 
 export function CustomerOrdersUI({ orders, ctx, csrfToken, feeModel, checkoutStatus, checkoutOrder }: CustomerOrdersUIProps) {
+  const lastViewedRef = useRef<string>(
+    typeof window !== 'undefined'
+      ? localStorage.getItem('fresh-catch-orders-last-viewed') || new Date(0).toISOString()
+      : new Date(0).toISOString()
+  );
+
+  useEffect(() => {
+    localStorage.setItem('fresh-catch-orders-last-viewed', new Date().toISOString());
+  }, []);
+
   const vendorSlug = ctx.browsingOrganization?.slug;
   const newOrderHref = vendorSlug ? `/orders/new?b=${vendorSlug}` : '/orders/new';
   return (
@@ -98,6 +109,7 @@ export function CustomerOrdersUI({ orders, ctx, csrfToken, feeModel, checkoutSta
                 ctx={ctx}
                 csrfToken={csrfToken}
                 feeModel={feeModel}
+                isUpdated={order.status !== 'pending' && new Date(order.updatedAt) > new Date(lastViewedRef.current)}
               />
             ))}
           </div>

@@ -1,11 +1,18 @@
 /**
- * AI agent for customer chat — calls Claude API with tool use.
+ * AI agent for customer chat — calls Workers AI (Kimi K2.5) with tool use.
  * Takes customer message + history + org context, returns AI response text.
  */
 
-import type { MessageParam, Tool, ToolUseBlock, ToolResultBlockParam } from "@anthropic-ai/sdk/resources/messages";
-import { createClaudeClient, classifyQuery, getModelConfig } from "./claude-client";
-import type { TokenUsage, QueryComplexity } from "./claude-client";
+import {
+  chat,
+  classifyQuery,
+  getModelConfig,
+  type ChatMessage,
+  type WorkersAiTool,
+  type ToolCall,
+  type TokenUsage,
+  type QueryComplexity,
+} from "@/ai/workers-ai-client";
 import { voiceTools } from "@/api/voice-tools";
 import {
   handleListCatch,
@@ -25,9 +32,8 @@ export interface OrgContext {
 }
 
 export interface AiAgentOptions {
-  apiKey: string;
   customerMessage: string;
-  conversationHistory: MessageParam[];
+  conversationHistory: ChatMessage[];
   orgContext: OrgContext;
 }
 
@@ -53,18 +59,18 @@ const toolHandlers: Record<string, (rawInput: unknown, orgId: string, callerRole
   create_order: handleCreateOrder,
 };
 
-/** Convert customer-accessible voiceTools to Anthropic Tool[] format */
-function buildClaudeTools(): Tool[] {
+/** Convert customer-accessible voiceTools to Workers AI tool format */
+function buildTools(): WorkersAiTool[] {
   const customerTools = Object.entries(voiceTools).filter(
     ([, tool]) => tool.roles?.includes("customer"),
   );
 
   return customerTools.map(([name, tool]) => {
-    const properties: Record<string, Record<string, unknown>> = {};
+    const properties: Record<string, { type: string; description?: string }> = {};
     const required: string[] = [];
 
     for (const [fieldName, field] of Object.entries(tool.schema)) {
-      const prop: Record<string, unknown> = { type: "string" };
+      const prop: { type: string; description?: string } = { type: "string" };
       if (field.type === "boolean") prop.type = "boolean";
       if (field.type === "number" || field.type === "integer") prop.type = "number";
       if (field.description) prop.description = field.description;
@@ -73,12 +79,15 @@ function buildClaudeTools(): Tool[] {
     }
 
     return {
-      name,
-      description: tool.description,
-      input_schema: {
-        type: "object" as const,
-        properties,
-        ...(required.length > 0 ? { required } : {}),
+      type: "function" as const,
+      function: {
+        name,
+        description: tool.description,
+        parameters: {
+          type: "object" as const,
+          properties,
+          ...(required.length > 0 ? { required } : {}),
+        },
       },
     };
   });
@@ -132,14 +141,13 @@ When placing orders, automatically include the customer's name and email as cont
 
 /**
  * Generate an AI response for a customer chat message.
- * Handles the full tool-use loop: Claude may call tools, we execute them
- * and feed results back until Claude produces a final text response.
+ * Handles the full tool-use loop: model may call tools, we execute them
+ * and feed results back until model produces a final text response.
  */
 export async function generateAiResponse(options: AiAgentOptions): Promise<AiAgentResult> {
-  const { apiKey, customerMessage, conversationHistory, orgContext } = options;
+  const { customerMessage, conversationHistory, orgContext } = options;
 
-  const client = createClaudeClient(apiKey);
-  const tools = buildClaudeTools();
+  const tools = buildTools();
   const system = buildSystemPrompt(orgContext.orgName, orgContext.customerName, orgContext.customerEmail);
 
   // Classify query complexity for model routing
@@ -147,17 +155,16 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
   const modelConfig = getModelConfig(complexity);
 
   // Build messages: history + latest customer message
-  const messages: MessageParam[] = [
+  const messages: ChatMessage[] = [
     ...conversationHistory,
     { role: "user", content: customerMessage },
   ];
 
   let round = 0;
-  // Accumulate token usage across tool-use rounds
   const totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
 
   while (round < MAX_TOOL_ROUNDS) {
-    const result = await client.chat({
+    const result = await chat({
       messages,
       tools: tools.length > 0 ? tools : undefined,
       system,
@@ -177,72 +184,66 @@ export async function generateAiResponse(options: AiAgentOptions): Promise<AiAge
     totalUsage.inputTokens += result.usage.inputTokens;
     totalUsage.outputTokens += result.usage.outputTokens;
 
-    // If Claude stopped with end_turn or no tool use, extract text and return
-    if (result.stopReason !== "tool_use") {
-      const text = result.content
-        .filter((block) => block.type === "text")
-        .map((block) => "text" in block ? block.text : "")
-        .join("\n");
-
+    // If no tool calls, we have the final text response
+    if (result.toolCalls.length === 0) {
       return {
         ok: true,
-        text: text || FALLBACK_MESSAGE,
+        text: result.content || FALLBACK_MESSAGE,
         usage: totalUsage,
         complexity,
         model: modelConfig.model,
       };
     }
 
-    // Claude wants to use tools — execute them and feed results back
-    const toolUseBlocks = result.content.filter(
-      (block): block is ToolUseBlock => block.type === "tool_use",
-    );
+    // Model wants to use tools — add assistant message with tool calls
+    messages.push({
+      role: "assistant",
+      content: result.content || undefined,
+      tool_calls: result.toolCalls,
+    });
 
-    // Add assistant's response (with tool_use blocks) to messages
-    messages.push({ role: "assistant", content: result.content });
-
-    // Execute each tool call and collect results
-    const toolResults: ToolResultBlockParam[] = await Promise.all(
-      toolUseBlocks.map(async (toolUse) => {
-        const handler = toolHandlers[toolUse.name];
+    // Execute each tool call and feed results back
+    const toolResults = await Promise.all(
+      result.toolCalls.map(async (toolCall: ToolCall) => {
+        const handler = toolHandlers[toolCall.function.name];
 
         if (!handler) {
           return {
-            type: "tool_result" as const,
-            tool_use_id: toolUse.id,
-            content: `Unknown tool: ${toolUse.name}`,
-            is_error: true,
+            role: "tool" as const,
+            tool_call_id: toolCall.id,
+            content: `Unknown tool: ${toolCall.function.name}`,
           };
         }
 
         try {
-          const handlerResult = await handler(toolUse.input, orgContext.organizationId, "customer");
+          const args = JSON.parse(toolCall.function.arguments);
+          const handlerResult = await handler(args, orgContext.organizationId, "customer");
           const text = handlerResult.content.map((c) => c.text).join("\n");
 
           return {
-            type: "tool_result" as const,
-            tool_use_id: toolUse.id,
-            content: text,
-            is_error: handlerResult.isError ?? false,
+            role: "tool" as const,
+            tool_call_id: toolCall.id,
+            content: handlerResult.isError ? `Error: ${text}` : text,
           };
         } catch (err) {
           return {
-            type: "tool_result" as const,
-            tool_use_id: toolUse.id,
+            role: "tool" as const,
+            tool_call_id: toolCall.id,
             content: `Tool error: ${err instanceof Error ? err.message : String(err)}`,
-            is_error: true,
           };
         }
       }),
     );
 
-    // Add tool results as a user message
-    messages.push({ role: "user", content: toolResults });
+    // Add tool results as individual messages
+    for (const toolResult of toolResults) {
+      messages.push(toolResult);
+    }
 
     round++;
   }
 
-  // Exhausted tool rounds — return what we have
+  // Exhausted tool rounds
   return {
     ok: false,
     text: FALLBACK_MESSAGE,
