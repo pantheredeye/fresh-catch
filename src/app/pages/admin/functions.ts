@@ -5,7 +5,7 @@ import {
   RegistrationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions, resilientDO } from "@/session/store";
+import { sessions, resilientDO, getSessionStub } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
@@ -133,7 +133,6 @@ export async function createBusinessForLoggedInUser(
 
 export async function startBusinessOwnerRegistration(username: string) {
   const { rpName, rpID } = getWebAuthnConfig(requestInfo.request);
-  const { response } = requestInfo;
 
   const options = await generateRegistrationOptions({
     rpName,
@@ -147,7 +146,9 @@ export async function startBusinessOwnerRegistration(username: string) {
     },
   });
 
-  await resilientDO(() => sessions.save(response.headers, { challenge: options.challenge }), "startBizReg.save");
+  const stub = getSessionStub(requestInfo.request, env);
+  if (!stub) throw new Error("No active session");
+  await resilientDO(() => stub.saveSession({ challenge: options.challenge }), "startBizReg.save");
 
   return options;
 }
@@ -168,9 +169,11 @@ export async function finishBusinessOwnerRegistration(
     return false;
   }
 
+  const stub = getSessionStub(request, env);
+
   // Reject expired challenges
   if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishBizReg.expiry");
+    if (stub) await resilientDO(() => stub.saveSession({ challenge: null }), "finishBizReg.expiry");
     return false;
   }
 
@@ -185,7 +188,7 @@ export async function finishBusinessOwnerRegistration(
     return false;
   }
 
-  await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishBizReg.clearChallenge");
+  if (stub) await resilientDO(() => stub.saveSession({ challenge: null }), "finishBizReg.clearChallenge");
 
   // Look for existing user with this username
   let user = await db.user.findUnique({

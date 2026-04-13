@@ -8,7 +8,7 @@ import {
   AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
 
-import { sessions, rotateSession, saveOtp, verifyOtpViaSession, resilientDO } from "@/session/store";
+import { sessions, rotateSession, saveOtp, verifyOtpViaSession, resilientDO, getSessionStub } from "@/session/store";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
@@ -359,7 +359,6 @@ export async function startPasskeyRegistration(username: string) {
   if (!isValidEmail(username)) throw new Error("Invalid email format");
 
   const { rpName, rpID } = getWebAuthnConfig(requestInfo.request);
-  const { response } = requestInfo;
 
   const options = await generateRegistrationOptions({
     rpName,
@@ -371,7 +370,11 @@ export async function startPasskeyRegistration(username: string) {
     },
   });
 
-  await resilientDO(() => sessions.save(response.headers, { challenge: options.challenge }), "startPasskeyReg.save");
+  // Update challenge in-place on existing session DO — sessions.save() would
+  // create a NEW session (new cookie), wiping userId/org and breaking auth.
+  const stub = getSessionStub(requestInfo.request, env);
+  if (!stub) throw new Error("No active session");
+  await resilientDO(() => stub.saveSession({ challenge: options.challenge }), "startPasskeyReg.save");
 
   return options;
 }
@@ -379,7 +382,7 @@ export async function startPasskeyRegistration(username: string) {
 export async function finishPasskeyRegistration(
   registration: RegistrationResponseJSON,
 ) {
-  const { request, response, ctx } = requestInfo;
+  const { request, ctx } = requestInfo;
   const { origin } = new URL(request.url);
 
   // Require logged-in user
@@ -394,9 +397,11 @@ export async function finishPasskeyRegistration(
     return { success: false, error: "No challenge" };
   }
 
+  const stub = getSessionStub(request, env);
+
   // Reject expired challenges
   if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishPasskeyReg.expiry");
+    if (stub) await resilientDO(() => stub.saveSession({ challenge: null }), "finishPasskeyReg.expiry");
     return { success: false, error: "Challenge expired" };
   }
 
@@ -411,7 +416,7 @@ export async function finishPasskeyRegistration(
     return { success: false, error: "Verification failed" };
   }
 
-  await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishPasskeyReg.clearChallenge");
+  if (stub) await resilientDO(() => stub.saveSession({ challenge: null }), "finishPasskeyReg.clearChallenge");
 
   // Create or update credential (upsert guards against duplicate registration from double-clicks / retries)
   await db.credential.upsert({
@@ -435,7 +440,6 @@ export async function startPasskeyLogin(email: string) {
   if (!isValidEmail(email)) throw new Error("Invalid email format");
 
   const { rpID } = getWebAuthnConfig(requestInfo.request);
-  const { response } = requestInfo;
 
   const user = await db.user.findFirst({
     where: { username: email, deletedAt: null },
@@ -453,7 +457,9 @@ export async function startPasskeyLogin(email: string) {
     allowCredentials,
   });
 
-  await resilientDO(() => sessions.save(response.headers, { challenge: options.challenge }), "startPasskeyLogin.save");
+  const stub = getSessionStub(requestInfo.request, env);
+  if (!stub) throw new Error("No active session");
+  await resilientDO(() => stub.saveSession({ challenge: options.challenge }), "startPasskeyLogin.save");
 
   return options;
 }
@@ -469,9 +475,11 @@ export async function finishPasskeyLogin(login: AuthenticationResponseJSON, invi
     return false;
   }
 
+  const stub = getSessionStub(request, env);
+
   // Reject expired challenges
   if (session?.challengeCreatedAt && Date.now() - session.challengeCreatedAt > CHALLENGE_TTL_MS) {
-    await resilientDO(() => sessions.save(response.headers, { challenge: null }), "finishPasskeyLogin.expiry");
+    if (stub) await resilientDO(() => stub.saveSession({ challenge: null }), "finishPasskeyLogin.expiry");
     return false;
   }
 

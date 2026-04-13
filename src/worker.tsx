@@ -315,8 +315,7 @@ const app = defineApp([
             role: null,
             csrfToken: ctx.session!.csrfToken,
           }), "middleware.revokedMembership");
-          response.headers.set("Location", "/");
-          return new Response(null, { status: 302, headers: response.headers });
+          return safeRedirect(request, "/", response.headers);
         }
       }
     }
