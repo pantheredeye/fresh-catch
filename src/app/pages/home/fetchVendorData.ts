@@ -5,7 +5,7 @@ const STALE_DAYS = 7;
 export function getQuickActions(vendorSlug?: string) {
   const orderHref = vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new";
   return [
-    { icon: "🐟", title: "Quick Order", href: orderHref },
+    { icon: "🐟", title: "Order", href: orderHref },
     { icon: "📋", title: "My Orders", href: "/orders" },
     { icon: "📍", title: "Markets", href: "#markets" },
     { icon: "💬", title: "Contact", href: "#text" }

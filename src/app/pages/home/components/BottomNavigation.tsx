@@ -13,16 +13,16 @@ import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
 import './BottomNavigation.css';
 
 /**
- * BottomNavigation V2 - Bottom nav with Chat, Quick Order, More
+ * BottomNavigation - Bottom nav with Chat, Order, More menu
  *
- * WHY: Chat replaces Home button; logo in Header handles home navigation.
- * Quick Order button styled prominently in center.
+ * Menu is role-aware: different items for signed-out, customer, and admin users.
  */
-export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, user, chatConversationId }: {
+export function BottomNavigation({ vendorSlug, vendorName, organizationId, user, isAdmin, chatConversationId }: {
   vendorSlug?: string;
   vendorName?: string;
   organizationId?: string;
   user?: { name: string; phone?: string } | null;
+  isAdmin?: boolean;
   chatConversationId?: string;
 } = {}) {
   const [footerVisible, setFooterVisible] = useState(false);
@@ -33,10 +33,9 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
   const [orderUpdateCount, setOrderUpdateCount] = useState(0);
   const { openCommandBar } = useVoiceCommand();
 
+  const isLoggedIn = !!user;
+
   // Timeout wrapper — prevents server function hangs from blocking the UI.
-  // rwsdk 1.0.8 corrupts RSC stream state on mid-render throws, so we must
-  // never let a hung POST propagate; AbortController isn't available for
-  // server functions, so we race against a timer.
   const withTimeout = useCallback(<T,>(fn: () => Promise<T>, ms = 8_000): Promise<T> => {
     return Promise.race([
       fn(),
@@ -71,21 +70,21 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
   }, [withTimeout]);
 
   // Stagger initial fetches to avoid concurrent D1/DO cold-start contention.
-  // Poll every 30s after that.
   useEffect(() => {
     if (chatOpen || !organizationId) return;
-    const delay = setTimeout(fetchUnread, 2_000); // 2s after mount
+    const delay = setTimeout(fetchUnread, 2_000);
     const interval = setInterval(fetchUnread, 30_000);
     return () => { clearTimeout(delay); clearInterval(interval); };
   }, [chatOpen, organizationId, fetchUnread]);
 
   useEffect(() => {
-    const delay = setTimeout(fetchOrderUpdates, 4_000); // 4s after mount
+    if (!isLoggedIn) return;
+    const delay = setTimeout(fetchOrderUpdates, 4_000);
     const interval = setInterval(fetchOrderUpdates, 30_000);
     return () => { clearTimeout(delay); clearInterval(interval); };
-  }, [fetchOrderUpdates]);
+  }, [fetchOrderUpdates, isLoggedIn]);
 
-  // When chat opens, reset badge and mark messages as read (fire-and-forget)
+  // When chat opens, reset badge and mark messages as read
   const handleChatToggle = useCallback(() => {
     const opening = !chatOpen;
     setChatOpen(opening);
@@ -93,7 +92,7 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
       setUnreadCount(0);
       const convId = getStoredConversationId(organizationId);
       if (convId) {
-        markAsRead(convId, 'customer').catch(() => { /* stale or missing — ignore */ });
+        markAsRead(convId, 'customer').catch(() => {});
       }
     }
   }, [chatOpen, organizationId]);
@@ -123,6 +122,8 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
       setChatOpen(true);
     }
   }, [chatConversationId, organizationId]);
+
+  const loginHref = vendorSlug ? `/login?b=${vendorSlug}` : '/login';
 
   return (
     <>
@@ -171,7 +172,7 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
             )}
           </div>
 
-          {/* Quick Order - Matches header button style */}
+          {/* Order */}
           <a href={vendorSlug ? `/orders/new?b=${vendorSlug}` : "/orders/new"} style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -188,10 +189,10 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
             cursor: 'pointer',
             whiteSpace: 'nowrap'
           }}>
-            Quick Order
+            Order
           </a>
 
-          {/* Mic - opens CommandBar via layout context */}
+          {/* Mic */}
           <button
             onClick={openCommandBar}
             aria-label="Voice command"
@@ -221,7 +222,7 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
                 <span className="trigger-icon">⋯</span>
                 <span className="close-icon">✕</span>
               </Menu.Trigger>
-              {orderUpdateCount > 0 && (
+              {isLoggedIn && orderUpdateCount > 0 && (
                 <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
                   {orderUpdateCount}
                 </NotificationBadge>
@@ -230,51 +231,80 @@ export function BottomNavigationV2({ vendorSlug, vendorName, organizationId, use
             <Menu.Portal>
               <Menu.Positioner className="bottom-nav-menu-positioner" side="top" sideOffset={8}>
                 <Menu.Popup className="bottom-nav-menu-popup">
-                  <Menu.Item
-                    className="bottom-nav-menu-item"
-                    render={<a href="/profile" />}
-                  >
-                    <span className="menu-icon">👤</span> Profile
-                  </Menu.Item>
-                  <Menu.Item
-                    className="bottom-nav-menu-item"
-                    render={<a href="/orders" />}
-                  >
-                    <span className="menu-icon">📋</span> Orders
-                    {orderUpdateCount > 0 && (
-                      <span style={{
-                        marginLeft: 'auto',
-                        padding: '2px 8px',
-                        background: 'var(--color-action-secondary)',
-                        color: 'var(--color-text-inverse)',
-                        borderRadius: 'var(--radius-full)',
-                        fontSize: 'var(--font-size-xs)',
-                        fontWeight: 'var(--font-weight-bold)',
-                      }}>
-                        {orderUpdateCount}
-                      </span>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item
-                    className="bottom-nav-menu-item"
-                    render={<a href="/settings" />}
-                  >
-                    <span className="menu-icon">⚙️</span> Settings
-                  </Menu.Item>
-                  <Menu.Separator className="bottom-nav-menu-separator" />
-                  <Menu.Item
-                    className="bottom-nav-menu-item"
-                    onClick={() => setShareModalOpen(true)}
-                  >
-                    <span className="menu-icon">🔗</span> Share
-                  </Menu.Item>
-                  <Menu.Separator className="bottom-nav-menu-separator" />
-                  <Menu.Item
-                    className="bottom-nav-menu-item logout-item"
-                    render={<a href="/logout" />}
-                  >
-                    <span className="menu-icon">🚪</span> Logout
-                  </Menu.Item>
+                  {isLoggedIn ? (
+                    <>
+                      {/* Navigation */}
+                      <Menu.Item
+                        className="bottom-nav-menu-item"
+                        render={<a href="/profile" />}
+                      >
+                        Profile
+                      </Menu.Item>
+                      <Menu.Item
+                        className="bottom-nav-menu-item"
+                        render={<a href="/orders" />}
+                      >
+                        Orders
+                        {orderUpdateCount > 0 && (
+                          <span className="menu-badge">{orderUpdateCount}</span>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item
+                        className="bottom-nav-menu-item"
+                        render={<a href="/settings" />}
+                      >
+                        Settings
+                      </Menu.Item>
+
+                      {/* Admin shortcut */}
+                      {isAdmin && (
+                        <>
+                          <Menu.Separator className="bottom-nav-menu-separator" />
+                          <Menu.Item
+                            className="bottom-nav-menu-item admin-item"
+                            render={<a href="/admin" />}
+                          >
+                            Admin
+                          </Menu.Item>
+                        </>
+                      )}
+
+                      {/* Actions */}
+                      <Menu.Separator className="bottom-nav-menu-separator" />
+                      <Menu.Item
+                        className="bottom-nav-menu-item"
+                        onClick={() => setShareModalOpen(true)}
+                      >
+                        Share
+                      </Menu.Item>
+
+                      {/* Auth */}
+                      <Menu.Separator className="bottom-nav-menu-separator" />
+                      <Menu.Item
+                        className="bottom-nav-menu-item logout-item"
+                        render={<a href="/logout" />}
+                      >
+                        Sign Out
+                      </Menu.Item>
+                    </>
+                  ) : (
+                    <>
+                      {/* Signed out menu */}
+                      <Menu.Item
+                        className="bottom-nav-menu-item signin-item"
+                        render={<a href={loginHref} />}
+                      >
+                        Sign In
+                      </Menu.Item>
+                      <Menu.Separator className="bottom-nav-menu-separator" />
+                      <Menu.Item
+                        className="bottom-nav-menu-item"
+                        onClick={() => setShareModalOpen(true)}
+                      >
+                        Share
+                      </Menu.Item>
+                    </>
+                  )}
                 </Menu.Popup>
               </Menu.Positioner>
             </Menu.Portal>

@@ -63,7 +63,7 @@ export function Header({
     );
   }
 
-  // Customer variant (default): logo + Quick Order + UserMenu
+  // Customer variant (default): logo + Order + UserMenu
   return (
     <header className="unified-header unified-header--customer">
       <div className="unified-header__content content-wrapper">
@@ -71,8 +71,8 @@ export function Header({
           <span className="unified-header__logo-text">{browsingOrganization?.name ?? currentOrganization?.name ?? "Fresh Catch"}</span>
         </a>
         <div className="unified-header__actions">
-          <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="quick-order-button">
-            + Quick Order
+          <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="order-button">
+            + Order
           </a>
           <UserMenu user={user} currentOrganization={currentOrganization} browsingOrganization={browsingOrganization} csrfToken={csrfToken} />
         </div>

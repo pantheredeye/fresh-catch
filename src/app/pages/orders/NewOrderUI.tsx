@@ -86,7 +86,7 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: 
       <Card variant="centered" maxWidth="800px">
         <div style={{ marginBottom: 'var(--space-lg)' }}>
           <h1 className="text-heading-lg">
-            Quick Order
+            Order
           </h1>
           <p className="text-subheading">
             Tell {vendorName} what you need and when you'd like to pick it up. They'll confirm availability, price, and pickup details.

@@ -7,18 +7,17 @@ type QuickAction = {
   href: string;
 };
 
-interface FreshHeroV2Props {
+interface FreshHeroProps {
   actions: QuickAction[];
 }
 
 /**
- * FreshHero V2 - Hero section with quick actions only
+ * FreshHero - Hero section with quick actions
  *
- * WHY: Simplified hero focusing on action buttons.
  * Ocean gradient background with glassmorphic cards for premium feel.
  * Quick action buttons for key customer tasks.
  */
-export function FreshHeroV2({ actions }: FreshHeroV2Props) {
+export function FreshHero({ actions }: FreshHeroProps) {
   // Convert QuickAction to NavGridItem format
   const navItems: NavGridItem[] = actions.map(action => ({
     icon: action.icon,

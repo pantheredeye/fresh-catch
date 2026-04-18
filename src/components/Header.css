@@ -65,7 +65,7 @@
   text-transform: uppercase;
 }
 
-.quick-order-button {
+.order-button {
   display: inline-flex;
   align-items: center;
   padding: var(--space-xs) var(--space-md);
@@ -79,7 +79,7 @@
   transition: all var(--duration-fast) var(--ease-out);
 }
 
-.quick-order-button:hover {
+.order-button:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -139,7 +139,7 @@
   }
 
   /* Reduce button padding on mobile */
-  .quick-order-button {
+  .order-button {
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
     white-space: nowrap;

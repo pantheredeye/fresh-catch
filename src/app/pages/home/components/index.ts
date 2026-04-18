@@ -13,6 +13,5 @@ export { CompactMarketRow } from './CompactMarketRow';
 export { InstallBanner } from './InstallBanner';
 export { FacebookFeed } from './FacebookFeed';
 
-// Variant system - swap .v1 to .v2 to switch active version
-export { FreshHeroV2 as FreshHero } from './FreshHero.v2';
-export { BottomNavigationV2 as BottomNavigation } from './BottomNavigation.v2';
+export { FreshHero } from './FreshHero';
+export { BottomNavigation } from './BottomNavigation';

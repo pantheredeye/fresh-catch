@@ -40,7 +40,7 @@
 }
 
 .bottom-nav-menu-popup {
-  min-width: 180px;
+  min-width: 160px;
   padding: var(--space-xs);
   background: var(--color-surface-primary);
   border: 1px solid var(--color-border-subtle);
@@ -90,26 +90,47 @@
   outline-offset: -2px;
 }
 
-.bottom-nav-menu-item .menu-icon {
-  font-size: var(--font-size-md);
-  width: 20px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
 .bottom-nav-menu-separator {
   height: 1px;
   background: var(--color-border-subtle);
   margin: var(--space-xs) 0;
 }
 
+/* Badge for order count etc */
+.bottom-nav-menu-item .menu-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  background: var(--color-action-secondary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Sign In item — emphasized */
+.bottom-nav-menu-item.signin-item {
+  color: var(--color-action-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Admin shortcut */
+.bottom-nav-menu-item.admin-item {
+  color: var(--color-action-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bottom-nav-menu-item.admin-item:hover {
+  color: var(--color-action-secondary);
+}
+
+/* Sign Out */
 .bottom-nav-menu-item.logout-item {
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
 }
 
 .bottom-nav-menu-item.logout-item:hover {
   color: var(--color-status-error);
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--color-status-error-subtle, rgba(239, 68, 68, 0.08));
 }
 
 @media (prefers-reduced-motion: reduce) {
