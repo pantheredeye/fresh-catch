@@ -7,6 +7,7 @@ import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
 import { QueryResultOverlay } from "@/components/QueryResultOverlay";
 import { AdminChatBubble, AdminChatSheet } from "@/app/pages/admin/chat";
+import { InboxProvider } from "@/inbox/useInbox";
 import { getPendingOrderCount } from "@/app/pages/admin/order-functions";
 import { NotificationBadge } from "@/design-system";
 import { executeMcpTool } from "@/api/mcp-tool-call";
@@ -111,8 +112,7 @@ export function AdminLayoutClient({
     );
   }
 
-  return (
-    <ErrorBoundary>
+  const adminContent = (
     <div className="admin-layout" data-surface="admin">
       <header className="admin-header">
         {/* Exit Admin section - above unified header */}
@@ -134,35 +134,7 @@ export function AdminLayoutClient({
         />
 
         {/* Admin nav tabs - below unified header */}
-        <nav className="admin-nav content-wrapper">
-          <a href="/admin" className="admin-nav-item">
-            Markets
-          </a>
-          <div style={{ position: 'relative', display: 'inline-flex' }}>
-            <a href="/admin/orders" className="admin-nav-item">
-              Orders
-            </a>
-            {pendingOrderCount > 0 && (
-              <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
-                {pendingOrderCount}
-              </NotificationBadge>
-            )}
-          </div>
-          {isOwner && (
-            <a href="/admin/team" className="admin-nav-item">
-              Team
-            </a>
-          )}
-          <a href="/admin/messages" className="admin-nav-item">
-            Messages
-          </a>
-          <a href="/admin/insights" className="admin-nav-item">
-            Insights
-          </a>
-          <a href="/admin/settings/stripe" className="admin-nav-item">
-            Settings
-          </a>
-        </nav>
+        <AdminNav isOwner={isOwner} pendingOrderCount={pendingOrderCount} />
       </header>
 
       <main className="admin-main content-wrapper">{children}</main>
@@ -191,6 +163,54 @@ export function AdminLayoutClient({
         />
       )}
     </div>
+  );
+
+  return (
+    <ErrorBoundary>
+      {currentOrganization ? (
+        <InboxProvider organizationId={currentOrganization.id}>
+          {adminContent}
+        </InboxProvider>
+      ) : (
+        adminContent
+      )}
     </ErrorBoundary>
+  );
+}
+
+function AdminNav({ isOwner, pendingOrderCount }: { isOwner: boolean; pendingOrderCount: number }) {
+  const [path, setPath] = useState('');
+  useEffect(() => { setPath(window.location.pathname); }, []);
+
+  const isActive = (href: string) => {
+    if (href === '/admin') return path === '/admin' || path === '/admin/config' || path === '/admin/catch';
+    if (href.startsWith('/admin/settings')) return path.startsWith('/admin/settings');
+    return path.startsWith(href);
+  };
+
+  const tabs = [
+    { href: '/admin', label: 'Markets' },
+    { href: '/admin/orders', label: 'Orders', badge: pendingOrderCount },
+    ...(isOwner ? [{ href: '/admin/team', label: 'Team' }] : []),
+    { href: '/admin/messages', label: 'Messages' },
+    { href: '/admin/insights', label: 'Insights' },
+    { href: '/admin/settings/stripe', label: 'Settings' },
+  ];
+
+  return (
+    <nav className="admin-nav content-wrapper">
+      {tabs.map(tab => (
+        <div key={tab.href} style={{ position: 'relative', display: 'inline-flex' }}>
+          <a href={tab.href} className={`admin-nav-item${isActive(tab.href) ? ' active' : ''}`}>
+            {tab.label}
+          </a>
+          {tab.badge && tab.badge > 0 ? (
+            <NotificationBadge position="top-right" offset="-4px" variant="coral" size="sm">
+              {tab.badge}
+            </NotificationBadge>
+          ) : null}
+        </div>
+      ))}
+    </nav>
   );
 }

@@ -33,6 +33,10 @@
       {
         "name": "SIGNAL_DURABLE_OBJECT",
         "class_name": "SignalDurableObject"
+      },
+      {
+        "name": "INBOX_DURABLE_OBJECT",
+        "class_name": "InboxDurableObject"
       }
     ]
   },
@@ -73,6 +77,12 @@
       "tag": "v5",
       "new_sqlite_classes": [
         "SignalDurableObject"
+      ]
+    },
+    {
+      "tag": "v6",
+      "new_classes": [
+        "InboxDurableObject"
       ]
     }
   ],

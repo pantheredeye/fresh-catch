@@ -1,18 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { getConversationsWithUnread } from "@/chat/functions";
-
-interface ConversationRow {
-  id: string;
-  customerName: string;
-  customerPhone: string | null;
-  lastMessagePreview: string | null;
-  lastMessageSenderType: "customer" | "vendor" | null;
-  unreadCount: number;
-  status: string;
-  updatedAt: Date;
-}
+import { useInbox } from "@/inbox/useInbox";
 
 interface ConversationListProps {
   organizationId: string;
@@ -37,45 +25,9 @@ function truncate(text: string, max: number): string {
 }
 
 export function ConversationList({
-  organizationId,
   onSelectConversation,
 }: ConversationListProps) {
-  const [conversations, setConversations] = useState<ConversationRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchConversations = useCallback(async () => {
-    try {
-      const data = await getConversationsWithUnread(organizationId);
-      setConversations(data as ConversationRow[]);
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    fetchConversations();
-    const interval = setInterval(fetchConversations, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchConversations]);
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--color-text-tertiary)",
-          fontSize: "var(--font-size-md)",
-        }}
-      >
-        Loading conversations...
-      </div>
-    );
-  }
+  const { conversations } = useInbox();
 
   if (conversations.length === 0) {
     return (
@@ -176,7 +128,7 @@ export function ConversationList({
                   flexShrink: 0,
                 }}
               >
-                {timeAgo(conv.updatedAt)}
+                {conv.lastMessageAt ? timeAgo(conv.lastMessageAt) : ""}
               </span>
             </div>
             {conv.lastMessagePreview && (

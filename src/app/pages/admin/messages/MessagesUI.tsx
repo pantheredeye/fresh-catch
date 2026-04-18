@@ -9,10 +9,10 @@ import {
   type FormEvent,
 } from "react";
 import {
-  getConversationsWithUnread,
   resolveConversation,
   markAsRead,
 } from "@/chat/functions";
+import { useInbox } from "@/inbox/useInbox";
 
 type StatusFilter = "open" | "resolved" | "all";
 
@@ -650,23 +650,13 @@ export function MessagesUI({
   organizationId,
   initialConversations,
 }: MessagesUIProps) {
-  const [conversations, setConversations] =
-    useState<ConversationRow[]>(initialConversations);
+  const inbox = useInbox();
+  // Use live data from InboxDO once connected, otherwise SSR data
+  const conversations = inbox.conversations.length > 0
+    ? (inbox.conversations as ConversationRow[])
+    : initialConversations;
   const [filter, setFilter] = useState<StatusFilter>("open");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Poll for conversation updates
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const data = await getConversationsWithUnread(organizationId);
-        setConversations(data as ConversationRow[]);
-      } catch {
-        // silently fail
-      }
-    }, 30_000);
-    return () => clearInterval(interval);
-  }, [organizationId]);
 
   const filtered = conversations.filter((c) =>
     filter === "all" ? true : c.status === filter,
@@ -681,13 +671,8 @@ export function MessagesUI({
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
 
   const handleResolved = async () => {
-    // Refresh conversation list after resolving
-    try {
-      const data = await getConversationsWithUnread(organizationId);
-      setConversations(data as ConversationRow[]);
-    } catch {
-      // silently fail
-    }
+    await resolveConversation(selectedId!);
+    // InboxDO push will update the list automatically
   };
 
   return (

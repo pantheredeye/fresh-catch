@@ -33,6 +33,7 @@ export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
 export { McpDurableObject } from "./mcp/durableObject";
 export { SignalDurableObject } from "./signal/durableObject";
+export { InboxDurableObject } from "./inbox/durableObject";
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
@@ -378,6 +379,31 @@ const app = defineApp([
     doUrl.searchParams.set("role", role);
     const doRequest = new Request(doUrl.toString(), request);
     return stub.fetch(doRequest);
+  },
+  // WebSocket upgrade handler for admin inbox push
+  async ({ ctx, request }) => {
+    const url = new URL(request.url);
+    const inboxMatch = url.pathname.match(/^\/ws\/inbox\/([^/]+)$/);
+    if (!inboxMatch) return;
+
+    if (request.headers.get("Upgrade") !== "websocket") {
+      return new Response("Expected WebSocket upgrade", { status: 400 });
+    }
+
+    if (!ctx.user || !hasAdminAccess(ctx)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const orgId = inboxMatch[1];
+    if (ctx.currentOrganization?.id !== orgId) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const doId = env.INBOX_DURABLE_OBJECT.idFromName(orgId);
+    const stub = env.INBOX_DURABLE_OBJECT.get(doId);
+    const doUrl = new URL(request.url);
+    doUrl.searchParams.set("orgId", orgId);
+    return stub.fetch(new Request(doUrl.toString(), request));
   },
   render(Document, [
     // Auth routes with rate limiting + minimal layout

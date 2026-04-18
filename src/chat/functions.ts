@@ -1,8 +1,16 @@
 "use server";
 
 import { requestInfo, serverQuery } from "rwsdk/worker";
+import { env } from "cloudflare:workers";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
+
+function notifyInbox(organizationId: string): void {
+  try {
+    const doId = env.INBOX_DURABLE_OBJECT.idFromName(organizationId);
+    env.INBOX_DURABLE_OBJECT.get(doId).notify();
+  } catch {}
+}
 
 export async function createConversation({
   customerName,
@@ -180,6 +188,8 @@ export async function markAsRead(
     },
     data: { readAt: new Date() },
   });
+
+  notifyInbox(conversation.organizationId);
 }
 
 export const getUnreadCount = serverQuery(async (
@@ -280,4 +290,6 @@ export async function resolveConversation(conversationId: string) {
     where: { id: conversationId },
     data: { status: "resolved" },
   });
+
+  notifyInbox(conversation.organizationId);
 }

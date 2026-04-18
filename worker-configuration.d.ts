@@ -4,7 +4,7 @@
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./src/worker");
-		durableNamespaces: "SessionDurableObject" | "ChatDurableObject" | "RateLimitDurableObject" | "McpDurableObject" | "SignalDurableObject";
+		durableNamespaces: "SessionDurableObject" | "ChatDurableObject" | "RateLimitDurableObject" | "McpDurableObject" | "SignalDurableObject" | "InboxDurableObject";
 	}
 	interface Env {
 		WEBAUTHN_APP_NAME: "digitalglue-market";
@@ -20,6 +20,7 @@ declare namespace Cloudflare {
 		RATE_LIMIT_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").RateLimitDurableObject>;
 		MCP_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").McpDurableObject>;
 		SIGNAL_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").SignalDurableObject>;
+		INBOX_DURABLE_OBJECT: DurableObjectNamespace<import("./src/worker").InboxDurableObject>;
 		DB: D1Database;
 		AI: Ai;
 		ASSETS: Fetcher;

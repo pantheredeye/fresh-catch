@@ -54,6 +54,7 @@ interface HistoryPayload {
 
 export class ChatDurableObject extends DurableObject {
   private conversationId: string | null = null;
+  private organizationId: string | null = null;
   /** When true, vendor has taken over this conversation — suppress AI replies */
   private vendorTakeover: boolean = false;
   private conversationVerified: boolean = false;
@@ -196,13 +197,14 @@ export class ChatDurableObject extends DurableObject {
     if (!this.conversationVerified) {
       const conv = await db.conversation.findUnique({
         where: { id: this.conversationId },
-        select: { id: true },
+        select: { id: true, organizationId: true },
       });
       if (!conv) {
         ws.send(JSON.stringify({ type: "error", message: "Conversation not ready. Please retry." }));
         ws.close(4000, "Conversation not found");
         return;
       }
+      this.organizationId = conv.organizationId;
       this.conversationVerified = true;
     }
 
@@ -260,20 +262,22 @@ export class ChatDurableObject extends DurableObject {
       socket.send(payload);
     }
 
-    // Signal: fire-and-forget customer interaction to Signal Agent
-    if (parsed.senderType === "customer" && this.conversationId) {
+    // Push inbox update to admin
+    if (this.organizationId) {
       try {
-        const conv = await db.conversation.findUnique({
-          where: { id: this.conversationId },
-          select: { organizationId: true },
-        });
-        if (conv) {
-          const signalId = this.env.SIGNAL_DURABLE_OBJECT.idFromName(conv.organizationId);
-          this.env.SIGNAL_DURABLE_OBJECT.get(signalId).ingest({
-            type: "chat", source: "websocket", content: parsed.content,
-            role: "customer", orgId: conv.organizationId, timestamp: Date.now(),
-          }).catch(() => {});
-        }
+        const inboxId = this.env.INBOX_DURABLE_OBJECT.idFromName(this.organizationId);
+        this.env.INBOX_DURABLE_OBJECT.get(inboxId).notify().catch(() => {});
+      } catch {}
+    }
+
+    // Signal: fire-and-forget customer interaction to Signal Agent
+    if (parsed.senderType === "customer" && this.organizationId) {
+      try {
+        const signalId = this.env.SIGNAL_DURABLE_OBJECT.idFromName(this.organizationId);
+        this.env.SIGNAL_DURABLE_OBJECT.get(signalId).ingest({
+          type: "chat", source: "websocket", content: parsed.content,
+          role: "customer", orgId: this.organizationId, timestamp: Date.now(),
+        }).catch(() => {});
       } catch {}
     }
 
