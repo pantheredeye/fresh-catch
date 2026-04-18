@@ -1,5 +1,8 @@
 import { defineApp, ErrorResponse } from "rwsdk/worker";
 import { route, render, prefix, layout, type RouteMiddleware } from "rwsdk/router";
+import { handleVitestRequest } from "rwsdk-community/worker";
+import * as appActions from "@/app/actions";
+import * as testUtils from "@/app/test-utils";
 import { Document } from "@/app/Document";
 import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
@@ -130,6 +133,14 @@ function errorHtml(): string {
 }
 
 const app = defineApp([
+  // Test bridge — enables vitestInvoke RPC from test runner. Gated to non-prod.
+  async ({ request }) => {
+    if ((env as { NODE_ENV?: string }).NODE_ENV === "production") return;
+    const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/_test") {
+      return handleVitestRequest(request, { ...appActions, ...testUtils });
+    }
+  },
   // Stripe webhook — must run before session/auth AND origin middleware to preserve raw body
   // (Stripe sends POST from its own origin with signature verification)
   async ({ request }) => {

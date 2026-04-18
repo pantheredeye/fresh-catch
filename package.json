@@ -26,7 +26,7 @@
     "types": "tsc",
     "tokens:export": "node scripts/export-tokens.js",
     "prepare": "vibe-rules install cursor",
-    "test": "vitest run",
+    "test": "vite build && vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -53,11 +53,13 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.13.12",
+    "@cloudflare/vitest-pool-workers": "^0.14.7",
     "@cloudflare/workers-types": "^4.20251011.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "prisma": "~6.8.2",
+    "rwsdk-community": "^0.1.2",
     "typescript": "^5.8.3",
     "vibe-rules": "^0.2.31",
     "vite": "^6.2.6",
