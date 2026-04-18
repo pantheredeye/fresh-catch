@@ -152,6 +152,7 @@ export function CustomerHomeUI({
         vendorName={ctx.browsingOrganization?.name}
         organizationId={ctx.browsingOrganization?.id ?? ctx.currentOrganization?.id}
         user={ctx.user ? { name: ctx.user.name ?? 'Customer', phone: undefined } : null}
+        isAdmin={ctx.currentOrganization?.type === 'business' && !!ctx.currentOrganization?.role && ['owner', 'manager'].includes(ctx.currentOrganization.role)}
         chatConversationId={chatConversationId}
       />
     </div>

@@ -107,17 +107,17 @@
 .user-menu-item:hover,
 .user-menu-item:focus-visible {
   background: var(--color-glass-light);
-  color: var(--color-ocean-vivid);
+  color: var(--color-action-primary);
   outline: none;
 }
 
 .user-menu-item.admin-item {
-  color: var(--color-coral);
+  color: var(--color-action-secondary);
 }
 
 .user-menu-item.admin-item:hover {
-  color: var(--color-coral-vivid);
-  background: rgba(255, 127, 80, 0.1);
+  color: var(--color-action-secondary);
+  background: var(--color-glass-light);
 }
 
 .user-menu-item .admin-icon {
@@ -129,8 +129,8 @@
 }
 
 .user-menu-item.logout-item:hover {
-  color: var(--color-danger);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-status-error);
+  background: var(--color-glass-light);
 }
 
 .user-menu-separator {
