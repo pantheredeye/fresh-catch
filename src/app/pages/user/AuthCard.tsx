@@ -2,7 +2,27 @@
 
 import { useState, useEffect, useRef } from "react";
 import { requestOtp, sendOtpForEmail, verifyOtp } from "./functions";
+import { claimConversations } from "@/chat/functions";
 import { TextInput, Button } from "@/design-system";
+
+/**
+ * Best-effort: attach any anonymous chat conversations stored on this
+ * device (localStorage "fresh-catch-chat-<orgId>") to the fresh account.
+ * Never blocks or fails the login itself.
+ */
+async function claimStoredConversations(csrfToken: string) {
+  try {
+    const ids: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("fresh-catch-chat-")) {
+        const id = localStorage.getItem(key);
+        if (id) ids.push(id);
+      }
+    }
+    if (ids.length) await claimConversations(csrfToken, ids);
+  } catch {}
+}
 
 export interface AuthSuccess {
   csrfToken: string;
@@ -155,6 +175,7 @@ export function AuthCard({
       try {
         localStorage.setItem("fc_email", email.trim());
       } catch {}
+      await claimStoredConversations((result as AuthSuccess).csrfToken);
       // Keep loading state on — host navigates next
       onSuccess(result as AuthSuccess);
     } catch {

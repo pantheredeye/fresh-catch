@@ -4,6 +4,7 @@ import { requestInfo, serverQuery } from "rwsdk/worker";
 import { env } from "cloudflare:workers";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
+import { requireCsrf } from "@/session/csrf";
 
 function notifyInbox(organizationId: string): void {
   try {
@@ -292,4 +293,32 @@ export async function resolveConversation(conversationId: string) {
   });
 
   notifyInbox(conversation.organizationId);
+}
+
+/**
+ * Attach anonymous conversations to the newly-logged-in user. Knowing the
+ * conversation UUID is the existing bearer-token ownership proof, so a
+ * claim only fills customerId where it is still null. Called best-effort
+ * from AuthCard right after login.
+ */
+export async function claimConversations(csrfToken: string, conversationIds: string[]) {
+  requireCsrf(csrfToken);
+  const { ctx } = requestInfo;
+  if (!ctx.user) {
+    return { success: false, claimed: 0 };
+  }
+
+  const ids = (Array.isArray(conversationIds) ? conversationIds : [])
+    .filter((id) => typeof id === "string" && id.length > 0 && id.length <= 64)
+    .slice(0, 20);
+  if (ids.length === 0) {
+    return { success: true, claimed: 0 };
+  }
+
+  const result = await db.conversation.updateMany({
+    where: { id: { in: ids }, customerId: null },
+    data: { customerId: ctx.user.id },
+  });
+
+  return { success: true, claimed: result.count };
 }

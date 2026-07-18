@@ -25,7 +25,7 @@ type Order = {
   paymentNotes: string | null;
   paidAt: Date | null;
   createdAt: Date;
-  user: {
+  user: null | {
     username: string;
     name: string | null;
   };
@@ -412,7 +412,7 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
           </div>
           <div>{order.contactName}</div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
-            @{order.user.username}
+            {order.user ? `@${order.user.username}` : "guest order"}
           </div>
         </div>
 
