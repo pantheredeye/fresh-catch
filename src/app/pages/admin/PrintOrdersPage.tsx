@@ -31,7 +31,8 @@ export async function PrintOrdersPage() {
       status: {
         in: ['confirmed', 'completed']
       },
-      user: { deletedAt: null }
+      // Include guest orders (userId null), exclude soft-deleted users' orders.
+      OR: [{ userId: null }, { user: { deletedAt: null } }]
     },
     include: {
       user: {

@@ -13,7 +13,8 @@ export async function AdminOrdersPage({ ctx }: RequestInfo) {
   const orders = await db.order.findMany({
     where: {
       organizationId: ctx.currentOrganization.id,
-      user: { deletedAt: null },
+      // Include guest orders (userId null), exclude soft-deleted users' orders.
+      OR: [{ userId: null }, { user: { deletedAt: null } }],
     },
     include: {
       user: {
