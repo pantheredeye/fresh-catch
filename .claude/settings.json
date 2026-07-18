@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-pr-review-gate.sh",
+            "timeout": 10,
+            "statusMessage": "Checking pre-PR review gate"
+          }
+        ]
+      }
+    ]
+  }
+}

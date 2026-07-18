@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # pnpm version comes from the packageManager field in package.json
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # generated/prisma is gitignored, so tsc has no Prisma client on a fresh
+      # checkout — generate it first. `prisma generate` needs only the schema,
+      # no secrets.
+      - run: pnpm exec prisma generate
+
+      # Not `pnpm check`/`pnpm generate`: those run `rw-scripts ensure-env` and
+      # `wrangler types`, which need the gitignored .env/.dev.vars and rebuild
+      # worker-configuration.d.ts from them. On a fresh checkout the secrets are
+      # gone and tsc fails. CI type-checks against the committed
+      # worker-configuration.d.ts instead.
+      - run: pnpm types
+
+      - run: pnpm test
+
+# Deploy is intentionally NOT wired up here — fresh-catch ships manually with
+# `pnpm release`. To add auto-deploy on main later: add a `deploy` job with
+# `needs: check`, `if: github.ref == 'refs/heads/main' && github.event_name == 'push'`,
+# apply D1 migrations (`pnpm migrate:prd`) then `wrangler deploy`, and add
+# CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID as GitHub repo secrets.
