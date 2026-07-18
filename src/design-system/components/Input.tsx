@@ -27,6 +27,8 @@ export interface TextInputProps extends BaseInputProps {
   autoFocus?: boolean;
   name?: string;
   autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
 }
 
 /**

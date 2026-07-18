@@ -4,7 +4,7 @@ import { NewOrderUI } from "./NewOrderUI";
 
 export function NewOrderPage({ ctx }: RequestInfo) {
   if (!ctx.user) {
-    return <Login ctx={ctx} />;
+    return <Login navigate="reload" />;
   }
 
   // Vendor must come from explicit browsing context (/v/:slug or ?b=)

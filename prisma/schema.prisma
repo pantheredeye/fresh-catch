@@ -315,3 +315,13 @@ model Message {
   @@index([conversationId])
   @@index([conversationId, createdAt])
 }
+
+// Email-keyed login codes (OTP). Keyed by SHA-256 of normalized email so
+// verification works regardless of which browser/cookie context submits it.
+model LoginCode {
+  emailHash String   @id // SHA-256 hex of lowercased, trimmed email
+  codeHash  String // SHA-256 hex of the 6-digit code
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}

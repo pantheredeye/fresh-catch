@@ -6,7 +6,7 @@ import type { FeeModel } from "@/utils/money";
 
 export async function CustomerOrdersPage({ ctx }: RequestInfo) {
   if (!ctx.user) {
-    return <Login ctx={ctx} />;
+    return <Login navigate="reload" />;
   }
 
   const url = new URL(requestInfo.request.url);
