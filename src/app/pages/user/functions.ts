@@ -2,64 +2,13 @@
 import { rotateSession } from "@/session/store";
 import { generateCsrfToken } from "@/session/csrf";
 import { createLoginCode, verifyLoginCode, normalizeEmail } from "@/auth/login-codes";
+import { processInviteToken } from "@/auth/invites";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { checkRateLimit } from "@/rate-limit/middleware";
 import { sendOtpEmail } from "@/utils/email";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ROLE_RANK: Record<string, number> = { owner: 2, manager: 1 };
-
-/** Auto-accept a pending invite for a user. Returns invite info or null. */
-async function processInviteToken(userId: string, userEmail: string, inviteToken: string) {
-  const invite = await db.invite.findUnique({
-    where: { token: inviteToken },
-    include: { organization: true },
-  });
-
-  if (!invite || invite.status !== "pending") return null;
-  if (invite.expiresAt && invite.expiresAt < new Date()) return null;
-
-  // Validate email match if invite specifies one
-  if (invite.email) {
-    if (userEmail.toLowerCase() !== invite.email.toLowerCase()) return null;
-  }
-
-  // Check existing membership — only upgrade, never downgrade
-  const existing = await db.membership.findUnique({
-    where: { userId_organizationId: { userId, organizationId: invite.organizationId } },
-  });
-
-  if (existing) {
-    const currentRank = ROLE_RANK[existing.role] ?? 0;
-    const inviteRank = ROLE_RANK[invite.role] ?? 0;
-    if (inviteRank > currentRank) {
-      await db.membership.update({
-        where: { userId_organizationId: { userId, organizationId: invite.organizationId } },
-        data: { role: invite.role },
-      });
-    }
-  } else {
-    await db.membership.create({
-      data: { userId, organizationId: invite.organizationId, role: invite.role },
-    });
-  }
-
-  await db.invite.update({
-    where: { id: invite.id },
-    data: { status: "accepted", acceptedBy: userId },
-  });
-
-  const effectiveRole = existing
-    ? (ROLE_RANK[existing.role] ?? 0) >= (ROLE_RANK[invite.role] ?? 0) ? existing.role : invite.role
-    : invite.role;
-
-  return {
-    organizationId: invite.organizationId,
-    orgName: invite.organization.name,
-    role: effectiveRole,
-  };
-}
 
 function isValidEmail(email: string): boolean {
   return typeof email === "string" && email.length <= 254 && EMAIL_RE.test(email);

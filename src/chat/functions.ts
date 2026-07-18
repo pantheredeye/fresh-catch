@@ -5,6 +5,7 @@ import { env } from "cloudflare:workers";
 import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { requireCsrf } from "@/session/csrf";
+import { claimConversationsForUser } from "@/chat/claims";
 
 function notifyInbox(organizationId: string): void {
   try {
@@ -308,17 +309,6 @@ export async function claimConversations(csrfToken: string, conversationIds: str
     return { success: false, claimed: 0 };
   }
 
-  const ids = (Array.isArray(conversationIds) ? conversationIds : [])
-    .filter((id) => typeof id === "string" && id.length > 0 && id.length <= 64)
-    .slice(0, 20);
-  if (ids.length === 0) {
-    return { success: true, claimed: 0 };
-  }
-
-  const result = await db.conversation.updateMany({
-    where: { id: { in: ids }, customerId: null },
-    data: { customerId: ctx.user.id },
-  });
-
-  return { success: true, claimed: result.count };
+  const { claimed } = await claimConversationsForUser(ctx.user.id, conversationIds);
+  return { success: true, claimed };
 }
