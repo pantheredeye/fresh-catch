@@ -9,11 +9,12 @@ export function NoOrganization() {
         <div className="error-icon">⚠️</div>
         <h1 className="error-title">No Business Found</h1>
         <p className="error-description">
-          Your account isn't linked to a business. Please complete business setup first.
+          Your account isn't linked to a business. Ask the business owner to
+          send you an invite.
         </p>
         <div className="error-actions">
-          <a href="/admin/setup" className="error-secondary-link">
-            Complete Business Setup →
+          <a href="/" className="error-secondary-link">
+            Go to Homepage →
           </a>
         </div>
       </div>
