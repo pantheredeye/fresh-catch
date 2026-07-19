@@ -133,9 +133,11 @@ function errorHtml(): string {
 }
 
 const app = defineApp([
-  // Test bridge — enables vitestInvoke RPC from test runner. Gated to non-prod.
+  // Test bridge — enables vitestInvoke RPC from test runner. Fail-closed: disabled
+  // unless ENABLE_TEST_BRIDGE=="1", which only vitest.config.ts sets. Never add
+  // this flag to wrangler.jsonc — prod/preview/dev must stay off.
   async ({ request }) => {
-    if ((env as { NODE_ENV?: string }).NODE_ENV === "production") return;
+    if ((env as { ENABLE_TEST_BRIDGE?: string }).ENABLE_TEST_BRIDGE !== "1") return;
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/_test") {
       // Bridge runs before the db/session middleware, so initialize both here.
