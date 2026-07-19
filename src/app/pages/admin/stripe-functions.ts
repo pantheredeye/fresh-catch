@@ -7,13 +7,10 @@ import { db } from "@/db";
 import { hasAdminAccess, isOwner } from "@/utils/permissions";
 import { getStripe } from "@/utils/stripe";
 import { requireCsrf } from "@/session/csrf";
+import { requireSecret } from "@/utils/env";
 
 function getStripeClient() {
-  const secretKey = (env as unknown as Record<string, string>).STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("STRIPE_SECRET_KEY not configured");
-  }
-  return getStripe(secretKey);
+  return getStripe(requireSecret(env, "STRIPE_SECRET_KEY"));
 }
 
 export async function createConnectedAccount(csrfToken: string, orgId: string) {

@@ -276,7 +276,7 @@ export async function createCheckoutSession(csrfToken: string, orderId: string, 
 
     // Stripe must be connected
     const { stripeAccountId, stripeOnboardingComplete } = order.organization;
-    const secretKey = (env as unknown as Record<string, string>).STRIPE_SECRET_KEY;
+    const secretKey = env.STRIPE_SECRET_KEY;
 
     if (!stripeAccountId || !stripeOnboardingComplete || !secretKey) {
       return { success: false as const, error: "Online payments are not available" };

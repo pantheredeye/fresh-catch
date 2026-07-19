@@ -17,17 +17,15 @@ export async function handleStripeWebhook(request: Request): Promise<Response> {
     return new Response("Missing stripe-signature header", { status: 400 });
   }
 
-  const webhookSecret = (env as unknown as Record<string, string>)
-    .STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not configured");
+    console.error("[CONFIG ERROR] STRIPE_WEBHOOK_SECRET not configured — set with: wrangler secret put STRIPE_WEBHOOK_SECRET");
     return new Response("Webhook not configured", { status: 500 });
   }
 
-  const secretKey = (env as unknown as Record<string, string>)
-    .STRIPE_SECRET_KEY;
+  const secretKey = env.STRIPE_SECRET_KEY;
   if (!secretKey) {
-    console.error("STRIPE_SECRET_KEY not configured");
+    console.error("[CONFIG ERROR] STRIPE_SECRET_KEY not configured — set with: wrangler secret put STRIPE_SECRET_KEY");
     return new Response("Stripe not configured", { status: 500 });
   }
 
