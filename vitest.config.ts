@@ -11,6 +11,10 @@ export default defineConfig({
   },
   plugins: [
     cloudflareTest({
+      // Workers AI (and other remote-only bindings) have no local emulation, so
+      // the pool would open a remote proxy session that needs wrangler auth.
+      // CI has no Cloudflare credentials — keep everything local. No test uses AI.
+      remoteBindings: false,
       wrangler: {
         configPath: "./dist/worker/wrangler.json",
       },
