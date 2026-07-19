@@ -36,8 +36,14 @@ jobs:
 
       - run: pnpm test
 
-# Deploy is intentionally NOT wired up here — fresh-catch ships manually with
-# `pnpm release`. To add auto-deploy on main later: add a `deploy` job with
-# `needs: check`, `if: github.ref == 'refs/heads/main' && github.event_name == 'push'`,
-# apply D1 migrations (`pnpm migrate:prd`) then `wrangler deploy`, and add
-# CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID as GitHub repo secrets.
+# Deploy is intentionally NOT wired up here — fresh-catch ships manually via
+# `pnpm run deploy` (package.json), which runs `migrate:prd` (D1 migrations,
+# --remote) THEN `release` (build + `wrangler deploy`) IN THAT ORDER.
+# `release` alone does NOT run migrations — never run it standalone against
+# prod if the branch has pending migrations. This comment is the single
+# source of truth for deploy order; don't duplicate it elsewhere.
+#
+# To add auto-deploy on main later: add a `deploy` job with `needs: check`,
+# `if: github.ref == 'refs/heads/main' && github.event_name == 'push'`,
+# run `pnpm run deploy`, and add CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+# as GitHub repo secrets.
