@@ -22,6 +22,13 @@ export async function seedBusinessOrg(name: string) {
   });
 }
 
+export async function seedIndividualOrg(name: string) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return db.organization.create({
+    data: { name, slug, type: "individual" },
+  });
+}
+
 export async function seedUser(email: string) {
   return db.user.create({
     data: { username: email, email },
@@ -96,6 +103,15 @@ export async function seedConversation(organizationId: string, customerId: strin
 export async function getConversationCustomer(id: string) {
   const c = await db.conversation.findUnique({ where: { id } });
   return c?.customerId ?? null;
+}
+
+export async function getConversationEmail(id: string) {
+  const c = await db.conversation.findUnique({ where: { id } });
+  return c?.customerEmail ?? null;
+}
+
+export async function countConversationsForOrg(organizationId: string) {
+  return db.conversation.count({ where: { organizationId } });
 }
 
 // --- Order seeding / admin-query mirror ------------------------------------
