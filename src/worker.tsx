@@ -138,6 +138,9 @@ const app = defineApp([
     if ((env as { NODE_ENV?: string }).NODE_ENV === "production") return;
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/_test") {
+      // Bridge runs before the db/session middleware, so initialize both here.
+      await setupDb(env);
+      setupSessionStore(env);
       return handleVitestRequest(request, { ...appActions, ...testUtils });
     }
   },

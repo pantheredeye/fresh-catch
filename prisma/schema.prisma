@@ -163,7 +163,7 @@ model Membership {
 model Order {
   id             String @id @default(uuid())
   orderNumber    Int // Friendly order number (per org, app-managed)
-  userId         String
+  userId         String? // Null for guest orders (AI chat, future guest checkout); claimable by email later
   organizationId String
 
   // Contact snapshot (captured at order time)
@@ -203,7 +203,7 @@ model Order {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user         User         @relation(fields: [userId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
   payments     Payment[]
 
@@ -314,4 +314,14 @@ model Message {
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
+}
+
+// Email-keyed login codes (OTP). Keyed by SHA-256 of normalized email so
+// verification works regardless of which browser/cookie context submits it.
+model LoginCode {
+  emailHash String   @id // SHA-256 hex of lowercased, trimmed email
+  codeHash  String // SHA-256 hex of the 6-digit code
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
 }

@@ -451,7 +451,7 @@ export async function handleCreateOrder(
 
     const order = await db.order.create({
       data: {
-        userId: "mcp-api",
+        userId: null, // guest order via MCP/AI - claimable by contactEmail later
         organizationId,
         orderNumber,
         contactName: input.contactName || "MCP Order",
@@ -481,7 +481,7 @@ export async function handleCreateOrder(
 
         const order = await db.order.create({
           data: {
-            userId: "mcp-api",
+            userId: null, // guest order via MCP/AI - claimable by contactEmail later
             organizationId,
             orderNumber: retryNumber,
             contactName: input.contactName || "MCP Order",
