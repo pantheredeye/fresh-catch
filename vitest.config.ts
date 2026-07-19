@@ -32,7 +32,6 @@ export default defineConfig({
           // that throw wedges the pool and hangs the run. Provide dummy secrets.
           AUTH_SECRET_KEY: "test-auth-secret-key-deterministic-for-ci",
           RESEND_API_KEY: "test-resend-key",
-          DEV_MCP_SECRET: "test-mcp-secret",
         },
       },
     }),
