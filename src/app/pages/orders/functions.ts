@@ -18,11 +18,15 @@ interface CreateOrderData {
   notes: string | null;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function validateOrder(data: CreateOrderData): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!data.contactName?.trim()) {
     errors.push("Please enter your name");
+  } else if (data.contactName.trim().length > 200) {
+    errors.push("Name is too long (max 200 characters)");
   }
 
   if (!data.items?.trim()) {
@@ -35,6 +39,21 @@ function validateOrder(data: CreateOrderData): { valid: boolean; errors: string[
 
   if (data.notes && data.notes.length > 500) {
     errors.push("Notes are too long (max 500 characters)");
+  }
+
+  if (data.contactEmail?.trim()) {
+    const email = data.contactEmail.trim();
+    if (email.length > 254 || !EMAIL_RE.test(email)) {
+      errors.push("Please enter a valid email address");
+    }
+  }
+
+  if (data.contactPhone && data.contactPhone.length > 50) {
+    errors.push("Phone number is too long (max 50 characters)");
+  }
+
+  if (data.preferredDate && isNaN(new Date(data.preferredDate).getTime())) {
+    errors.push("Please enter a valid pickup date");
   }
 
   return { valid: errors.length === 0, errors };

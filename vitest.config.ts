@@ -25,6 +25,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           NODE_ENV: "test",
+          ENABLE_TEST_BRIDGE: "1",
           TEST_MIGRATIONS: migrations,
           // CI has no .dev.vars. Without AUTH_SECRET_KEY the session store tries
           // to generate a random key at global scope, which workerd forbids —
