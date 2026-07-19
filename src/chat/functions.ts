@@ -32,9 +32,11 @@ export async function createConversation({
     throw new Error("Too many attempts. Please try again later.");
   }
 
-  // Validate the target org exists AND is a vendor (business) org. The client
-  // supplies organizationId, so without this a forged/nonexistent id could
-  // create orphan conversations or attach one to an individual/customer org.
+  // The client supplies organizationId, so validate it points at a real vendor
+  // (business) org before creating. The type check is the primary guard — it
+  // stops a forged id from attaching a conversation to an individual/customer
+  // org; the existence check also rejects unknown ids, since D1 doesn't
+  // guarantee FK enforcement at runtime.
   const org = await db.organization.findUnique({
     where: { id: organizationId },
     select: { id: true, type: true },
