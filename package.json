@@ -17,6 +17,7 @@
     "clean": "npm run clean:vite",
     "clean:vite": "rm -rf ./node_modules/.vite",
     "release": "rw-scripts ensure-deploy-env && npm run clean && prisma generate && RWSDK_DEPLOY=1 npm run build && wrangler deploy",
+    "deploy": "npm run migrate:prd && npm run release",
     "migrate:dev": "prisma generate && wrangler d1 migrations apply DB --local",
     "migrate:prd": "wrangler d1 migrations apply DB --remote",
     "migrate:new": "rw-scripts migrate-new",
@@ -52,7 +53,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.13.12",
     "@cloudflare/vitest-pool-workers": "^0.14.7",
-    "@cloudflare/workers-types": "^4.20251011.0",
+    "@cloudflare/workers-types": "^5.20260719.1",
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
@@ -62,7 +63,7 @@
     "vibe-rules": "^0.2.31",
     "vite": "^6.2.6",
     "vitest": "^4.1.2",
-    "wrangler": "^4.42.2"
+    "wrangler": "^4.112.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

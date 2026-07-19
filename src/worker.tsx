@@ -31,6 +31,7 @@ import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 import { rateLimitAuth } from "@/rate-limit/middleware";
+import { checkRequiredSecretsOnce } from "@/utils/env";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
@@ -133,6 +134,12 @@ function errorHtml(): string {
 }
 
 const app = defineApp([
+  // Loud config check — runs once per isolate (memoized). Logs a clear banner
+  // if a required secret (e.g. STRIPE_SECRET_KEY) is missing, instead of that
+  // only surfacing as an opaque 500 the first time a customer hits checkout.
+  () => {
+    checkRequiredSecretsOnce(env);
+  },
   // Test bridge — enables vitestInvoke RPC from test runner. Fail-closed: disabled
   // unless ENABLE_TEST_BRIDGE=="1", which only vitest.config.ts sets. Never add
   // this flag to wrangler.jsonc — prod/preview/dev must stay off.

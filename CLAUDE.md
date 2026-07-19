@@ -82,7 +82,8 @@ pnpm run generate       # Generate Prisma client and Wrangler types
 ### Build & Deploy
 ```bash
 pnpm run build          # Build for production
-pnpm run release        # Full deployment pipeline (clean + generate + build + deploy)
+pnpm run deploy         # Manual prod deploy: migrate:prd THEN release, in order (see .github/workflows/ci.yml comment)
+pnpm run release        # Build + wrangler deploy only — does NOT run migrations, don't run standalone against prod
 pnpm run clean          # Clean Vite cache
 ```
 

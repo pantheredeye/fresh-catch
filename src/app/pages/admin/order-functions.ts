@@ -86,7 +86,7 @@ export async function confirmOrder(
 
     // Create Stripe Checkout session if org has Stripe connected
     const { stripeAccountId, stripeOnboardingComplete } = order.organization;
-    const secretKey = (env as unknown as Record<string, string>).STRIPE_SECRET_KEY;
+    const secretKey = env.STRIPE_SECRET_KEY;
     let checkoutUrl: string | null = null;
 
     if (stripeAccountId && stripeOnboardingComplete && secretKey) {
