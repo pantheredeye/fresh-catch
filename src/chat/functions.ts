@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { hasAdminAccess } from "@/utils/permissions";
 import { requireCsrf } from "@/session/csrf";
 import { claimConversationsForUser } from "@/chat/claims";
+import { checkRateLimit } from "@/rate-limit/middleware";
 
 function notifyInbox(organizationId: string): void {
   try {
@@ -24,13 +25,31 @@ export async function createConversation({
   organizationId: string;
 }) {
   const { ctx } = requestInfo;
+
+  // Rate limit anonymous conversation creation per IP to blunt spam/abuse.
+  const rl = await checkRateLimit("chatCreate");
+  if (!rl.allowed) {
+    throw new Error("Too many attempts. Please try again later.");
+  }
+
+  // Validate the target org exists AND is a vendor (business) org. The client
+  // supplies organizationId, so without this a forged/nonexistent id could
+  // create orphan conversations or attach one to an individual/customer org.
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { id: true, type: true },
+  });
+  if (!org || org.type !== "business") {
+    throw new Error("Invalid vendor");
+  }
+
   const customerId = ctx.user?.id ?? null;
 
   const conversation = await db.conversation.create({
     data: {
       customerName,
       customerPhone,
-      organizationId,
+      organizationId: org.id,
       customerId,
     },
   });
@@ -252,9 +271,17 @@ export async function saveCustomerEmail(
   conversationId: string,
   email: string,
 ) {
+  const { ctx } = requestInfo;
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (typeof email !== "string" || email.length > 254 || !emailRegex.test(email)) {
     return { success: false, error: "Invalid email format" };
+  }
+
+  // Rate limit per IP — this endpoint takes an arbitrary conversationId.
+  const rl = await checkRateLimit("chatEmail");
+  if (!rl.allowed) {
+    return { success: false, error: "Too many attempts. Try again later." };
   }
 
   const conversation = await db.conversation.findUnique({
@@ -262,6 +289,18 @@ export async function saveCustomerEmail(
   });
 
   if (!conversation) {
+    return { success: false, error: "Conversation not found" };
+  }
+
+  // Auth: anonymous conversations (customerId=null) use the conversation ID as
+  // a bearer token — knowing the UUID is proof enough. A claimed conversation
+  // (customerId set) may only be written by its owner or a member of the vendor
+  // org. Mirrors the check in getMessages/getConversation/markAsRead. Without
+  // this, anyone holding the UUID could overwrite a claimed customer's email.
+  const isAnonymous = conversation.customerId === null;
+  const isOwner = conversation.customerId !== null && conversation.customerId === ctx.user?.id;
+  const isOrgMember = conversation.organizationId === ctx.currentOrganization?.id;
+  if (!isAnonymous && !isOwner && !isOrgMember) {
     return { success: false, error: "Conversation not found" };
   }
 
