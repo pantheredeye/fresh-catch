@@ -64,7 +64,12 @@ export function NamePrompt({
         storeConversationId(organizationId, result.conversationId);
         onConversationCreated(result.conversationId);
       } catch {
-        if (!cancelled) setError("Failed to start chat. Please try again.");
+        // Collapse all failure modes (rate-limited / invalid vendor) into one
+        // generic message — naming the specific reason would leak whether an
+        // org id is a valid vendor.
+        if (!cancelled) {
+          setError("Couldn't start the chat. Please wait a moment and try again.");
+        }
       }
     }
 
@@ -90,7 +95,9 @@ export function NamePrompt({
         storeConversationId(organizationId, result.conversationId);
         onConversationCreated(result.conversationId);
       } catch {
-        setError("Failed to start chat. Please try again.");
+        // Same deliberate generic message as the auto-create path — don't leak
+        // which server check failed (rate limit vs invalid vendor).
+        setError("Couldn't start the chat. Please wait a moment and try again.");
         setSubmitting(false);
       }
     },

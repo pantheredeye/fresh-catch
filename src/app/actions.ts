@@ -9,4 +9,4 @@ export { fetchVendorData, getQuickActions } from "./pages/home/fetchVendorData";
 
 export { validateCsrfToken } from "@/session/store";
 
-export { saveCustomerEmail } from "@/chat/functions";
+export { saveCustomerEmail, createConversation } from "@/chat/functions";
