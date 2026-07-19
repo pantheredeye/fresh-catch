@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Container, Card, Button, TextInput, Textarea } from "@/design-system";
+import { AuthSheet } from "@/components/AuthSheet";
+import type { AuthSuccess } from "@/app/pages/user/AuthCard";
 import { createOrder } from "./functions";
 
 interface NewOrderUIProps {
-  csrfToken: string;
+  csrfToken: string | null; // null when browsing anonymously
   vendorName: string;
   vendorId: string;
+  vendorSlug: string;
   defaultContact: {
     name: string;
     email: string;
@@ -15,7 +18,7 @@ interface NewOrderUIProps {
   };
 }
 
-export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: NewOrderUIProps) {
+export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaultContact }: NewOrderUIProps) {
   const [contactName, setContactName] = useState(defaultContact.name);
   const [contactEmail, setContactEmail] = useState(defaultContact.email);
   const [contactPhone, setContactPhone] = useState(defaultContact.phone);
@@ -24,9 +27,25 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: 
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
+  const [authOpen, setAuthOpen] = useState(false);
 
-  // Handle prefill from URL params (for "Order Again")
+  const draftKey = `fc_draft_order:${vendorSlug}`;
+
+  // Restore draft, then let URL prefill (for "Order Again") win over it
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft.items) setItems(draft.items);
+        if (draft.notes) setNotes(draft.notes);
+        if (draft.preferredDate) setPreferredDate(draft.preferredDate);
+        if (draft.contactName && !defaultContact.name) setContactName(draft.contactName);
+        if (draft.contactEmail && !defaultContact.email) setContactEmail(draft.contactEmail);
+        if (draft.contactPhone && !defaultContact.phone) setContactPhone(draft.contactPhone);
+      }
+    } catch {}
+
     const params = new URLSearchParams(window.location.search);
     const prefillData = params.get('prefill');
 
@@ -42,20 +61,22 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: 
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Persist draft so nothing is lost across auth or accidental navigation
+  useEffect(() => {
+    try {
+      if (!items && !notes && !preferredDate) return;
+      localStorage.setItem(draftKey, JSON.stringify({
+        items, notes, preferredDate, contactName, contactEmail, contactPhone,
+      }));
+    } catch {}
+  }, [items, notes, preferredDate, contactName, contactEmail, contactPhone, draftKey]);
 
-    if (!items.trim()) {
-      setStatus('error');
-      setMessage('Please describe what you want to order');
-      return;
-    }
-
+  const submitOrder = async (token: string) => {
     setStatus('loading');
     setMessage('Submitting your order...');
 
     try {
-      const result = await createOrder(csrfToken, {
+      const result = await createOrder(token, {
         contactName: contactName.trim(),
         contactEmail: contactEmail.trim() || null,
         contactPhone: contactPhone.trim() || null,
@@ -68,6 +89,7 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: 
         throw new Error(result.error || 'Failed to create order');
       }
 
+      try { localStorage.removeItem(draftKey); } catch {}
       setStatus('success');
       setMessage(`Order submitted! ${vendorName} will confirm soon.`);
 
@@ -79,6 +101,30 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: 
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Failed to submit order');
     }
+  };
+
+  const handleAuthed = (result: AuthSuccess) => {
+    setAuthOpen(false);
+    // Use the csrfToken returned from login, never a render-time prop —
+    // the session (and its token) just rotated.
+    submitOrder(result.csrfToken);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!items.trim()) {
+      setStatus('error');
+      setMessage('Please describe what you want to order');
+      return;
+    }
+
+    if (!csrfToken) {
+      setAuthOpen(true);
+      return;
+    }
+
+    submitOrder(csrfToken);
   };
 
   return (
@@ -221,6 +267,15 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, defaultContact }: 
           </div>
         )}
       </Card>
+
+      <AuthSheet
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthed={handleAuthed}
+        title="One last step"
+        subtitle={`Verify your email and your order goes straight to ${vendorName}.`}
+        prefillEmail={contactEmail.trim() || undefined}
+      />
     </Container>
   );
 }

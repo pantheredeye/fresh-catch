@@ -9,7 +9,7 @@ import type { AppContext } from "@/worker";
 
 type Order = {
   id: string;
-  userId: string;
+  userId: string | null;
   orderNumber: number;
   contactName: string;
   contactPhone: string | null;
@@ -29,7 +29,7 @@ type Order = {
   user: {
     username: string;
     name: string | null;
-  };
+  } | null;
   organization?: {
     platformFeeBps: number;
     feeModel: FeeModel;
@@ -79,7 +79,7 @@ export function AdminOrdersUI({ orders, ctx, csrfToken }: AdminOrdersUIProps) {
     filteredOrders = filteredOrders.filter(o =>
       o.items.toLowerCase().includes(query) ||
       o.contactName.toLowerCase().includes(query) ||
-      o.user.username.toLowerCase().includes(query) ||
+      (o.user?.username.toLowerCase().includes(query) ?? false) ||
       o.orderNumber.toString().includes(query)
     );
   }

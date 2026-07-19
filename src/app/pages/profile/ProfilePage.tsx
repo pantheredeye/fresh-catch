@@ -5,7 +5,7 @@ import { db } from "@/db";
 
 export async function ProfilePage({ ctx }: RequestInfo) {
   if (!ctx.user) {
-    return <Login ctx={ctx} />;
+    return <Login navigate="reload" />;
   }
 
   // Fetch fresh user data

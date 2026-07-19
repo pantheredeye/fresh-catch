@@ -31,36 +31,19 @@ export function BusinessNotFound({ businessSlug }: { businessSlug: string | null
             {isSpecificBusiness ? (
               <>We couldn't find a business with the identifier <strong>"{businessSlug}"</strong>.</>
             ) : (
-              <>There are no businesses registered yet. Be the first to set up your business!</>
+              <>There are no businesses registered yet.</>
             )}
           </p>
 
           <div className="error-actions">
-            {isSpecificBusiness ? (
-              <>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  onClick={() => window.location.href = '/'}
-                >
-                  Go to Homepage
-                </Button>
-
-                <a href="/admin/setup" className="error-secondary-link">
-                  Are you a business owner? Sign up →
-                </a>
-              </>
-            ) : (
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={() => window.location.href = '/admin/setup'}
-              >
-                Set Up Your Business
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={() => window.location.href = '/'}
+            >
+              Go to Homepage
+            </Button>
           </div>
         </div>
       </div>

@@ -61,7 +61,6 @@ export async function sendOtpEmail(data: { to: string; code: string }) {
   // Structure optimized for iOS auto-fill: code-first text, minimal nesting,
   // plain text MIME part for reliable heuristic parsing.
   const appUrl = env.APP_URL || 'https://market.digitalglue.dev';
-  const deepLink = `${appUrl}/login?code=${data.code}`;
   const webOtpOrigin = new URL(appUrl).hostname;
 
   const html = `<!DOCTYPE html>
@@ -72,9 +71,6 @@ export async function sendOtpEmail(data: { to: string; code: string }) {
   <div style="text-align:center;margin:0 0 24px;background:#f8fafc;border:2px solid #0066cc;border-radius:12px;padding:24px">
     <p style="color:#1a2b3d;font-size:36px;font-weight:bold;letter-spacing:8px;margin:0;font-family:monospace;-webkit-user-select:all;user-select:all;cursor:pointer">${data.code}</p>
     <p style="color:#94a3b8;font-size:12px;margin:12px 0 0 0">Tap code to select, then copy</p>
-  </div>
-  <div style="text-align:center;margin:0 0 24px">
-    <a href="${deepLink}" style="display:inline-block;padding:12px 32px;background:#0066cc;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;border-radius:8px">Sign in to Fresh Catch</a>
   </div>
   <p style="color:#64748b;font-size:14px;line-height:22px;margin:0 0 24px 0">This code expires in 10 minutes.</p>
   <hr style="border:none;border-top:1px solid #e0e0e0;margin:0 0 16px 0"/>

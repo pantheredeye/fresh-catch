@@ -19,7 +19,7 @@ type Order = {
   user: {
     username: string;
     name: string | null;
-  };
+  } | null;
 };
 
 interface PrintOrdersUIProps {

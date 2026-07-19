@@ -1,6 +1,10 @@
 import { defineConfig } from "vitest/config";
-import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
 import path from "path";
+
+// Read migrations at config time (Node side); the setup file applies them to
+// the isolated test D1 before any test runs.
+const migrations = await readD1Migrations(path.resolve(__dirname, "migrations"));
 
 export default defineConfig({
   resolve: {
@@ -21,6 +25,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           NODE_ENV: "test",
+          TEST_MIGRATIONS: migrations,
           // CI has no .dev.vars. Without AUTH_SECRET_KEY the session store tries
           // to generate a random key at global scope, which workerd forbids —
           // that throw wedges the pool and hangs the run. Provide dummy secrets.
@@ -33,5 +38,6 @@ export default defineConfig({
   ],
   test: {
     include: ["src/**/*.test.{ts,tsx}"],
+    setupFiles: ["./src/test-setup.ts"],
   },
 });

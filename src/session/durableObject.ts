@@ -1,20 +1,14 @@
 import { DurableObject } from "cloudflare:workers";
 
+// Invariant: the session DO stores auth state ONLY (who you are, which org,
+// CSRF token). Login codes are email-keyed in D1 (src/auth/login-codes.ts);
+// anonymous product state (drafts, favorites) lives client-side.
 export interface Session {
   userId?: string | null;
-  challenge?: string | null;
-  challengeCreatedAt?: number | null;
   createdAt: number;
   currentOrganizationId?: string | null;
   role?: string | null;
   csrfToken: string;
-}
-
-export interface OtpState {
-  code: string;
-  email: string;
-  createdAt: number;
-  attempts: number;
 }
 
 export class SessionDurableObject extends DurableObject {
@@ -36,21 +30,16 @@ export class SessionDurableObject extends DurableObject {
 
   async saveSession(data: {
     userId?: string | null;
-    challenge?: string | null;
     currentOrganizationId?: string | null;
     role?: string | null;
     csrfToken?: string;
   }): Promise<Session> {
     // Merge with existing session to avoid wiping auth state
-    // when only updating a single field (e.g., challenge for passkey)
+    // when only updating a single field
     const existing = this.session ?? await this.ctx.storage.get<Session>("session");
 
     const session: Session = {
       userId: data.userId !== undefined ? data.userId : (existing?.userId ?? null),
-      challenge: data.challenge !== undefined ? data.challenge : (existing?.challenge ?? null),
-      challengeCreatedAt: data.challenge !== undefined
-        ? (data.challenge ? Date.now() : null)
-        : (existing?.challengeCreatedAt ?? null),
       createdAt: existing?.createdAt ?? Date.now(),
       currentOrganizationId: data.currentOrganizationId !== undefined
         ? data.currentOrganizationId
@@ -79,12 +68,7 @@ export class SessionDurableObject extends DurableObject {
 
     // Backfill csrfToken for sessions created before CSRF support
     if (!session.csrfToken) {
-      const bytes = new Uint8Array(32);
-      crypto.getRandomValues(bytes);
-      session.csrfToken = btoa(String.fromCharCode(...bytes))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      session.csrfToken = this.generateCsrfToken();
       await this.ctx.storage.put<Session>("session", session);
     }
 
@@ -95,70 +79,5 @@ export class SessionDurableObject extends DurableObject {
   async revokeSession() {
     await this.ctx.storage.delete("session");
     this.session = undefined;
-  }
-
-  async saveOtp(email: string): Promise<OtpState> {
-    const bytes = new Uint8Array(4);
-    crypto.getRandomValues(bytes);
-    // Generate 6-digit zero-padded code from random bytes
-    const num = ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0;
-    const code = String(num % 1000000).padStart(6, "0");
-
-    const otp: OtpState = {
-      code,
-      email,
-      createdAt: Date.now(),
-      attempts: 0,
-    };
-
-    await this.ctx.storage.put<OtpState>("otp", otp);
-    return otp;
-  }
-
-  async verifyOtp(
-    code: string,
-  ): Promise<{ valid: boolean; email?: string; expired?: boolean; locked?: boolean }> {
-    const otp = await this.ctx.storage.get<OtpState>("otp");
-
-    if (!otp) {
-      return { valid: false };
-    }
-
-    // Check lockout (5 attempts max)
-    if (otp.attempts >= 5) {
-      return { valid: false, locked: true };
-    }
-
-    // Check TTL (10 minutes)
-    if (Date.now() - otp.createdAt > 10 * 60 * 1000) {
-      await this.clearOtp();
-      return { valid: false, expired: true };
-    }
-
-    // Constant-time comparison: always check all characters
-    const a = new TextEncoder().encode(otp.code);
-    const b = new TextEncoder().encode(code.padStart(6, "0").slice(0, 6));
-    let mismatch = a.length !== b.length ? 1 : 0;
-    const len = Math.min(a.length, b.length);
-    for (let i = 0; i < len; i++) {
-      mismatch |= a[i] ^ b[i];
-    }
-
-    if (mismatch !== 0) {
-      otp.attempts += 1;
-      await this.ctx.storage.put<OtpState>("otp", otp);
-      if (otp.attempts >= 5) {
-        return { valid: false, locked: true };
-      }
-      return { valid: false };
-    }
-
-    // Success: clear OTP (single use)
-    await this.clearOtp();
-    return { valid: true, email: otp.email };
-  }
-
-  async clearOtp(): Promise<void> {
-    await this.ctx.storage.delete("otp");
   }
 }

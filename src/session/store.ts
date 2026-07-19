@@ -1,6 +1,5 @@
 import { defineDurableSession } from "rwsdk/auth";
-import type { Session, OtpState } from "./durableObject";
-import type { SessionDurableObject } from "./durableObject";
+import type { Session } from "./durableObject";
 
 export let sessions: ReturnType<typeof createSessionStore>;
 
@@ -49,7 +48,6 @@ export async function rotateSession(
     userId?: string | null;
     currentOrganizationId?: string | null;
     role?: string | null;
-    challenge?: string | null;
     csrfToken?: string;
   },
   saveOptions?: { maxAge?: number | true },
@@ -84,36 +82,8 @@ export async function rotateSession(
     userId: dataToPreserve.userId ?? null,
     currentOrganizationId: dataToPreserve.currentOrganizationId ?? null,
     role: dataToPreserve.role ?? null,
-    ...(dataToPreserve.challenge !== undefined ? { challenge: dataToPreserve.challenge } : {}),
     ...(dataToPreserve.csrfToken ? { csrfToken: dataToPreserve.csrfToken } : {}),
   }, saveOptions), "rotateSession.save");
-}
-
-/**
- * Get the DO stub for the current session from a request cookie.
- * Used to call custom DO methods (saveOtp, verifyOtp) that aren't
- * exposed through the rwsdk session store abstraction.
- */
-function getSessionIdFromCookie(request: Request, cookieName = "session_id"): string | undefined {
-  const cookieHeader = request.headers.get("Cookie");
-  if (!cookieHeader) return undefined;
-  for (const cookie of cookieHeader.split(";")) {
-    const trimmed = cookie.trim();
-    const sep = trimmed.indexOf("=");
-    if (sep === -1) continue;
-    if (trimmed.slice(0, sep) === cookieName) {
-      return trimmed.slice(sep + 1);
-    }
-  }
-}
-
-function unpackSessionId(packed: string): string | null {
-  try {
-    return atob(packed).split(":")[0];
-  } catch {
-    console.error("Session cookie corrupted: invalid base64 in session ID");
-    return null;
-  }
 }
 
 /**
@@ -132,37 +102,6 @@ export async function resilientDO<T>(op: () => Promise<T>, label = "session"): P
       throw retryErr;
     }
   }
-}
-
-export function getSessionStub(request: Request, sessionEnv: Env): DurableObjectStub<SessionDurableObject> | null {
-  const sessionId = getSessionIdFromCookie(request);
-  if (!sessionId) return null;
-  const unsignedId = unpackSessionId(sessionId);
-  if (!unsignedId) return null;
-  const doId = sessionEnv.SESSION_DURABLE_OBJECT.idFromName(unsignedId);
-  return sessionEnv.SESSION_DURABLE_OBJECT.get(doId);
-}
-
-/**
- * Save OTP via session DO. Returns OTP state with generated code.
- */
-export async function saveOtp(request: Request, sessionEnv: Env, email: string): Promise<OtpState | null> {
-  const stub = getSessionStub(request, sessionEnv);
-  if (!stub) return null;
-  return stub.saveOtp(email);
-}
-
-/**
- * Verify OTP via session DO.
- */
-export async function verifyOtpViaSession(
-  request: Request,
-  sessionEnv: Env,
-  code: string,
-): Promise<{ valid: boolean; email?: string; expired?: boolean; locked?: boolean } | null> {
-  const stub = getSessionStub(request, sessionEnv);
-  if (!stub) return null;
-  return stub.verifyOtp(code);
 }
 
 /**
