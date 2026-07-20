@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { normalizeEmail } from "@/auth/login-codes";
 import { sha256Hex } from "@/utils/hash";
 import { checkRateLimit } from "@/rate-limit/middleware";
+import type { IdentityEndpoint, RateLimitEndpoint } from "@/rate-limit/limits";
 
 // --- Re-exports of plain-module internals under test -----------------------
 // These live in non-"use server" modules so they can be invoked directly by
@@ -16,30 +17,34 @@ export { claimConversationsForUser } from "@/chat/claims";
 /** Drive the real middleware. Every test request arrives with no CF-Connecting-IP,
  *  so they all share the "unknown" IP bucket — which is exactly the shared-NAT
  *  condition these tests need to reproduce. */
-export async function rateLimitCheck(endpoint: string, identity?: string) {
-  return checkRateLimit(endpoint, identity);
+export async function rateLimitCheck(endpoint: IdentityEndpoint, identity?: string) {
+  return identity === undefined
+    ? checkRateLimit(endpoint)
+    : checkRateLimit(endpoint, identity);
 }
 
 /** Talk to the DO with explicit keys, to test bucket mechanics in isolation. */
-export async function rateLimitIncrement(key: string, endpoint: string) {
+export async function rateLimitIncrement(key: string, endpoint: RateLimitEndpoint) {
   const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(
     env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global"),
   );
   return stub.increment(key, endpoint);
 }
 
-export async function rateLimitIncrementMulti(entries: { key: string; endpoint: string }[]) {
+export async function rateLimitIncrementMulti(
+  entries: { key: string; endpoint: RateLimitEndpoint }[],
+) {
   const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(
     env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global"),
   );
   return stub.incrementMulti(entries);
 }
 
-export async function rateLimitSweep() {
+export async function rateLimitSweep(maxAgeMs?: number | null) {
   const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(
     env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global"),
   );
-  return stub.sweepNow();
+  return stub.sweepNow(maxAgeMs);
 }
 
 // --- Org / user seeding ----------------------------------------------------

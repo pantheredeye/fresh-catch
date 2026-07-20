@@ -1,39 +1,25 @@
 import { DurableObject } from "cloudflare:workers";
-
-// Configurable limits per endpoint.
-//
-// Auth endpoints use TWO buckets (see rate-limit/middleware.ts):
-//   - a tight per-identity (email) bucket, which is the real control
-//   - a loose per-IP ceiling named `<endpoint>Ip`, which is only an abuse backstop
-//
-// The IP ceilings are deliberately generous. Login is OTP-email-only, so a bucket
-// that bites shared NAT (market wifi, mobile CGNAT) locks real customers out of the
-// only way in — many people behind one IP is normal, not suspicious. Per-identity
-// limits are what bound harm (email bombing a given inbox); IP only stops a crude
-// single-host flood, and a botnet routes around it anyway.
-const ENDPOINT_LIMITS: Record<string, { maxRequests: number; windowMs: number }> = {
-  otpSend: { maxRequests: 3, windowMs: 15 * 60 * 1000 },        // 3 per 15min PER EMAIL
-  otpSendIp: { maxRequests: 100, windowMs: 15 * 60 * 1000 },    // per-IP ceiling
-  otpVerify: { maxRequests: 10, windowMs: 15 * 60 * 1000 },     // 10 per 15min PER EMAIL
-  otpVerifyIp: { maxRequests: 200, windowMs: 15 * 60 * 1000 },  // per-IP ceiling
-  // GET /login + /join/invite page loads. Cheap requests; the expensive side effect
-  // (sending mail) is bounded by otpSend. Purely a crude-flood backstop.
-  login: { maxRequests: 300, windowMs: 15 * 60 * 1000 },
-  chatCreate: { maxRequests: 15, windowMs: 10 * 60 * 1000 },    // 15 new conversations per 10min per IP
-  chatEmail: { maxRequests: 20, windowMs: 15 * 60 * 1000 },     // 20 email saves per 15min per IP
-};
-
-const DEFAULT_LIMIT = { maxRequests: 20, windowMs: 15 * 60 * 1000 };
-
-// Longest window any endpoint uses — a key untouched for longer than this is dead.
-const MAX_WINDOW_MS = Math.max(
-  DEFAULT_LIMIT.windowMs,
-  ...Object.values(ENDPOINT_LIMITS).map((l) => l.windowMs),
-);
+import {
+  DEFAULT_LIMIT,
+  ENDPOINT_LIMITS,
+  MAX_WINDOW_MS,
+  type RateLimitEndpoint,
+} from "./limits";
 
 // How often to sweep dead keys. Without this, storage grows forever: one key per
 // (IP, endpoint) and — now that identity buckets exist — one per (email, endpoint).
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+
+function limitFor(endpoint: RateLimitEndpoint) {
+  const limit = ENDPOINT_LIMITS[endpoint];
+  if (limit) return limit;
+  // Unreachable via the typed middleware. Loud rather than silent, because the
+  // fallback is tight enough to lock shared-NAT users out of the only login path.
+  console.error(
+    `[rate-limit] no limit configured for "${endpoint}" — falling back to DEFAULT_LIMIT`,
+  );
+  return DEFAULT_LIMIT;
+}
 
 interface RateLimitResponse {
   allowed: boolean;
@@ -52,28 +38,8 @@ export class RateLimitDurableObject extends DurableObject {
     return timestamps.filter((t) => t > cutoff);
   }
 
-  async check(key: string, endpoint: string): Promise<RateLimitResponse> {
-    const { maxRequests, windowMs } = ENDPOINT_LIMITS[endpoint] ?? DEFAULT_LIMIT;
-    const storageKey = `ts:${key}:${endpoint}`;
-
-    const raw = await this.ctx.storage.get<number[]>(storageKey);
-    const timestamps = raw ? this.pruneTimestamps(raw, windowMs) : [];
-
-    if (timestamps.length >= maxRequests) {
-      const oldestInWindow = timestamps[0];
-      const retryAfterMs = oldestInWindow + windowMs - Date.now();
-      return { allowed: false, remaining: 0, retryAfterMs: Math.max(0, retryAfterMs) };
-    }
-
-    return {
-      allowed: true,
-      remaining: maxRequests - timestamps.length,
-      retryAfterMs: 0,
-    };
-  }
-
-  async increment(key: string, endpoint: string): Promise<RateLimitResponse> {
-    const { maxRequests, windowMs } = ENDPOINT_LIMITS[endpoint] ?? DEFAULT_LIMIT;
+  async increment(key: string, endpoint: RateLimitEndpoint): Promise<RateLimitResponse> {
+    const { maxRequests, windowMs } = limitFor(endpoint);
     const storageKey = `ts:${key}:${endpoint}`;
 
     const raw = await this.ctx.storage.get<number[]>(storageKey);
@@ -109,13 +75,13 @@ export class RateLimitDurableObject extends DurableObject {
    * the longest wait), otherwise the tightest remaining count.
    */
   async incrementMulti(
-    entries: { key: string; endpoint: string }[],
+    entries: { key: string; endpoint: RateLimitEndpoint }[],
   ): Promise<RateLimitResponse> {
     const now = Date.now();
     const resolved = [];
 
     for (const { key, endpoint } of entries) {
-      const { maxRequests, windowMs } = ENDPOINT_LIMITS[endpoint] ?? DEFAULT_LIMIT;
+      const { maxRequests, windowMs } = limitFor(endpoint);
       const storageKey = `ts:${key}:${endpoint}`;
       const raw = await this.ctx.storage.get<number[]>(storageKey);
       const timestamps = raw ? this.pruneTimestamps(raw, windowMs) : [];
@@ -160,10 +126,22 @@ export class RateLimitDurableObject extends DurableObject {
    * inside their window must survive untouched: wiping a live bucket would
    * silently hand every caller a fresh quota.
    *
-   * Returns how many keys were removed and how many remain (for tests).
+   * `maxAgeMs` exists so tests can exercise the deletion path without waiting out
+   * a 15-minute window; production always uses the default.
+   *
+   * Returns how many keys were removed and how many remain.
    */
-  async sweepNow(): Promise<{ removed: number; remaining: number }> {
-    const cutoff = Date.now() - MAX_WINDOW_MS;
+  async sweepNow(
+    maxAgeMs?: number | null,
+  ): Promise<{ removed: number; remaining: number }> {
+    // Defensive: a missing arg arrives as null over RPC, and `Date.now() - null`
+    // is `Date.now()` — which would treat every live bucket as expired and hand
+    // the whole world a fresh quota. Only trust a real, non-negative number.
+    const age =
+      typeof maxAgeMs === "number" && Number.isFinite(maxAgeMs) && maxAgeMs >= 0
+        ? maxAgeMs
+        : MAX_WINDOW_MS;
+    const cutoff = Date.now() - age;
     const all = await this.ctx.storage.list<number[]>({ prefix: "ts:" });
 
     const dead: string[] = [];
@@ -180,28 +158,5 @@ export class RateLimitDurableObject extends DurableObject {
       await this.ctx.storage.setAlarm(Date.now() + SWEEP_INTERVAL_MS);
     }
     return { removed: dead.length, remaining };
-  }
-
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    const action = url.searchParams.get("action");
-    const key = url.searchParams.get("key");
-    const endpoint = url.searchParams.get("endpoint");
-
-    if (!action || !key || !endpoint) {
-      return Response.json({ error: "Missing action, key, or endpoint" }, { status: 400 });
-    }
-
-    if (action === "check") {
-      const result = await this.check(key, endpoint);
-      return Response.json(result);
-    }
-
-    if (action === "increment") {
-      const result = await this.increment(key, endpoint);
-      return Response.json(result);
-    }
-
-    return Response.json({ error: "Unknown action" }, { status: 400 });
   }
 }

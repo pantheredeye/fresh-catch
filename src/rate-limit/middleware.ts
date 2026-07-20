@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { requestInfo } from "rwsdk/worker";
 import { sha256Hex } from "@/utils/hash";
 import { normalizeEmail } from "@/auth/login-codes";
+import type { IdentityEndpoint, RateLimitEndpoint } from "./limits";
 
 interface RateLimitResult {
   allowed: boolean;
@@ -29,12 +30,16 @@ interface RateLimitResult {
  * The identity is hashed, so raw emails stay out of DO storage (same reason login
  * codes key on `emailHash`).
  *
- * NOTE: any endpoint passed with an identity needs an explicit `<endpoint>Ip` entry
- * in ENDPOINT_LIMITS — otherwise it silently falls back to DEFAULT_LIMIT, which is
- * tight enough to reintroduce the shared-NAT lockout this exists to prevent.
+ * Passing an identity for an endpoint with no `<endpoint>Ip` ceiling is a compile
+ * error — see IdentityEndpoint in ./limits.
  */
+export async function checkRateLimit(endpoint: RateLimitEndpoint): Promise<RateLimitResult>;
 export async function checkRateLimit(
-  endpoint: string,
+  endpoint: IdentityEndpoint,
+  identity: string,
+): Promise<RateLimitResult>;
+export async function checkRateLimit(
+  endpoint: RateLimitEndpoint,
   identity?: string,
 ): Promise<RateLimitResult> {
   const { request } = requestInfo;
@@ -50,37 +55,6 @@ export async function checkRateLimit(
   const identityHash = await sha256Hex(normalizeEmail(identity));
   return stub.incrementMulti([
     { key: `id:${identityHash}`, endpoint },
-    { key: `ip:${ip}`, endpoint: `${endpoint}Ip` },
+    { key: `ip:${ip}`, endpoint: `${endpoint}Ip` as RateLimitEndpoint },
   ]);
-}
-
-/**
- * Route middleware factory for rate limiting auth endpoints.
- * Wire into worker.tsx before auth routes.
- * Maps URL paths to rate limit endpoint names.
- */
-export function rateLimitAuth() {
-  return async ({ request }: { request: Request }) => {
-    // Only rate-limit POST (server function calls) and GET to auth pages
-    const url = new URL(request.url);
-    if (url.pathname !== "/login" && url.pathname !== "/join/invite") return;
-
-    // Use a general "auth" endpoint for page-level limiting
-    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-    const key = `${ip}:auth`;
-
-    const doId = env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global");
-    const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(doId);
-
-    // Check without incrementing — server functions will increment per-operation
-    const result = await stub.check(key, "login");
-
-    if (!result.allowed) {
-      const retryAfterSeconds = Math.ceil(result.retryAfterMs / 1000);
-      return new Response("Too Many Requests", {
-        status: 429,
-        headers: { "Retry-After": String(retryAfterSeconds) },
-      });
-    }
-  };
 }
