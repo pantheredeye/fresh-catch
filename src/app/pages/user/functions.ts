@@ -19,7 +19,7 @@ export async function sendOtpForEmail(email: string) {
     return { success: false, error: "Invalid email" };
   }
 
-  const rl = await checkRateLimit("otpSend");
+  const rl = await checkRateLimit("otpSend", email);
   if (!rl.allowed) {
     return {
       success: false,
@@ -68,7 +68,7 @@ export async function verifyOtp(email: string, code: string, inviteToken?: strin
     return { success: false, error: "Code required" };
   }
 
-  const rl = await checkRateLimit("otpVerify");
+  const rl = await checkRateLimit("otpVerify", email);
   if (!rl.allowed) {
     return {
       success: false,
