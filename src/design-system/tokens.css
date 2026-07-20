@@ -163,6 +163,26 @@ html, body {
   --color-surface-favorite: linear-gradient(135deg, white, rgba(0,217,177,0.03));
   --color-bg-footer: linear-gradient(135deg, rgba(0,102,204,0.03), rgba(0,169,150,0.03));
 
+  /* Overlays on accent surfaces (popup cards, fresh sheet, live banner).
+     WHY: these sit on a brand gradient that does NOT flip with theme, so they stay
+     white in dark mode by design. Tokenized for intent + CI, not for flipping. */
+  --color-overlay-on-accent-subtle: rgba(255,255,255,0.15);
+  --color-overlay-on-accent-medium: rgba(255,255,255,0.25);
+  --color-overlay-on-accent-solid: rgba(255,255,255,0.95);
+
+  /* Nav accent borders — cycled by index in NavGrid's compact variant */
+  --color-nav-accent-1: rgba(0,102,204,0.2);
+  --color-nav-accent-2: rgba(255,107,107,0.2);
+  --color-nav-accent-3: rgba(0,217,177,0.2);
+  --color-nav-accent-4: rgba(255,179,102,0.2);
+
+  /* Ambient page tints — faint washes behind full-page backgrounds */
+  --color-tint-primary: rgba(0,102,204,0.05);
+  --color-tint-secondary: rgba(255,107,107,0.05);
+  --color-tint-accent: rgba(0,217,177,0.1);
+  --color-tint-hover: rgba(0,102,204,0.05);
+  --color-tint-active: rgba(0,102,204,0.08);
+
   /* Glass Effects */
   --color-glass-base: rgba(255,252,248,0.8);
   --color-glass-dark: rgba(26,43,61,0.03);
@@ -449,6 +469,19 @@ select::placeholder {
     --color-border-medium: rgba(0, 169, 150, 0.35);
     --color-border-input: rgba(0, 169, 150, 0.3);
     --color-border-input-disabled: rgba(0, 169, 150, 0.15);
+
+    /* Nav accents + ambient tints — raised alpha so they stay visible on dark bg.
+       (Overlay-on-accent tokens are deliberately NOT overridden; see :root.) */
+    --color-nav-accent-1: rgba(56, 152, 236, 0.35);
+    --color-nav-accent-2: rgba(255, 107, 107, 0.35);
+    --color-nav-accent-3: rgba(0, 217, 177, 0.35);
+    --color-nav-accent-4: rgba(255, 179, 102, 0.35);
+
+    --color-tint-primary: rgba(56, 152, 236, 0.10);
+    --color-tint-secondary: rgba(255, 107, 107, 0.10);
+    --color-tint-accent: rgba(0, 217, 177, 0.14);
+    --color-tint-hover: rgba(56, 152, 236, 0.12);
+    --color-tint-active: rgba(56, 152, 236, 0.18);
 
     /* Glass Effects */
     --color-glass-base: rgba(31, 41, 55, 0.8);

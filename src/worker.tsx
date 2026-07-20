@@ -119,11 +119,20 @@ function errorHtml(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fresh Catch — Error</title>
   <style>
-    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9f7f4; color: #1a2b3d; text-align: center; }
+    /* TOKEN EXEMPTION: this page renders when the RSC pipeline has already failed,
+       so tokens.css is not guaranteed to load. It must be fully self-contained —
+       hex literals here are deliberate. Values mirror tokens.css; keep in sync by hand. */
+    :root { color-scheme: light dark; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #FFFCF8; color: #1A2B3D; text-align: center; }
     .wrap { max-width: 400px; padding: 2rem; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    p { color: #6b7280; margin-bottom: 1.5rem; }
-    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066cc; color: #fff; border-radius: 8px; text-decoration: none; }
+    p { color: #64748B; margin-bottom: 1.5rem; }
+    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066CC; color: #fff; border-radius: 8px; text-decoration: none; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111827; color: #E2E8F0; }
+      p { color: #94A3B8; }
+      a { background: #3898EC; }
+    }
   </style>
 </head>
 <body>

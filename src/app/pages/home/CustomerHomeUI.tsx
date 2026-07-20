@@ -98,9 +98,9 @@ export function CustomerHomeUI({
         width: '200%',
         height: '200%',
         background: `
-          radial-gradient(circle at 20% 50%, rgba(0,217,177,0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(0,102,204,0.05) 0%, transparent 50%),
-          radial-gradient(circle at 40% 20%, rgba(255,107,107,0.05) 0%, transparent 50%)
+          radial-gradient(circle at 20% 50%, var(--color-tint-accent) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, var(--color-tint-primary) 0%, transparent 50%),
+          radial-gradient(circle at 40% 20%, var(--color-tint-secondary) 0%, transparent 50%)
         `,
         pointerEvents: 'none',
         zIndex: 0

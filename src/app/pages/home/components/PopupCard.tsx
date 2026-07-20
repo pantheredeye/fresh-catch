@@ -32,14 +32,14 @@ export function PopupCard({ popup, vendorSlug }: { popup: PopupData; vendorSlug?
       boxShadow: 'var(--shadow-coral)',
       position: 'relative',
       overflow: 'hidden',
-      color: 'white'
+      color: 'var(--color-text-inverse)'
     }}>
       {/* Urgency Badge */}
       <div style={{
         position: 'absolute',
         top: 'var(--space-md)',
         right: 'var(--space-md)',
-        background: 'rgba(255,255,255,0.25)',
+        background: 'var(--color-overlay-on-accent-medium)',
         backdropFilter: 'blur(8px)',
         borderRadius: 'var(--radius-full)',
         padding: 'var(--space-xs) var(--space-md)',
@@ -106,7 +106,7 @@ export function PopupCard({ popup, vendorSlug }: { popup: PopupData; vendorSlug?
         }}>
           {popup.catchPreview.items.map((item, i) => (
             <div key={i} style={{
-              background: 'rgba(255,255,255,0.15)',
+              background: 'var(--color-overlay-on-accent-subtle)',
               backdropFilter: 'blur(10px)',
               borderRadius: 'var(--radius-md)',
               padding: 'var(--space-xs) var(--space-md)',
@@ -138,7 +138,7 @@ export function PopupCard({ popup, vendorSlug }: { popup: PopupData; vendorSlug?
           style={{
             display: 'inline-block',
             padding: 'var(--space-sm) var(--space-xl)',
-            background: 'rgba(255,255,255,0.95)',
+            background: 'var(--color-overlay-on-accent-solid)',
             color: 'var(--color-action-secondary)',
             borderRadius: 'var(--radius-lg)',
             fontWeight: 'var(--font-weight-bold)',

@@ -158,14 +158,14 @@
 
 .admin-nav-item:hover {
   color: var(--color-action-primary);
-  background: rgba(0, 102, 204, 0.05);
+  background: var(--color-tint-hover);
 }
 
 /* Active state - you'll need to add this class dynamically based on current route */
 .admin-nav-item.active,
 .admin-nav-item:focus-visible {
   color: var(--color-action-primary);
-  background: rgba(0, 102, 204, 0.08);
+  background: var(--color-tint-active);
   outline: none;
 }
 
