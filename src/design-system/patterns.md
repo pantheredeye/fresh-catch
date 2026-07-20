@@ -253,7 +253,7 @@ const styles: CSSProperties = {
 
 #### Dark Mode Testing Checklist:
 - [ ] Test with browser DevTools dark mode emulation
-- [ ] All text has sufficient contrast (use `/dark-mode-test` page)
+- [ ] All text has sufficient contrast
 - [ ] Borders are visible
 - [ ] Glass effects are visible (not invisible white)
 - [ ] Input states are distinguishable
@@ -294,7 +294,8 @@ These tokens automatically change in dark mode:
 - **Quick Reference**: `src/design-system/README.md`
 - **Template**: `src/design-system/COMPONENT_TEMPLATE.tsx`
 - **All Tokens**: `src/design-system/tokens.css`
-- **Test Page**: `/dark-mode-test`
+- **Test Page**: `/design-test` (dev only) — primitives in the current theme; toggle
+  your OS appearance to check dark mode
 
 ### Figma Integration
 

@@ -273,7 +273,8 @@ import { MarketCard } from '@/app/pages/home/components'  // NO!
 
 #### Testing Design System:
 
-Visit `/design-test` to see all design system primitives.
+Visit `/design-test` (dev only — the route is not built into production) to see all
+design system primitives. Toggle your OS appearance to check dark mode.
 Page-specific components are tested on their actual pages.
 
 ### Component Variants Pattern
