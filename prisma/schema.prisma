@@ -129,7 +129,7 @@ model Membership {
   id             String   @id @default(uuid())
   userId         String
   organizationId String
-  role           String // 'owner', 'admin', 'member', etc.
+  role           String // 'owner' or 'manager'
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

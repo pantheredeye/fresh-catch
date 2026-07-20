@@ -4,7 +4,6 @@ import { handleVitestRequest } from "rwsdk-community/worker";
 import * as appActions from "@/app/actions";
 import * as testUtils from "@/app/test-utils";
 import { Document } from "@/app/Document";
-import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
 import { VendorProfilePage } from "@/app/pages/home/VendorProfilePage";
 import { DesignTest } from "@/app/pages/DesignTest";
@@ -38,6 +37,10 @@ export { RateLimitDurableObject } from "./rate-limit/durableObject";
 export { McpDurableObject } from "./mcp/durableObject";
 export { SignalDurableObject } from "./signal/durableObject";
 export { InboxDurableObject } from "./inbox/durableObject";
+
+// Vite dev server only — gates the design-system showcase routes out of prod.
+const isViteDev =
+  typeof import.meta.env !== "undefined" && import.meta.env.DEV;
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
@@ -442,17 +445,8 @@ const app = defineApp([
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
       route("/v/:slug", VendorProfilePage),
-      route("/design-test", DesignTest),
-      ...darkModeTestRoutes,
-
-      route("/protected", [
-        ({ ctx, request }) => {
-          if (!ctx.user) {
-            return safeRedirect(request, "/login");
-          }
-        },
-        Home,
-      ]),
+      // Design-system showcase pages — dev only, same fail-closed posture as /_test.
+      ...(isViteDev ? [route("/design-test", DesignTest), ...darkModeTestRoutes] : []),
     ]),
 
     // Order routes with customer layout

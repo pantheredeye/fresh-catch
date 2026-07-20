@@ -187,12 +187,20 @@ function MarketCard({ market, ctx }) {
 
 ### Three-Tier Token Architecture
 
-Tokens follow a **Brand → Alias → Component** hierarchy:
-- **Brand layer**: Raw values (`brand.color.blue.500 = #0066CC`) — defined in `tokens-three-tier.json`
-- **Alias layer**: Semantic names (`--color-action-primary`) — used in CSS
-- **Component layer**: Component-specific tokens (`component.button.primary.background`) — for Figma
+**`src/design-system/tokens.css` is the source of truth.** It is hand-authored, and
+everything in the app resolves against it.
 
-**All code uses the alias layer.** Brand tokens exist only as the source; component tokens exist only for Figma.
+`tokens-three-tier.json` is a **generated export artifact** for Figma, produced by
+`pnpm run tokens:export`. Nothing reads it back into CSS — the three-tier pipeline is
+one-way (CSS → JSON). Editing the JSON has no effect on the app; edit `tokens.css`
+and re-export.
+
+The exported JSON models a **Brand → Alias → Component** hierarchy for Figma's benefit:
+- **Brand layer**: Raw values (`brand.color.blue.500 = #0066CC`)
+- **Alias layer**: Semantic names (`--color-action-primary`) — the layer code uses
+- **Component layer**: Component-specific tokens (`component.button.primary.background`)
+
+**All code uses the alias layer.**
 
 ### Token Naming Convention
 
@@ -296,14 +304,15 @@ pnpm run tokens:export
 ```
 
 Generates `src/design-system/tokens-three-tier.json` compatible with Figma Tokens plugin.
+One-way export — see "Three-Tier Token Architecture" above.
 
-#### Token Structure:
-- **66 light mode tokens**: Colors, spacing, typography, shadows
-- **20 dark mode overrides**: Surfaces, borders, glass effects
+#### Token Structure (as of 2026-07):
+- **108 `:root` tokens**: Colors, spacing, typography, shadows
+- **46 dark mode overrides**: 28 on `:root`, 18 on `[data-surface="admin"]`
 - **Categories**: color, spacing, sizing, typography, shadows
 
 #### Workflow:
-1. Design in Figma using exported tokens
+1. Edit `tokens.css`, then `pnpm run tokens:export`
 2. Import tokens-three-tier.json to Figma Tokens plugin
-3. Build components referencing same token names (three-tier: primitive → semantic → component)
-4. Two-way consistency maintained
+3. Design in Figma using the exported tokens
+4. Build components referencing the same alias token names

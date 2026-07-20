@@ -44,7 +44,7 @@ git push -u origin bbb-new-feature
 
 This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, WebAuthn authentication, and Prisma ORM with D1 database.
 
-**Current RWSDK Version:** 1.0.0-beta.42 (upgraded from beta.9 on 2025-12-24)
+**Current RWSDK Version:** 1.0.8 (see `package.json` for the authoritative value)
 
 rwsdk rules and patterns are located in `@.cursor/rules/`
 
