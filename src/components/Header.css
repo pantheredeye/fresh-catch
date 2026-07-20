@@ -68,13 +68,14 @@
 .order-button {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-xs) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: var(--color-gradient-secondary);
   color: white;
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
   box-shadow: var(--shadow-coral);
   transition: all var(--duration-fast) var(--ease-out);
 }
@@ -136,12 +137,5 @@
 
   .unified-header__left {
     gap: var(--space-sm);
-  }
-
-  /* Reduce button padding on mobile */
-  .order-button {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--text-xs);
-    white-space: nowrap;
   }
 }

@@ -7,6 +7,9 @@ export function CustomerLayout({
   requestInfo,
 }: LayoutProps<RequestInfo>) {
   const ctx = requestInfo?.ctx;
+  const currentPath = requestInfo?.request
+    ? new URL(requestInfo.request.url).pathname
+    : undefined;
 
   return (
     <CustomerLayoutClient
@@ -14,6 +17,7 @@ export function CustomerLayout({
       currentOrganization={ctx?.currentOrganization ?? null}
       browsingOrganization={ctx?.browsingOrganization ?? null}
       csrfToken={ctx?.session?.csrfToken ?? ""}
+      currentPath={currentPath}
     >
       {children}
     </CustomerLayoutClient>
