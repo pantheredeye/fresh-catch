@@ -15,7 +15,7 @@ import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
 import { profileRoutes } from "@/app/pages/profile/routes";
 import { marketRoutes } from "@/app/pages/markets/routes";
-import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
+import { DarkModeTestPage } from "@/app/pages/dark-mode-test/DarkModeTestPage";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -454,8 +454,13 @@ const app = defineApp([
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
       route("/v/:slug", VendorProfilePage),
-      // Design-system showcase pages — dev only, same fail-closed posture as /_test.
-      ...(isViteDev ? [route("/design-test", DesignTest), ...darkModeTestRoutes] : []),
+      // Design-system showcase pages — dev only. `isViteDev` folds to a build-time
+      // constant, so these tree-shake out of the production bundle entirely. Routes are
+      // inlined rather than imported as a prebuilt array: a module of top-level route()
+      // calls isn't provably side-effect-free, so Vite would retain it.
+      ...(isViteDev
+        ? [route("/design-test", DesignTest), route("/dark-mode-test", DarkModeTestPage)]
+        : []),
     ]),
 
     // Order routes with customer layout

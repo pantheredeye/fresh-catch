@@ -307,9 +307,14 @@ Generates `src/design-system/tokens-three-tier.json` compatible with Figma Token
 One-way export — see "Three-Tier Token Architecture" above.
 
 #### Token Structure (as of 2026-07):
-- **108 `:root` tokens**: Colors, spacing, typography, shadows
-- **46 dark mode overrides**: 28 on `:root`, 18 on `[data-surface="admin"]`
+- **120 base `:root` tokens**: Colors, spacing, typography, shadows
+- **18 light-mode admin overrides** on `[data-surface="admin"]`
+- **64 dark-mode overrides**: 46 on `:root`, 18 on `[data-surface="admin"]`
 - **Categories**: color, spacing, sizing, typography, shadows
+
+Admin surfaces override tokens in *both* themes — `[data-surface="admin"]` swaps the
+coral accent for blue and flattens glass effects. Because custom properties resolve
+per-element, those overrides don't collide with the `:root` ones.
 
 #### Workflow:
 1. Edit `tokens.css`, then `pnpm run tokens:export`
