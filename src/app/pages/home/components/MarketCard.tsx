@@ -78,7 +78,7 @@ export function MarketCard({
         marginBottom: 'var(--space-lg)'
       }}>
         <span style={{
-          color: 'var(--color-action-primary)',
+          color: 'var(--color-text-primary)',
           fontWeight: 'var(--font-weight-semibold)',
           fontSize: 'var(--font-size-lg)'
         }}>
@@ -151,13 +151,6 @@ export function MarketCard({
             <span aria-hidden="true">⚙️</span>
           </a>
         )}
-        <a href={`#directions-${market.id}`} className="icon-button-md" style={{
-          background: 'var(--color-surface-secondary)',
-          textDecoration: 'none',
-          fontSize: 'var(--font-size-2xl)'
-        }} aria-label="Get directions">
-          <span aria-hidden="true">📍</span>
-        </a>
       </div>
     </div>
   );
