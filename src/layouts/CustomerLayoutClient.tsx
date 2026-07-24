@@ -3,6 +3,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { ErrorBoundary } from "@/app/ErrorBoundary";
 import { Header } from "@/components/Header";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import { CommandBar } from "@/components/CommandBar";
 import { CommandReview } from "@/components/CommandReview";
 import { QueryResultOverlay } from "@/components/QueryResultOverlay";
@@ -14,6 +15,7 @@ import { CustomerFooter } from "./CustomerFooter";
 import "./CustomerLayout.css";
 import "@/components/UserMenu.css";
 import "@/design-system/tokens.css";
+import "@/design-system/interactions.css";
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const m = hex.match(/^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/);
@@ -26,6 +28,7 @@ export function CustomerLayoutClient({
   currentOrganization,
   browsingOrganization,
   csrfToken,
+  currentPath,
   children,
 }: {
   user: User | null;
@@ -43,6 +46,7 @@ export function CustomerLayoutClient({
     accentColor: string | null;
   } | null;
   csrfToken: string;
+  currentPath?: string;
   children: React.ReactNode;
 }) {
   const [commandBarOpen, setCommandBarOpen] = useState(false);
@@ -98,12 +102,14 @@ export function CustomerLayoutClient({
   return (
     <ErrorBoundary>
     <div className="customer-layout" data-surface="vendor" data-vendor={browsingOrganization?.slug ?? currentOrganization?.slug ?? undefined} style={accentStyle}>
+      <NavigationProgress />
       <Header
         variant="customer"
         user={user}
         currentOrganization={currentOrganization}
         browsingOrganization={browsingOrganization}
         csrfToken={csrfToken}
+        currentPath={currentPath}
       />
 
       <VoiceCommandProvider onOpen={() => setCommandBarOpen(true)}>

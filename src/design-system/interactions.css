@@ -1,0 +1,27 @@
+/* Global pressed-state feedback (customer surface).
+   Full-page navigations take 1-3s on cold starts, so every tap needs an
+   instant physical response. Element-level selectors keep specificity
+   below existing component rules (.btn:active, .header-action:active),
+   so per-component pressed states still win where they're defined.
+
+   Note: transform is ignored on display:inline boxes, so plain inline
+   text links only get the brightness change — no layout shift. */
+
+button,
+a[href] {
+  transition:
+    transform 80ms var(--ease-out),
+    filter 80ms var(--ease-out);
+}
+
+button:active:not(:disabled),
+a[href]:active {
+  filter: brightness(0.95);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button:active:not(:disabled),
+  a[href]:active {
+    transform: scale(0.97);
+  }
+}

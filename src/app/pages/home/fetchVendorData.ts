@@ -8,7 +8,7 @@ export function getQuickActions(vendorSlug?: string) {
     { icon: "🐟", title: "Order", href: orderHref },
     { icon: "📋", title: "My Orders", href: "/orders" },
     { icon: "📍", title: "Markets", href: "#markets" },
-    { icon: "💬", title: "Contact", href: "#text" }
+    { icon: "💬", title: "Contact", href: "#chat" }
   ];
 }
 

@@ -87,7 +87,7 @@ export function CompactMarketRow({
           style={{
             fontSize: "var(--font-size-md)",
             fontWeight: "var(--font-weight-semibold)",
-            color: "var(--color-action-primary)",
+            color: "var(--color-text-primary)",
             whiteSpace: "nowrap",
             flexShrink: 0,
           }}
@@ -130,13 +130,13 @@ export function CompactMarketRow({
             fontSize: "var(--font-size-md)",
             color: "var(--color-text-tertiary)",
             transition: "transform 0.2s ease",
-            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
             flexShrink: 0,
             lineHeight: 1,
           }}
           aria-hidden="true"
         >
-          {"\u203A"}
+          {"\u2304"}
         </span>
       </div>
 
@@ -168,47 +168,25 @@ export function CompactMarketRow({
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-            <a
-              href={`/orders/new?market=${market.id}${vendorSlug ? `&b=${vendorSlug}` : ""}`}
-              style={{
-                flex: 1,
-                padding: "var(--space-md)",
-                background: "var(--color-gradient-primary)",
-                color: "var(--color-text-inverse)",
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                fontWeight: "var(--font-weight-bold)",
-                fontSize: "var(--font-size-md)",
-                textDecoration: "none",
-                textAlign: "center",
-                boxShadow: "var(--shadow-md)",
-              }}
-              className="btn btn--primary"
-            >
-              Order Fish
-            </a>
-
-            <a
-              href={`#directions-${market.id}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-xs)",
-                padding: "var(--space-md) var(--space-lg)",
-                background: "var(--color-surface-secondary)",
-                borderRadius: "var(--radius-md)",
-                textDecoration: "none",
-                fontSize: "var(--font-size-md)",
-                color: "var(--color-text-primary)",
-                fontWeight: "var(--font-weight-semibold)",
-                flexShrink: 0,
-              }}
-              aria-label={`Get directions to ${market.name}`}
-            >
-              <span aria-hidden="true">📍</span> Directions
-            </a>
-          </div>
+          <a
+            href={`/orders/new?market=${market.id}${vendorSlug ? `&b=${vendorSlug}` : ""}`}
+            style={{
+              display: "block",
+              padding: "var(--space-md)",
+              background: "var(--color-gradient-primary)",
+              color: "var(--color-text-inverse)",
+              border: "none",
+              borderRadius: "var(--radius-md)",
+              fontWeight: "var(--font-weight-bold)",
+              fontSize: "var(--font-size-md)",
+              textDecoration: "none",
+              textAlign: "center",
+              boxShadow: "var(--shadow-md)",
+            }}
+            className="btn btn--primary"
+          >
+            Order Fish
+          </a>
         </div>
       </div>
 
@@ -217,6 +195,9 @@ export function CompactMarketRow({
           outline: 2px solid var(--color-action-primary);
           outline-offset: -2px;
           border-radius: var(--radius-sm);
+        }
+        .compact-row-toggle:active {
+          background: var(--color-surface-secondary);
         }
         @media (prefers-reduced-motion: reduce) {
           .compact-row-expand {
