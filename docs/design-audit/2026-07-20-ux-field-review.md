@@ -133,3 +133,17 @@ Scope for a dedicated ticket:
 - **Constraint:** keep the theme (gradients, coral/ocean palette, big friendly type). Keep and extend the accessibility posture — 60+, outdoor sunlight, big targets, high contrast, explicit labels over clever minimalism.
 
 **Process note (per founder):** do the overhaul on an isolated branch/worktree so it can be evaluated against the current UI and discarded if it loses the plot. Current app works; the overhaul must earn its merge.
+
+---
+
+## Round 2 — 2026-07-24 walkthrough (chat, order flow, orders list, profile, share)
+
+Second founder pass. All items diagnosed and fixed on this branch (PR #27):
+
+1. **Chat close ✕ too small** — `ChatSheet.tsx` close button was a bare glyph with `--space-xs` padding: tap target well under 44px. → 44px+ round button with surface background.
+2. **Order form: Email label reads as attached to Name input** — the three contact `TextInput`s stacked with zero gap between fields, while each label sits close to its own input only internally. Proximity principle violated. → clear inter-field gap (`--space-md`).
+3. **Cancel more inviting than Submit at submission time** — Cancel rendered first (left) at the same `lg` size as Submit, and success held a hard-coded 2000ms redirect delay on top of server latency, leaving users staring at a prominent Cancel. → Submit is the single dominant full-width action; Cancel demoted to low-emphasis below it and visibly recedes while submitting; redirect delay halved.
+4. **"Made by Digital Glue" floating in whitespace on /orders** — the fab bar only exists on the home page; on short pages the footer floated mid-void because the layout didn't fill the viewport. → flex-column layout with `min-height: 100dvh`, footer flush at bottom with a top border.
+5. **Profile Save Changes misaligned + always active** — only non-fullWidth primary form button in the app (hence "shifted left"), and enabled with no changes. → fullWidth + dirty-state tracking (disabled until edits exist, baseline resets after save).
+6. **Settings menu item → 404** — fab-bar menu linked to `/settings`; no such route exists in `worker.tsx`. → removed (customers have Profile).
+7. **Share modal Copy button clipped** — `flex: 1` URL input without `minWidth: 0` pushed the button past the modal edge. → fixed, plus a design pass: native share sheet when available, calmer token-based social buttons (brand hexes removed), framed QR with caption, 44px close target. **QR download button removed** (per founder — QR display stays).

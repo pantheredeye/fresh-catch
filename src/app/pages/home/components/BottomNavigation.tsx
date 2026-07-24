@@ -272,12 +272,6 @@ export function BottomNavigation({ vendorSlug, vendorName, organizationId, user,
                           <span className="menu-badge">{orderUpdateCount}</span>
                         )}
                       </Menu.Item>
-                      <Menu.Item
-                        className="bottom-nav-menu-item"
-                        render={<a href="/settings" />}
-                      >
-                        Settings
-                      </Menu.Item>
 
                       {/* Admin shortcut */}
                       {isAdmin && (

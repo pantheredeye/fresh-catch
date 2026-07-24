@@ -508,12 +508,16 @@ export function ChatSheet({
             onClick={onClose}
             aria-label="Close chat"
             style={{
-              background: "none",
+              background: "var(--color-surface-secondary)",
               border: "none",
-              padding: "var(--space-xs)",
+              borderRadius: "var(--radius-full)",
+              width: 44,
+              height: 44,
+              padding: 0,
+              flexShrink: 0,
               cursor: "pointer",
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-xl)",
+              color: "var(--color-text-primary)",
+              fontSize: "var(--font-size-2xl)",
               lineHeight: 1,
               display: "flex",
               alignItems: "center",
