@@ -10,13 +10,14 @@ export function CustomerFooter() {
       className="customer-footer"
       style={{
         background: 'var(--color-bg-footer)',
-        padding: 'var(--space-xl) var(--space-md)',
+        padding: 'var(--space-md)',
+        borderTop: '1px solid var(--color-border-subtle)',
         textAlign: 'center',
       }}
     >
       <p style={{
         margin: 0,
-        fontSize: '14px',
+        fontSize: 'var(--font-size-sm)',
         color: 'var(--color-text-secondary)',
       }}>
         Made by{' '}

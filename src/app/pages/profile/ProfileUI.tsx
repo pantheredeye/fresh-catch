@@ -34,6 +34,26 @@ export function ProfileUI({ csrfToken, user }: ProfileUIProps) {
   const [message, setMessage] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Baseline for dirty-state tracking — reset after a successful save
+  const [savedValues, setSavedValues] = useState({
+    name: user.name || "",
+    phone: user.phone || "",
+    deliveryStreet: user.deliveryStreet || "",
+    deliveryCity: user.deliveryCity || "",
+    deliveryState: user.deliveryState || "",
+    deliveryZip: user.deliveryZip || "",
+    deliveryNotes: user.deliveryNotes || "",
+  });
+
+  const isDirty =
+    name !== savedValues.name ||
+    phone !== savedValues.phone ||
+    deliveryStreet !== savedValues.deliveryStreet ||
+    deliveryCity !== savedValues.deliveryCity ||
+    deliveryState !== savedValues.deliveryState ||
+    deliveryZip !== savedValues.deliveryZip ||
+    deliveryNotes !== savedValues.deliveryNotes;
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
@@ -56,6 +76,15 @@ export function ProfileUI({ csrfToken, user }: ProfileUIProps) {
 
       setStatus('success');
       setMessage('Profile saved!');
+      setSavedValues({
+        name,
+        phone,
+        deliveryStreet,
+        deliveryCity,
+        deliveryState,
+        deliveryZip,
+        deliveryNotes,
+      });
       setTimeout(() => {
         setStatus('idle');
         setMessage('');
@@ -268,14 +297,13 @@ export function ProfileUI({ csrfToken, user }: ProfileUIProps) {
 
         {/* Save Button */}
         <div style={{ marginBottom: 'var(--space-md)' }}>
-          <div style={{ width: '100%' }}>
-            <Button
-              type="submit"
-              disabled={status === 'loading'}
-            >
-              {status === 'loading' ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            fullWidth
+            disabled={!isDirty || status === 'loading'}
+          >
+            {status === 'loading' ? 'Saving...' : 'Save Changes'}
+          </Button>
 
           {message && (
             <p style={{
