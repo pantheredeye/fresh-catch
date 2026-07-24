@@ -93,10 +93,10 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
       setStatus('success');
       setMessage(`Order submitted! ${vendorName} will confirm soon.`);
 
-      // Redirect after 2 seconds
+      // Redirect after 1 second - long enough to read the confirmation
       setTimeout(() => {
         window.location.href = '/orders';
-      }, 2000);
+      }, 1000);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Failed to submit order');
@@ -146,34 +146,36 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
               Contact Information
             </h3>
 
-            <TextInput
-              label="Your Name"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              required
-              placeholder="John Smith"
-              size="md"
-            />
+            <div className="flex-col gap-md">
+              <TextInput
+                label="Your Name"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                required
+                placeholder="John Smith"
+                size="md"
+              />
 
-            <TextInput
-              label="Email"
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="your@email.com"
-              helperText="For order confirmations and updates"
-              size="md"
-            />
+              <TextInput
+                label="Email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="your@email.com"
+                helperText="For order confirmations and updates"
+                size="md"
+              />
 
-            <TextInput
-              label="Phone Number"
-              type="tel"
-              value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
-              placeholder="(555) 123-4567"
-              helperText="Optional"
-              size="md"
-            />
+              <TextInput
+                label="Phone Number"
+                type="tel"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="(555) 123-4567"
+                helperText="Optional"
+                size="md"
+              />
+            </div>
           </div>
 
           {/* Order Details */}
@@ -226,16 +228,7 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
             helperText={`Optional (${notes.length}/500)`}
           />
 
-          <div className="flex gap-sm mt-md">
-            <Button
-              type="button"
-              variant="cancel"
-              size="lg"
-              onClick={() => window.history.back()}
-              disabled={status === 'loading'}
-            >
-              Cancel
-            </Button>
+          <div className="flex-col gap-sm mt-md">
             <Button
               type="submit"
               variant="primary"
@@ -243,10 +236,43 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
               fullWidth
               disabled={status === 'loading' || status === 'success'}
             >
-              {status === 'loading' ? 'Submitting...' :
-               status === 'success' ? '✓ Submitted' :
-               'Submit Order'}
+              {status === 'loading' ? (
+                <>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: '1em',
+                      height: '1em',
+                      border: '2px solid currentColor',
+                      borderTopColor: 'transparent',
+                      borderRadius: 'var(--radius-full)',
+                      animation: 'spin 0.8s linear infinite'
+                    }}
+                  />
+                  Submitting...
+                </>
+              ) : status === 'success' ? '✓ Submitted' : 'Submit Order'}
             </Button>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              disabled={status === 'loading'}
+              style={{
+                alignSelf: 'center',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-text-secondary)',
+                fontSize: 'var(--font-size-sm)',
+                fontFamily: 'var(--font-modern)',
+                padding: 'var(--space-sm) var(--space-md)',
+                cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+                opacity: status === 'loading' ? 0.4 : 1,
+                textDecoration: 'underline',
+                transition: 'opacity 0.3s ease'
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </form>
 
