@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Button } from "../Button";
 
 interface QRCodeGeneratorProps {
   url: string;
@@ -19,37 +18,34 @@ export function QRCodeGenerator({ url, size = 256 }: QRCodeGeneratorProps) {
       width: size,
       margin: 2,
       color: {
+        // Canvas pixel colors (not CSS) — QR must stay dark-on-light to scan
         dark: "#0A2540", // var(--color-text-primary)
         light: "#FFFFFF",
       },
     }).catch((err) => setError(err.message));
   }, [url, size]);
 
-  const handleDownload = () => {
-    if (!canvasRef.current) return;
-
-    const link = document.createElement("a");
-    link.download = "fresh-catch-qr.png";
-    link.href = canvasRef.current.toDataURL("image/png");
-    link.click();
-  };
-
   return (
     <div style={{ textAlign: "center" }}>
       {error ? (
-        <p style={{ color: "var(--color-action-secondary)", fontSize: "14px" }}>{error}</p>
+        <p
+          style={{
+            color: "var(--color-status-error)",
+            fontSize: "var(--font-size-sm)",
+          }}
+        >
+          {error}
+        </p>
       ) : (
-        <>
-          <canvas
-            ref={canvasRef}
-            style={{ display: "block", margin: "0 auto" }}
-          />
-          <div style={{ marginTop: "var(--space-md)" }}>
-            <Button onClick={handleDownload} variant="primary">
-              Download QR Code
-            </Button>
-          </div>
-        </>
+        <canvas
+          ref={canvasRef}
+          style={{
+            display: "block",
+            margin: "0 auto",
+            maxWidth: "100%",
+            height: "auto",
+          }}
+        />
       )}
     </div>
   );
