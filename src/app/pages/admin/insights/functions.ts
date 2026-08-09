@@ -3,7 +3,13 @@
 import { env } from "cloudflare:workers";
 import { requestInfo, serverQuery } from "rwsdk/worker";
 import { requireCsrf } from "@/session/csrf";
+import { hasAdminAccess } from "@/utils/permissions";
 import type { InsightRow, EntityRow, SignalStatsRow } from "@/signal/durableObject";
+
+function hasInsightsAccess() {
+  const { ctx } = requestInfo;
+  return !!(ctx.user && hasAdminAccess(ctx) && ctx.currentOrganization);
+}
 
 function getStub() {
   const { ctx } = requestInfo;
@@ -14,18 +20,22 @@ function getStub() {
 }
 
 export const refreshInsights = serverQuery(async (): Promise<InsightRow[]> => {
+  if (!hasInsightsAccess()) return [];
   return getStub().getInsights({ limit: 50 });
 });
 
 export const refreshEntities = serverQuery(async (): Promise<EntityRow[]> => {
+  if (!hasInsightsAccess()) return [];
   return getStub().getTopEntities({ days: 7, limit: 15 });
 });
 
 export const refreshStats = serverQuery(async (): Promise<SignalStatsRow[]> => {
+  if (!hasInsightsAccess()) return [];
   return getStub().getSignalStats({ days: 7 });
 });
 
 export async function markSeen(csrfToken: string, insightId: string): Promise<void> {
   requireCsrf(csrfToken);
+  if (!hasInsightsAccess()) throw new Error("Forbidden");
   await getStub().markInsightSeen(insightId);
 }
