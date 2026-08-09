@@ -72,7 +72,19 @@ export async function createOrder(csrfToken: string, data: CreateOrderData, vend
   // Look up vendor org explicitly by ID passed from client
   const vendorOrg = await db.organization.findUnique({
     where: { id: vendorOrgId },
-    select: { id: true, name: true, slug: true, type: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      type: true,
+      notificationEmail: true,
+      memberships: {
+        where: { role: "owner" },
+        orderBy: { createdAt: "asc" }, // deterministic: oldest owner if multiple
+        take: 1,
+        include: { user: { select: { email: true } } },
+      },
+    },
   });
   if (!vendorOrg || vendorOrg.type !== "business") {
     return { success: false, error: "Invalid vendor" };
@@ -163,10 +175,14 @@ export async function createOrder(csrfToken: string, data: CreateOrderData, vend
     }
 
     // Send notification email to admin
-    if (env.ADMIN_EMAIL) {
+    const notificationRecipient =
+      vendorOrg.notificationEmail ||
+      vendorOrg.memberships[0]?.user.email ||
+      env.ADMIN_EMAIL;
+    if (notificationRecipient) {
       try {
         await sendAdminNewOrderEmail({
-          to: env.ADMIN_EMAIL,
+          to: notificationRecipient,
           orderNumber: order.orderNumber,
           customerName: order.contactName,
           customerEmail: order.contactEmail || undefined,

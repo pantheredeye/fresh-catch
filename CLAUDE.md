@@ -42,7 +42,7 @@ git push -u origin bbb-new-feature
 
 ## Project Overview
 
-This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, WebAuthn authentication, and Prisma ORM with D1 database.
+This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, email-OTP authentication, and Prisma ORM with D1 database.
 
 **Current RWSDK Version:** 1.0.0-beta.42 (upgraded from beta.9 on 2025-12-24)
 
@@ -104,12 +104,12 @@ pnpm run clean          # Clean Vite cache
 
 ### Database
 - Uses Prisma with D1 adapter for SQLite on Cloudflare
-- Schema includes `User` and `Credential` models for WebAuthn authentication
+- Schema includes `User` model (email-OTP login) and a legacy `Credential` model from a prior WebAuthn implementation, no longer wired up
 - Generated Prisma client outputs to `generated/prisma/`
 - Migrations stored in `migrations/` directory
 
 ### Authentication
-- WebAuthn (passkey) authentication via `@simplewebauthn` packages
+- Email-OTP (login code) authentication — see `src/auth/login-codes.ts`
 - User routes in `src/app/pages/user/` handle login/registration
 - Sessions persist via Durable Objects with automatic cleanup on auth errors
 
@@ -344,6 +344,6 @@ export { BottomNavigationV2 as BottomNavigation } from './BottomNavigation.v2';
 
 - TypeScript paths configured: `@/*` maps to `src/*`, `@generated/*` maps to `generated/*`
 - Uses pnpm as package manager
-- Environment variables needed: `DATABASE_URL`, `WEBAUTHN_APP_NAME`
+- Environment variables needed: `DATABASE_URL`, `RESEND_API_KEY` (for login-code + notification emails)
 - Cloudflare D1 database binding configured as `DB`
 - Update `__change_me__` placeholders in `wrangler.jsonc` for deployment

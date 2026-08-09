@@ -217,18 +217,8 @@ function AccessDenied() {
 ```tsx
 export const adminRoutes = [
   route("/", AdminDashboard),        // NEW: /admin landing
-  route("/setup", SetupPage),        // /admin/setup
   route("/config", MarketConfigPage), // /admin/config
 ];
-```
-
-#### 6. Update Setup Page Redirect
-**File:** `src/app/pages/admin/Setup.tsx`
-
-After successful admin setup, redirect to `/admin` instead of `/admin/config`:
-```tsx
-// In handleFinish after successful registration
-window.location.href = "/admin"; // Changed from /admin/config
 ```
 
 ### Testing Checklist - Phase 1
@@ -237,7 +227,6 @@ window.location.href = "/admin"; // Changed from /admin/config
 - ✅ `/admin` shows access denied when logged in as non-admin
 - ✅ Navigation cards link to correct admin pages (Markets, View Site)
 - ✅ "View as Customer" navigates to `/` (customer home)
-- ✅ Setup page redirects to `/admin` after completion
 - ✅ Defensive CSS consistent across all auth/admin pages
 - ✅ Mobile-responsive layout works (cards stack properly)
 - ✅ MarketConfigPage has enhanced error handling (not logged in, not admin, no org)
@@ -428,7 +417,6 @@ interface AdminBadgeProps {
 
 **Modified Files:**
 - `src/app/pages/admin/routes.ts` - Add `/admin` route
-- `src/app/pages/admin/Setup.tsx` - Update redirect after setup
 - `src/app/pages/CustomerHomeUI.tsx` - Add admin header nav (Phase 2)
 
 **Design Files:**
