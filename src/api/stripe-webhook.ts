@@ -51,26 +51,10 @@ export async function handleStripeWebhook(request: Request): Promise<Response> {
 
   console.log(`Stripe webhook received: ${event.type} (${event.id})`);
 
-  // Resolve org early from Stripe Connect account ID
-  const stripeAccountId = event.account;
-  if (!stripeAccountId) {
-    console.error(`Webhook event ${event.type} missing account (not a Connect event?)`);
-    return new Response("Missing connected account", { status: 400 });
-  }
-
   await ensureDb();
 
-  const org = await db.organization.findFirst({
-    where: { stripeAccountId },
-    select: { id: true, name: true },
-  });
-  if (!org) {
-    console.error(`No organization found for Stripe account ${stripeAccountId}`);
-    return new Response("Unknown Stripe account", { status: 400 });
-  }
-
   try {
-    await dispatchWebhookEvent(event, org.id, stripeAccountId);
+    await dispatchWebhookEvent(event);
   } catch (err) {
     console.error(`Error handling webhook event ${event.type}:`, err);
     // Still return 200 — Stripe should not retry on handler errors
@@ -83,34 +67,73 @@ export async function handleStripeWebhook(request: Request): Promise<Response> {
 }
 
 /**
- * Dispatch webhook event to the appropriate handler.
- * Add new event handlers here as needed.
+ * Resolve org from event object metadata (checkout session / payment intent).
+ * Metadata is written by our own server at session creation, so orgId is trustworthy —
+ * downstream handlers still scope order lookups by organizationId as defense in depth.
  */
-async function dispatchWebhookEvent(event: Stripe.Event, orgId: string, stripeAccountId: string): Promise<void> {
+async function resolveOrgFromMetadata(
+  metadata: Stripe.Metadata | null | undefined,
+): Promise<{ id: string; stripeAccountId: string } | null> {
+  if (!metadata?.platform || metadata.platform !== "fresh-catch") {
+    console.log("Ignoring event — wrong platform:", metadata?.platform);
+    return null;
+  }
+
+  const { orgId } = metadata;
+  if (!orgId) {
+    console.error("Event metadata missing orgId");
+    return null;
+  }
+
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true, stripeAccountId: true },
+  });
+  if (!org?.stripeAccountId) {
+    console.error(`No organization (with Stripe account) found for orgId ${orgId}`);
+    return null;
+  }
+
+  return { id: org.id, stripeAccountId: org.stripeAccountId };
+}
+
+/**
+ * Dispatch webhook event to the appropriate handler.
+ * Each event type resolves its own org — checkout/payment-intent events carry
+ * orgId in metadata (destination charges don't populate event.account); account.updated
+ * is a genuine Connect account event and resolves via event.account instead.
+ * Unresolvable events log and no-op — the caller always acks with 200.
+ */
+async function dispatchWebhookEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
-    case "checkout.session.completed":
-      await handleCheckoutSessionCompleted(
-        event.data.object as Stripe.Checkout.Session,
-        orgId,
-        stripeAccountId,
-      );
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const org = await resolveOrgFromMetadata(session.metadata);
+      if (!org) return;
+      await handleCheckoutSessionCompleted(session, org.id, org.stripeAccountId);
       break;
-    case "payment_intent.succeeded":
-      await handlePaymentIntentSucceeded(
-        event.data.object as Stripe.PaymentIntent,
-        orgId,
-        stripeAccountId,
-      );
+    }
+    case "payment_intent.succeeded": {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const org = await resolveOrgFromMetadata(paymentIntent.metadata);
+      if (!org) return;
+      await handlePaymentIntentSucceeded(paymentIntent, org.id, org.stripeAccountId);
       break;
+    }
     case "payment_intent.payment_failed":
       console.log("Payment intent failed:", event.data.object.id);
       break;
     case "charge.refunded":
-      await handleChargeRefunded(event.data.object as Stripe.Charge, orgId, stripeAccountId);
+      await handleChargeRefunded(event.data.object as Stripe.Charge);
       break;
-    case "account.updated":
-      await handleAccountUpdated(event.data.object as Stripe.Account, orgId);
+    case "account.updated": {
+      if (!event.account) {
+        console.error("account.updated event missing event.account");
+        return;
+      }
+      await handleAccountUpdated(event.data.object as Stripe.Account, event.account);
       break;
+    }
     default:
       console.log(`Unhandled webhook event type: ${event.type}`);
   }
@@ -132,13 +155,7 @@ async function handleCheckoutSessionCompleted(
   orgId: string,
   stripeAccountId: string,
 ): Promise<void> {
-  const metadata = session.metadata;
-  if (!metadata?.platform || metadata.platform !== "fresh-catch") {
-    console.log("Ignoring checkout session — wrong platform:", metadata?.platform);
-    return;
-  }
-
-  const { orderId } = metadata;
+  const { orderId } = session.metadata ?? {};
   if (!orderId) {
     console.error("checkout.session.completed missing orderId in metadata");
     return;
@@ -182,29 +199,29 @@ async function handleCheckoutSessionCompleted(
     order.amountPaid === 0;
   const paymentType = isDeposit ? "deposit" : "payment";
 
-  // Create Payment + update Order atomically
   const newAmountPaid = order.amountPaid + amountPaidCents;
   const fullyPaid =
     order.totalDue != null && newAmountPaid >= order.totalDue;
 
-  await db.payment.create({
-    data: {
-      orderId,
-      amount: amountPaidCents,
-      method: "stripe",
-      type: paymentType,
-      stripePaymentId: paymentIntentId,
-    },
-  });
-
-  await db.order.update({
-    where: { id: orderId },
-    data: {
-      amountPaid: newAmountPaid,
-      stripePaymentIntentId: paymentIntentId,
-      ...(fullyPaid ? { paidAt: new Date() } : {}),
-    },
-  });
+  await db.$transaction([
+    db.payment.create({
+      data: {
+        orderId,
+        amount: amountPaidCents,
+        method: "stripe",
+        type: paymentType,
+        stripePaymentId: paymentIntentId,
+      },
+    }),
+    db.order.update({
+      where: { id: orderId },
+      data: {
+        amountPaid: newAmountPaid,
+        stripePaymentIntentId: paymentIntentId,
+        ...(fullyPaid ? { paidAt: new Date() } : {}),
+      },
+    }),
+  ]);
 
   console.log(
     `Payment recorded: ${paymentType} of ${amountPaidCents}c for order ${order.orderNumber}` +
@@ -239,13 +256,7 @@ async function handlePaymentIntentSucceeded(
   orgId: string,
   stripeAccountId: string,
 ): Promise<void> {
-  const metadata = paymentIntent.metadata;
-  if (!metadata?.platform || metadata.platform !== "fresh-catch") {
-    console.log("Ignoring payment_intent — wrong platform:", metadata?.platform);
-    return;
-  }
-
-  const { orderId } = metadata;
+  const { orderId } = paymentIntent.metadata ?? {};
   if (!orderId) {
     console.error("payment_intent.succeeded missing orderId in metadata");
     return;
@@ -282,24 +293,25 @@ async function handlePaymentIntentSucceeded(
   const fullyPaid =
     order.totalDue != null && newAmountPaid >= order.totalDue;
 
-  await db.payment.create({
-    data: {
-      orderId,
-      amount: amountPaidCents,
-      method: "stripe",
-      type: paymentType,
-      stripePaymentId: paymentIntent.id,
-    },
-  });
-
-  await db.order.update({
-    where: { id: orderId },
-    data: {
-      amountPaid: newAmountPaid,
-      stripePaymentIntentId: paymentIntent.id,
-      ...(fullyPaid ? { paidAt: new Date() } : {}),
-    },
-  });
+  await db.$transaction([
+    db.payment.create({
+      data: {
+        orderId,
+        amount: amountPaidCents,
+        method: "stripe",
+        type: paymentType,
+        stripePaymentId: paymentIntent.id,
+      },
+    }),
+    db.order.update({
+      where: { id: orderId },
+      data: {
+        amountPaid: newAmountPaid,
+        stripePaymentIntentId: paymentIntent.id,
+        ...(fullyPaid ? { paidAt: new Date() } : {}),
+      },
+    }),
+  ]);
 
   console.log(
     `Payment recorded (backup): ${paymentType} of ${amountPaidCents}c for order ${order.orderNumber}` +
@@ -310,8 +322,10 @@ async function handlePaymentIntentSucceeded(
 /**
  * Handle charge.refunded — create negative Payment record and decrement amountPaid.
  * Clears paidAt if the order is no longer fully paid after the refund.
+ * Charge metadata is empty on destination charges, so org is resolved via the
+ * original Payment → Order instead of event metadata.
  */
-async function handleChargeRefunded(charge: Stripe.Charge, orgId: string, stripeAccountId: string): Promise<void> {
+async function handleChargeRefunded(charge: Stripe.Charge): Promise<void> {
   const refundAmount = charge.amount_refunded;
   if (!refundAmount || refundAmount <= 0) {
     console.log("Charge refund with zero amount, skipping:", charge.id);
@@ -352,16 +366,11 @@ async function handleChargeRefunded(charge: Stripe.Charge, orgId: string, stripe
     return;
   }
 
-  const order = await db.order.findFirst({
-    where: { id: originalPayment.orderId, organizationId: orgId },
+  const order = await db.order.findUnique({
+    where: { id: originalPayment.orderId },
   });
   if (!order) {
-    console.warn("[cross-org-mismatch] Order lookup failed after orgId filter", {
-      event: "charge.refunded",
-      orderId: originalPayment.orderId,
-      orgId,
-      stripeAccountId,
-    });
+    console.error(`Order not found for payment ${originalPayment.id} (order ${originalPayment.orderId})`);
     return;
   }
 
@@ -370,23 +379,24 @@ async function handleChargeRefunded(charge: Stripe.Charge, orgId: string, stripe
   const stillFullyPaid =
     order.totalDue != null && newAmountPaid >= order.totalDue;
 
-  await db.payment.create({
-    data: {
-      orderId: order.id,
-      amount: -refundAmount,
-      method: "stripe",
-      type: "refund",
-      stripePaymentId: charge.id,
-    },
-  });
-
-  await db.order.update({
-    where: { id: order.id },
-    data: {
-      amountPaid: newAmountPaid,
-      ...(wasFullyPaid && !stillFullyPaid ? { paidAt: null } : {}),
-    },
-  });
+  await db.$transaction([
+    db.payment.create({
+      data: {
+        orderId: order.id,
+        amount: -refundAmount,
+        method: "stripe",
+        type: "refund",
+        stripePaymentId: charge.id,
+      },
+    }),
+    db.order.update({
+      where: { id: order.id },
+      data: {
+        amountPaid: newAmountPaid,
+        ...(wasFullyPaid && !stillFullyPaid ? { paidAt: null } : {}),
+      },
+    }),
+  ]);
 
   console.log(
     `Refund recorded: ${refundAmount}c for order ${order.orderNumber}` +
@@ -398,20 +408,13 @@ async function handleChargeRefunded(charge: Stripe.Charge, orgId: string, stripe
  * Handle account.updated — update org stripeOnboardingComplete status.
  * Sets onboarding complete when charges_enabled AND details_submitted are true.
  */
-async function handleAccountUpdated(account: Stripe.Account, orgId: string): Promise<void> {
-  const org = await db.organization.findUnique({
-    where: { id: orgId },
-    select: { id: true, name: true, stripeAccountId: true, stripeOnboardingComplete: true },
+async function handleAccountUpdated(account: Stripe.Account, stripeAccountId: string): Promise<void> {
+  const org = await db.organization.findFirst({
+    where: { stripeAccountId },
+    select: { id: true, name: true, stripeOnboardingComplete: true },
   });
   if (!org) {
-    console.error(`Organization not found for id ${orgId}`);
-    return;
-  }
-
-  if (org.stripeAccountId !== account.id) {
-    console.warn(
-      `Cross-org mismatch in account.updated: resolved org ${org.id} has stripeAccountId ${org.stripeAccountId} but event account is ${account.id}`,
-    );
+    console.error(`No organization found for Stripe account ${stripeAccountId}`);
     return;
   }
 
