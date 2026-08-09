@@ -162,6 +162,8 @@ type SchemaField = {
   type: string;
   optional?: boolean;
   description?: string;
+  /** Explicit JSON Schema override for tool-calling models (bypasses toJsonSchemaType). */
+  jsonSchema?: Record<string, unknown>;
 };
 
 type VoiceTool = {
@@ -181,6 +183,18 @@ export const voiceTools: Record<string, VoiceTool> = {
       items: {
         type: "array of { name: string, quantity: number, unit: string }",
         description: "Items to order",
+        jsonSchema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              quantity: { type: "number" },
+              unit: { type: "string" },
+            },
+            required: ["name", "quantity", "unit"],
+          },
+        },
       },
       pickupMarketId: {
         type: "string",
@@ -234,6 +248,17 @@ export const voiceTools: Record<string, VoiceTool> = {
       items: {
         type: "array of { name: string, note: string }",
         description: "Fish items with colorful descriptions",
+        jsonSchema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              note: { type: "string" },
+            },
+            required: ["name", "note"],
+          },
+        },
       },
       summary: { type: "string", description: "One-sentence summary" },
     },
@@ -567,7 +592,9 @@ export function mcpFormat(role: string = "owner"): McpTool[] {
     const required: string[] = [];
 
     for (const [fieldName, field] of Object.entries(tool.schema)) {
-      const prop: Record<string, unknown> = { ...toJsonSchemaType(field.type) };
+      const prop: Record<string, unknown> = {
+        ...(field.jsonSchema ?? toJsonSchemaType(field.type)),
+      };
       if (field.description) prop.description = field.description;
       properties[fieldName] = prop;
       if (!field.optional) required.push(fieldName);
