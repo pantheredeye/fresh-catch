@@ -1,7 +1,7 @@
 /**
  * Voice command endpoint: POST /api/voice/command
- * MCP-based voice processing: voice/text → transcription → Claude tool resolution.
- * Sends transcript to Claude with MCP tool definitions, returns structured VoiceCommandResult.
+ * MCP-based voice processing: voice/text → transcription → Workers AI tool resolution.
+ * Sends transcript to Workers AI with MCP tool definitions, returns structured VoiceCommandResult.
  */
 import { env } from "cloudflare:workers";
 import type { AppContext } from "@/worker";
@@ -9,8 +9,10 @@ import { db } from "@/db";
 import {
   voiceTools,
   mcpFormat,
+  scoreVoiceConfidence,
   type VoiceCommandResult,
   type BusinessContext,
+  type MarketContext,
 } from "@/api/voice-tools";
 import { toolRegistry } from "@/api/mcp-server";
 import type { WorkersAiTool } from "@/ai/workers-ai-client";
@@ -262,7 +264,10 @@ export async function handleVoiceCommand(
 
   const data = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
 
-  // For market-specific intents, verify marketId and inject _original
+  // For market-specific intents, verify marketId and inject _original.
+  // Hoisted to fn scope so it's available for confidence scoring below.
+  let matchedMarket: MarketContext | undefined;
+
   if (
     toolCall.function.name === "update_market" ||
     toolCall.function.name === "update_market_catch"
@@ -280,7 +285,7 @@ export async function handleVoiceCommand(
       } satisfies VoiceCommandResult);
     }
 
-    const matchedMarket = markets.find((m) => m.id === targetMarketId);
+    matchedMarket = markets.find((m) => m.id === targetMarketId);
     if (!matchedMarket) {
       return Response.json({
         intent: toolCall.function.name,
@@ -341,7 +346,7 @@ export async function handleVoiceCommand(
 
   return Response.json({
     intent: toolCall.function.name,
-    confidence: 1,
+    confidence: scoreVoiceConfidence({ data, rawTranscript, matchedMarket, markets, tool }),
     data,
     interpretation,
     rawTranscript,
