@@ -10,13 +10,61 @@ import { sendOrderConfirmedEmail } from "@/utils/email";
 import { calculatePlatformFee, type FeeModel } from "@/utils/money";
 import { getStripe } from "@/utils/stripe";
 
+// Same include/select shape as AdminOrdersPage.tsx so mutation results can
+// replace the card's live state without a reload.
+function getOrderWithRelations(organizationId: string, orderId: string) {
+  return db.order.findFirst({
+    where: { id: orderId, organizationId },
+    include: {
+      user: {
+        select: {
+          username: true,
+          name: true,
+        },
+      },
+      organization: {
+        select: {
+          platformFeeBps: true,
+          feeModel: true,
+          defaultDepositBps: true,
+          stripeAccountId: true,
+          stripeOnboardingComplete: true,
+        },
+      },
+      payments: {
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+  });
+}
+
+function serializeOrder(o: NonNullable<Awaited<ReturnType<typeof getOrderWithRelations>>>) {
+  return {
+    ...o,
+    organization: o.organization
+      ? { ...o.organization, feeModel: o.organization.feeModel as FeeModel }
+      : undefined,
+  };
+}
+
+type SerializedOrder = ReturnType<typeof serializeOrder>;
+type OrderMutationResult =
+  | { success: true; order: SerializedOrder }
+  | { success: false; error: string };
+
+async function refetchOrder(organizationId: string, orderId: string): Promise<OrderMutationResult> {
+  const refreshed = await getOrderWithRelations(organizationId, orderId);
+  if (!refreshed) return { success: false, error: "Order not found after update" };
+  return { success: true, order: serializeOrder(refreshed) };
+}
+
 export async function confirmOrder(
   csrfToken: string,
   orderId: string,
   price: number,
   adminNotes: string,
   depositOverride?: number | null,
-) {
+): Promise<OrderMutationResult> {
   requireCsrf(csrfToken);
 
   const { ctx, request } = requestInfo;
@@ -177,7 +225,7 @@ export async function confirmOrder(
     }
 
 
-    return { success: true };
+    return await refetchOrder(ctx.currentOrganization.id, orderId);
   } catch (error) {
     console.error('Failed to confirm order:', error);
     return { success: false, error: 'Failed to confirm order' };
@@ -189,7 +237,7 @@ export async function updateConfirmedOrder(
   orderId: string,
   newPrice: number,
   adminNotes: string,
-) {
+): Promise<OrderMutationResult> {
   requireCsrf(csrfToken);
 
   const { ctx } = requestInfo;
@@ -266,7 +314,7 @@ export async function updateConfirmedOrder(
       }
     }
 
-    return { success: true };
+    return await refetchOrder(ctx.currentOrganization.id, orderId);
   } catch (error) {
     console.error('Failed to update order:', error);
     return { success: false, error: 'Failed to update order' };
@@ -287,7 +335,7 @@ export const getPendingOrderCount = serverQuery(async (organizationId: string) =
   }
 });
 
-export async function completeOrder(csrfToken: string, orderId: string) {
+export async function completeOrder(csrfToken: string, orderId: string): Promise<OrderMutationResult> {
   requireCsrf(csrfToken);
 
   const { ctx } = requestInfo;
@@ -315,14 +363,14 @@ export async function completeOrder(csrfToken: string, orderId: string) {
     });
 
 
-    return { success: true };
+    return await refetchOrder(ctx.currentOrganization.id, orderId);
   } catch (error) {
     console.error('Failed to complete order:', error);
     return { success: false, error: 'Failed to complete order' };
   }
 }
 
-export async function cancelOrderAdmin(csrfToken: string, orderId: string) {
+export async function cancelOrderAdmin(csrfToken: string, orderId: string): Promise<OrderMutationResult> {
   requireCsrf(csrfToken);
 
   const { ctx } = requestInfo;
@@ -346,7 +394,7 @@ export async function cancelOrderAdmin(csrfToken: string, orderId: string) {
     });
 
 
-    return { success: true };
+    return await refetchOrder(ctx.currentOrganization.id, orderId);
   } catch (error) {
     console.error('Failed to cancel order:', error);
     return { success: false, error: 'Failed to cancel order' };
@@ -359,7 +407,7 @@ export async function markAsPaid(
   amount: number,
   method: string,
   notes?: string
-) {
+): Promise<OrderMutationResult> {
   requireCsrf(csrfToken);
 
   const { ctx } = requestInfo;
@@ -418,7 +466,7 @@ export async function markAsPaid(
       },
     });
 
-    return { success: true };
+    return await refetchOrder(ctx.currentOrganization.id, orderId);
   } catch (error) {
     console.error('Failed to mark as paid:', error);
     return { success: false, error: 'Failed to mark as paid' };
