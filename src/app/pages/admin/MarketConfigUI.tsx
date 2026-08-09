@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button, QuickAction, AddEventButton, SectionHeader, MarketToggle } from "@/design-system";
 import { CompactMarketList, MarketFormModal } from "./components";
 import {
@@ -58,6 +58,36 @@ function isCancelled(market: Market): boolean {
   return !!market.cancelledAt;
 }
 
+type RawMarket = {
+  id: string;
+  name: string;
+  schedule: string;
+  subtitle: string | null;
+  locationDetails: string | null;
+  customerInfo: string | null;
+  active: boolean;
+  type: string;
+  expiresAt: Date | null;
+  catchPreview: string | null;
+  cancelledAt: Date | null;
+};
+
+function toUiMarket(m: RawMarket): Market {
+  return {
+    id: m.id,
+    name: m.name,
+    schedule: m.schedule,
+    subtitle: m.subtitle,
+    locationDetails: m.locationDetails,
+    customerInfo: m.customerInfo,
+    active: m.active,
+    type: m.type,
+    expiresAt: m.expiresAt?.toISOString() ?? null,
+    catchPreview: m.catchPreview,
+    cancelledAt: m.cancelledAt?.toISOString() ?? null,
+  };
+}
+
 function getInactiveBadge(market: Market): { label: string; className: string } {
   if (market.type === "popup" && isCancelled(market)) {
     return { label: "Cancelled", className: "badge--cancelled" };
@@ -91,6 +121,8 @@ function getInactiveBadge(market: Market): { label: string; className: string } 
  */
 export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; markets: Market[] }) {
   const [isPending, startTransition] = useTransition();
+  const [liveMarkets, setLiveMarkets] = useState(markets);
+  useEffect(() => setLiveMarkets(markets), [markets]);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,7 +146,7 @@ export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; mark
   };
 
   const handleEditMarket = (marketId: string) => {
-    const market = markets.find((m) => m.id === marketId);
+    const market = liveMarkets.find((m) => m.id === marketId);
     setEditingMarket(market);
     setModalPresetType(market?.type === "popup" ? "popup" : "regular");
     setIsModalOpen(true);
@@ -134,9 +166,11 @@ export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; mark
   }) => {
     startTransition(async () => {
       if (editingMarket) {
-        await updateMarket(csrfToken, editingMarket.id, marketData);
+        const updated = await updateMarket(csrfToken, editingMarket.id, marketData);
+        setLiveMarkets((p) => p.map((m) => (m.id === updated.id ? toUiMarket(updated) : m)));
       } else {
-        await createMarket(csrfToken, marketData);
+        const created = await createMarket(csrfToken, marketData);
+        setLiveMarkets((p) => [...p, toUiMarket(created)]);
       }
       setIsModalOpen(false);
       setEditingMarket(undefined);
@@ -146,6 +180,7 @@ export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; mark
   const handleDeleteMarket = async (id: string) => {
     startTransition(async () => {
       await deleteMarket(csrfToken, id);
+      setLiveMarkets((p) => p.filter((m) => m.id !== id));
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -153,7 +188,8 @@ export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; mark
 
   const handleEndPopup = async (id: string) => {
     startTransition(async () => {
-      await endPopup(csrfToken, id);
+      const updated = await endPopup(csrfToken, id);
+      setLiveMarkets((p) => p.map((m) => (m.id === updated.id ? toUiMarket(updated) : m)));
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -161,7 +197,8 @@ export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; mark
 
   const handleCancelPopup = async (id: string) => {
     startTransition(async () => {
-      await cancelPopup(csrfToken, id);
+      const updated = await cancelPopup(csrfToken, id);
+      setLiveMarkets((p) => p.map((m) => (m.id === updated.id ? toUiMarket(updated) : m)));
       setIsModalOpen(false);
       setEditingMarket(undefined);
     });
@@ -174,22 +211,23 @@ export function MarketConfigUI({ csrfToken, markets }: { csrfToken: string; mark
 
   const handleToggleMarket = async (marketId: string) => {
     startTransition(async () => {
-      await toggleMarketActive(csrfToken, marketId);
+      const updated = await toggleMarketActive(csrfToken, marketId);
+      setLiveMarkets((p) => p.map((m) => (m.id === updated.id ? toUiMarket(updated) : m)));
     });
   };
 
   // Three-section grouping
-  const activePopups = markets.filter(
+  const activePopups = liveMarkets.filter(
     (m) => m.type === "popup" && m.active && !isExpired(m) && !isCancelled(m)
   );
-  const activeRegular = markets.filter(
+  const activeRegular = liveMarkets.filter(
     (m) => m.type !== "popup" && m.active
   );
-  const inactiveMarkets = markets.filter(
+  const inactiveMarkets = liveMarkets.filter(
     (m) => !m.active || (m.type === "popup" && (isExpired(m) || isCancelled(m)))
   );
 
-  const hasAnyMarkets = markets.length > 0;
+  const hasAnyMarkets = liveMarkets.length > 0;
 
   return (
     <div className="config-page">
