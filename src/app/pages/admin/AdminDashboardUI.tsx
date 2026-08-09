@@ -89,6 +89,105 @@ export function AdminDashboardUI({ ctx }: AdminDashboardUIProps) {
           </div>
         </a>
 
+        {/* Orders Card */}
+        <a href="/admin/orders" className="admin-nav-card">
+          <div className="admin-nav-card__icon">📦</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Orders</h3>
+            <p className="admin-nav-card__description">
+              View and manage customer orders
+            </p>
+          </div>
+        </a>
+
+        {/* Team Card */}
+        <a href="/admin/team" className="admin-nav-card">
+          <div className="admin-nav-card__icon">👥</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Team</h3>
+            <p className="admin-nav-card__description">
+              Manage team members and roles
+            </p>
+          </div>
+        </a>
+
+        {/* Messages Card */}
+        <a href="/admin/messages" className="admin-nav-card">
+          <div className="admin-nav-card__icon">💬</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Messages</h3>
+            <p className="admin-nav-card__description">
+              Chat with customers
+            </p>
+          </div>
+        </a>
+
+        {/* Payments Card */}
+        <a href="/admin/settings/stripe" className="admin-nav-card">
+          <div className="admin-nav-card__icon">💳</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Payments</h3>
+            <p className="admin-nav-card__description">
+              Stripe account and fee settings
+            </p>
+          </div>
+        </a>
+
+        {/* Branding Card */}
+        <a href="/admin/settings/branding" className="admin-nav-card">
+          <div className="admin-nav-card__icon">🎨</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Branding</h3>
+            <p className="admin-nav-card__description">
+              Customize your storefront accent color
+            </p>
+          </div>
+        </a>
+
+        {/* API Access Card */}
+        <a href="/admin/settings/api" className="admin-nav-card">
+          <div className="admin-nav-card__icon">🔑</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">API Access</h3>
+            <p className="admin-nav-card__description">
+              Manage external MCP API keys
+            </p>
+          </div>
+        </a>
+
+        {/* Notifications Card */}
+        <a href="/admin/settings/notifications" className="admin-nav-card">
+          <div className="admin-nav-card__icon">🔔</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Notifications</h3>
+            <p className="admin-nav-card__description">
+              Set where order notifications are sent
+            </p>
+          </div>
+        </a>
+
+        {/* Gaps Card */}
+        <a href="/admin/gaps" className="admin-nav-card">
+          <div className="admin-nav-card__icon">🕳️</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Gaps</h3>
+            <p className="admin-nav-card__description">
+              Coverage gaps and unmet demand
+            </p>
+          </div>
+        </a>
+
+        {/* Insights Card */}
+        <a href="/admin/insights" className="admin-nav-card">
+          <div className="admin-nav-card__icon">📊</div>
+          <div className="admin-nav-card__content">
+            <h3 className="admin-nav-card__title">Insights</h3>
+            <p className="admin-nav-card__description">
+              Demand signals and customer analytics
+            </p>
+          </div>
+        </a>
+
         {/* Share Business Card */}
         <button
           onClick={() => setShareModalOpen(true)}
