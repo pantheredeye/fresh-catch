@@ -53,6 +53,7 @@ type ToolHandlerFn = (
   rawInput: unknown,
   organizationId: string,
   callerRole?: string,
+  callerUserId?: string,
 ) => Promise<ToolResult>;
 
 type ToolRegistration = {

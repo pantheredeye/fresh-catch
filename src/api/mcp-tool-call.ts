@@ -79,7 +79,7 @@ export async function executeMcpTool(
   }
 
   // Execute handler
-  const result = await tool.handler(args, organizationId, callerRole);
+  const result = await tool.handler(args, organizationId, callerRole, ctx.user.id);
 
   // Signal: fire-and-forget tool call to Signal Agent
   try {
