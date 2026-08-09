@@ -212,7 +212,7 @@ export async function handleVoiceCommand(
   try {
     const ai = (env as unknown as { AI: { run: (model: string, input: Record<string, unknown>) => Promise<Record<string, unknown>> } }).AI;
 
-    aiResult = (await ai.run("@cf/moonshotai/kimi-k2.5", {
+    aiResult = (await ai.run("@cf/moonshotai/kimi-k2.6", {
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: rawTranscript },

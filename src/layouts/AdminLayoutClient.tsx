@@ -183,13 +183,14 @@ function AdminNav({ isOwner, pendingOrderCount }: { isOwner: boolean; pendingOrd
   useEffect(() => { setPath(window.location.pathname); }, []);
 
   const isActive = (href: string) => {
-    if (href === '/admin') return path === '/admin' || path === '/admin/config' || path === '/admin/catch';
+    if (href === '/admin') return path === '/admin' || path === '/admin/config';
     if (href.startsWith('/admin/settings')) return path.startsWith('/admin/settings');
     return path.startsWith(href);
   };
 
   const tabs = [
     { href: '/admin', label: 'Markets' },
+    { href: '/admin/catch', label: 'Catch' },
     { href: '/admin/orders', label: 'Orders', badge: pendingOrderCount },
     ...(isOwner ? [{ href: '/admin/team', label: 'Team' }] : []),
     { href: '/admin/messages', label: 'Messages' },
