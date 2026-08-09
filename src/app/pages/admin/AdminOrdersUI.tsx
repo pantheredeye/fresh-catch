@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Container, Select } from "@/design-system";
 import type { FeeModel } from "@/utils/money";
 import { getPaymentStatus } from "@/utils/payments";
 import { AdminOrderCard } from "./components/AdminOrderCard";
 import type { AppContext } from "@/worker";
 
-type Order = {
+export type Order = {
   id: string;
   userId: string | null;
   orderNumber: number;
@@ -59,10 +59,16 @@ export function AdminOrdersUI({ orders, ctx, csrfToken }: AdminOrdersUIProps) {
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [liveOrders, setLiveOrders] = useState(orders);
+  useEffect(() => setLiveOrders(orders), [orders]);
+
+  const handleOrderChange = (updated: Order) => {
+    setLiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+  };
 
   let filteredOrders = statusFilter === 'all'
-    ? orders
-    : orders.filter(o => o.status === statusFilter);
+    ? liveOrders
+    : liveOrders.filter(o => o.status === statusFilter);
 
   // Apply payment status filter
   if (paymentFilter !== 'all') {
@@ -95,10 +101,10 @@ export function AdminOrdersUI({ orders, ctx, csrfToken }: AdminOrdersUIProps) {
   }
 
   const counts = {
-    pending: orders.filter(o => o.status === 'pending').length,
-    confirmed: orders.filter(o => o.status === 'confirmed').length,
-    completed: orders.filter(o => o.status === 'completed').length,
-    cancelled: orders.filter(o => o.status === 'cancelled').length,
+    pending: liveOrders.filter(o => o.status === 'pending').length,
+    confirmed: liveOrders.filter(o => o.status === 'confirmed').length,
+    completed: liveOrders.filter(o => o.status === 'completed').length,
+    cancelled: liveOrders.filter(o => o.status === 'cancelled').length,
   };
 
   return (
@@ -126,7 +132,7 @@ export function AdminOrdersUI({ orders, ctx, csrfToken }: AdminOrdersUIProps) {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               options={[
-                { value: 'all', label: `All Orders (${orders.length})` },
+                { value: 'all', label: `All Orders (${liveOrders.length})` },
                 { value: 'pending', label: `Pending (${counts.pending})` },
                 { value: 'confirmed', label: `Confirmed (${counts.confirmed})` },
                 { value: 'completed', label: `Completed (${counts.completed})` },
@@ -294,6 +300,7 @@ export function AdminOrdersUI({ orders, ctx, csrfToken }: AdminOrdersUIProps) {
                 order={order}
                 ctx={ctx}
                 csrfToken={csrfToken}
+                onOrderChange={handleOrderChange}
               />
             ))}
           </div>

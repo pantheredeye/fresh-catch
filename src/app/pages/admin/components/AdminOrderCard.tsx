@@ -6,6 +6,7 @@ import { confirmOrder, updateConfirmedOrder, completeOrder, cancelOrderAdmin, ma
 import { getPaymentStatus, type PaymentStatus } from "@/utils/payments";
 import { formatCents, parseDollars, calculatePlatformFee, type FeeModel } from "@/utils/money";
 import type { AppContext } from "@/worker";
+import type { Order as AdminOrder } from "../AdminOrdersUI";
 
 type Order = {
   id: string;
@@ -51,9 +52,10 @@ interface AdminOrderCardProps {
   order: Order;
   ctx: AppContext;
   csrfToken: string;
+  onOrderChange: (order: AdminOrder) => void;
 }
 
-export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
+export function AdminOrderCard({ order, ctx, csrfToken, onOrderChange }: AdminOrderCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [priceInput, setPriceInput] = useState(order.price ? String(order.price / 100) : '');
@@ -160,6 +162,7 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
     startTransition(async () => {
       const result = await confirmOrder(csrfToken, order.id, priceInCents, adminNotes, depositOverride);
       if (result.success) {
+        onOrderChange(result.order);
         setIsEditing(false);
       } else {
         setErrorMessage(result.error || 'Failed to confirm order');
@@ -173,7 +176,9 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
     setErrorMessage(null);
     startTransition(async () => {
       const result = await completeOrder(csrfToken, order.id);
-      if (!result.success) {
+      if (result.success) {
+        onOrderChange(result.order);
+      } else {
         setErrorMessage(result.error || 'Failed to complete order');
       }
     });
@@ -185,7 +190,9 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
     setErrorMessage(null);
     startTransition(async () => {
       const result = await cancelOrderAdmin(csrfToken, order.id);
-      if (!result.success) {
+      if (result.success) {
+        onOrderChange(result.order);
+      } else {
         setErrorMessage(result.error || 'Failed to cancel order');
       }
     });
@@ -212,6 +219,7 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
     startTransition(async () => {
       const result = await updateConfirmedOrder(csrfToken, order.id, priceInCents, adminNotes);
       if (result.success) {
+        onOrderChange(result.order);
         setIsPriceEditing(false);
       } else {
         setErrorMessage(result.error || 'Failed to update order');
@@ -239,6 +247,7 @@ export function AdminOrderCard({ order, ctx, csrfToken }: AdminOrderCardProps) {
     startTransition(async () => {
       const result = await markAsPaid(csrfToken, order.id, amountCents, paymentMethod, paymentNotes || undefined);
       if (result.success) {
+        onOrderChange(result.order);
         setShowPaymentModal(false);
       } else {
         setErrorMessage(result.error || 'Failed to record payment');
