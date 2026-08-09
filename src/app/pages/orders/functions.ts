@@ -80,6 +80,7 @@ export async function createOrder(csrfToken: string, data: CreateOrderData, vend
       notificationEmail: true,
       memberships: {
         where: { role: "owner" },
+        orderBy: { createdAt: "asc" }, // deterministic: oldest owner if multiple
         take: 1,
         include: { user: { select: { email: true } } },
       },
