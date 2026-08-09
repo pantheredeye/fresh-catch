@@ -1,8 +1,6 @@
 /**
  * Voice tool registry — single source of truth for all voice/MCP actions.
- * Exports two formats:
- *   - buildCommandPrompt(): LLM system prompt for voice command interpretation
- *   - mcpFormat(): MCP Tool[] definitions for the Model Context Protocol server
+ * Exports mcpFormat(): MCP Tool[] definitions for the Model Context Protocol server.
  */
 
 import { z } from "zod";
@@ -446,17 +444,6 @@ export type BusinessContext = {
   markets: MarketContext[];
 };
 
-// --- Prompt builder ---
-
-function describeSchema(schema: Record<string, SchemaField>): string {
-  const fields = Object.entries(schema).map(([name, field]) => {
-    const opt = field.optional ? " (optional)" : "";
-    const desc = field.description ? ` — ${field.description}` : "";
-    return `  - ${name}: ${field.type}${opt}${desc}`;
-  });
-  return fields.join("\n");
-}
-
 function filterToolsByRole(
   tools: Record<string, VoiceTool>,
   role: string,
@@ -468,76 +455,80 @@ function filterToolsByRole(
   );
 }
 
-export function buildCommandPrompt(
-  tools: Record<string, VoiceTool>,
-  context: BusinessContext,
-  role: string = "owner",
-): string {
-  const filteredTools = filterToolsByRole(tools, role);
-  const today = new Date().toISOString().split("T")[0];
+// --- Confidence scoring ---
+//
+// Workers-AI tool-calling returns no confidence score, so the caller (voice-command.ts)
+// derives one heuristically. Combined conservatively via min() so any weak signal drags
+// the score down — this is a safety net for CommandReview's low-confidence warnings.
 
-  const toolDescriptions = Object.entries(filteredTools)
-    .map(
-      ([name, tool]) =>
-        `### ${name}\n${tool.description}\nSchema:\n${describeSchema(tool.schema)}`,
-    )
-    .join("\n\n");
-
-  const marketList =
-    context.markets.length > 0
-      ? context.markets
-          .map((m) => {
-            const parts = [
-              `- ${m.name} (id: ${m.id}, type: ${m.type}, schedule: ${m.schedule}, active: ${m.active})`,
-            ];
-            if (m.subtitle) parts.push(`  subtitle: ${m.subtitle}`);
-            if (m.locationDetails) parts.push(`  location: ${m.locationDetails}`);
-            if (m.customerInfo) parts.push(`  customerInfo: ${m.customerInfo}`);
-            if (m.catchPreview) {
-              // Truncate long catch previews to save tokens
-              const preview = m.catchPreview.length > 200
-                ? m.catchPreview.slice(0, 200) + "..."
-                : m.catchPreview;
-              parts.push(`  catchPreview: ${preview}`);
-            }
-            if (m.expiresAt) parts.push(`  expiresAt: ${new Date(m.expiresAt).toISOString()}`);
-            return parts.join("\n");
-          })
-          .join("\n")
-      : "No markets configured yet.";
-
-  return `You are a voice command interpreter for a seafood market business.
-Today's date: ${today}
-
-## Available Actions
-
-${toolDescriptions}
-
-## Existing Markets
-
-${marketList}
-
-## Instructions
-
-Given the user's voice input, determine which action they want to perform and extract the relevant data.
-
-Return ONLY valid JSON with this exact shape:
-{
-  "intent": "<tool_name from the list above>",
-  "confidence": <0.0 to 1.0>,
-  "data": { <fields matching the chosen tool's schema> },
-  "interpretation": "<human-readable summary of what will happen>"
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2);
 }
 
-Rules:
-- Match market names fuzzily to existing markets and use their ID in data
-- If the event sounds temporary or one-time, use create_popup (not create_market)
-- Resolve relative dates ("this Saturday", "tomorrow") to absolute dates using today's date
-- Set confidence lower if the intent is ambiguous
-- The interpretation should be a plain English summary like "Update catch preview for Folly Beach Market"
-- If you cannot determine the intent, use confidence: 0 and interpretation explaining why
-- For update_market: ONLY include fields the user explicitly wants to change. Do NOT echo back unchanged fields. The current values are shown above for each market.
-- If multiple markets partially match the name, set confidence lower and mention the ambiguity in interpretation`;
+/** True if any non-optional field (besides marketId, which is resolved separately) is missing/empty. */
+function hasRequiredFieldMissing(
+  tool: VoiceTool,
+  data: Record<string, unknown>,
+): boolean {
+  return Object.entries(tool.schema).some(([field, spec]) => {
+    if (spec.optional || field === "marketId") return false;
+
+    const value = data[field];
+    if (value === undefined || value === null) return true;
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === "string") {
+      if (value.trim().length === 0) return true;
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed.length === 0;
+      } catch {
+        // plain string, not JSON — non-empty is enough
+      }
+      return false;
+    }
+    return false;
+  });
+}
+
+/** Score how well the fuzzy-matched market's name is actually backed by the transcript. */
+function marketMatchScore(
+  matchedMarket: MarketContext,
+  markets: MarketContext[],
+  rawTranscript: string,
+): number {
+  const transcript = rawTranscript.toLowerCase();
+  const matchedTokens = tokenize(matchedMarket.name);
+  const distinctiveMatch = matchedTokens.some((t) => transcript.includes(t));
+  if (!distinctiveMatch) return 0.6;
+
+  const otherMatches = markets.some(
+    (m) =>
+      m.id !== matchedMarket.id &&
+      tokenize(m.name).some((t) => transcript.includes(t)),
+  );
+  if (otherMatches) return 0.7;
+
+  return 0.9;
+}
+
+/** Deterministic heuristic confidence score for a resolved voice command. */
+export function scoreVoiceConfidence(params: {
+  data: Record<string, unknown>;
+  rawTranscript: string;
+  matchedMarket?: MarketContext;
+  markets: MarketContext[];
+  tool: VoiceTool;
+}): number {
+  const { data, rawTranscript, matchedMarket, markets, tool } = params;
+
+  const scores = [0.9];
+  if (hasRequiredFieldMissing(tool, data)) scores.push(0.5);
+  if (matchedMarket) scores.push(marketMatchScore(matchedMarket, markets, rawTranscript));
+
+  return Math.max(0.5, Math.min(...scores));
 }
 
 // --- MCP format export ---
@@ -556,7 +547,6 @@ function toJsonSchemaType(fieldType: string): object {
 
 /**
  * Convert voice tool registry into MCP Tool definitions.
- * Role filtering works the same as buildCommandPrompt:
  * owner/manager see all tools, other roles only see tools with matching roles[].
  */
 export function mcpFormat(role: string = "owner"): McpTool[] {
