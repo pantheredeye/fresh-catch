@@ -6,6 +6,7 @@ const ENDPOINT_LIMITS: Record<string, { maxRequests: number; windowMs: number }>
   otpVerify: { maxRequests: 10, windowMs: 15 * 60 * 1000 },     // 10 per 15min
   chatCreate: { maxRequests: 15, windowMs: 10 * 60 * 1000 },    // 15 new conversations per 10min per IP
   chatEmail: { maxRequests: 20, windowMs: 15 * 60 * 1000 },     // 20 email saves per 15min per IP
+  orderCreate: { maxRequests: 5, windowMs: 15 * 60 * 1000 },    // 5 orders per 15min per IP
 };
 
 const DEFAULT_LIMIT = { maxRequests: 20, windowMs: 15 * 60 * 1000 };

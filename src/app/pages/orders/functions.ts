@@ -8,6 +8,8 @@ import { getStripe } from "@/utils/stripe";
 import { getPaymentStatus } from "@/utils/payments";
 import { env } from "cloudflare:workers";
 import { requireCsrf } from "@/session/csrf";
+import { checkRateLimit } from "@/rate-limit/middleware";
+import { normalizeEmail } from "@/auth/login-codes";
 
 interface CreateOrderData {
   contactName: string;
@@ -64,9 +66,13 @@ export async function createOrder(csrfToken: string, data: CreateOrderData, vend
 
   const { ctx } = requestInfo;
 
-  // Must be logged in
-  if (!ctx.user) {
-    return { success: false, error: "You must be logged in" };
+  const rateLimit = await checkRateLimit("orderCreate");
+  if (!rateLimit.allowed) {
+    return { success: false, error: "Too many orders. Try again later." };
+  }
+
+  if (!ctx.user && !data.contactEmail?.trim()) {
+    return { success: false, error: "Please enter your email so we can send your confirmation and payment link" };
   }
 
   // Look up vendor org explicitly by ID passed from client
@@ -96,33 +102,37 @@ export async function createOrder(csrfToken: string, data: CreateOrderData, vend
     return { success: false, error: validation.errors.join('. ') };
   }
 
-  try {
-    // Update user profile if name/phone provided (for future orders)
-    if (data.contactName !== ctx.user.username) {
-      await db.user.update({
-        where: { id: ctx.user.id },
-        data: {
-          name: data.contactName,
-          phone: data.contactPhone
-        }
-      });
-    }
+  const contactEmail = data.contactEmail?.trim() ? normalizeEmail(data.contactEmail) : null;
 
-    // Ensure customer has membership to vendor org
-    await db.membership.upsert({
-      where: {
-        userId_organizationId: {
+  try {
+    if (ctx.user) {
+      // Update user profile if name/phone provided (for future orders)
+      if (data.contactName !== ctx.user.username) {
+        await db.user.update({
+          where: { id: ctx.user.id },
+          data: {
+            name: data.contactName,
+            phone: data.contactPhone
+          }
+        });
+      }
+
+      // Ensure customer has membership to vendor org
+      await db.membership.upsert({
+        where: {
+          userId_organizationId: {
+            userId: ctx.user.id,
+            organizationId: vendorOrg.id,
+          },
+        },
+        update: {},
+        create: {
           userId: ctx.user.id,
           organizationId: vendorOrg.id,
+          role: "customer",
         },
-      },
-      update: {},
-      create: {
-        userId: ctx.user.id,
-        organizationId: vendorOrg.id,
-        role: "customer",
-      },
-    });
+      });
+    }
 
     // Get next order number with retry on unique constraint violation
     let order;
@@ -137,11 +147,11 @@ export async function createOrder(csrfToken: string, data: CreateOrderData, vend
       try {
         order = await db.order.create({
           data: {
-            userId: ctx.user.id,
+            userId: ctx.user?.id ?? null,
             organizationId: vendorOrg.id,
             orderNumber: nextOrderNumber,
             contactName: data.contactName,
-            contactEmail: data.contactEmail,
+            contactEmail,
             contactPhone: data.contactPhone,
             items: data.items,
             preferredDate: data.preferredDate ? new Date(data.preferredDate) : null,
