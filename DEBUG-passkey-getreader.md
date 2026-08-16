@@ -156,7 +156,7 @@ Confirmed against `rwsdk@1.0.8` source directly (`dist/runtime/{client/client.js
   `url.searchParams.has("__rsc_action_id")`. Use it instead of re-parsing the URL.
 
 Fixed by extracting `safeRedirect` to `src/app/redirect.ts` (keyed on `requestInfo.isAction`) and
-adding `pageRedirect` for page components (returns `null` during an action instead of throwing,
+adding `pageRedirect` for page components (returns `undefined` during an action instead of throwing,
 since a page component can't throw without triggering the also-unparseable 500 error page). Swept
 all raw-302 page components (`LoginPage`, `CustomerHome`, `NewOrderPage`) onto `pageRedirect`.
 Added `handleResponse` in `client.tsx` as a client-side safety net for any site still missed.
