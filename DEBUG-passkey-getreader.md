@@ -138,3 +138,25 @@ Note: `sessions.save` calls that intentionally create new sessions (auto-login i
 - [x] Fix implemented
 - [x] Types pass
 - [ ] Tested in browser
+
+---
+
+## Follow-up (2026-08-16, issue #39): same bug class, OTP login path
+
+Confirmed against `rwsdk@1.0.8` source directly (`dist/runtime/{client/client.js,lib/router.js,worker.js}`):
+
+- `client.js` fetches actions with `redirect: "manual"`. A same-origin 3xx → opaque response
+  (`status === 0`, `body === null`). The `status >= 300` redirect check never matches 0, so it
+  falls through to `createFromFetch(response)` → `response.body.getReader()` → crash. Same
+  mechanism as Bug 2 above, not specific to the passkey flow.
+- A page component that `return`s a `Response` gets **thrown** by rwsdk
+  (`wrapHandlerToThrowResponses`, `router.js:597`) and comes back out as the action's raw HTTP
+  response (`worker.js`) — so any page component with a bare 302, not just middleware, hits this.
+- `RequestInfo` has a real `isAction: boolean` field (`requestInfo/types.d.ts`), set from
+  `url.searchParams.has("__rsc_action_id")`. Use it instead of re-parsing the URL.
+
+Fixed by extracting `safeRedirect` to `src/app/redirect.ts` (keyed on `requestInfo.isAction`) and
+adding `pageRedirect` for page components (returns `null` during an action instead of throwing,
+since a page component can't throw without triggering the also-unparseable 500 error page). Swept
+all raw-302 page components (`LoginPage`, `CustomerHome`, `NewOrderPage`) onto `pageRedirect`.
+Added `handleResponse` in `client.tsx` as a client-side safety net for any site still missed.
