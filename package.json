@@ -46,7 +46,7 @@
     "react-email": "^5.1.0",
     "react-server-dom-webpack": "19.3.0-canary-06fcc8f3-20251009",
     "resend": "^6.6.0",
-    "rwsdk": "1.0.8",
+    "rwsdk": "1.4.1",
     "stripe": "^20.4.1",
     "zod": "^4.3.6"
   },

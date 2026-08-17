@@ -44,7 +44,7 @@ git push -u origin bbb-new-feature
 
 This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, email-OTP authentication, and Prisma ORM with D1 database.
 
-**Current RWSDK Version:** 1.0.0-beta.42 (upgraded from beta.9 on 2025-12-24)
+**Current RWSDK Version:** 1.4.1 (upgraded from 1.0.8 on 2026-08-17). Pinned below 1.5.0 — that version and later (through 1.7.2, latest as of this writing) regress `react-dom/server` resolution for the worker/RSC bundle (`@react-email/components`'s `render()` in `src/utils/email.ts` throws "not supported in React Server Components" at module-eval time under `vitest-pool-workers`). Isolated via bisect; root cause traced to rwsdk's Vite-6 compat shim (`viteCompat.mjs`, added 1.5.0) failing to translate the known-deps `optimizeDeps` resolver plugin. Re-attempt the bump to 1.7.2 once fixed upstream.
 
 rwsdk rules and patterns are located in `@.cursor/rules/`
 
