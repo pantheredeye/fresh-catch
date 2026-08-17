@@ -71,10 +71,10 @@ export type AppContext = {
  * Origin validation middleware: rejects state-changing requests (POST/PUT/DELETE)
  * whose Origin header doesn't match our host. Defense-in-depth alongside SameSite cookies.
  *
- * rwsdk (>=1.7) independently 403s non-GET server-action requests with a missing/mismatched
- * Origin. That check only fires for actions (__rsc_action_id); this one covers all non-GET
- * routes and deliberately allows a missing Origin (non-browser clients). Keep both — don't
- * "harmonize" them.
+ * rwsdk (>=1.3, active on our pinned 1.4.1) independently 403s non-GET server-action requests
+ * with a missing/mismatched Origin. That check only fires for actions (__rsc_action_id); this
+ * one covers all non-GET routes and deliberately allows a missing Origin (non-browser clients).
+ * Keep both — don't "harmonize" them.
  */
 function validateOrigin(): RouteMiddleware {
   return ({ request }) => {
