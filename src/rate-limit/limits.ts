@@ -26,6 +26,7 @@ export const ENDPOINT_LIMITS = {
   otpVerifyIp: { maxRequests: 200, windowMs: FIFTEEN_MIN }, // per-IP ceiling
   chatCreate: { maxRequests: 15, windowMs: TEN_MIN },       // per IP
   chatEmail: { maxRequests: 20, windowMs: FIFTEEN_MIN },    // per IP
+  orderCreate: { maxRequests: 5, windowMs: FIFTEEN_MIN },   // per IP
 } as const satisfies Record<string, Limit>;
 
 export type RateLimitEndpoint = keyof typeof ENDPOINT_LIMITS;

@@ -3,6 +3,7 @@ import { rotateSession } from "@/session/store";
 import { generateCsrfToken } from "@/session/csrf";
 import { createLoginCode, verifyLoginCode, normalizeEmail } from "@/auth/login-codes";
 import { processInviteToken } from "@/auth/invites";
+import { claimOrdersForUser } from "@/app/pages/orders/claims";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { checkRateLimit } from "@/rate-limit/middleware";
@@ -160,6 +161,13 @@ export async function verifyOtp(email: string, code: string, inviteToken?: strin
   let inviteResult: { organizationId: string; orgName: string; role: string } | null = null;
   if (inviteToken) {
     inviteResult = await processInviteToken(user.id, verifiedEmail, inviteToken);
+  }
+
+  // Claim any guest orders placed under this email. Never fails login.
+  try {
+    await claimOrdersForUser(user.id, verifiedEmail);
+  } catch (error) {
+    console.warn("Failed to claim guest orders:", error);
   }
 
   // Reload memberships once after any writes above

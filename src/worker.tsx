@@ -20,6 +20,7 @@ import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { sessions, setupSessionStore, resilientDO } from "./session/store";
 import { Session } from "./session/durableObject";
+import { generateCsrfToken } from "./session/csrf";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
@@ -256,10 +257,19 @@ const app = defineApp([
       throw error;
     }
 
-    // Ensure a session exists for all visitors (needed for OTP storage).
-    // The cookie is set on the response; subsequent requests will have it.
+    // Ensure a session exists for all visitors (needed for OTP storage and
+    // guest checkout CSRF). sessions.save() returns void, so set ctx.session
+    // locally too — otherwise the CSRF token is missing on this first request.
     if (!ctx.session) {
-      await resilientDO(() => sessions.save(response.headers, {}), "middleware.initSession");
+      const csrfToken = generateCsrfToken();
+      await resilientDO(() => sessions.save(response.headers, { csrfToken }), "middleware.initSession");
+      ctx.session = {
+        createdAt: Date.now(),
+        csrfToken,
+        userId: null,
+        currentOrganizationId: null,
+        role: null,
+      };
     }
 
     if (ctx.session?.userId) {

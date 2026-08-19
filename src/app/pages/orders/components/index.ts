@@ -1,3 +1,4 @@
+export { GuestOrderConfirmation } from './GuestOrderConfirmation';
 export { OrderCard } from './OrderCard';
 export { PaymentActions } from './PaymentActions';
 export { PaymentStatusBanner } from './PaymentStatusBanner';

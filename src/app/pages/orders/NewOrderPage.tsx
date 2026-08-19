@@ -22,7 +22,8 @@ export function NewOrderPage(requestInfo: RequestInfo) {
 
   return (
     <NewOrderUI
-      csrfToken={ctx.user ? ctx.session!.csrfToken : null}
+      csrfToken={ctx.session?.csrfToken ?? null}
+      isLoggedIn={!!ctx.user}
       vendorName={vendor.name}
       vendorId={vendor.id}
       vendorSlug={vendor.slug}

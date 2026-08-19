@@ -11,6 +11,7 @@ import type { IdentityEndpoint, RateLimitEndpoint } from "@/rate-limit/limits";
 export { createLoginCode, verifyLoginCode } from "@/auth/login-codes";
 export { processInviteToken } from "@/auth/invites";
 export { claimConversationsForUser } from "@/chat/claims";
+export { claimOrdersForUser } from "@/app/pages/orders/claims";
 
 // --- Rate limiting ---------------------------------------------------------
 
@@ -150,7 +151,7 @@ export async function countConversationsForOrg(organizationId: string) {
 
 // --- Order seeding / admin-query mirror ------------------------------------
 
-export async function seedGuestOrder(organizationId: string, contactName: string) {
+export async function seedGuestOrder(organizationId: string, contactName: string, contactEmail?: string | null) {
   const count = await db.order.count({ where: { organizationId } });
   const o = await db.order.create({
     data: {
@@ -158,10 +159,16 @@ export async function seedGuestOrder(organizationId: string, contactName: string
       orderNumber: count + 1,
       userId: null,
       contactName,
+      contactEmail: contactEmail ?? null,
       items: "1x snapper",
     },
   });
   return { id: o.id };
+}
+
+export async function getOrderUser(id: string) {
+  const o = await db.order.findUnique({ where: { id } });
+  return o?.userId ?? null;
 }
 
 /**
