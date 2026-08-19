@@ -28,7 +28,7 @@ export function FreshSheet({ catch: catchData, vendorSlug }: { catch: CatchData;
       position: 'relative',
       overflow: 'hidden',
       boxShadow: 'var(--shadow-lg)',
-      color: 'white'
+      color: 'var(--color-text-inverse)'
     }}>
       {/* Label */}
       <div style={{
@@ -64,7 +64,7 @@ export function FreshSheet({ catch: catchData, vendorSlug }: { catch: CatchData;
       }}>
         {catchData.items.map((item, i) => (
           <div key={i} style={{
-            background: 'rgba(255,255,255,0.15)',
+            background: 'var(--color-overlay-on-accent-subtle)',
             backdropFilter: 'blur(8px)',
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-sm) var(--space-md)',
@@ -95,7 +95,7 @@ export function FreshSheet({ catch: catchData, vendorSlug }: { catch: CatchData;
             display: 'inline-block',
             padding: 'var(--space-sm) var(--space-xl)',
             background: 'var(--color-action-secondary)',
-            color: 'white',
+            color: 'var(--color-text-inverse)',
             borderRadius: 'var(--radius-lg)',
             fontWeight: 'var(--font-weight-bold)',
             fontSize: 'var(--font-size-md)',

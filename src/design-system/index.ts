@@ -13,7 +13,6 @@ export { FreshBadge, LiveBadge, AvailableBadge } from './components/FreshBadge'
 export { Badge, NotificationBadge } from './components/Badge'
 
 // Composition Components (used on multiple pages)
-export { FreshHero, FreshGrid, FreshItem } from './components/FreshHero'
 export { SectionHeader } from './components/SectionHeader'
 export { NavGrid } from './components/NavGrid'
 export type { NavGridItem } from './components/NavGrid'

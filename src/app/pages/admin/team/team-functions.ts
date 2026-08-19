@@ -181,7 +181,7 @@ export async function acceptInvite(csrfToken: string, token: string) {
     },
   });
 
-  const ROLE_RANK: Record<string, number> = { owner: 3, admin: 2, manager: 1 };
+  const ROLE_RANK: Record<string, number> = { owner: 2, manager: 1 };
 
   if (existingMembership) {
     const currentRank = ROLE_RANK[existingMembership.role] ?? 0;

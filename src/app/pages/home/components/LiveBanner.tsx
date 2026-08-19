@@ -23,7 +23,7 @@ export function LiveBanner({ marketName }: { marketName?: string }) {
       <span style={{
         width: '8px',
         height: '8px',
-        background: 'white',
+        background: 'var(--color-text-inverse)',
         borderRadius: '50%',
         boxShadow: '0 0 0 2px var(--color-glass-border-medium)',
         animation: 'live-pulse 2s ease-in-out infinite'

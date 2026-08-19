@@ -44,7 +44,7 @@ git push -u origin bbb-new-feature
 
 This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, email-OTP authentication, and Prisma ORM with D1 database.
 
-**Current RWSDK Version:** 1.0.0-beta.42 (upgraded from beta.9 on 2025-12-24)
+**Current RWSDK Version:** 1.0.8 (see `package.json` for the authoritative value)
 
 rwsdk rules and patterns are located in `@.cursor/rules/`
 
@@ -273,7 +273,8 @@ import { MarketCard } from '@/app/pages/home/components'  // NO!
 
 #### Testing Design System:
 
-Visit `/design-test` to see all design system primitives.
+Visit `/design-test` (dev only — the route is not built into production) to see all
+design system primitives. Toggle your OS appearance to check dark mode.
 Page-specific components are tested on their actual pages.
 
 ### Component Variants Pattern

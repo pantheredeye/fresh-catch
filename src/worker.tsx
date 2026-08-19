@@ -4,7 +4,6 @@ import { handleVitestRequest } from "rwsdk-community/worker";
 import * as appActions from "@/app/actions";
 import * as testUtils from "@/app/test-utils";
 import { Document } from "@/app/Document";
-import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
 import { VendorProfilePage } from "@/app/pages/home/VendorProfilePage";
 import { DesignTest } from "@/app/pages/DesignTest";
@@ -16,7 +15,6 @@ import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
 import { profileRoutes } from "@/app/pages/profile/routes";
 import { marketRoutes } from "@/app/pages/markets/routes";
-import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -38,6 +36,10 @@ export { RateLimitDurableObject } from "./rate-limit/durableObject";
 export { McpDurableObject } from "./mcp/durableObject";
 export { SignalDurableObject } from "./signal/durableObject";
 export { InboxDurableObject } from "./inbox/durableObject";
+
+// Vite dev server only — gates the design-system showcase routes out of prod.
+const isViteDev =
+  typeof import.meta.env !== "undefined" && import.meta.env.DEV;
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
@@ -101,11 +103,20 @@ function errorHtml(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fresh Catch — Error</title>
   <style>
-    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9f7f4; color: #1a2b3d; text-align: center; }
+    /* TOKEN EXEMPTION: this page renders when the RSC pipeline has already failed,
+       so tokens.css is not guaranteed to load. It must be fully self-contained —
+       hex literals here are deliberate. Values mirror tokens.css; keep in sync by hand. */
+    :root { color-scheme: light dark; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #FFFCF8; color: #1A2B3D; text-align: center; }
     .wrap { max-width: 400px; padding: 2rem; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    p { color: #6b7280; margin-bottom: 1.5rem; }
-    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066cc; color: #fff; border-radius: 8px; text-decoration: none; }
+    p { color: #64748B; margin-bottom: 1.5rem; }
+    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066CC; color: #fff; border-radius: 8px; text-decoration: none; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111827; color: #E2E8F0; }
+      p { color: #94A3B8; }
+      a { background: #3898EC; }
+    }
   </style>
 </head>
 <body>
@@ -427,17 +438,11 @@ const app = defineApp([
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
       route("/v/:slug", VendorProfilePage),
-      route("/design-test", DesignTest),
-      ...darkModeTestRoutes,
-
-      route("/protected", [
-        (requestInfo) => {
-          if (!requestInfo.ctx.user) {
-            return safeRedirect(requestInfo, "/login");
-          }
-        },
-        Home,
-      ]),
+      // Design-system showcase — dev only. `isViteDev` folds to a build-time constant,
+      // so this tree-shakes out of the production bundle entirely. Keep the route
+      // inlined: a module of top-level route() calls isn't provably side-effect-free,
+      // so Vite would retain it.
+      ...(isViteDev ? [route("/design-test", DesignTest)] : []),
     ]),
 
     // Order routes with customer layout

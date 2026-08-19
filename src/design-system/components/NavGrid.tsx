@@ -117,10 +117,10 @@ export function NavGrid({ items, columns = 2, variant = 'compact' }: NavGridProp
 // Color-coded borders for compact variant (customer quick actions)
 function getColorBorder(index: number): string {
   const colors = [
-    'rgba(0,102,204,0.2)',   // Ocean blue
-    'rgba(255,107,107,0.2)', // Coral
-    'rgba(0,217,177,0.2)',   // Mint
-    'rgba(255,179,102,0.2)'  // Gold
+    'var(--color-nav-accent-1)', // Ocean blue
+    'var(--color-nav-accent-2)', // Coral
+    'var(--color-nav-accent-3)', // Mint
+    'var(--color-nav-accent-4)'  // Gold
   ]
   return colors[index % colors.length]
 }

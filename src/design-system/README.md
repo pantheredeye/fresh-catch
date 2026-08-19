@@ -323,4 +323,5 @@ This generates `src/design-system/tokens-three-tier.json` compatible with Figma 
 - **Tokens**: `src/design-system/tokens.css`
 - **Template**: `src/design-system/COMPONENT_TEMPLATE.tsx`
 - **Patterns**: `src/design-system/patterns.md`
-- **Test Page**: `/dark-mode-test` - View all components in dark mode
+- **Test Page**: `/design-test` (dev only) - View all primitives; toggle your OS
+  appearance to check dark mode
