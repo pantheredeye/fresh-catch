@@ -225,11 +225,12 @@ function AllMarketsSection({
   const isSingleNullGroup = countyGroups.size === 1 && countyGroups.has(null);
 
   return (
-    <div style={{
+    <div id="markets" style={{
       padding: 'var(--space-lg) var(--space-md)',
       paddingBottom: '100px',
       maxWidth: '500px',
-      margin: '0 auto'
+      margin: '0 auto',
+      scrollMarginTop: '80px' // Clear the sticky header when jumping to #markets
     }}>
       <div className="flex-between mb-md">
         <h2 className="heading-2xl m-0">

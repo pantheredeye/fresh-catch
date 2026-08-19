@@ -123,6 +123,27 @@ export function BottomNavigation({ vendorSlug, vendorName, organizationId, user,
     }
   }, [chatConversationId, organizationId]);
 
+  // Open chat when navigating to #chat (e.g. hero "Contact" quick action)
+  useEffect(() => {
+    const openChatFromHash = () => {
+      if (window.location.hash !== '#chat') return;
+      setChatOpen(true);
+      if (organizationId) {
+        setUnreadCount(0);
+        const convId = getStoredConversationId(organizationId);
+        if (convId) {
+          markAsRead(convId, 'customer').catch(() => {});
+        }
+      }
+      // Clear the hash so tapping Contact again re-triggers hashchange
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    };
+
+    openChatFromHash();
+    window.addEventListener('hashchange', openChatFromHash);
+    return () => window.removeEventListener('hashchange', openChatFromHash);
+  }, [organizationId]);
+
   const loginHref = vendorSlug ? `/login?b=${vendorSlug}` : '/login';
 
   return (
@@ -192,29 +213,31 @@ export function BottomNavigation({ vendorSlug, vendorName, organizationId, user,
             Order
           </a>
 
-          {/* Mic */}
-          <button
-            onClick={openCommandBar}
-            aria-label="Voice command"
-            className="bottom-nav-mic"
-            style={{
-              padding: 'var(--space-sm)',
-              color: 'var(--color-action-primary)',
-              fontSize: 'var(--font-size-md)',
-              borderRadius: 'var(--radius-full)',
-              background: 'transparent',
-              border: '1.5px solid var(--color-border-light)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
-              height: '36px',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            🎙️
-          </button>
+          {/* Mic — only for signed-in users; CommandBar isn't mounted otherwise */}
+          {isLoggedIn && (
+            <button
+              onClick={openCommandBar}
+              aria-label="Voice command"
+              className="bottom-nav-mic"
+              style={{
+                padding: 'var(--space-sm)',
+                color: 'var(--color-action-primary)',
+                fontSize: 'var(--font-size-md)',
+                borderRadius: 'var(--radius-full)',
+                background: 'transparent',
+                border: '1.5px solid var(--color-border-light)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              🎙️
+            </button>
+          )}
 
           <Menu.Root>
             <div style={{ position: 'relative', display: 'inline-flex' }}>

@@ -99,7 +99,7 @@ function isDateInPast(dateStr: string): boolean {
   return dateStr < getTodayStr();
 }
 
-function parseCatchPreview(raw: unknown): CatchItem[] {
+function parseItemsList(raw: unknown): unknown[] {
   if (!raw) return [];
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
@@ -814,9 +814,7 @@ export function CommandReview({
   // Initialize form data from voice result
   const [catchData, setCatchData] = useState<CatchFormData>(() => ({
     headline: (result.data.headline as string) || "",
-    items: Array.isArray(result.data.items)
-      ? (result.data.items as CatchItem[])
-      : [],
+    items: parseItemsList(result.data.items) as CatchItem[],
     summary: (result.data.summary as string) || "",
   }));
 
@@ -826,7 +824,7 @@ export function CommandReview({
     active: true,
     locationDetails: (result.data.locationDetails as string) || "",
     customerInfo: (result.data.customerInfo as string) || "",
-    catchPreview: parseCatchPreview(result.data.catchPreview),
+    catchPreview: parseItemsList(result.data.catchPreview) as CatchItem[],
   }));
 
   const [popupData, setPopupData] = useState<PopupFormData>(() => ({
@@ -835,7 +833,7 @@ export function CommandReview({
     active: true,
     locationDetails: (result.data.locationDetails as string) || "",
     customerInfo: (result.data.customerInfo as string) || "",
-    catchPreview: parseCatchPreview(result.data.catchPreview),
+    catchPreview: parseItemsList(result.data.catchPreview) as CatchItem[],
     expiresAt: (result.data.expiresAt as string) || "",
     notes: (result.data.notes as string) || "",
   }));
@@ -869,13 +867,11 @@ export function CommandReview({
   const [marketCatchData, setMarketCatchData] = useState<MarketCatchFormData>(() => ({
     marketId: (result.data.marketId as string) || "",
     marketName: (result.data.marketName as string) || (result.data.name as string) || "",
-    items: parseCatchPreview(result.data.catchPreview),
+    items: parseItemsList(result.data.catchPreview) as CatchItem[],
   }));
 
   const [orderData, setOrderData] = useState<OrderFormData>(() => ({
-    items: Array.isArray(result.data.items)
-      ? (result.data.items as OrderItem[])
-      : [],
+    items: parseItemsList(result.data.items) as OrderItem[],
     pickupMarketId: (result.data.pickupMarketId as string) || "",
     pickupDate: (result.data.pickupDate as string) || "",
     customerNote: (result.data.customerNote as string) || "",

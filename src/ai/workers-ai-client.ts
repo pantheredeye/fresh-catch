@@ -1,10 +1,10 @@
 /**
  * Workers AI client for text generation with tool calling.
- * Replaces Anthropic SDK — uses Kimi K2.5 for tool use, Llama 3.3 for simple queries.
+ * Replaces Anthropic SDK — uses Kimi K2.6 for tool use, Llama 3.3 for simple queries.
  */
 import { env } from "cloudflare:workers";
 
-const MODEL_KIMI = "@cf/moonshotai/kimi-k2.5";
+const MODEL_KIMI = "@cf/moonshotai/kimi-k2.6";
 const MODEL_LLAMA = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const DEFAULT_TEMPERATURE = 0.7;
 

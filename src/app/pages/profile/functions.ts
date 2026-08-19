@@ -106,6 +106,10 @@ export async function deleteAccount(csrfToken: string) {
     await resilientDO(() => sessions.remove(request, response.headers), "deleteAccount.remove");
     response.headers.set("Location", "/");
 
+    // This is a server function ("use server"), not a page component — rwsdk's
+    // normalizeActionResult wraps a returned Response into __rw_action_response and the
+    // client does window.location.href on it. Not the page-component opaque-redirect path;
+    // do not convert to safeRedirect/pageRedirect.
     return new Response(null, {
       status: 302,
       headers: response.headers,

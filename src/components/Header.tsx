@@ -20,6 +20,7 @@ interface HeaderProps {
   } | null;
   variant?: "customer" | "admin" | "auth";
   csrfToken?: string;
+  currentPath?: string;
 }
 
 export function Header({
@@ -28,6 +29,7 @@ export function Header({
   browsingOrganization,
   variant = "customer",
   csrfToken,
+  currentPath,
 }: HeaderProps) {
   // Auth variant: centered logo only
   if (variant === "auth") {
@@ -71,9 +73,11 @@ export function Header({
           <span className="unified-header__logo-text">{browsingOrganization?.name ?? currentOrganization?.name ?? "Fresh Catch"}</span>
         </a>
         <div className="unified-header__actions">
-          <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="order-button">
-            + Order
-          </a>
+          {currentPath !== "/orders/new" && (
+            <a href={browsingOrganization?.slug ? `/orders/new?b=${browsingOrganization.slug}` : "/orders/new"} className="order-button">
+              + Order
+            </a>
+          )}
           <UserMenu user={user} currentOrganization={currentOrganization} browsingOrganization={browsingOrganization} csrfToken={csrfToken} />
         </div>
       </div>

@@ -363,9 +363,14 @@ export async function handleGetOrderStatus(
   rawInput: unknown,
   organizationId: string,
   callerRole?: string,
+  callerUserId?: string,
 ): Promise<ToolResult> {
   const roleErr = checkRole(callerRole, ["customer"]);
   if (roleErr) return roleErr;
+
+  if (callerRole === "customer" && !callerUserId) {
+    return errorResult("Forbidden: you do not have permission to use this tool");
+  }
 
   const parsed = GetOrderStatusInputSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -377,12 +382,12 @@ export async function handleGetOrderStatus(
     let order;
     if (input.orderId) {
       order = await db.order.findFirst({
-        where: { id: input.orderId, organizationId },
+        where: { id: input.orderId, organizationId, userId: callerUserId },
       });
     } else {
-      // Default: latest order for this org
+      // Default: latest order for this org, scoped to this customer
       order = await db.order.findFirst({
-        where: { organizationId },
+        where: { organizationId, userId: callerUserId },
         orderBy: { createdAt: "desc" },
       });
     }
