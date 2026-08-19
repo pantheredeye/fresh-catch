@@ -1,5 +1,6 @@
 import { RequestInfo } from "rwsdk/worker";
 import { getPublicOrganization, getPublicOrganizations } from "@/utils/organization";
+import { pageRedirect } from "@/app/redirect";
 import { CustomerHomeUI } from "./CustomerHomeUI";
 import { BusinessNotFound } from "../BusinessNotFound";
 import { VendorDirectory } from "./components";
@@ -14,7 +15,8 @@ import { fetchVendorData, getQuickActions } from "./fetchVendorData";
  * - Shows VendorDirectory when multiple businesses exist, BusinessNotFound when zero
  * - Passes all data to CustomerHomeUI client component
  */
-export async function CustomerHome({ ctx, request }: RequestInfo) {
+export async function CustomerHome(requestInfo: RequestInfo) {
+  const { ctx, request } = requestInfo;
   let orgId: string;
   let vendorSlug: string | undefined;
   let vendorName: string | undefined;
@@ -47,10 +49,7 @@ export async function CustomerHome({ ctx, request }: RequestInfo) {
     }
 
     // Single vendor — redirect to their profile URL
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `/v/${detected.slug}` },
-    });
+    return pageRedirect(requestInfo, `/v/${detected.slug}`);
   }
 
   const { markets, popups, catchData } = await fetchVendorData(orgId);

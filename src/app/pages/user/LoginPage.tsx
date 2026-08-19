@@ -1,5 +1,6 @@
 import { RequestInfo } from "rwsdk/worker";
 import { hasAdminAccess } from "@/utils/permissions";
+import { pageRedirect } from "@/app/redirect";
 import { Login } from "./Login";
 
 /**
@@ -15,12 +16,7 @@ export function LoginPage(requestInfo: RequestInfo) {
     const bSlug = url.searchParams.get("b");
     const base = hasAdminAccess(ctx) ? "/admin" : "/";
     const destination = bSlug ? `${base}?b=${bSlug}` : base;
-    // Empty-string body, never null: a null-body Response breaks the RSC
-    // client stream (getReader crash) during client-side navigations.
-    return new Response("", {
-      status: 302,
-      headers: { Location: destination },
-    });
+    return pageRedirect(requestInfo, destination);
   }
 
   return <Login />;
