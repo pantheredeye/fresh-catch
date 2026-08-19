@@ -30,7 +30,6 @@ import { getServerCard } from "@/api/mcp-server";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
-import { rateLimitAuth } from "@/rate-limit/middleware";
 import { checkRequiredSecretsOnce } from "@/utils/env";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
@@ -430,7 +429,6 @@ const app = defineApp([
   },
   render(Document, [
     // Auth routes with rate limiting + minimal layout
-    rateLimitAuth(),
     ...layout(AuthLayout, userRoutes),  // /login, /logout
 
     // Customer routes with header + user menu
