@@ -1,12 +1,14 @@
 import { RequestInfo } from "rwsdk/worker";
+import { pageRedirect } from "@/app/redirect";
 import { NewOrderUI } from "./NewOrderUI";
 
-export function NewOrderPage({ ctx }: RequestInfo) {
+export function NewOrderPage(requestInfo: RequestInfo) {
+  const { ctx } = requestInfo;
   // Vendor must come from explicit browsing context (/v/:slug or ?b=)
   const vendor = ctx.browsingOrganization;
 
   if (!vendor) {
-    return new Response("", { status: 302, headers: { Location: "/" } });
+    return pageRedirect(requestInfo, "/");
   }
 
   // Anonymous users see the form too — auth happens at submit via AuthSheet.

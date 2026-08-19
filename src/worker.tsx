@@ -31,6 +31,7 @@ import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 import { checkRequiredSecretsOnce } from "@/utils/env";
+import { safeRedirect } from "@/app/redirect";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
@@ -86,21 +87,6 @@ function validateOrigin(): RouteMiddleware {
 
     return new Response("Forbidden – origin mismatch", { status: 403 });
   };
-}
-
-/**
- * Redirect that is safe during RSC server actions. A plain `new Response(null, { status: 302 })`
- * crashes the RSC client (`body.getReader()` on null). For server actions we throw instead,
- * letting the client-side catch block handle it gracefully.
- */
-function safeRedirect(request: Request, location: string, headers?: Headers): Response {
-  const url = new URL(request.url);
-  if (url.searchParams.has("__rsc_action_id")) {
-    throw new Error(`Session expired, redirect to ${location}`);
-  }
-  const h = headers ?? new Headers();
-  h.set("Location", location);
-  return new Response(null, { status: 302, headers: h });
 }
 
 /**
@@ -243,7 +229,8 @@ const app = defineApp([
   },
   validateOrigin(),
   setCommonHeaders(),
-  async ({ ctx, request, response }) => {
+  async (requestInfo) => {
+    const { ctx, request, response } = requestInfo;
     await setupDb(env);
     setupSessionStore(env);
 
@@ -252,7 +239,7 @@ const app = defineApp([
     } catch (error) {
       if (error instanceof ErrorResponse && error.code === 401) {
         await resilientDO(() => sessions.remove(request, response.headers), "middleware.remove401");
-        return safeRedirect(request, "/login", response.headers);
+        return safeRedirect(requestInfo, "/login", response.headers);
       }
 
       throw error;
@@ -282,7 +269,7 @@ const app = defineApp([
       // Check if user is soft deleted
       if (ctx.user?.deletedAt) {
         await resilientDO(() => sessions.remove(request, response.headers), "middleware.removeDeleted");
-        return safeRedirect(request, "/", response.headers);
+        return safeRedirect(requestInfo, "/", response.headers);
       }
 
       // If session lacks organization context, set it from user's memberships
@@ -338,7 +325,7 @@ const app = defineApp([
             role: null,
             csrfToken: ctx.session!.csrfToken,
           }), "middleware.revokedMembership");
-          return safeRedirect(request, "/", response.headers);
+          return safeRedirect(requestInfo, "/", response.headers);
         }
       }
     }
@@ -444,9 +431,9 @@ const app = defineApp([
       ...darkModeTestRoutes,
 
       route("/protected", [
-        ({ ctx, request }) => {
-          if (!ctx.user) {
-            return safeRedirect(request, "/login");
+        (requestInfo) => {
+          if (!requestInfo.ctx.user) {
+            return safeRedirect(requestInfo, "/login");
           }
         },
         Home,
@@ -464,9 +451,10 @@ const app = defineApp([
 
     // Admin routes with admin header + nav
     prefix("/admin", [
-      ({ ctx, request, response }) => {
+      (requestInfo) => {
+        const { ctx, response } = requestInfo;
         if (!ctx.user) {
-          return safeRedirect(request, "/login", response.headers);
+          return safeRedirect(requestInfo, "/login", response.headers);
         }
         if (!hasAdminAccess(ctx)) {
           return new Response("Forbidden", { status: 403 });
