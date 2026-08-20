@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { Container, Card, Button, TextInput, Textarea } from "@/design-system";
 import { AuthSheet } from "@/components/AuthSheet";
-import type { AuthSuccess } from "@/app/pages/user/AuthCard";
 import { createOrder } from "./functions";
 
 interface NewOrderUIProps {
-  csrfToken: string | null; // null when browsing anonymously
+  csrfToken: string | null; // null only if the session cookie failed to set
+  isLoggedIn: boolean;
   vendorName: string;
   vendorId: string;
   vendorSlug: string;
@@ -18,7 +18,7 @@ interface NewOrderUIProps {
   };
 }
 
-export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaultContact }: NewOrderUIProps) {
+export function NewOrderUI({ csrfToken, isLoggedIn, vendorName, vendorId, vendorSlug, defaultContact }: NewOrderUIProps) {
   const [contactName, setContactName] = useState(defaultContact.name);
   const [contactEmail, setContactEmail] = useState(defaultContact.email);
   const [contactPhone, setContactPhone] = useState(defaultContact.phone);
@@ -93,21 +93,22 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
       setStatus('success');
       setMessage(`Order submitted! ${vendorName} will confirm soon.`);
 
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        window.location.href = '/orders';
-      }, 2000);
+      if (isLoggedIn) {
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          window.location.href = '/orders';
+        }, 2000);
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Failed to submit order');
     }
   };
 
-  const handleAuthed = (result: AuthSuccess) => {
+  const handleAuthed = () => {
     setAuthOpen(false);
-    // Use the csrfToken returned from login, never a render-time prop —
-    // the session (and its token) just rotated.
-    submitOrder(result.csrfToken);
+    // verifyOtp already claimed this guest order server-side by email.
+    window.location.href = '/orders';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,13 +120,59 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
       return;
     }
 
+    if (!isLoggedIn && !contactEmail.trim()) {
+      setStatus('error');
+      setMessage('Please enter your email so we can send your confirmation and payment link');
+      return;
+    }
+
     if (!csrfToken) {
-      setAuthOpen(true);
+      setStatus('error');
+      setMessage('Your session expired. Please refresh the page and try again.');
       return;
     }
 
     submitOrder(csrfToken);
   };
+
+  const guestSubmitted = status === 'success' && !isLoggedIn;
+
+  if (guestSubmitted) {
+    return (
+      <Container size="md" noPadding>
+        <Card variant="centered" maxWidth="800px">
+          <div style={{ textAlign: 'center' }}>
+            <h1 className="text-heading-lg">Order submitted!</h1>
+            <p className="text-subheading" style={{ marginBottom: 'var(--space-lg)' }}>
+              {vendorName} will confirm and email you a payment link.
+            </p>
+            <div className="flex-col gap-sm">
+              <Button variant="primary" size="lg" fullWidth onClick={() => setAuthOpen(true)}>
+                Track this order — create an account
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onClick={() => { window.location.href = `/?b=${vendorSlug}`; }}
+              >
+                Back to {vendorName}
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <AuthSheet
+          open={authOpen}
+          onClose={() => setAuthOpen(false)}
+          onAuthed={handleAuthed}
+          title="Track your order"
+          subtitle={`Verify your email to see this order under Your Orders.`}
+          prefillEmail={contactEmail.trim() || undefined}
+        />
+      </Container>
+    );
+  }
 
   return (
     <Container size="md" noPadding>
@@ -160,8 +207,9 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
+              required={!isLoggedIn}
               placeholder="your@email.com"
-              helperText="For order confirmations and updates"
+              helperText="We'll send your confirmation and payment link here"
               size="md"
             />
 
@@ -267,15 +315,6 @@ export function NewOrderUI({ csrfToken, vendorName, vendorId, vendorSlug, defaul
           </div>
         )}
       </Card>
-
-      <AuthSheet
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        onAuthed={handleAuthed}
-        title="One last step"
-        subtitle={`Verify your email and your order goes straight to ${vendorName}.`}
-        prefillEmail={contactEmail.trim() || undefined}
-      />
     </Container>
   );
 }

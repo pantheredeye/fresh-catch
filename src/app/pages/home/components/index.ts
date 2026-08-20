@@ -2,7 +2,6 @@
 export { LiveBanner } from './LiveBanner';
 export { MarketCard } from './MarketCard';
 export { QuickActions } from './QuickActions';
-export { NavItem } from './NavItem';
 export { FreshSheet } from './FreshSheet';
 export { PopupCard } from './PopupCard';
 export { VendorDirectory } from './VendorDirectory';

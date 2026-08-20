@@ -4,7 +4,6 @@ import { handleVitestRequest } from "rwsdk-community/worker";
 import * as appActions from "@/app/actions";
 import * as testUtils from "@/app/test-utils";
 import { Document } from "@/app/Document";
-import { Home } from "@/app/pages/Home";
 import { CustomerHome } from "@/app/pages/home/CustomerHome";
 import { VendorProfilePage } from "@/app/pages/home/VendorProfilePage";
 import { DesignTest } from "@/app/pages/DesignTest";
@@ -16,12 +15,12 @@ import { adminRoutes } from "@/app/pages/admin/routes";
 import { orderRoutes } from "@/app/pages/orders/routes";
 import { profileRoutes } from "@/app/pages/profile/routes";
 import { marketRoutes } from "@/app/pages/markets/routes";
-import { darkModeTestRoutes } from "@/app/pages/dark-mode-test/routes";
 import { CustomerLayout } from "@/layouts/CustomerLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { sessions, setupSessionStore, resilientDO } from "./session/store";
 import { Session } from "./session/durableObject";
+import { generateCsrfToken } from "./session/csrf";
 import { type User, type Prisma, db, setupDb } from "@/db";
 import { env } from "cloudflare:workers";
 import { handleStripeWebhook } from "@/api/stripe-webhook";
@@ -30,14 +29,18 @@ import { getServerCard } from "@/api/mcp-server";
 import { handleCatchRecord } from "@/api/catch-record";
 import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
-import { rateLimitAuth } from "@/rate-limit/middleware";
 import { checkRequiredSecretsOnce } from "@/utils/env";
+import { safeRedirect } from "@/app/redirect";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
 export { McpDurableObject } from "./mcp/durableObject";
 export { SignalDurableObject } from "./signal/durableObject";
 export { InboxDurableObject } from "./inbox/durableObject";
+
+// Vite dev server only — gates the design-system showcase routes out of prod.
+const isViteDev =
+  typeof import.meta.env !== "undefined" && import.meta.env.DEV;
 
 type UserWithMemberships = Prisma.UserGetPayload<{
   include: {
@@ -95,21 +98,6 @@ function validateOrigin(): RouteMiddleware {
 }
 
 /**
- * Redirect that is safe during RSC server actions. A plain `new Response(null, { status: 302 })`
- * crashes the RSC client (`body.getReader()` on null). For server actions we throw instead,
- * letting the client-side catch block handle it gracefully.
- */
-function safeRedirect(request: Request, location: string, headers?: Headers): Response {
-  const url = new URL(request.url);
-  if (url.searchParams.has("__rsc_action_id")) {
-    throw new Error(`Session expired, redirect to ${location}`);
-  }
-  const h = headers ?? new Headers();
-  h.set("Location", location);
-  return new Response(null, { status: 302, headers: h });
-}
-
-/**
  * Static HTML error page returned when an unhandled exception escapes the
  * RSC render pipeline. Avoids whitescreen by providing a meaningful 500 page.
  */
@@ -121,11 +109,20 @@ function errorHtml(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fresh Catch — Error</title>
   <style>
-    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9f7f4; color: #1a2b3d; text-align: center; }
+    /* TOKEN EXEMPTION: this page renders when the RSC pipeline has already failed,
+       so tokens.css is not guaranteed to load. It must be fully self-contained —
+       hex literals here are deliberate. Values mirror tokens.css; keep in sync by hand. */
+    :root { color-scheme: light dark; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #FFFCF8; color: #1A2B3D; text-align: center; }
     .wrap { max-width: 400px; padding: 2rem; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    p { color: #6b7280; margin-bottom: 1.5rem; }
-    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066cc; color: #fff; border-radius: 8px; text-decoration: none; }
+    p { color: #64748B; margin-bottom: 1.5rem; }
+    a { display: inline-block; padding: 0.5rem 1.5rem; background: #0066CC; color: #fff; border-radius: 8px; text-decoration: none; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111827; color: #E2E8F0; }
+      p { color: #94A3B8; }
+      a { background: #3898EC; }
+    }
   </style>
 </head>
 <body>
@@ -249,7 +246,8 @@ const app = defineApp([
   },
   validateOrigin(),
   setCommonHeaders(),
-  async ({ ctx, request, response }) => {
+  async (requestInfo) => {
+    const { ctx, request, response } = requestInfo;
     await setupDb(env);
     setupSessionStore(env);
 
@@ -258,16 +256,25 @@ const app = defineApp([
     } catch (error) {
       if (error instanceof ErrorResponse && error.code === 401) {
         await resilientDO(() => sessions.remove(request, response.headers), "middleware.remove401");
-        return safeRedirect(request, "/login", response.headers);
+        return safeRedirect(requestInfo, "/login", response.headers);
       }
 
       throw error;
     }
 
-    // Ensure a session exists for all visitors (needed for OTP storage).
-    // The cookie is set on the response; subsequent requests will have it.
+    // Ensure a session exists for all visitors (needed for OTP storage and
+    // guest checkout CSRF). sessions.save() returns void, so set ctx.session
+    // locally too — otherwise the CSRF token is missing on this first request.
     if (!ctx.session) {
-      await resilientDO(() => sessions.save(response.headers, {}), "middleware.initSession");
+      const csrfToken = generateCsrfToken();
+      await resilientDO(() => sessions.save(response.headers, { csrfToken }), "middleware.initSession");
+      ctx.session = {
+        createdAt: Date.now(),
+        csrfToken,
+        userId: null,
+        currentOrganizationId: null,
+        role: null,
+      };
     }
 
     if (ctx.session?.userId) {
@@ -288,7 +295,7 @@ const app = defineApp([
       // Check if user is soft deleted
       if (ctx.user?.deletedAt) {
         await resilientDO(() => sessions.remove(request, response.headers), "middleware.removeDeleted");
-        return safeRedirect(request, "/", response.headers);
+        return safeRedirect(requestInfo, "/", response.headers);
       }
 
       // If session lacks organization context, set it from user's memberships
@@ -344,7 +351,7 @@ const app = defineApp([
             role: null,
             csrfToken: ctx.session!.csrfToken,
           }), "middleware.revokedMembership");
-          return safeRedirect(request, "/", response.headers);
+          return safeRedirect(requestInfo, "/", response.headers);
         }
       }
     }
@@ -435,7 +442,6 @@ const app = defineApp([
   },
   render(Document, [
     // Auth routes with rate limiting + minimal layout
-    rateLimitAuth(),
     ...layout(AuthLayout, userRoutes),  // /login, /logout
 
     // Customer routes with header + user menu
@@ -447,17 +453,11 @@ const app = defineApp([
       //   - If multiple businesses, show directory
       route("/", CustomerHome),
       route("/v/:slug", VendorProfilePage),
-      route("/design-test", DesignTest),
-      ...darkModeTestRoutes,
-
-      route("/protected", [
-        ({ ctx, request }) => {
-          if (!ctx.user) {
-            return safeRedirect(request, "/login");
-          }
-        },
-        Home,
-      ]),
+      // Design-system showcase — dev only. `isViteDev` folds to a build-time constant,
+      // so this tree-shakes out of the production bundle entirely. Keep the route
+      // inlined: a module of top-level route() calls isn't provably side-effect-free,
+      // so Vite would retain it.
+      ...(isViteDev ? [route("/design-test", DesignTest)] : []),
     ]),
 
     // Order routes with customer layout
@@ -471,9 +471,10 @@ const app = defineApp([
 
     // Admin routes with admin header + nav
     prefix("/admin", [
-      ({ ctx, request, response }) => {
+      (requestInfo) => {
+        const { ctx, response } = requestInfo;
         if (!ctx.user) {
-          return safeRedirect(request, "/login", response.headers);
+          return safeRedirect(requestInfo, "/login", response.headers);
         }
         if (!hasAdminAccess(ctx)) {
           return new Response("Forbidden", { status: 403 });

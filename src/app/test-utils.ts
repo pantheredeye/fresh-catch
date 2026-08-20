@@ -1,5 +1,9 @@
 import { db } from "@/db";
+import { env } from "cloudflare:workers";
 import { normalizeEmail } from "@/auth/login-codes";
+import { sha256Hex } from "@/utils/hash";
+import { checkRateLimit } from "@/rate-limit/middleware";
+import type { IdentityEndpoint, RateLimitEndpoint } from "@/rate-limit/limits";
 
 // --- Re-exports of plain-module internals under test -----------------------
 // These live in non-"use server" modules so they can be invoked directly by
@@ -7,10 +11,41 @@ import { normalizeEmail } from "@/auth/login-codes";
 export { createLoginCode, verifyLoginCode } from "@/auth/login-codes";
 export { processInviteToken } from "@/auth/invites";
 export { claimConversationsForUser } from "@/chat/claims";
+export { claimOrdersForUser } from "@/app/pages/orders/claims";
 
-async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+// --- Rate limiting ---------------------------------------------------------
+
+/** Drive the real middleware. Every test request arrives with no CF-Connecting-IP,
+ *  so they all share the "unknown" IP bucket — which is exactly the shared-NAT
+ *  condition these tests need to reproduce. */
+export async function rateLimitCheck(endpoint: IdentityEndpoint, identity?: string) {
+  return identity === undefined
+    ? checkRateLimit(endpoint)
+    : checkRateLimit(endpoint, identity);
+}
+
+/** Talk to the DO with explicit keys, to test bucket mechanics in isolation. */
+export async function rateLimitIncrement(key: string, endpoint: RateLimitEndpoint) {
+  const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(
+    env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global"),
+  );
+  return stub.increment(key, endpoint);
+}
+
+export async function rateLimitIncrementMulti(
+  entries: { key: string; endpoint: RateLimitEndpoint }[],
+) {
+  const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(
+    env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global"),
+  );
+  return stub.incrementMulti(entries);
+}
+
+export async function rateLimitSweep(maxAgeMs?: number | null) {
+  const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(
+    env.RATE_LIMIT_DURABLE_OBJECT.idFromName("global"),
+  );
+  return stub.sweepNow(maxAgeMs);
 }
 
 // --- Org / user seeding ----------------------------------------------------
@@ -116,7 +151,7 @@ export async function countConversationsForOrg(organizationId: string) {
 
 // --- Order seeding / admin-query mirror ------------------------------------
 
-export async function seedGuestOrder(organizationId: string, contactName: string) {
+export async function seedGuestOrder(organizationId: string, contactName: string, contactEmail?: string | null) {
   const count = await db.order.count({ where: { organizationId } });
   const o = await db.order.create({
     data: {
@@ -124,10 +159,16 @@ export async function seedGuestOrder(organizationId: string, contactName: string
       orderNumber: count + 1,
       userId: null,
       contactName,
+      contactEmail: contactEmail ?? null,
       items: "1x snapper",
     },
   });
   return { id: o.id };
+}
+
+export async function getOrderUser(id: string) {
+  const o = await db.order.findUnique({ where: { id } });
+  return o?.userId ?? null;
 }
 
 /**

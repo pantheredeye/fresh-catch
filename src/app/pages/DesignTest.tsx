@@ -1,4 +1,4 @@
-import { Container, Card, CardTitle, CardContent, FreshBadge, LiveBadge, AvailableBadge, Button, OrderButton, QuickAction, CancelButton, AddEventButton, PauseSeasonButton, DeleteMarketButton, FreshHero, FreshGrid, FreshItem, Badge, NotificationBadge } from '@/design-system'
+import { Container, Card, CardTitle, CardContent, FreshBadge, LiveBadge, AvailableBadge, Button, OrderButton, QuickAction, CancelButton, AddEventButton, PauseSeasonButton, DeleteMarketButton, Badge, NotificationBadge } from '@/design-system'
 import { TextInput, Textarea, Select, InlineSelect, RadioGroup, ToggleSwitch } from '@/design-system'
 
 /**
@@ -29,23 +29,6 @@ export function DesignTest() {
           }}>
             Design System Test
           </h1>
-
-          {/* Fresh Hero Section */}
-          <section style={{ marginBottom: 'var(--space-xl)' }}>
-            <h2 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--space-md)', fontFamily: 'var(--font-display)' }}>
-              Fresh Hero
-            </h2>
-            <FreshHero title="Fresh from the Gulf">
-              <FreshGrid>
-                <FreshItem emoji="🦐">Shrimp</FreshItem>
-                <FreshItem emoji="🐟">Redfish</FreshItem>
-                <FreshItem emoji="🐠">Flounder</FreshItem>
-                <FreshItem emoji="🦀">Crab</FreshItem>
-                <FreshItem emoji="🦪">Oysters</FreshItem>
-                <FreshItem emoji="🐟">Trout</FreshItem>
-              </FreshGrid>
-            </FreshHero>
-          </section>
 
           {/* Cards */}
           <section style={{ marginBottom: 'var(--space-xl)' }}>

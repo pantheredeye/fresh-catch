@@ -12,8 +12,8 @@ const INSIGHT_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const PRIORITY_STYLES: Record<string, { bg: string; color: string }> = {
-  high: { bg: "rgba(255, 107, 107, 0.15)", color: "var(--color-status-error)" },
-  medium: { bg: "rgba(255, 193, 7, 0.15)", color: "var(--color-status-warning)" },
+  high: { bg: "var(--color-status-error-bg)", color: "var(--color-status-error)" },
+  medium: { bg: "var(--color-status-warning-bg)", color: "var(--color-status-warning)" },
   low: { bg: "var(--color-surface-secondary)", color: "var(--color-text-secondary)" },
 };
 
