@@ -43,7 +43,16 @@ export async function issueOtp(
   }
 
   const code = await createLoginCode(email);
-  const result = await send({ to: email.trim(), code });
+  let result: Awaited<ReturnType<typeof sendOtpEmail>>;
+  try {
+    result = await send({ to: email.trim(), code });
+  } catch (error) {
+    // sendEmail() has its own try/catch, but sendOtpEmail() does some URL
+    // parsing before it ever calls sendEmail() — a malformed APP_URL would
+    // throw here rather than resolve to a SendResult. Map it the same way
+    // sendEmail() maps a transport failure so it still surfaces gracefully.
+    result = { success: false, error: String(error), code: "transport" };
+  }
 
   if (result.success) {
     console.log("[OTP] sent", { email: normalizeEmail(email), id: result.id });
