@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { env } from "cloudflare:workers";
 import { normalizeEmail } from "@/auth/login-codes";
+import { issueOtp, type OtpResult } from "@/auth/otp-send";
 import { sha256Hex } from "@/utils/hash";
 import { checkRateLimit } from "@/rate-limit/middleware";
 import type { IdentityEndpoint, RateLimitEndpoint } from "@/rate-limit/limits";
@@ -12,6 +13,24 @@ export { createLoginCode, verifyLoginCode } from "@/auth/login-codes";
 export { processInviteToken } from "@/auth/invites";
 export { claimConversationsForUser } from "@/chat/claims";
 export { claimOrdersForUser } from "@/app/pages/orders/claims";
+export { toSendResult } from "@/utils/email";
+
+// --- OTP send-result forcing -------------------------------------------------
+// issueOtp() takes an injectable `send` so these can drive both branches of
+// the email-failure handling without touching the network.
+
+export async function issueOtpForcingSendFailure(email: string): Promise<OtpResult> {
+  return issueOtp(email, async () => ({
+    success: false,
+    error: "Simulated send failure",
+    code: "test_forced_failure",
+    statusCode: 500,
+  }));
+}
+
+export async function issueOtpForcingSendSuccess(email: string): Promise<OtpResult> {
+  return issueOtp(email, async () => ({ success: true, id: "test-forced-id" }));
+}
 
 // --- Rate limiting ---------------------------------------------------------
 
