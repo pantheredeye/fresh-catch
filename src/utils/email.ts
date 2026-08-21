@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import type { CreateEmailResponse } from 'resend';
 import { render } from '@react-email/components';
 import { env } from 'cloudflare:workers';
 import { OrderConfirmation } from '@/emails/OrderConfirmation';
@@ -29,11 +30,30 @@ interface SendEmailOptions {
   from?: string;
 }
 
-async function sendEmail({ to, subject, html, text, from }: SendEmailOptions) {
+export type SendResult =
+  | { success: true; id?: string }
+  | { success: false; error: string; code?: string; statusCode?: number | null; skipped?: true };
+
+/** Pure mapper from the Resend SDK's response shape to our SendResult — v6
+ * resolves (rather than throws) on API-level rejections like an unverified
+ * sending domain, so this is the only place that actually checks `error`. */
+export function toSendResult(res: CreateEmailResponse): SendResult {
+  if (res.error) {
+    return {
+      success: false,
+      error: res.error.message,
+      code: res.error.name,
+      statusCode: res.error.statusCode,
+    };
+  }
+  return { success: true, id: res.data?.id };
+}
+
+async function sendEmail({ to, subject, html, text, from }: SendEmailOptions): Promise<SendResult> {
   // Skip in development if no API key configured
   if (!env.RESEND_API_KEY) {
     console.log('[Email] Skipping (no API key):', { to, subject });
-    return { success: true, skipped: true };
+    return { success: false, skipped: true, error: 'RESEND_API_KEY not configured' };
   }
 
   try {
@@ -47,11 +67,22 @@ async function sendEmail({ to, subject, html, text, from }: SendEmailOptions) {
       ...(text ? { text } : {}),
     });
 
-    console.log('[Email] Sent successfully:', { to, subject, id: result.data?.id });
-    return { success: true, id: result.data?.id };
+    const sendResult = toSendResult(result);
+    if (sendResult.success) {
+      console.log('[Email] Sent successfully:', { to, subject, id: sendResult.id });
+    } else {
+      console.error('[Email][SEND_FAILED]', {
+        to,
+        subject,
+        code: sendResult.code,
+        statusCode: sendResult.statusCode,
+        message: sendResult.error,
+      });
+    }
+    return sendResult;
   } catch (error) {
-    console.error('[Email] Failed to send:', error);
-    return { success: false, error: String(error) };
+    console.error('[Email][SEND_FAILED]', { to, subject, code: 'transport', message: String(error) });
+    return { success: false, error: String(error), code: 'transport' };
   }
 }
 

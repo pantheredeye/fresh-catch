@@ -1,13 +1,13 @@
 "use server";
 import { rotateSession } from "@/session/store";
 import { generateCsrfToken } from "@/session/csrf";
-import { createLoginCode, verifyLoginCode, normalizeEmail } from "@/auth/login-codes";
+import { verifyLoginCode } from "@/auth/login-codes";
+import { issueOtp } from "@/auth/otp-send";
 import { processInviteToken } from "@/auth/invites";
 import { claimOrdersForUser } from "@/app/pages/orders/claims";
 import { requestInfo } from "rwsdk/worker";
 import { db } from "@/db";
 import { checkRateLimit } from "@/rate-limit/middleware";
-import { sendOtpEmail } from "@/utils/email";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,34 +16,7 @@ function isValidEmail(email: string): boolean {
 }
 
 export async function sendOtpForEmail(email: string) {
-  if (!isValidEmail(email)) {
-    return { success: false, error: "Invalid email" };
-  }
-
-  const rl = await checkRateLimit("otpSend", email);
-  if (!rl.allowed) {
-    return {
-      success: false,
-      error: "Too many attempts. Try again later.",
-      rateLimited: true,
-      retryAfterSeconds: Math.ceil(rl.retryAfterMs / 1000),
-    };
-  }
-
-  const code = await createLoginCode(email);
-
-  try {
-    const result = await sendOtpEmail({ to: email.trim(), code });
-    if (result.success) {
-      console.log(`[OTP] Email sent to ${normalizeEmail(email)}`);
-    } else {
-      console.warn(`[OTP] Email send failed for ${normalizeEmail(email)}:`, result.error);
-    }
-  } catch (err) {
-    console.warn(`[OTP] Email send error for ${normalizeEmail(email)}:`, err);
-  }
-
-  return { success: true };
+  return issueOtp(email);
 }
 
 export async function requestOtp(email: string) {

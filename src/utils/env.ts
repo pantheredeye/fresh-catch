@@ -27,8 +27,8 @@
  * hasn't onboarded.
  */
 
-/** Secrets required for the platform's own Stripe Connect integration to work at all. */
-const REQUIRED_SECRETS = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] as const;
+/** Secrets required for the platform's own Stripe Connect integration and login (OTP email) to work at all. */
+const REQUIRED_SECRETS = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "RESEND_API_KEY"] as const;
 type RequiredSecretName = (typeof REQUIRED_SECRETS)[number];
 
 let checkedOnce = false;
@@ -49,8 +49,8 @@ export function checkRequiredSecretsOnce(env: Env): void {
       "",
       "############################################################",
       "# CONFIG ERROR: missing required secret(s): " + missing.join(", "),
-      "# Stripe checkout, Connect onboarding, and webhooks will fail",
-      "# until these are set.",
+      "# Stripe checkout, Connect onboarding, webhooks, and OTP login email",
+      "# will fail until these are set.",
       "# Fix: wrangler secret put <NAME>   (see .env.example for the full list)",
       "############################################################",
       "",
