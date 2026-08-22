@@ -1,35 +1,13 @@
 import { defineDurableSession } from "rwsdk/auth";
 import type { Session } from "./durableObject";
+import { createSessionCookie } from "./cookie";
 
 export let sessions: ReturnType<typeof createSessionStore>;
-
-/**
- * Custom cookie serializer: SameSite=Strict for CSRF defense-in-depth.
- * The framework default is SameSite=Lax which allows top-level navigations
- * from external sites to carry the cookie. Strict blocks that.
- */
-const createStrictCookie = ({
-  name,
-  sessionId,
-  maxAge,
-}: {
-  name: string;
-  sessionId: string;
-  maxAge?: number | true;
-}) => {
-  const isViteDev =
-    typeof import.meta.env !== "undefined" && import.meta.env.DEV;
-  return `${name}=${sessionId}; Path=/; HttpOnly; ${isViteDev ? "" : "Secure; "}SameSite=Strict${
-    maxAge != null
-      ? `; Max-Age=${maxAge === true ? 10 * 365 * 24 * 60 * 60 : maxAge}`
-      : ""
-  }`;
-};
 
 const createSessionStore = (env: Env) =>
   defineDurableSession({
     sessionDurableObject: env.SESSION_DURABLE_OBJECT,
-    createCookie: createStrictCookie,
+    createCookie: createSessionCookie,
   });
 
 export const setupSessionStore = (env: Env) => {

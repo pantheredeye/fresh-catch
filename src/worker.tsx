@@ -31,6 +31,7 @@ import { handleVoiceCommand } from "@/api/voice-command";
 import { resolveBrowsingOrg } from "@/app/middleware/tenant";
 import { checkRequiredSecretsOnce } from "@/utils/env";
 import { safeRedirect } from "@/app/redirect";
+import { isAllowedOrigin } from "@/app/origin";
 export { SessionDurableObject } from "./session/durableObject";
 export { ChatDurableObject } from "./chat/durableObject";
 export { RateLimitDurableObject } from "./rate-limit/durableObject";
@@ -72,7 +73,9 @@ export type AppContext = {
 
 /**
  * Origin validation middleware: rejects state-changing requests (POST/PUT/DELETE)
- * whose Origin header doesn't match our host. Defense-in-depth alongside SameSite cookies.
+ * whose Origin header doesn't match our host. Defense-in-depth alongside SameSite=Lax cookies:
+ * a cross-site non-GET request carries no cookie under Lax either, so an Origin-less
+ * state-changing request reaching here is either same-site or already unauthenticated.
  *
  * rwsdk (>=1.3, active on our pinned 1.4.1) independently 403s non-GET server-action requests
  * with a missing/mismatched Origin. That check only fires for actions (__rsc_action_id); this
@@ -84,14 +87,7 @@ function validateOrigin(): RouteMiddleware {
     const method = request.method;
     if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
 
-    const origin = request.headers.get("Origin");
-    // No Origin header — browser same-site navigation or non-browser client.
-    // Safe to allow: SameSite=Strict cookies already block cross-site cookie attachment.
-    if (!origin) return;
-
-    const url = new URL(request.url);
-    const expected = url.origin; // e.g. https://freshcatch.app
-    if (origin === expected) return;
+    if (isAllowedOrigin(request)) return;
 
     return new Response("Forbidden – origin mismatch", { status: 403 });
   };
