@@ -12,6 +12,7 @@ import { marketsAdminRoutes } from "./features/markets/admin-routes";
 import { marketRoutes } from "./features/markets/routes";
 import { catchAdminRoutes } from "./features/catch/admin-routes";
 import { requestRoutes } from "./features/requests/routes";
+import { requestsAdminRoutes } from "./features/requests/admin-routes";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -33,5 +34,6 @@ app.route("/", marketsAdminRoutes);
 app.route("/", marketRoutes);
 app.route("/", catchAdminRoutes);
 app.route("/", requestRoutes);
+app.route("/", requestsAdminRoutes);
 
 export default app;

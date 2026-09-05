@@ -5,7 +5,9 @@ import type { RequestStatus } from "./validation";
 import { needsReply } from "./queries";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
+import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
+import { REQUEST_STATUSES } from "./validation";
 
 export type RequestFormValues = {
   requestType?: string;
@@ -185,6 +187,38 @@ export const MessageForm: FC<{ action: string; csrfToken: string; errorText?: st
     <input type="hidden" name="csrfToken" value={csrfToken} />
     <Textarea id="body" name="body" label="Reply" errorText={errorText} />
     <Button type="submit">Send</Button>
+  </form>
+);
+
+const STATUS_OPTIONS = REQUEST_STATUSES.map((status) => ({ value: status, label: STATUS_LABEL[status] }));
+
+/** Vendor reply + optional status change in one POST (plan commit 5) — no separate round trip for the common case. */
+export const AdminReplyForm: FC<{ action: string; csrfToken: string; currentStatus: string; errorText?: string }> = ({
+  action,
+  csrfToken,
+  currentStatus,
+  errorText,
+}) => (
+  <form method="post" action={action} class="stack">
+    <input type="hidden" name="csrfToken" value={csrfToken} />
+    <Textarea id="body" name="body" label="Reply" errorText={errorText} />
+    <Select id="status" name="status" label="Status" value={currentStatus} options={STATUS_OPTIONS} />
+    <Button type="submit">Send reply</Button>
+  </form>
+);
+
+/** Status-only transition, no message required. */
+export const StatusForm: FC<{ action: string; csrfToken: string; currentStatus: string }> = ({
+  action,
+  csrfToken,
+  currentStatus,
+}) => (
+  <form method="post" action={action} style="display: flex; align-items: flex-end; gap: 12px;">
+    <input type="hidden" name="csrfToken" value={csrfToken} />
+    <Select id="status-only" name="status" label="Set status" value={currentStatus} options={STATUS_OPTIONS} />
+    <Button type="submit" variant="secondary">
+      Update
+    </Button>
   </form>
 );
 

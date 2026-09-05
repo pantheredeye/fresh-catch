@@ -195,3 +195,52 @@ describe("GET /requests", () => {
     expect(await res.text()).toContain(fields.species);
   });
 });
+
+function extractDevCode(html: string): string {
+  const match = html.match(/Code: (\d{6})/);
+  if (!match) throw new Error(`dev code not found in response: ${html}`);
+  return match[1];
+}
+
+function sessionCookie(res: Response): string {
+  const found = (res.headers.getSetCookie?.() ?? []).find((c) => c.startsWith("session="));
+  if (!found) throw new Error("no session cookie set");
+  return found.split(";")[0];
+}
+
+describe("R3: claim on login", () => {
+  it("attaches a device's request to the account, visible from a fresh device cookie after login", async () => {
+    const owner = await visitAsNewDevice();
+    const fields = fishFields();
+    const createRes = await createRequestAs(owner.cookie, owner.csrfToken, fields);
+    const location = createRes.headers.get("location")!;
+
+    const email = `claim-${crypto.randomUUID()}@example.com`;
+    const sendRes = await app.request(
+      "/login",
+      { method: "POST", body: new URLSearchParams({ email }), headers: { ...formHeaders, Cookie: owner.cookie } },
+      env,
+    );
+    const code = extractDevCode(await sendRes.text());
+    const verifyRes = await app.request(
+      "/login/verify",
+      { method: "POST", body: new URLSearchParams({ email, code }), headers: { ...formHeaders, Cookie: owner.cookie } },
+      env,
+    );
+    const session = sessionCookie(verifyRes);
+
+    // Fresh device cookie (no device= from `owner`) + the new session — the claim, not the device token, must carry it.
+    const freshDeviceRes = await app.request("/requests", { headers: { Cookie: session } }, env);
+    const freshDeviceCookie = extractDeviceCookie(freshDeviceRes);
+
+    const res = await app.request(
+      "/requests",
+      { headers: { Cookie: `${session}; ${freshDeviceCookie}` } },
+      env,
+    );
+    expect(await res.text()).toContain(fields.species);
+
+    const threadRes = await app.request(location, { headers: { Cookie: `${session}; ${freshDeviceCookie}` } }, env);
+    expect(threadRes.status).toBe(200);
+  });
+});
