@@ -18,6 +18,7 @@
     "types": [
       "./worker-configuration.d.ts",
       "./types/vite.d.ts",
+      "vite/client",
       "@cloudflare/vitest-pool-workers/types"
     ],
     "paths": {
