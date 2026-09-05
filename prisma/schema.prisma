@@ -84,14 +84,17 @@ model CatchUpdate {
 model FishRequest {
   id            String    @id @default(uuid())
   userId        String?
+  deviceToken   String?
   contactName   String
   contactEmail  String?
   contactPhone  String?
-  species       String
+  requestType   String    @default("fish") // fish | question
+  species       String?
+  quantity      String?
   notes         String?
-  status        String    @default("open") // open | fulfilled | declined
-  evanResponse  String?
-  respondedAt   DateTime?
+  origin        String    @default("customer") // customer | vendor (#64 writes vendor)
+  status        String    @default("open") // open | confirmed | fulfilled | declined
+  lastMessageAt DateTime?
   createdAt     DateTime  @default(now())
 
   user     User?            @relation(fields: [userId], references: [id])
@@ -99,6 +102,8 @@ model FishRequest {
 
   @@index([status])
   @@index([createdAt])
+  @@index([deviceToken])
+  @@index([status, lastMessageAt])
 }
 
 model RequestMessage {
