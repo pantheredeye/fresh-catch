@@ -1,36 +1,47 @@
 import { Hono } from "hono";
-import type { Bindings, Variables } from "../../types";
-import { Document } from "../../ui/document";
+import type { Bindings, Variables } from "@/types";
+import { Document } from "@/ui/document";
+import { getLiveCatchUpdate, isCatchUpdateFresh } from "@/features/catch/queries";
+import { parseCatchContent } from "@/features/catch/pipeline";
+import { listActiveMarkets, listLivePopups } from "@/features/markets/queries";
+import { PublicMarketCard } from "@/features/markets/components";
+import { CatchHero, HomeNav } from "./components";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-homeRoutes.get("/", (c) => {
+homeRoutes.get("/", async (c) => {
   const session = c.var.session;
+  const [live, regularMarkets, livePopups] = await Promise.all([
+    getLiveCatchUpdate(),
+    listActiveMarkets(),
+    listLivePopups(),
+  ]);
+  const catchContent = live && isCatchUpdateFresh(live) ? parseCatchContent(live.formattedContent) : null;
+
   return c.html(
-    <Document>
-      <main>
+    <Document deviceToken={c.var.deviceToken}>
+      <main class="page stack">
+        <HomeNav session={session} />
         <h1>Fresh Catch</h1>
-        <p>v2 foundation is up.</p>
-        {session ? (
+        <CatchHero content={catchContent} />
+
+        <section class="stack">
+          <h2>Markets</h2>
+          {regularMarkets.length === 0 && livePopups.length === 0 ? <p>No markets posted yet.</p> : null}
+          <div class="stack">
+            {livePopups.map((market) => (
+              <PublicMarketCard market={market} kind="live-popup" />
+            ))}
+            {regularMarkets.map((market) => (
+              <PublicMarketCard market={market} kind="regular" />
+            ))}
+          </div>
           <p>
-            Signed in as {session.email}
-            {session.isAdmin ? " (admin)" : ""}.{" "}
-            <form method="post" action="/logout" style="display: inline">
-              <input type="hidden" name="csrfToken" value={session.csrfToken} />
-              <button type="submit">Log out</button>
-            </form>
-            {session.isAdmin ? (
-              <>
-                {" "}
-                <a href="/admin">Admin</a>
-              </>
-            ) : null}
+            <a href="/markets/past">Past popups →</a>
           </p>
-        ) : (
-          <p>
-            <a href="/login">Log in</a>
-          </p>
-        )}
+        </section>
+
+        <script type="module" src="/js/favorites.js"></script>
       </main>
     </Document>,
   );
