@@ -1,10 +1,21 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
+import { runInBackground } from "@/lib/background";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
-import { appendMessage, getRequest, getRequestWithMessages, listInbox, setRequestStatus, type InboxFilter } from "./queries";
-import { parseMessageForm, parseStatusUpdate } from "./validation";
-import { AdminReplyForm, InboxRow, RequestHeaderCard, StatusForm, Thread, requestTitle } from "./components";
+import {
+  appendMessage,
+  createRequest,
+  getRequest,
+  getRequestWithMessages,
+  listInbox,
+  setRequestStatus,
+  type InboxFilter,
+} from "./queries";
+import { notifyCustomerOfVendorReply } from "./notifications";
+import { parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
+import { AdminReplyForm, InboxRow, RequestForm, RequestHeaderCard, StatusForm, Thread, requestTitle } from "./components";
+import { rawToFormValues } from "./routes";
 
 export const requestsAdminRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -41,6 +52,7 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
           <a href="/admin/requests?status=archive" aria-current={filter === "archive" ? "page" : undefined}>
             {FILTER_LABEL.archive}
           </a>
+          <a href="/admin/requests/new">New request</a>
         </nav>
         <div class="stack">
           {entries.length === 0 ? <p>No requests here.</p> : null}
@@ -51,6 +63,63 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
       </main>
     </Document>,
   );
+});
+
+/**
+ * Registered before `/admin/requests/:id` below — same static-before-param
+ * ordering gotcha as `/requests/new` in routes.tsx.
+ */
+requestsAdminRoutes.get("/admin/requests/new", async (c) => {
+  const csrfToken = c.var.session!.csrfToken;
+  return c.html(
+    <Document title="New request — Admin">
+      <main class="page stack">
+        <p>
+          <a href="/admin/requests">← Requests</a>
+        </p>
+        <h1>New request</h1>
+        <RequestForm action="/admin/requests" csrfToken={csrfToken} />
+      </main>
+    </Document>,
+  );
+});
+
+/**
+ * Vendor-initiated request (#64) — the second entry point into #59's
+ * machinery. Evan creates a `FishRequest` on a customer's behalf (e.g. a
+ * walk-up at the market): no device token, `origin: "vendor"`, born
+ * `status: "confirmed"`, and its opening message is `sender: "vendor"` —
+ * which is itself a "vendor reply" from the customer's point of view, so it
+ * gets the same customer-facing email as any other admin reply.
+ */
+requestsAdminRoutes.post("/admin/requests", csrfProtect(), async (c) => {
+  const body = await c.req.parseBody();
+  const result = parseRequestForm(body);
+
+  if (!result.success) {
+    return c.html(
+      <Document title="New request — Admin">
+        <main class="page stack">
+          <h1>New request</h1>
+          <RequestForm
+            action="/admin/requests"
+            csrfToken={c.var.session!.csrfToken}
+            values={rawToFormValues(body)}
+            errors={result.errors}
+          />
+        </main>
+      </Document>,
+      400,
+    );
+  }
+
+  const request = await createRequest(
+    result.data,
+    { deviceToken: null, userId: null },
+    { origin: "vendor", status: "confirmed" },
+  );
+  runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
+  return c.redirect(`/admin/requests/${request.id}`);
 });
 
 requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
@@ -104,6 +173,7 @@ requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c
   }
 
   await appendMessage(request.id, "vendor", result.data.body);
+  runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
 
   const statusField = typeof body.status === "string" ? body.status : undefined;
   if (statusField) {

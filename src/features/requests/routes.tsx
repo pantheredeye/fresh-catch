@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { requireSecret } from "@/lib/env";
+import { runInBackground } from "@/lib/background";
 import { csrfProtect } from "@/features/auth/middleware";
 import { createDeviceCsrfToken } from "@/features/auth/csrf";
 import { checkRateLimit } from "@/features/auth/rate-limit";
@@ -14,6 +15,7 @@ import {
   getRequestWithMessages,
   listRequestsForViewer,
 } from "./queries";
+import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
 import { parseMessageForm, parseRequestForm } from "./validation";
 import {
   MessageForm,
@@ -49,7 +51,7 @@ function formString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function rawToFormValues(raw: Record<string, unknown>): RequestFormValues {
+export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues {
   return {
     requestType: formString(raw.requestType),
     species: formString(raw.species),
@@ -112,6 +114,7 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
     deviceToken: c.var.deviceToken,
     userId: c.var.session?.userId ?? null,
   });
+  runInBackground(c, notifyVendorOfNewRequest(c.env, request));
   return c.redirect(`/requests/${request.id}`);
 });
 
@@ -188,5 +191,6 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
   }
 
   await appendMessage(request.id, "customer", result.data.body);
+  runInBackground(c, notifyVendorOfCustomerReply(c.env, request));
   return c.redirect(`/requests/${request.id}`);
 });

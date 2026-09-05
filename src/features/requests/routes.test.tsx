@@ -1,12 +1,19 @@
-import { env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupDb } from "@/lib/db";
 import type { Bindings } from "@/types";
 import { mintAdminSession } from "@/features/auth/test-helpers";
+import * as emailLib from "@/lib/email";
 import app from "../../index";
+
+const sendEmailMock = vi.spyOn(emailLib, "sendEmail");
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
+});
+
+beforeEach(() => {
+  sendEmailMock.mockClear();
 });
 
 const formHeaders = { "Content-Type": "application/x-www-form-urlencoded" };
@@ -242,5 +249,51 @@ describe("R3: claim on login", () => {
 
     const threadRes = await app.request(location, { headers: { Cookie: `${session}; ${freshDeviceCookie}` } }, env);
     expect(threadRes.status).toBe(200);
+  });
+});
+
+describe("#64 email alerts", () => {
+  it("alerts the vendor on a new request", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const fields = fishFields();
+    const ctx = createExecutionContext();
+    const res = await app.request(
+      "/requests",
+      { method: "POST", body: new URLSearchParams({ ...fields, csrfToken }), headers: { ...formHeaders, Cookie: cookie } },
+      env,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+
+    expect(res.status).toBe(302);
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendEmailMock.mock.calls[0][1].subject).toContain(fields.species);
+  });
+
+  it("alerts the vendor on a customer reply", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const createCtx = createExecutionContext();
+    const createRes = await app.request(
+      "/requests",
+      { method: "POST", body: new URLSearchParams({ ...fishFields(), csrfToken }), headers: { ...formHeaders, Cookie: cookie } },
+      env,
+      createCtx,
+    );
+    await waitOnExecutionContext(createCtx);
+    const location = createRes.headers.get("location")!;
+    sendEmailMock.mockClear();
+
+    const ctx = createExecutionContext();
+    const res = await app.request(
+      `${location}/messages`,
+      { method: "POST", body: new URLSearchParams({ body: "Any updates?", csrfToken }), headers: { ...formHeaders, Cookie: cookie } },
+      env,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+
+    expect(res.status).toBe(302);
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendEmailMock.mock.calls[0][1].html).toContain(`/admin/requests/${location.split("/").pop()}`);
   });
 });
