@@ -1,5 +1,5 @@
 import type { Bindings } from "@/types";
-import { sendEmail } from "@/lib/email";
+import { escapeHtml, sendEmail } from "@/lib/email";
 import { db } from "@/lib/db";
 import type { FishRequest } from "@/lib/db";
 import { requestTitle } from "./components";
@@ -16,6 +16,7 @@ async function vendorAlertRecipient(env: Bindings): Promise<string | undefined> 
   return vendor?.notificationEmail ?? firstAdminEmail(env);
 }
 
+/** `heading`/`body` are customer-supplied free text (contactName, species, notes) — always escaped, never trusted. */
 function alertHtml(heading: string, body: string, linkHref: string, linkText: string): string {
   return `<!doctype html>
 <html>
@@ -23,8 +24,8 @@ function alertHtml(heading: string, body: string, linkHref: string, linkText: st
     <table role="presentation" style="max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 32px;">
       <tr>
         <td>
-          <h1 style="font-size: 20px; margin: 0 0 16px;">${heading}</h1>
-          <p style="font-size: 16px; color: #333; margin: 0 0 24px; white-space: pre-wrap;">${body}</p>
+          <h1 style="font-size: 20px; margin: 0 0 16px;">${escapeHtml(heading)}</h1>
+          <p style="font-size: 16px; color: #333; margin: 0 0 24px; white-space: pre-wrap;">${escapeHtml(body)}</p>
           <p style="margin: 0;"><a href="${linkHref}" style="font-size: 16px;">${linkText}</a></p>
         </td>
       </tr>

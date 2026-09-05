@@ -11,6 +11,16 @@ export type EmailMessage = {
   from?: string;
 };
 
+/** Escapes text for interpolation into an HTML email body — templates here are plain strings, not JSX, so nothing else does this for us. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /**
  * Sends an email via Resend. Without RESEND_API_KEY (e.g. local dev), the
  * send is skipped and logged instead — see .env.example. Returns whether an

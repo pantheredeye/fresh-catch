@@ -1,7 +1,7 @@
 import type { Bindings } from "@/types";
 import type { Order } from "@/lib/db";
 import { db } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
+import { escapeHtml, sendEmail } from "@/lib/email";
 import { formatCents } from "@/features/orders/components";
 
 /**
@@ -57,7 +57,7 @@ function receiptHtml(data: {
     <table role="presentation" style="max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 32px;">
       <tr>
         <td>
-          <h1 style="font-size: 20px; margin: 0 0 8px;">Thanks, ${data.contactName}!</h1>
+          <h1 style="font-size: 20px; margin: 0 0 8px;">Thanks, ${escapeHtml(data.contactName)}!</h1>
           <p style="font-size: 16px; color: #333; margin: 0 0 24px;">We received your payment for order #${data.orderNumber} from ${data.businessName}.</p>
           <table role="presentation" style="width: 100%; font-size: 16px; border-top: 1px solid #e5e5e5; margin: 0 0 24px;">
             ${rows}
