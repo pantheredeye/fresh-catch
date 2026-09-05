@@ -21,7 +21,8 @@
       "@cloudflare/vitest-pool-workers/types"
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@generated/*": ["./generated/*"]
     },
     /* Enable importing .json files */
     "resolveJsonModule": true,
