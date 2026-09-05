@@ -1,12 +1,15 @@
 import { Hono } from "hono";
-import type { Bindings } from "./types";
+import type { Bindings, Variables } from "./types";
 import { checkRequiredSecretsOnce } from "./lib/env";
 import { setupDb } from "./lib/db";
+import { deviceTokenMiddleware, sessionMiddleware } from "./features/auth/middleware";
 import { homeRoutes } from "./features/home/routes";
 import { healthRoutes } from "./features/health/routes";
 import { showcaseRoutes } from "./features/showcase/routes";
+import { authRoutes } from "./features/auth/routes";
+import { adminRoutes } from "./features/admin/routes";
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use("*", async (c, next) => {
   checkRequiredSecretsOnce(c.env);
@@ -14,8 +17,13 @@ app.use("*", async (c, next) => {
   await next();
 });
 
+app.use("*", deviceTokenMiddleware());
+app.use("*", sessionMiddleware());
+
 app.route("/", homeRoutes);
 app.route("/", healthRoutes);
 app.route("/", showcaseRoutes);
+app.route("/", authRoutes);
+app.route("/", adminRoutes);
 
 export default app;
