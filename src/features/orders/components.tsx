@@ -10,11 +10,12 @@ export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-const PAYMENT_METHOD_LABEL: Record<(typeof PAYMENT_METHODS)[number], string> = {
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cash: "Cash",
   venmo: "Venmo",
   zelle: "Zelle",
   other: "Other",
+  stripe: "Card",
 };
 
 export const OrderSummaryCard: FC<{ order: OrderWithPayments }> = ({ order }) => {
@@ -37,7 +38,8 @@ export const OrderSummaryCard: FC<{ order: OrderWithPayments }> = ({ order }) =>
         <ul class="stack" style="margin: 0; padding-left: 20px;">
           {order.payments.map((payment) => (
             <li>
-              {formatCents(payment.amount)} via {PAYMENT_METHOD_LABEL[payment.method as (typeof PAYMENT_METHODS)[number]] ?? payment.method}
+              {payment.type === "refund" ? `Refund ${formatCents(-payment.amount)}` : formatCents(payment.amount)} via{" "}
+              {PAYMENT_METHOD_LABEL[payment.method] ?? payment.method}
               {payment.notes ? ` — ${payment.notes}` : ""}
             </li>
           ))}

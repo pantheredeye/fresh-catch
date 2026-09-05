@@ -4,7 +4,7 @@ import { setupDb } from "@/lib/db";
 import type { Bindings } from "@/types";
 import { createRequest, getRequestWithMessages } from "@/features/requests/queries";
 import type { RequestInput } from "@/features/requests/validation";
-import { confirmOrderForRequest, recordPayment } from "./queries";
+import { confirmOrderForRequest, recordPayment, recordRefund } from "./queries";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
@@ -89,5 +89,68 @@ describe("recordPayment", () => {
     const { order: updated } = await recordPayment(order, { amountCents: 1500, method: "other", notes: null });
     expect(updated.amountPaid).toBe(1500);
     expect(updated.paidAt).not.toBeNull();
+  });
+});
+
+describe("stripe provenance and refunds (#60)", () => {
+  async function paidOrder(priceCents: number, intentId: string) {
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    const order = await confirmOrderForRequest(request, { priceCents, depositCents: null, adminNotes: null });
+    return recordPayment(order, {
+      amountCents: priceCents,
+      method: "stripe",
+      notes: null,
+      stripePaymentId: intentId,
+      stripePaymentIntentId: intentId,
+    });
+  }
+
+  it("stores the payment intent on both the ledger row and the order", async () => {
+    const intentId = `pi_${crypto.randomUUID()}`;
+    const { order, payment } = await paidOrder(4000, intentId);
+
+    expect(payment.method).toBe("stripe");
+    expect(payment.stripePaymentId).toBe(intentId);
+    expect(order.stripePaymentIntentId).toBe(intentId);
+    expect(order.paidAt).not.toBeNull();
+  });
+
+  it("honours an explicit deposit type", async () => {
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    const order = await confirmOrderForRequest(request, { priceCents: 5000, depositCents: 1500, adminNotes: null });
+    const { payment, order: updated } = await recordPayment(order, {
+      amountCents: 1500,
+      method: "stripe",
+      notes: null,
+      type: "deposit",
+    });
+
+    expect(payment.type).toBe("deposit");
+    expect(updated.paidAt).toBeNull();
+  });
+
+  it("reverses paidAt on a full refund and records a negative row", async () => {
+    const intentId = `pi_${crypto.randomUUID()}`;
+    const { order } = await paidOrder(4000, intentId);
+
+    const chargeId = `ch_${crypto.randomUUID()}`;
+    const { order: refunded, payment } = await recordRefund(order, { amountCents: 4000, stripePaymentId: chargeId });
+
+    expect(payment.amount).toBe(-4000);
+    expect(payment.type).toBe("refund");
+    expect(payment.stripePaymentId).toBe(chargeId);
+    expect(refunded.amountPaid).toBe(0);
+    expect(refunded.paidAt).toBeNull();
+  });
+
+  it("keeps paidAt when a partial refund still leaves the order covered", async () => {
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    const order = await confirmOrderForRequest(request, { priceCents: 2000, depositCents: null, adminNotes: null });
+    const { order: overpaid } = await recordPayment(order, { amountCents: 3000, method: "stripe", notes: null });
+    expect(overpaid.paidAt).not.toBeNull();
+
+    const { order: refunded } = await recordRefund(overpaid, { amountCents: 500 });
+    expect(refunded.amountPaid).toBe(2500);
+    expect(refunded.paidAt).not.toBeNull();
   });
 });
