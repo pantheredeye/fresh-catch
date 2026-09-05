@@ -43,7 +43,8 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
   );
 }
 
-async function sign(payloadB64: string, secret: string): Promise<string> {
+/** Exported for `csrf.ts`'s device-token CSRF fallback (R4) — same HMAC primitive, no copy-pasting. */
+export async function sign(payloadB64: string, secret: string): Promise<string> {
   const key = await hmacKey(secret);
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
   return base64UrlEncode(new Uint8Array(sig));

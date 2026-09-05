@@ -3,7 +3,7 @@ import { getCookie, setCookie } from "hono/cookie";
 import type { Bindings, Variables } from "@/types";
 import { requireSecret } from "@/lib/env";
 import { parseSessionValue, SESSION_COOKIE_NAME } from "./session";
-import { requireCsrf } from "./csrf";
+import { requireCsrf, verifyDeviceCsrfToken } from "./csrf";
 
 const DEVICE_COOKIE_NAME = "device";
 const DEVICE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
@@ -70,12 +70,23 @@ export function requireAdmin(): MiddlewareHandler<{ Bindings: Bindings; Variable
  * copy-pasted per route (`/logout` proved the pattern first). `parseBody()`
  * caches its result on the request, so the route handler can call it again
  * afterward without re-reading the body.
+ *
+ * R4: the customer request form and reply box are the app's first anonymous
+ * POSTs — with no session to hold a random token, fall back to an HMAC of
+ * the device token (`verifyDeviceCsrfToken`). Session-present behavior is
+ * unchanged.
  */
 export function csrfProtect(): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
   return async (c, next) => {
     const body = await c.req.parseBody();
     const submitted = typeof body.csrfToken === "string" ? body.csrfToken : undefined;
-    if (!requireCsrf(c.var.session?.csrfToken, submitted)) {
+
+    const session = c.var.session;
+    const valid = session
+      ? requireCsrf(session.csrfToken, submitted)
+      : await verifyDeviceCsrfToken(c.var.deviceToken, requireSecret(c.env, "SESSION_SECRET"), submitted);
+
+    if (!valid) {
       return c.text("Your session expired. Please refresh the page and try again.", 403);
     }
     await next();
