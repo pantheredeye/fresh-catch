@@ -19,6 +19,9 @@ import { rawToFormValues } from "./routes";
 import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard, formatCents } from "@/features/orders/components";
 import { confirmOrderForRequest, recordPayment } from "@/features/orders/queries";
 import { parseConfirmOrderForm, parseMarkPaidForm } from "@/features/orders/validation";
+import { resolveStripeConfig } from "@/features/payments/config";
+import { checkoutAmountFor, createCheckoutForOrder } from "@/features/payments/checkout";
+import { RequestPaymentForm } from "@/features/payments/components";
 
 export const requestsAdminRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -129,6 +132,10 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
   const request = await getRequestWithMessages(c.req.param("id"));
   if (!request) return c.text("Not found", 404);
   const csrfToken = c.var.session!.csrfToken;
+  // Stripe (#60) is optional: unconfigured, this resolves to null and the
+  // "Request payment" action simply isn't offered. Nothing else changes.
+  const stripeConfig = request.order && !request.order.paidAt ? await resolveStripeConfig(c.env) : null;
+  const dueNow = stripeConfig ? checkoutAmountFor(request.order!, stripeConfig.platformFeeBps) : null;
 
   return c.html(
     <Document title={`${requestTitle(request)} — Admin`}>
@@ -142,6 +149,14 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
         ) : (
           <ConfirmOrderForm action={`/admin/requests/${request.id}/confirm-order`} csrfToken={csrfToken} />
         )}
+        {dueNow ? (
+          <RequestPaymentForm
+            action={`/admin/requests/${request.id}/request-payment`}
+            csrfToken={csrfToken}
+            amountCents={dueNow.chargeCents}
+            isDeposit={dueNow.isDeposit}
+          />
+        ) : null}
         {request.order && !request.order.paidAt ? (
           <MarkPaidForm action={`/admin/requests/${request.id}/mark-paid`} csrfToken={csrfToken} />
         ) : null}
@@ -189,6 +204,37 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
     `Quoted ${formatCents(order.price!)} for this order.` +
     (order.depositAmount != null ? ` Deposit of ${formatCents(order.depositAmount)} requested.` : "");
   await appendMessage(request.id, "vendor", quoteBody);
+  runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
+
+  return c.redirect(`/admin/requests/${request.id}`);
+});
+
+/**
+ * Issue #60: mint a Stripe Checkout link for what's outstanding and post it
+ * into the thread as a vendor message. A plain URL in a message is shareable
+ * by construction — Evan can text or read it out for a walk-up customer,
+ * which is exactly the vendor-initiated case from the issue's addendum.
+ */
+requestsAdminRoutes.post("/admin/requests/:id/request-payment", csrfProtect(), async (c) => {
+  const request = await getRequestWithMessages(c.req.param("id"));
+  if (!request) return c.text("Not found", 404);
+  if (!request.order) return c.text("Confirm an order before requesting payment", 400);
+
+  const config = await resolveStripeConfig(c.env);
+  if (!config) return c.text("Stripe is not configured — settle this one in person", 400);
+
+  const result = await createCheckoutForOrder(c.env, config, request.order, request.id);
+  if (!result.ok) {
+    const message =
+      result.reason === "nothing-due"
+        ? "Nothing left to charge on this order"
+        : result.reason === "below-minimum"
+          ? "Stripe won't take a charge under $0.50 — settle this one in person"
+          : "Could not create a payment link — check the Stripe configuration and try again";
+    return c.text(message, result.reason === "stripe-error" || result.reason === "no-url" ? 502 : 400);
+  }
+
+  await appendMessage(request.id, "vendor", `Pay by card here: ${result.url}`);
   runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
 
   return c.redirect(`/admin/requests/${request.id}`);

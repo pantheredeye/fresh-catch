@@ -297,3 +297,35 @@ describe("#64 email alerts", () => {
     expect(sendEmailMock.mock.calls[0][1].html).toContain(`/admin/requests/${location.split("/").pop()}`);
   });
 });
+
+describe("#60 checkout return notice", () => {
+  async function threadForNewDevice() {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(cookie, csrfToken, fishFields());
+    return { cookie, path: res.headers.get("location")! };
+  }
+
+  it("acknowledges a successful return from Stripe Checkout", async () => {
+    const { cookie, path } = await threadForNewDevice();
+
+    const res = await app.request(`${path}?checkout=success`, { headers: { Cookie: cookie } }, env);
+
+    expect(await res.text()).toContain("Payment received");
+  });
+
+  it("says nothing was charged after a cancelled checkout", async () => {
+    const { cookie, path } = await threadForNewDevice();
+
+    const res = await app.request(`${path}?checkout=cancel`, { headers: { Cookie: cookie } }, env);
+
+    expect(await res.text()).toContain("nothing was charged");
+  });
+
+  it("shows no banner on a plain thread view", async () => {
+    const { cookie, path } = await threadForNewDevice();
+
+    const res = await app.request(path, { headers: { Cookie: cookie } }, env);
+
+    expect(await res.text()).not.toContain("class=\"notice");
+  });
+});

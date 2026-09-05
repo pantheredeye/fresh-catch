@@ -27,6 +27,7 @@ import {
   type RequestFormValues,
 } from "./components";
 import { OrderSummaryCard } from "@/features/orders/components";
+import { CheckoutNotice } from "@/features/payments/components";
 
 export const requestRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -148,12 +149,16 @@ requestRoutes.get("/requests/:id", async (c) => {
   if (!request || !canViewRequest(request, viewerFor(c))) return c.text("Not found", 404);
 
   const csrfToken = await csrfTokenFor(c);
+  // Where Stripe Checkout returns the customer (#60). Purely a message —
+  // the order card's paid state comes from the webhook, not this param.
+  const checkout = c.req.query("checkout");
   return c.html(
     <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
       <main class="page stack">
         <p>
           <a href="/requests">← My requests</a>
         </p>
+        {checkout === "success" || checkout === "cancel" ? <CheckoutNotice outcome={checkout} /> : null}
         <RequestHeaderCard request={request} />
         {request.order ? <OrderSummaryCard order={request.order} /> : null}
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />

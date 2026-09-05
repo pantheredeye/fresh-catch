@@ -360,3 +360,99 @@ describe("#65 confirm order + mark paid in person", () => {
     expect(payRes.status).toBe(403);
   });
 });
+
+describe("#60 request payment (Stripe)", () => {
+  const stripeEnv = () =>
+    ({
+      ...(env as unknown as Bindings),
+      STRIPE_SECRET_KEY: "sk_test_x",
+      STRIPE_CONNECT_ACCOUNT_ID: "acct_evan",
+    }) as unknown as Bindings;
+
+  async function confirmedThread(cookie: string, csrfToken: string, price = "50") {
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price, csrfToken });
+    return request;
+  }
+
+  it("offers the payment action on an unpaid order once Stripe is configured", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await confirmedThread(cookie, csrfToken);
+
+    const html = await (
+      await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, stripeEnv())
+    ).text();
+
+    expect(html).toContain("Request payment ($50.00)");
+    expect(html).toContain(`/admin/requests/${request.id}/request-payment`);
+  });
+
+  it("hides the payment action entirely when Stripe is unconfigured — payments are flippable", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await confirmedThread(cookie, csrfToken);
+
+    const html = await (await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, env)).text();
+
+    expect(html).not.toContain("Request payment");
+    // ...and #65's in-person path is untouched.
+    expect(html).toContain("Mark paid");
+  });
+
+  it("400s the payment action with a settle-in-person message when Stripe is unconfigured", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await confirmedThread(cookie, csrfToken);
+
+    const res = await post(`/admin/requests/${request.id}/request-payment`, cookie, { csrfToken });
+
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("in person");
+  });
+
+  it("400s a thread with no order yet", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+
+    const res = await app.request(
+      `/admin/requests/${request.id}/request-payment`,
+      { method: "POST", body: new URLSearchParams({ csrfToken }), headers: { ...formHeaders, Cookie: cookie } },
+      stripeEnv(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("Confirm an order");
+  });
+
+  it("403s without a CSRF token", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await confirmedThread(cookie, csrfToken);
+
+    const res = await post(`/admin/requests/${request.id}/request-payment`, cookie, {});
+
+    expect(res.status).toBe(403);
+  });
+
+  it("403s a non-admin", async () => {
+    const { cookie: adminCookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await confirmedThread(adminCookie, csrfToken);
+    const nonAdmin = await mintNonAdminSession(env as unknown as Bindings);
+
+    const res = await post(`/admin/requests/${request.id}/request-payment`, nonAdmin.cookie, {
+      csrfToken: nonAdmin.csrfToken,
+    });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("stops offering the action once the order is fully settled", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await confirmedThread(cookie, csrfToken);
+    await post(`/admin/requests/${request.id}/mark-paid`, cookie, { amount: "50", method: "cash", csrfToken });
+
+    const html = await (
+      await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, stripeEnv())
+    ).text();
+
+    expect(html).not.toContain("Request payment");
+    expect(html).toContain("Paid");
+  });
+});

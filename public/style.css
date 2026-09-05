@@ -556,3 +556,26 @@ a:focus-visible {
   background: rgba(255, 107, 107, 0.2); /* --color-status-error-fill at 20% */
   color: var(--color-status-error-text);
 }
+
+/* Post-checkout return banners (#60). Colour comes from the status tokens,
+   which already swap per theme — no unpaired values to author here. */
+.notice {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border-left: 4px solid;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+}
+
+.notice-success {
+  background: rgba(0, 217, 177, 0.12); /* --color-status-success-fill at 12%, same hex both themes */
+  border-color: var(--color-status-success-fill);
+  color: var(--color-text-primary);
+}
+
+.notice-info {
+  background: var(--color-surface-secondary);
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
