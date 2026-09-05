@@ -22,26 +22,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # generated/prisma is gitignored, so tsc has no Prisma client on a fresh
-      # checkout — generate it first. `prisma generate` needs only the schema,
-      # no secrets.
-      - run: pnpm exec prisma generate
-
-      # Not `pnpm check`/`pnpm generate`: those run `rw-scripts ensure-env` and
-      # `wrangler types`, which need the gitignored .env/.dev.vars and rebuild
-      # worker-configuration.d.ts from them. On a fresh checkout the secrets are
-      # gone and tsc fails. CI type-checks against the committed
-      # worker-configuration.d.ts instead.
+      # Not `pnpm check`/`pnpm generate`: that runs `wrangler types`, which
+      # needs Cloudflare auth to regenerate worker-configuration.d.ts. CI
+      # type-checks against the committed worker-configuration.d.ts instead.
       - run: pnpm types
 
       - run: pnpm test
 
 # Deploy is intentionally NOT wired up here — fresh-catch ships manually via
-# `pnpm run deploy` (package.json), which runs `migrate:prd` (D1 migrations,
-# --remote) THEN `release` (build + `wrangler deploy`) IN THAT ORDER.
-# `release` alone does NOT run migrations — never run it standalone against
-# prod if the branch has pending migrations. This comment is the single
-# source of truth for deploy order; don't duplicate it elsewhere.
+# `pnpm run deploy` (package.json → `wrangler deploy`). #53 re-adds a D1
+# migration step ahead of it once the schema lands; until then there's
+# nothing to migrate.
 #
 # To add auto-deploy on main later: add a `deploy` job with `needs: check`,
 # `if: github.ref == 'refs/heads/main' && github.event_name == 'push'`,

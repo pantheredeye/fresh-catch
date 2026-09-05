@@ -1,104 +1,24 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "digitalglue-market",
-  "main": "src/worker.tsx",
+  "name": "fresh-catch-v2",
+  "main": "src/index.ts",
   "compatibility_date": "2025-08-21",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "binding": "ASSETS"
   },
   "observability": {
     "enabled": true
   },
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "SESSION_DURABLE_OBJECT",
-        "class_name": "SessionDurableObject"
-      },
-      {
-        "name": "CHAT_DURABLE_OBJECT",
-        "class_name": "ChatDurableObject"
-      },
-      {
-        "name": "RATE_LIMIT_DURABLE_OBJECT",
-        "class_name": "RateLimitDurableObject"
-      },
-      {
-        "name": "MCP_DURABLE_OBJECT",
-        "class_name": "McpDurableObject"
-      },
-      {
-        "name": "SIGNAL_DURABLE_OBJECT",
-        "class_name": "SignalDurableObject"
-      },
-      {
-        "name": "INBOX_DURABLE_OBJECT",
-        "class_name": "InboxDurableObject"
-      }
-    ]
-  },
   "vars": {
-    "WEBAUTHN_APP_NAME": "digitalglue-market",
-    "WEBAUTHN_RP_ID": "market.digitalglue.dev",
-    "ADMIN_EMAIL": "barrett@digitalglue.dev",
-    "APP_URL": "https://market.digitalglue.dev",
-    "NODE_ENV": "production"
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "SessionDurableObject"
-      ]
-    },
-    {
-      "tag": "v2",
-      "new_classes": [
-        "ChatDurableObject"
-      ]
-    },
-    {
-      "tag": "v3",
-      "new_classes": [
-        "RateLimitDurableObject"
-      ]
-    },
-    {
-      "tag": "v4",
-      "new_sqlite_classes": [
-        "McpDurableObject"
-      ]
-    },
-    {
-      "tag": "v5",
-      "new_sqlite_classes": [
-        "SignalDurableObject"
-      ]
-    },
-    {
-      "tag": "v6",
-      "new_classes": [
-        "InboxDurableObject"
-      ]
-    }
-  ],
-  "ai": {
-    "binding": "AI"
+    "ADMIN_EMAILS": "barrett@digitalglue.dev",
+    "APP_URL": "http://localhost:5173"
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "digitalglue-market",
-      "database_id": "71d2e8c4-b9a8-48ea-9fc5-550a9206ea61"
-    }
-  ],
-  "routes": [
-    {
-      "pattern": "market.digitalglue.dev",
-      "custom_domain": true
+      "database_name": "fresh-catch-v2",
+      "database_id": "__replace_at_cutover__"
     }
   ]
 }

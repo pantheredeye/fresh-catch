@@ -1,16 +1,11 @@
 import { defineConfig } from "vitest/config";
-import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
 import path from "path";
-
-// Read migrations at config time (Node side); the setup file applies them to
-// the isolated test D1 before any test runs.
-const migrations = await readD1Migrations(path.resolve(__dirname, "migrations"));
 
 export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@generated": path.resolve(__dirname, "generated"),
     },
   },
   plugins: [
@@ -20,24 +15,17 @@ export default defineConfig({
       // CI has no Cloudflare credentials — keep everything local. No test uses AI.
       remoteBindings: false,
       wrangler: {
-        configPath: "./dist/worker/wrangler.json",
+        configPath: "./wrangler.jsonc",
       },
       miniflare: {
         bindings: {
           NODE_ENV: "test",
-          ENABLE_TEST_BRIDGE: "1",
-          TEST_MIGRATIONS: migrations,
-          // CI has no .dev.vars. Without AUTH_SECRET_KEY the session store tries
-          // to generate a random key at global scope, which workerd forbids —
-          // that throw wedges the pool and hangs the run. Provide dummy secrets.
-          AUTH_SECRET_KEY: "test-auth-secret-key-deterministic-for-ci",
-          RESEND_API_KEY: "test-resend-key",
+          SESSION_SECRET: "test-session-secret-deterministic-for-ci",
         },
       },
     }),
   ],
   test: {
     include: ["src/**/*.test.{ts,tsx}"],
-    setupFiles: ["./src/test-setup.ts"],
   },
 });
