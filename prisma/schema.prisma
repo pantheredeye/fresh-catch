@@ -82,23 +82,25 @@ model CatchUpdate {
 // comment, issue #59). Structured starter (species/notes/contact) creates a
 // FishRequest; the conversation that closes the loop lives in RequestMessage.
 model FishRequest {
-  id            String    @id @default(uuid())
-  userId        String?
-  deviceToken   String?
-  contactName   String
-  contactEmail  String?
-  contactPhone  String?
-  requestType   String    @default("fish") // fish | question
-  species       String?
-  quantity      String?
-  notes         String?
-  origin        String    @default("customer") // customer | vendor (#64 writes vendor)
-  status        String    @default("open") // open | confirmed | fulfilled | declined
-  lastMessageAt DateTime?
-  createdAt     DateTime  @default(now())
+  id               String    @id @default(uuid())
+  userId           String?
+  deviceToken      String?
+  contactName      String
+  contactEmail     String?
+  contactPhone     String?
+  requestType      String    @default("fish") // fish | question
+  species          String?
+  quantity         String?
+  notes            String?
+  origin           String    @default("customer") // customer | vendor (#64 writes vendor)
+  status           String    @default("open") // open | confirmed | fulfilled | declined
+  lastMessageAt    DateTime?
+  quotedPriceCents Int? // set when an admin confirms an order on the thread (#65)
+  createdAt        DateTime  @default(now())
 
   user     User?            @relation(fields: [userId], references: [id])
   messages RequestMessage[]
+  order    Order?
 
   @@index([status])
   @@index([createdAt])
@@ -118,12 +120,14 @@ model RequestMessage {
   @@index([requestId])
 }
 
-/// Dormant until the payments phase — carried over from the old schema minus
-/// organizationId (single vendor now); see docs/audit/data-stripe.md §3.
+/// Carried over from the old schema minus organizationId (single vendor now);
+/// see docs/audit/data-stripe.md §3. Stripe fields stay dormant until #60 —
+/// #65 only writes requestId/orderNumber/price/items/amountPaid/paidAt.
 model Order {
   id          String    @id @default(uuid())
   orderNumber Int       @unique
   userId      String?
+  requestId   String?   @unique // links to the FishRequest thread it was confirmed from (#65)
 
   contactName  String
   contactEmail String?
@@ -154,7 +158,8 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User?     @relation(fields: [userId], references: [id])
+  user     User?        @relation(fields: [userId], references: [id])
+  request  FishRequest? @relation(fields: [requestId], references: [id])
   payments Payment[]
 
   @@index([userId])
