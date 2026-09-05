@@ -57,3 +57,26 @@ describe("GET /markets/past", () => {
     expect(html).not.toContain(regular.name);
   });
 });
+
+describe("GET /markets/:id", () => {
+  it("is reachable without auth and renders customer-facing fields, not vendor-only ones", async () => {
+    const market = await createMarket(
+      marketInput({
+        name: `Detail ${crypto.randomUUID()}`,
+        customerInfo: "Cash or card",
+        locationDetails: "Behind the red barn",
+      }),
+    );
+    const res = await app.request(`/markets/${market.id}`, {}, env);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain(market.name);
+    expect(html).toContain("Cash or card");
+    expect(html).not.toContain("Behind the red barn");
+  });
+
+  it("404s an unknown id", async () => {
+    const res = await app.request("/markets/does-not-exist", {}, env);
+    expect(res.status).toBe(404);
+  });
+});

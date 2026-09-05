@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { Market } from "@/lib/db";
+import type { MarketStatus } from "./queries";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
@@ -153,3 +154,75 @@ export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "li
     </span>
   </div>
 );
+
+/** `Market.expiresAt` is UTC day+hour precision (C5) — displayed plainly, no tz conversion. */
+function formatExpiresAt(expiresAt: Date): string {
+  const iso = expiresAt.toISOString();
+  return `Expires ${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+}
+
+function marketLocation(market: Market): string | null {
+  const parts = [market.city, market.county].filter((part): part is string => Boolean(part));
+  return parts.length ? parts.join(", ") : null;
+}
+
+/** Favoriting is client-side only (localStorage island, #58) — every card ships the same inert markup and `favorites.js` hydrates state on load. */
+const FavoriteToggle: FC<{ marketId: string }> = ({ marketId }) => (
+  <button type="button" class="btn btn-ghost favorite-toggle" data-market-id={marketId} aria-pressed="false">
+    ☆ Save
+  </button>
+);
+
+/** Customer-facing card for the `/` landing list (#58) — link to the detail page + favorite toggle. */
+export const PublicMarketCard: FC<{ market: Market; kind: "regular" | "live-popup" }> = ({ market, kind }) => {
+  const location = marketLocation(market);
+  return (
+    <div class="card stack market-card">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <h3 style="margin: 0;">
+          <a href={`/markets/${market.id}`}>{market.name}</a>
+        </h3>
+        {kind === "live-popup" ? <span class="badge badge-live">Popup</span> : null}
+      </div>
+      <p>{market.schedule}</p>
+      {location ? <p class="field-helper">{location}</p> : null}
+      {kind === "live-popup" && market.expiresAt ? (
+        <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
+      ) : null}
+      <FavoriteToggle marketId={market.id} />
+    </div>
+  );
+};
+
+/** Public detail view for `GET /markets/:id` (#58) — customer-facing fields only, no `locationDetails`/`notes`/`rawTranscript`. */
+export const MarketDetail: FC<{ market: Market; status: MarketStatus }> = ({ market, status }) => {
+  const location = marketLocation(market);
+  return (
+    <main class="page">
+      <p>
+        <a href="/">← Back to Fresh Catch</a>
+      </p>
+      <div class="card stack">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <h1 style="margin: 0;">{market.name}</h1>
+          <StatusBadge status={status} />
+        </div>
+        <p>{market.schedule}</p>
+        {market.subtitle ? <p>{market.subtitle}</p> : null}
+        {location ? <p class="field-helper">{location}</p> : null}
+        {market.type === "popup" && market.expiresAt ? (
+          <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
+        ) : null}
+        {market.customerInfo ? <p>{market.customerInfo}</p> : null}
+        {market.catchPreview ? (
+          <div>
+            <h2>Catch preview</h2>
+            <p>{market.catchPreview}</p>
+          </div>
+        ) : null}
+        <FavoriteToggle marketId={market.id} />
+      </div>
+      <script type="module" src="/js/favorites.js"></script>
+    </main>
+  );
+};
