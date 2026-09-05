@@ -1,9 +1,9 @@
 import type { Bindings } from "@/types";
+import { sendEmail } from "@/lib/email";
 
 // Plain HTML template, not @react-email/components — that broke under rwsdk
 // 1.5+ and is a deliberate scope cut for v2 (see CLAUDE.md "Removed in the
-// rebuild"). Placeholder sender domain, same as wrangler.jsonc's other
-// cutover placeholders (worker name, D1 database_id) — swap at cutover.
+// rebuild").
 const FROM_ADDRESS = "Fresh Catch <login@notifications.freshcatch.app>";
 
 function loginCodeEmailHtml(code: string): string {
@@ -40,29 +40,10 @@ export async function sendLoginCodeEmail(
   email: string,
   code: string,
 ): Promise<boolean> {
-  if (!env.RESEND_API_KEY) {
-    console.log(`[dev] login code for ${email}: ${code}`);
-    return false;
-  }
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: FROM_ADDRESS,
-      to: email,
-      subject: `Your Fresh Catch login code: ${code}`,
-      html: loginCodeEmailHtml(code),
-    }),
+  return sendEmail(env, {
+    from: FROM_ADDRESS,
+    to: email,
+    subject: `Your Fresh Catch login code: ${code}`,
+    html: loginCodeEmailHtml(code),
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Resend send failed (${res.status}): ${body}`);
-  }
-
-  return true;
 }
