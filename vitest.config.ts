@@ -20,18 +20,13 @@ export default defineConfig({
       // CI has no Cloudflare credentials — keep everything local. No test uses AI.
       remoteBindings: false,
       wrangler: {
-        configPath: "./dist/worker/wrangler.json",
+        configPath: "./wrangler.jsonc",
       },
       miniflare: {
         bindings: {
           NODE_ENV: "test",
-          ENABLE_TEST_BRIDGE: "1",
+          SESSION_SECRET: "test-session-secret-deterministic-for-ci",
           TEST_MIGRATIONS: migrations,
-          // CI has no .dev.vars. Without AUTH_SECRET_KEY the session store tries
-          // to generate a random key at global scope, which workerd forbids —
-          // that throw wedges the pool and hangs the run. Provide dummy secrets.
-          AUTH_SECRET_KEY: "test-auth-secret-key-deterministic-for-ci",
-          RESEND_API_KEY: "test-resend-key",
         },
       },
     }),

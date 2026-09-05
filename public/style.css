@@ -1,0 +1,357 @@
+/*
+ * Design tokens — ported from docs/audit/ux-a11y.md §1, with the AAA-contrast
+ * swaps from §2 applied as the *default* values (not the pre-audit originals).
+ * Every color is authored as a light/dark pair up front (§3 day-1 plan) to
+ * avoid the old app's glass/tint patch-layer. The --color-glass-*/--tint-*/
+ * --nav-accent-* tokens are deliberately NOT ported — see CLAUDE.md.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Typography */
+  --font-modern: "DM Sans", -apple-system, system-ui, sans-serif;
+  --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
+
+  --font-size-xs: 12px; /* decorative/non-text use only — never labels or body copy, see §4 */
+  --font-size-sm: 14px; /* floor for labels, captions, helper/error text */
+  --font-size-md: 16px; /* floor for body text and inputs */
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 32px;
+  --font-size-5xl: 40px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* Spacing */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 20px;
+  --space-lg: 28px;
+  --space-xl: 40px;
+  --space-2xl: 56px;
+
+  /* Widths */
+  --width-sm: 450px;
+  --width-md: 800px;
+  --width-lg: 1200px;
+  --width-xl: 1400px;
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+  --radius-full: 9999px;
+
+  /* Shadows (colored — brand signature, unthemed) */
+  --shadow-sm: 0 2px 8px rgba(0, 102, 204, 0.08);
+  --shadow-md: 0 8px 24px rgba(0, 102, 204, 0.12);
+  --shadow-lg: 0 20px 40px rgba(0, 102, 204, 0.15);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+
+  /* Color — text (light). AAA (7:1) target for primary/secondary; tertiary
+     is AA (4.5:1) by design — see ux-a11y.md §2 for why tertiary stops at AA. */
+  --color-text-primary: #1a2b3d; /* 14.09:1 on bg-primary */
+  --color-text-secondary: #4c596a; /* was #64748B — now 7:1, AAA */
+  --color-text-tertiary: #627794; /* was #94A3B8 — now 4.5:1, usable (was non-compliant) */
+  --color-text-inverse: #ffffff;
+
+  /* Color — actions (light) */
+  --color-action-primary: #0052a3; /* text/link use — 7.68:1 on white, AAA */
+  --color-action-primary-fill: #0066cc; /* button/gradient fills only, not text */
+
+  /* Color — status. Fill colors are unchanged brand hues; *-text variants are
+     the only AAA-safe way to render these hues as text/icon glyphs (§2). */
+  --color-action-secondary-fill: #ff6b6b; /* coral */
+  --color-action-secondary-text: #b60000;
+  --color-status-success-fill: #00d9b1; /* mint */
+  --color-status-success-text: #006553;
+  --color-status-warning-fill: #f59e0b; /* gold */
+  --color-status-warning-text: #7c5005;
+  --color-status-error-fill: #ff6b6b;
+  --color-status-error-text: #b60000;
+
+  /* Color — surfaces / backgrounds (light) */
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #f1f5f9;
+  --color-bg-primary: #fffcf8;
+  --color-bg-elevated: #ffffff;
+
+  /* Color — borders (light) */
+  --color-border-subtle: rgba(0, 102, 204, 0.08);
+  --color-border-light: rgba(0, 102, 204, 0.12);
+  --color-border-medium: rgba(0, 102, 204, 0.2);
+  --color-border-input: #c7d6e3; /* was #E8EFF5 (1.16:1, nearly invisible) — bumped for visibility */
+
+  --color-focus-ring: #0052a3;
+
+  --color-gradient-primary: linear-gradient(135deg, #0066cc, #00a896);
+  --color-gradient-secondary: linear-gradient(135deg, #ff6b6b, #ffb366);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary: #e2e8f0; /* 14.39:1 on dark bg */
+    --color-text-secondary: #95a4b9; /* 7:1 on dark bg, AAA */
+    --color-text-tertiary: #71829c; /* ~4.5:1 on dark bg, matches light's AA target */
+    --color-text-inverse: #ffffff;
+
+    --color-action-primary: #43a9ff; /* 7.06:1 on dark bg, AAA text/link */
+    --color-action-primary-fill: #0066cc; /* unchanged — still 3:1+ vs dark bg, 5.57:1 with white text */
+
+    --color-action-secondary-fill: #ff6b6b;
+    --color-action-secondary-text: #ff7a7a; /* 7.03:1 on dark bg */
+    --color-status-success-fill: #00d9b1;
+    --color-status-success-text: #00d9b1; /* already 9.77:1 on dark bg, no swap needed */
+    --color-status-warning-fill: #f59e0b;
+    --color-status-warning-text: #f59e0b; /* already 8.26:1 on dark bg, no swap needed */
+    --color-status-error-fill: #ff6b6b;
+    --color-status-error-text: #ff7a7a;
+
+    /* surface-primary matches bg-primary exactly (not lighter, as elevation
+       schemes usually do) — any lighter and --color-text-secondary drops
+       below its 7:1 AAA floor on cards. Elevation comes from border+shadow
+       instead, same as the light theme's near-flat surface/bg relationship. */
+    --color-surface-primary: #111827;
+    --color-surface-secondary: #1a2436;
+    --color-bg-primary: #111827;
+    --color-bg-elevated: #111827;
+
+    --color-border-subtle: rgba(255, 255, 255, 0.08);
+    --color-border-light: rgba(255, 255, 255, 0.14);
+    --color-border-medium: rgba(255, 255, 255, 0.24);
+    --color-border-input: #3a4a5c;
+
+    --color-focus-ring: #43a9ff;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  padding: var(--space-lg);
+  font-family: var(--font-modern);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+}
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn {
+    transition:
+      filter var(--duration-fast) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out);
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--color-action-primary-fill);
+  color: var(--color-text-inverse);
+}
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--color-action-primary-fill);
+  color: var(--color-action-primary);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-border-subtle);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-action-primary);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-border-subtle);
+}
+
+/* Field (Input) */
+.field {
+  margin-bottom: var(--space-md);
+}
+
+.field-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.field-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-sm);
+  border: 2px solid var(--color-border-input);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+}
+
+.field-input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.field-input-error {
+  border-color: var(--color-status-error-text);
+}
+
+.field-helper,
+.field-error {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.field-helper {
+  color: var(--color-text-secondary);
+}
+
+.field-error {
+  color: var(--color-status-error-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Card */
+.card {
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Sheet (bottom sheet, native <dialog>) */
+.sheet {
+  margin: auto auto 0 auto;
+  width: min(100%, var(--width-sm));
+  max-height: 85vh;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.sheet::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sheet[open] {
+    animation: sheet-slide-up var(--duration-normal) var(--ease-out);
+  }
+}
+
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+}
+
+.sheet-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet-close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.sheet-body {
+  padding: 0 var(--space-md) var(--space-md);
+  overflow-y: auto;
+}

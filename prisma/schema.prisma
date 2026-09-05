@@ -1,8 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Single-vendor schema for v2 (spec #50 §4 / issue #53). No data migrates
+// from the old multi-tenant prod DB yet (cutover is a later bead) — see
+// docs/audit/data-stripe.md §1a and REBUILD-PLAN.md §4 for the do-not-migrate
+// list (8 dead Organization rows, stray "Test popup" market).
 
 generator client {
   provider = "prisma-client"
@@ -12,8 +11,7 @@ generator client {
   generatedFileExtension = "ts"
   importFileExtension    = "ts"
 
-  output          = "../generated/prisma"
-  previewFeatures = ["queryCompiler", "driverAdapters"]
+  output = "../generated/prisma"
 }
 
 datasource db {
@@ -21,87 +19,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id       String  @id @default(uuid()) // User ID (UUID-based)
-  username String  @unique
-  email    String? // Email for notifications and account recovery
-  name     String? // Full name for orders
-  phone    String? // Contact phone
-
-  // Delivery address
-  deliveryStreet String?
-  deliveryCity   String?
-  deliveryState  String?
-  deliveryZip    String?
-  deliveryNotes  String? // Special instructions
-
-  deletedAt DateTime? // Soft delete timestamp
-  createdAt DateTime  @default(now())
-
-  credentials     Credential[] // Relationship: One user can have many credentials
-  memberships     Membership[] // Relationship: User can belong to multiple organizations
-  orders          Order[] // Relationship: User can have many orders
-  shareEvents     ShareEvent[] // Relationship: User can have many share events
-  invitesSent     Invite[]     @relation("InvitesSent")
-  invitesAccepted Invite[]     @relation("InvitesAccepted")
-  conversations   Conversation[] // Conversations where user is a participant
-}
-
-model Credential {
-  id           String   @id @default(uuid()) // Internal DB ID
-  userId       String // Every credential is linked to a specific user (1-to-many: multiple devices per user)
-  user         User     @relation(fields: [userId], references: [id])
-  createdAt    DateTime @default(now())
-  credentialId String   @unique // WebAuthn credential identifier
-  publicKey    Bytes
-  counter      Int      @default(0)
-
-  @@index([credentialId])
-  @@index([userId])
-}
-
-model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique // URL-friendly identifier for business (e.g., 'evan', 'joes-farm')
-  type      String // 'individual' or 'business'
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Stripe Connect
+model Vendor {
+  id                       String  @id @default(uuid())
+  name                     String
   stripeAccountId          String?
   stripeOnboardingComplete Boolean @default(false)
+  platformFeeBps           Int     @default(500)
+  notificationEmail        String?
+}
 
-  // Fee configuration
-  platformFeeBps   Int     @default(500) // Platform fee in basis points (500 = 5%)
-  defaultDepositBps Int?                  // Default deposit in basis points (optional)
-  feeModel         String  @default("customer") // 'customer' | 'vendor' | 'split'
+model User {
+  id        String   @id @default(uuid())
+  email     String?  @unique // OTP login upserts on this; SQLite allows multiple NULLs
+  name      String?
+  phone     String?
+  isAdmin   Boolean  @default(false) // replaces org/role/membership entirely
+  createdAt DateTime @default(now())
 
-  // Branding
-  accentColor String? // Hex color for vendor storefront theming (e.g., "#FF6B6B")
-
-  // Notifications
-  notificationEmail String? // recipient for new-order + ops notifications
-
-  // API key for external MCP access (only hash stored, never raw key)
-  apiKeyHash   String?
-  apiKeyPrefix String?
-
-  memberships   Membership[] // Relationship: Organization can have multiple members
-  markets       Market[] // Relationship: Organization can have multiple markets
-  orders        Order[] // Relationship: Organization can have multiple orders
-  shareEvents   ShareEvent[] // Relationship: Organization can have multiple share events
-  invites       Invite[] // Relationship: Organization can have multiple invites
-  catchUpdates  CatchUpdate[] // Relationship: Organization can have multiple catch updates
-  conversations Conversation[] // Relationship: Organization can have multiple conversations
+  orders   Order[]
+  requests FishRequest[]
 }
 
 model Market {
   id              String   @id @default(uuid())
-  organizationId  String
   name            String
   schedule        String // Free-form schedule description (e.g., "Sat 8-2")
-  subtitle        String? // Optional subtitle (e.g., "Paused until March")
+  subtitle        String?
   locationDetails String? // Vendor-facing: booth location, setup notes, parking info
   customerInfo    String? // Customer-facing: payment methods, what to bring, best times
   active          Boolean  @default(true)
@@ -109,118 +52,115 @@ model Market {
   updatedAt       DateTime @updatedAt
 
   // Popup market fields
-  type           String    @default("regular") // "regular" | "popup"
-  expiresAt      DateTime? // When popup market expires
-  catchPreview   String? // JSON: { items: [{name, note}] }
-  notes          String? // Catch-all for unstructured voice content
-  rawTranscript  String? // Verbatim Whisper output (null for form-created)
-  cancelledAt    DateTime? // Set if popup cancelled before happening
+  type          String    @default("regular") // "regular" | "popup"
+  expiresAt     DateTime?
+  catchPreview  String? // JSON: { items: [{name, note}] }
+  notes         String?
+  rawTranscript String? // Verbatim Whisper output (null for form-created)
+  cancelledAt   DateTime?
 
-  // Location fields
-  county         String? // County name, populated by user
-  city           String? // City name, populated by user
+  county String?
+  city   String?
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-
-  @@index([organizationId])
   @@index([active])
-  @@index([organizationId, active])
-  @@index([organizationId, type, active])
+  @@index([type, active])
 }
 
-model Membership {
-  id             String   @id @default(uuid())
-  userId         String
-  organizationId String
-  role           String // 'owner' or 'manager'
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+model CatchUpdate {
+  id               String   @id @default(uuid())
+  recordedBy       String?
+  rawTranscript    String
+  formattedContent String // JSON: { headline, items[], summary }
+  status           String   @default("live") // "live" | "archived"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user         User         @relation(fields: [userId], references: [id])
-  organization Organization @relation(fields: [organizationId], references: [id])
-
-  @@unique([userId, organizationId]) // Prevent duplicate memberships
-  @@index([userId])
-  @@index([organizationId])
+  @@index([status])
 }
 
-/// Order lifecycle state machine:
-///
-///   pending ──(admin confirms + sets price)──→ confirmed ──→ completed
-///     │                                           │
-///     └──(customer or admin cancels)──→ cancelled ←┘ (admin cancels)
-///
-/// Pricing fields populated at each state:
-///   pending:   price=null, totalDue=null, amountPaid=0, platformFee=null
-///   confirmed: price=set, totalDue=set, platformFee=set, depositAmount=optional
-///   completed: same as confirmed; amountPaid may equal totalDue
-///   cancelled: fields frozen at time of cancellation
-///
-/// Payment status (derived via getPaymentStatus in src/utils/payments.ts):
-///   null     → totalDue not yet set (pending order)
-///   unpaid   → totalDue set, amountPaid=0
-///   deposit  → amountPaid > 0 && amountPaid <= depositAmount
-///   partial  → amountPaid > depositAmount but < totalDue
-///   paid     → amountPaid == totalDue
-///   overpaid → amountPaid > totalDue
+// Request-anchored threads replace general-purpose chat for v1 (issue #50
+// comment, issue #59). Structured starter (species/notes/contact) creates a
+// FishRequest; the conversation that closes the loop lives in RequestMessage.
+model FishRequest {
+  id            String    @id @default(uuid())
+  userId        String?
+  contactName   String
+  contactEmail  String?
+  contactPhone  String?
+  species       String
+  notes         String?
+  status        String    @default("open") // open | fulfilled | declined
+  evanResponse  String?
+  respondedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  user     User?            @relation(fields: [userId], references: [id])
+  messages RequestMessage[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RequestMessage {
+  id        String   @id @default(uuid())
+  requestId String
+  sender    String // "customer" | "vendor"
+  body      String
+  createdAt DateTime @default(now())
+
+  request FishRequest @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+}
+
+/// Dormant until the payments phase — carried over from the old schema minus
+/// organizationId (single vendor now); see docs/audit/data-stripe.md §3.
 model Order {
-  id             String @id @default(uuid())
-  orderNumber    Int // Friendly order number (per org, app-managed)
-  userId         String? // Null for guest orders (AI chat, future guest checkout); claimable by email later
-  organizationId String
+  id          String    @id @default(uuid())
+  orderNumber Int       @unique
+  userId      String?
 
-  // Contact snapshot (captured at order time)
   contactName  String
   contactEmail String?
   contactPhone String?
 
-  // Order details
-  items         String // Free-form text describing items
-  preferredDate DateTime? // Customer's preferred pickup date
-  notes         String? // Customer notes
+  items         String
+  preferredDate DateTime?
+  notes         String?
 
-  // Admin fields
   status     String  @default("pending") // pending | confirmed | completed | cancelled
-  price      Int? // Vendor price in cents, set by admin at confirmation
-  adminNotes String? // Internal notes for admin
+  price      Int?
+  adminNotes String?
 
-  // Pricing and fees (all set together at confirmation by confirmOrder)
-  tipAmount      Int  @default(0) // Tip in cents, added at checkout
-  platformFeeBps Int? // Snapshot of org's fee rate at confirmation
-  platformFee    Int? // Calculated platform fee in cents
-  totalDue       Int? // Customer-facing total (price + fee, or price - fee, per feeModel)
-  amountPaid     Int  @default(0) // Running sum of all Payment records
-  depositAmount  Int? // Optional deposit in cents, allows partial-first payment
+  tipAmount      Int  @default(0)
+  platformFeeBps Int?
+  platformFee    Int?
+  totalDue       Int?
+  amountPaid     Int  @default(0)
+  depositAmount  Int?
 
-  // Stripe integration
-  stripeCheckoutSessionId String? // Stripe Checkout session ID
-  stripePaymentIntentId   String? // Stripe PaymentIntent ID
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
 
-  // Payment tracking (denormalized from Payment records for quick display)
-  paymentMethod String? // Most recent method: "cash" | "venmo" | "zelle" | "card" | etc
-  paymentNotes  String? // Most recent payment note
-  paidAt        DateTime? // Set when amountPaid >= totalDue
+  paymentMethod String?
+  paymentNotes  String?
+  paidAt        DateTime?
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  user         User?        @relation(fields: [userId], references: [id])
-  organization Organization @relation(fields: [organizationId], references: [id])
-  payments     Payment[]
+  user     User?     @relation(fields: [userId], references: [id])
+  payments Payment[]
 
   @@index([userId])
-  @@index([organizationId])
   @@index([status])
   @@index([createdAt])
-  @@unique([organizationId, orderNumber])
 }
 
 model Payment {
   id              String   @id @default(uuid())
   orderId         String
-  amount          Int // Amount in cents
+  amount          Int
   method          String // stripe | cash | venmo | zelle | other
   type            String // deposit | payment | tip | refund
   stripePaymentId String?
@@ -232,99 +172,22 @@ model Payment {
   @@index([orderId])
 }
 
-model ShareEvent {
-  id             String   @id @default(uuid())
-  organizationId String
-  shareType      String // 'link' | 'qr' | 'facebook' | 'twitter' | 'whatsapp'
-  sharedBy       String? // User ID (nullable for anonymous/logged-out shares)
-  timestamp      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  user         User?        @relation(fields: [sharedBy], references: [id])
-
-  @@index([organizationId])
-  @@index([timestamp])
-}
-
-model Invite {
-  id             String    @id @default(uuid())
-  organizationId String
-  email          String?
-  role           String // 'owner' or 'manager'
-  token          String    @unique
-  invitedBy      String
-  status         String    @default("pending") // pending | accepted | revoked
-  acceptedBy     String?
-  createdAt      DateTime  @default(now())
-  expiresAt      DateTime?
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  inviter      User         @relation("InvitesSent", fields: [invitedBy], references: [id])
-  acceptor     User?        @relation("InvitesAccepted", fields: [acceptedBy], references: [id])
-
-  @@index([token])
-  @@index([organizationId])
-}
-
-model CatchUpdate {
-  id               String   @id @default(uuid())
-  organizationId   String
-  recordedBy       String? // Which admin recorded this update
-  rawTranscript    String
-  formattedContent String // JSON: { headline, items[], summary }
-  status           String   @default("live") // "live" or "archived"
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-
-  @@index([organizationId])
-  @@index([organizationId, status])
-}
-
-model Conversation {
-  id             String   @id @default(uuid())
-  organizationId String
-  customerId     String? // Null for anonymous customers
-  customerName   String // Display name (provided by customer)
-  customerPhone  String? // Optional contact phone
-  customerEmail  String? // Optional email for reply notifications
-  status         String   @default("open") // "open" | "resolved"
-  lastMessageAt  DateTime @default(now()) // For sorting conversations by recency
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  customer     User?        @relation(fields: [customerId], references: [id])
-  messages     Message[]
-
-  @@index([organizationId])
-  @@index([organizationId, status])
-  @@index([organizationId, lastMessageAt])
-  @@index([customerId])
-}
-
-model Message {
-  id             String   @id @default(uuid())
-  conversationId String
-  senderType     String // "customer" | "vendor" | "ai"
-  senderId       String? // User ID if authenticated, null for anonymous
-  content        String
-  readAt         DateTime? // Null until read by recipient
-  createdAt      DateTime  @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id])
-
-  @@index([conversationId])
-  @@index([conversationId, createdAt])
-}
-
 // Email-keyed login codes (OTP). Keyed by SHA-256 of normalized email so
 // verification works regardless of which browser/cookie context submits it.
 model LoginCode {
-  emailHash String   @id // SHA-256 hex of lowercased, trimmed email
-  codeHash  String // SHA-256 hex of the 6-digit code
+  emailHash String   @id
+  codeHash  String
   expiresAt DateTime
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+// Fixed-window rate limit counters (see docs/audit — v2 has no Durable
+// Objects, so this replaces the old RateLimitDurableObject). `id` is the
+// bucket key, e.g. "id:<sha256(email)>:otpSend" or "ip:<ip>:otpSendIp".
+// One row per key, overwritten each window — no unbounded growth, no sweep.
+model RateLimitBucket {
+  id          String   @id
+  count       Int      @default(0)
+  windowStart DateTime
 }

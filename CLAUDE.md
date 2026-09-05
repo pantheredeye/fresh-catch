@@ -1,350 +1,152 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code working in this repo.
 
 ## Preferred Working Style
 
-The user prefers small, conversational interactions rather than large sweeping code changes. Engage in dialog, ask clarifying questions, and make incremental changes after discussion. Break down complex tasks into smaller steps and confirm approaches before implementation.
+Small, conversational interactions over large sweeping changes. Ask
+clarifying questions, make incremental changes after discussion, confirm
+approach before implementing.
+
+## Stack
+
+Fresh Catch v2 is a plain **Hono app on Cloudflare Workers**, built with Vite
+and `@cloudflare/vite-plugin`. No React, no RedwoodSDK.
+
+- **Hono** — routing, middleware, request/response (`hono/jsx` for server render)
+- **Vite** (`@cloudflare/vite-plugin`) — dev server + build, worker + client bundling
+- **D1** — SQLite on Cloudflare, via **Prisma** (`@prisma/adapter-d1`)
+- **Vitest** (`@cloudflare/vitest-pool-workers`) — tests run inside a real Workers runtime
+
+### Why not RedwoodSDK
+
+`v1` (see `main`) was built on RedwoodSDK + React Server Components. A full
+audit (`docs/audit/`) found the framework layer — RSC hydration edge cases,
+a `react-dom/server` resolution regression above rwsdk 1.4.1, DO-backed
+sessions that outgrew their value — cost more than it gave a single-vendor
+app this size. `v2` rebuilds on boring primitives: Hono routes, signed-cookie
+sessions, vanilla-TS islands for interactivity. See `docs/audit/REBUILD-PLAN.md`
+for the full rationale.
 
 ## Git Workflow
 
-**IMPORTANT: Always work on feature branches, never commit directly to main.**
+**Target `v2`, not `main`, until the cutover bead lands.** `main` stays on
+the old RedwoodSDK app until `v2` is ready to replace it in production.
 
-### Before Starting Any Feature Work
-1. **Create a feature branch** before making any code changes
-2. Use branch naming convention: `bbb-<descriptive-name>` (e.g., `bbb-customer-real-data`, `bbb-auth-fix`, `bbb-market-cards`)
-3. Alternative prefixes for different work types as needed
+- Feature branches: `bbb-<descriptive-name>` (or another prefix as needed)
+- Incremental, atomic commits
+- PR into `v2`
 
-### During Development
-1. Make **incremental commits** as you complete each logical piece
-2. Commit messages should be descriptive and clear
-3. Keep commits atomic (one logical change per commit)
+## Commands
 
-### When Feature is Complete
-1. Ensure all tests pass and feature works as expected
-2. Create a pull request to merge into `main`
-3. Clean up branch after merge (optional)
-
-### Example Workflow
 ```bash
-# Start new feature
-git checkout -b bbb-new-feature
-
-# Make changes, test, then commit
-git add .
-git commit -m "Add feature description"
-
-# When ready, push and create PR
-git push -u origin bbb-new-feature
+pnpm run dev          # vite dev — serves the worker + client assets
+pnpm run build        # vite build
+pnpm run preview      # preview a production build
+pnpm run deploy       # migrate:prd, then wrangler deploy
+pnpm run types        # tsc
+pnpm run generate     # prisma generate + wrangler types
+pnpm test             # vitest run (applies D1 migrations to a fresh test DB first)
+pnpm run test:watch
+pnpm run migrate:dev  # prisma generate + apply migrations to local D1
+pnpm run migrate:prd  # apply migrations to remote D1
+pnpm run seed         # apply prisma/seed.sql to local D1
 ```
 
-**Why this matters:** Working on branches keeps main stable, allows for code review, and makes it easier to experiment without breaking the working codebase.
-
-## Project Overview
-
-This is a RedwoodSDK (RWSDK) project - a TypeScript framework for building server-driven web applications on Cloudflare Workers with React Server Components, email-OTP authentication, and Prisma ORM with D1 database.
-
-**Current RWSDK Version:** 1.4.1 (upgraded from 1.0.8 on 2026-08-17). Pinned below 1.5.0 — that version and later (through 1.7.2, latest as of this writing) regress `react-dom/server` resolution for the worker/RSC bundle (`@react-email/components`'s `render()` in `src/utils/email.ts` throws "not supported in React Server Components" at module-eval time under `vitest-pool-workers`). Isolated via bisect; root cause traced to rwsdk's Vite-6 compat shim (`viteCompat.mjs`, added 1.5.0) failing to translate the known-deps `optimizeDeps` resolver plugin. Re-attempt the bump to 1.7.2 once fixed upstream.
-
-rwsdk rules and patterns are located in `@.cursor/rules/`
-
-### RWSDK 1.x Features
-- **Server Components + Server Functions**: RSC with "use server" for mutations
-- **Durable Objects**: Session storage and isolated per-org databases ready
-- **Client Navigation**: Enhanced GET-based RSC requests
-- **Server Action Redirects**: Native redirect support from server functions
-- **capnweb Integration**: RPC library for internal communication (~0.2.0)
-
-## Common Commands
-
-### Development
-```bash
-pnpm run dev            # Start development server
-pnpm run dev:init       # Initialize dev environment
-pnpm run worker:run     # Run worker scripts
-```
-
-### Database Operations
-```bash
-pnpm run migrate:dev    # Apply migrations locally (uses --local flag)
-pnpm run migrate:prd    # Apply migrations to production (uses --remote flag)  
-pnpm run migrate:new    # Create new migration
-pnpm run seed           # Run database seeding script
-```
-
-### Type Checking & Code Quality
-```bash
-pnpm run types          # Run TypeScript type checking
-pnpm run check          # Generate types and run type checking
-pnpm run generate       # Generate Prisma client and Wrangler types
-```
-
-### Build & Deploy
-```bash
-pnpm run build          # Build for production
-pnpm run deploy         # Manual prod deploy: migrate:prd THEN release, in order (see .github/workflows/ci.yml comment)
-pnpm run release        # Build + wrangler deploy only — does NOT run migrations, don't run standalone against prod
-pnpm run clean          # Clean Vite cache
-```
+New migration: hand-edit `prisma/schema.prisma`, then generate the SQL with
+`prisma migrate diff --from-migrations migrations --to-schema-datamodel prisma/schema.prisma --script --output migrations/000N_name.sql`
+and apply with `pnpm run migrate:dev`.
 
 ## Architecture
 
-### Key Files
-- `src/worker.tsx` - Main Cloudflare Worker entry point, defines app middleware and routing
-- `src/db.ts` - Database setup with Prisma D1 adapter
-- `src/session/` - Session management using Durable Objects
-- `wrangler.jsonc` - Cloudflare Workers configuration
-- `prisma/schema.prisma` - Database schema (generates to `generated/prisma/`)
+### Key files
+- `src/index.ts` — Hono app entry: bindings, middleware chain, route mounts, default export
+- `src/types.ts` — `Bindings` type (`c.env`)
+- `src/lib/env.ts` — required-secret checks
+- `src/lib/db.ts` — Prisma client, lazily instantiated per isolate with the D1 adapter
+- `prisma/schema.prisma` — data model; `migrations/` holds the generated SQL, applied via `wrangler d1 migrations`
+- `src/ui/document.tsx` — hono/jsx HTML shell
+- `wrangler.jsonc` — Cloudflare config. Worker name is `fresh-catch-v2` (new
+  identity, isolated from the live `digitalglue-market` worker and its
+  secrets) with a placeholder D1 `database_id` until cutover.
 
-### Application Structure
-- **Middleware Pattern**: App uses middleware functions for auth, session management, and headers
-- **Context System**: Request context (`AppContext`) carries session and user data through the request lifecycle  
-- **Route Organization**: Routes are organized in `src/app/pages/` with dedicated route files
-- **Session Management**: Uses Cloudflare Durable Objects for persistent session storage
+### Feature layout
 
-### Database
-- Uses Prisma with D1 adapter for SQLite on Cloudflare
-- Schema includes `User` model (email-OTP login) and a legacy `Credential` model from a prior WebAuthn implementation, no longer wired up
-- Generated Prisma client outputs to `generated/prisma/`
-- Migrations stored in `migrations/` directory
-
-### Authentication
-- Email-OTP (login code) authentication — see `src/auth/login-codes.ts`
-- User routes in `src/app/pages/user/` handle login/registration
-- Sessions persist via Durable Objects with automatic cleanup on auth errors
-
-## Code Organization Philosophy
-
-### Full-Stack Colocation Pattern
-- **Core Principle**: "Colocate everything until it hurts. Then abstract." (Kent C. Dodds)
-- Code that changes together should live together
-- Place components, logic, styles, and tests in the same folder
-- Prioritize proximity and readability over strict separation of concerns
-
-### Addon Pattern
-- Each addon is a self-contained folder containing:
-  - Pages and routes
-  - Server logic and client components
-  - Database migrations if needed
-  - All related styles and logic
-- Addons are fully pluggable and require no additional configuration
-- Can be easily shared, copied, forked, and customized
-- Embrace duplication over complex, configurable components
-
-### RWSDK Data Fetching Pattern
-**Server Components + Server Functions (NOT JSON APIs)**
-- **Server Components** (Page.tsx): Fetch data directly with async/await, pass to client components as props
-- **Client Components** (UI.tsx): Handle interactivity, call server functions for mutations
-- **Server Functions** (functions.ts): Mark with "use server", handle CRUD operations, use revalidatePath()
-- **JSON APIs**: Only create for external clients (mobile apps, webhooks), NOT for internal UI
-
-**File Structure:**
-```
-src/app/pages/feature/
-  ├── FeaturePage.tsx      # Server component (fetches data)
-  ├── FeatureUI.tsx        # Client component ("use client")
-  ├── functions.ts         # Server functions ("use server")
-  └── routes.ts            # Route definitions
-```
-
-**Example Pattern:**
-```tsx
-// FeaturePage.tsx (server component)
-export async function FeaturePage({ ctx }) {
-  const data = await db.model.findMany({ where: { orgId: ctx.currentOrganization.id }});
-  return <FeatureUI data={data} />
-}
-
-// FeatureUI.tsx (client component)
-"use client";
-import { createItem, updateItem } from "./functions";
-export function FeatureUI({ data }) {
-  const handleSave = async () => {
-    await createItem({ name: "..." });
-  };
-  return <div>...</div>
-}
-
-// functions.ts (server functions)
-"use server";
-import { requestInfo } from "rwsdk/worker";
-import { revalidatePath } from "rwsdk/cache";
-export async function createItem(data) {
-  const { ctx } = requestInfo;
-  await db.model.create({ data: { ...data, organizationId: ctx.currentOrganization.id }});
-  revalidatePath("/feature");
-}
-```
-
-### Component Organization System
-
-**CRITICAL: Follow this pattern for all new features. Updated 2025-12-25.**
-
-#### Philosophy: Primitives in Design System, Compositions in Pages
-
-**Design System (`/src/design-system/`)** - Primitives only:
-- Atoms: Button, Input, Badge, Container, Card, Toggle
-- Shared across 3+ pages OR needed in Figma library
-- No page-specific logic or business rules
-- Import: `import { Button, Container } from '@/design-system'`
-
-**Page Components (`/src/app/pages/[feature]/components/`)** - Feature-specific:
-- Compositions built from design system primitives
-- Live alongside the page that uses them
-- Can duplicate if needed (two different MarketCards OK)
-- Import: `import { Header, MarketCard } from './components'`
-
-#### When Building New Features:
-
-1. **Start with inline components** in your page's UI file
-2. **Extract to `/components/` subfolder** when they get large (>50 lines)
-3. **Only move to design system** if used on 3+ pages
-4. **Use semantic tokens** (`var(--color-action-primary)`, `var(--space-md)`) everywhere
-
-#### Example Structure:
+One folder per feature under `src/features/`, each owning its own
+`routes.tsx` (or `.ts`) and any local queries/components. Shared primitives
+only in `src/ui/`; `src/lib/` for db/env/small utilities. Colocate until it
+hurts, then extract — same spirit as before, restated for Hono.
 
 ```
 src/
-├── design-system/              # Primitives only
-│   ├── Button.tsx              # All button variants (customer + admin)
-│   ├── components/
-│   │   ├── Container.tsx
-│   │   ├── Card.tsx
-│   │   ├── Input.tsx
-│   │   ├── Badge.tsx
-│   │   └── FormControls.tsx
-│   ├── tokens.css              # Design tokens (colors, spacing, etc)
-│   └── index.ts                # Barrel export
-│
-├── app/pages/
-│   ├── home/                   # Home page feature
-│   │   ├── CustomerHome.tsx    # Server component (data fetching)
-│   │   ├── CustomerHomeUI.tsx  # Client component (just wiring)
-│   │   └── components/         # Home-specific components
-│   │       ├── Header.tsx
-│   │       ├── MarketCard.tsx  # Customer-facing version
-│   │       ├── FreshHero.tsx
-│   │       ├── QuickActions.tsx
-│   │       ├── BottomNavigation.tsx
-│   │       └── index.ts
-│   │
-│   └── admin/
-│       ├── dashboard/
-│       │   ├── AdminDashboard.tsx
-│       │   ├── AdminDashboardUI.tsx
-│       │   └── components/     # Admin-specific components
-│       │       └── CompactMarketCard.tsx  # Admin version
-│       └── markets/
-│           └── MarketConfigUI.tsx
+  index.ts
+  types.ts
+  lib/
+    env.ts
+    db.ts
+  ui/
+    document.tsx        # shared HTML shell
+  features/
+    home/
+      routes.tsx
+    health/
+      routes.ts
+prisma/
+  schema.prisma
+  seed.sql
+migrations/              # SQL applied via wrangler d1 migrations
 ```
 
-#### Rules for Component Placement:
+### Request/response conventions
+- Bindings via `c.env` (typed `Bindings` from `src/types.ts`), request-scoped
+  values via `c.var`
+- Server-rendered HTML: `c.html(<Document>...</Document>)` using `hono/jsx`
+- JSON: `c.json(...)`
+- Mount feature routers in `src/index.ts` with `app.route(...)`
 
-**Move to design-system IF:**
-- Used on 3+ different pages, OR
-- Needs to be in Figma library, OR
-- Is a true primitive (Button, Input, Badge, etc)
+### Accessibility floors
+- 48px minimum touch targets, 16px minimum body text
+- AAA contrast targets (see `docs/audit/ux-a11y.md` for the token-level detail)
+- `:focus-visible` on all interactive elements
+- Respect `prefers-reduced-motion`
+- `color-scheme: light dark` — never force light-only (the old app's
+  light-only `<meta name="color-scheme">` was a known bug)
 
-**Keep in page components IF:**
-- Used on 1-2 pages
-- Contains page-specific business logic
-- Frequently changes with page features
+Token system + primitives are not in yet — see `docs/audit/ux-a11y.md` for
+the target design; a later bead ports it into `src/ui/`.
 
-**Duplication is OK:**
-- Different `MarketCard` for customer vs admin = GOOD
-- Lets each evolve independently
-- Follows colocation principle
+## Removed in the rebuild — do not reintroduce
 
-#### Import Patterns:
+- Multi-org / multi-tenant support
+- MCP server integration
+- CommandBar / voice intent router
+- WebAuthn / passkey auth
+- Durable Objects for session storage (signed-cookie sessions instead)
+- `--color-glass-*` / `--tint-*` / `--nav-accent-*` design tokens
+- `@react-email/components` for email templates (plain HTML instead — this
+  broke under rwsdk 1.5+ and isn't worth reintroducing)
 
-```tsx
-// ✅ GOOD - Design system primitives
-import { Button, Container, Card, TextInput } from '@/design-system'
+These are deliberate scope cuts for `v2`, documented in `docs/audit/`. If a
+feature genuinely needs one of these back, treat it as a new decision, not a
+default.
 
-// ✅ GOOD - Page-specific components
-import { Header, MarketCard, QuickActions } from './components'
+## Reference docs
 
-// ❌ BAD - Don't import from other pages
-import { MarketCard } from '@/app/pages/home/components'  // NO!
-
-// ❌ BAD - Don't put page-specific components in design-system
-// If it's only used on one page, it belongs in that page's /components/ folder
-```
-
-#### Testing Design System:
-
-Visit `/design-test` (dev only — the route is not built into production) to see all
-design system primitives. Toggle your OS appearance to check dark mode.
-Page-specific components are tested on their actual pages.
-
-### Component Variants Pattern
-
-For A/B testing or preserving alternate designs:
-- File naming: `Component.v1.tsx`, `Component.v2.tsx`
-- Export naming: `ComponentV1`, `ComponentV2`
-- Swap in barrel export: `export { ComponentV2 as Component } from './Component.v2'`
-- No runtime feature flags - swap in code, one line change
-- Delete old variants when decision made
-
-**Example:**
-```tsx
-// index.ts - single source of truth
-export { FreshHeroV2 as FreshHero } from './FreshHero.v2';  // Change to .v1 to revert
-export { BottomNavigationV2 as BottomNavigation } from './BottomNavigation.v2';
-```
-
-### Design System Tokens
-
-**CRITICAL: Three-tier semantic token system. Never use old flat names.**
-
-#### Token Rules
-- **ALWAYS** use semantic tokens: `var(--color-text-primary)`, `var(--color-surface-primary)`, etc.
-- **NEVER** use old flat tokens: ~~`--deep-navy`~~, ~~`--ocean-blue`~~, ~~`--cool-gray`~~, ~~`--coral`~~, ~~`--mint-fresh`~~, ~~`--warm-gold`~~, ~~`--light-gray`~~, ~~`--warm-white`~~ — these no longer exist
-- **NEVER** hardcode hex values (`#1A2B3D`, `#6B7280`, etc.) — use tokens
-- **NEVER** use raw `rgba()` — use token equivalents
-
-#### Most-Used Tokens (cheat sheet)
-```css
-/* Text */
---color-text-primary        /* headings, body */
---color-text-secondary      /* captions, muted */
---color-text-tertiary       /* placeholders, disabled */
---color-text-inverse        /* white text on colored bg */
-
-/* Actions */
---color-action-primary      /* buttons, links (ocean blue) */
---color-action-secondary    /* secondary CTA (coral) */
-
-/* Surfaces */
---color-surface-primary     /* cards, panels (white / dark) */
---color-surface-secondary   /* subtle backgrounds */
---color-bg-primary          /* page background */
-
-/* Borders */
---color-border-subtle       /* faint separators */
---color-border-light        /* card borders */
---color-border-input        /* form inputs */
-
-/* Status */
---color-status-success      /* green/mint */
---color-status-warning      /* gold */
---color-status-error        /* coral/red */
-
-/* Spacing: --space-xs/sm/md/lg/xl/2xl */
-/* Radius: --radius-sm/md/lg/xl/full */
-/* Font size: --font-size-xs/sm/md/lg/xl/2xl/3xl/4xl/5xl */
-/* Shadows: --shadow-sm/md/lg */
-```
-
-#### References
-- **Full token definitions**: `src/design-system/tokens.css`
-- **Three-tier JSON (Figma source)**: `src/design-system/tokens-three-tier.json`
-- **Design patterns & guidelines**: `src/design-system/patterns.md`
+`docs/audit/` — the pre-rebuild audit: `features.md`, `auth-platform.md`,
+`data-stripe.md`, `ux-a11y.md`, and `REBUILD-PLAN.md` (the plan this rebuild
+follows). Source of truth for design and auth decisions in later beads.
 
 ## Development Notes
 
-- TypeScript paths configured: `@/*` maps to `src/*`, `@generated/*` maps to `generated/*`
-- Uses pnpm as package manager
-- Environment variables needed: `DATABASE_URL`, `RESEND_API_KEY` (for login-code + notification emails)
-- Cloudflare D1 database binding configured as `DB`
-- Update `__change_me__` placeholders in `wrangler.jsonc` for deployment
+- TypeScript path: `@/*` → `src/*`
+- pnpm package manager
+- Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ADMIN_EMAILS` (see `.env.example`)
+- D1 binding: `DB`. Accessed through Prisma (`src/lib/db.ts`); the D1 adapter
+  talks to the binding directly, so `DATABASE_URL` in `prisma/schema.prisma`
+  is a required-but-unused placeholder — `prisma generate`/`migrate diff`
+  never read it, don't bother setting it
+- No prod data has migrated into `v2`'s D1 yet — that's a later cutover bead.
+  `docs/audit/data-stripe.md` §1a and `REBUILD-PLAN.md` §4 record the
+  do-not-migrate list (8 dead `Organization` rows, a stray "Test popup" market)
+- `wrangler.jsonc` worker name / D1 `database_id` are placeholders until the
+  production cutover bead
