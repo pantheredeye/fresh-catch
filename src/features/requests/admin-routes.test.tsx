@@ -251,3 +251,112 @@ describe("#64 vendor-initiated requests", () => {
     expect(await res.text()).toContain("Species is required");
   });
 });
+
+describe("#65 confirm order + mark paid in person", () => {
+  it("confirms an order, posts a quote message, and shows the summary on both admin and customer sides", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const deviceToken = crypto.randomUUID();
+    const request = await createRequest(fishInput({ contactEmail: "buyer@example.com" }), {
+      deviceToken,
+      userId: null,
+    });
+
+    const ctx = createExecutionContext();
+    const confirmRes = await app.request(
+      `/admin/requests/${request.id}/confirm-order`,
+      {
+        method: "POST",
+        body: new URLSearchParams({ price: "45.50", deposit: "10", csrfToken }),
+        headers: { ...formHeaders, Cookie: cookie },
+      },
+      env,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(confirmRes.status).toBe(302);
+
+    const adminHtml = await (await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, env)).text();
+    expect(adminHtml).toContain("$45.50");
+    expect(adminHtml).toContain("Deposit: $10.00");
+    expect(adminHtml).toContain("Unpaid");
+    expect(adminHtml).toContain("Quoted $45.50");
+
+    const customerHtml = await (
+      await app.request(`/requests/${request.id}`, { headers: { Cookie: `device=${deviceToken}` } }, env)
+    ).text();
+    expect(customerHtml).toContain("$45.50");
+
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendEmailMock.mock.calls[0][1].to).toBe("buyer@example.com");
+  });
+
+  it("400s a non-numeric price with the error rendered inline", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+
+    const res = await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "abc", csrfToken });
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("Price must be a number");
+  });
+
+  it("400s confirming an already-confirmed thread", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "10", csrfToken });
+
+    const res = await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "10", csrfToken });
+    expect(res.status).toBe(400);
+  });
+
+  it("403s confirm-order and mark-paid for non-admins", async () => {
+    const { cookie: adminCookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    await post(`/admin/requests/${request.id}/confirm-order`, adminCookie, { price: "10", csrfToken });
+
+    const { cookie } = await mintNonAdminSession(env as unknown as Bindings);
+    const confirmRes = await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "10", csrfToken });
+    expect(confirmRes.status).toBe(403);
+    const payRes = await post(`/admin/requests/${request.id}/mark-paid`, cookie, { amount: "10", method: "cash", csrfToken });
+    expect(payRes.status).toBe(403);
+  });
+
+  it("records a payment, bumps amountPaid, and marks the order paid once fully covered", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "20", csrfToken });
+
+    const partialRes = await post(`/admin/requests/${request.id}/mark-paid`, cookie, {
+      amount: "12",
+      method: "venmo",
+      csrfToken,
+    });
+    expect(partialRes.status).toBe(302);
+
+    let html = await (await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain("Paid so far: $12.00");
+    expect(html).toContain("Unpaid");
+
+    await post(`/admin/requests/${request.id}/mark-paid`, cookie, { amount: "8", method: "cash", csrfToken });
+    html = await (await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain("Paid so far: $20.00");
+    expect(html).toContain(">Paid<");
+  });
+
+  it("400s marking paid when there's no order yet", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+
+    const res = await post(`/admin/requests/${request.id}/mark-paid`, cookie, { amount: "10", method: "cash", csrfToken });
+    expect(res.status).toBe(400);
+  });
+
+  it("403s confirm-order and mark-paid without a csrf token", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+
+    const confirmRes = await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "10" });
+    expect(confirmRes.status).toBe(403);
+    const payRes = await post(`/admin/requests/${request.id}/mark-paid`, cookie, { amount: "10", method: "cash" });
+    expect(payRes.status).toBe(403);
+  });
+});
