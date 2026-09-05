@@ -69,6 +69,15 @@ function parseAiJson(raw: string): CatchContent {
   return validateCatchContent(JSON.parse(stripped));
 }
 
+/** Parses a stored `CatchUpdate.formattedContent` JSON string, or null if it's unreadable. */
+export function parseCatchContent(json: string): CatchContent | null {
+  try {
+    return validateCatchContent(JSON.parse(json));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * No `AI` binding (C9: no local emulation) — a deterministic, non-AI draft
  * so text input still works in local dev and in tests. One line per item,

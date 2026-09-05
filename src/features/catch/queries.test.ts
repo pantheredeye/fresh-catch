@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { setupDb, db } from "@/lib/db";
 import type { Bindings } from "@/types";
-import { getLiveCatchUpdate, publishCatchUpdate } from "./queries";
+import { getLiveCatchUpdate, isCatchUpdateFresh, publishCatchUpdate } from "./queries";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
@@ -40,5 +40,28 @@ describe("getLiveCatchUpdate", () => {
   it("returns null when there is no live row", async () => {
     await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
     expect(await getLiveCatchUpdate()).toBeNull();
+  });
+});
+
+describe("isCatchUpdateFresh (#58's 7-day staleness cutoff)", () => {
+  const now = new Date("2026-01-08T00:00:00Z");
+
+  it("treats a just-published row as fresh", () => {
+    expect(isCatchUpdateFresh({ createdAt: now }, now)).toBe(true);
+  });
+
+  it("treats a row just under 7 days old as fresh", () => {
+    const createdAt = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000 - 1000));
+    expect(isCatchUpdateFresh({ createdAt }, now)).toBe(true);
+  });
+
+  it("treats a row exactly 7 days old as stale", () => {
+    const createdAt = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    expect(isCatchUpdateFresh({ createdAt }, now)).toBe(false);
+  });
+
+  it("treats an old row as stale", () => {
+    const createdAt = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    expect(isCatchUpdateFresh({ createdAt }, now)).toBe(false);
   });
 });

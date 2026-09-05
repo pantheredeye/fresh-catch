@@ -5,6 +5,7 @@ import type { Bindings } from "@/types";
 import {
   cancelMarket,
   createMarket,
+  deriveMarketStatus,
   getMarket,
   listActiveMarkets,
   listLivePopups,
@@ -148,6 +149,25 @@ describe("createMarket / updateMarket / getMarket", () => {
 
   it("returns null from getMarket for an unknown id", async () => {
     expect(await getMarket("does-not-exist")).toBeNull();
+  });
+});
+
+describe("deriveMarketStatus (single-row version of C4, powers the public detail page)", () => {
+  it("returns 'active' for an active regular market, 'inactive' once deactivated", async () => {
+    const regular = await createMarket(marketInput({ name: `Status ${crypto.randomUUID()}` }));
+    expect(deriveMarketStatus(regular)).toBe("active");
+    const deactivated = await cancelMarket(regular.id);
+    expect(deriveMarketStatus(deactivated!)).toBe("inactive");
+  });
+
+  it("returns 'live' for an unexpired, uncancelled popup and 'past' once expired or cancelled", async () => {
+    const popup = await createMarket(
+      marketInput({ type: "popup", name: `Status ${crypto.randomUUID()}`, expiresAt: new Date(Date.now() + 60_000) }),
+    );
+    expect(deriveMarketStatus(popup)).toBe("live");
+
+    const cancelled = await cancelMarket(popup.id);
+    expect(deriveMarketStatus(cancelled!)).toBe("past");
   });
 });
 

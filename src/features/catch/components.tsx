@@ -1,19 +1,11 @@
 import type { FC } from "hono/jsx";
 import type { CatchUpdate } from "@/lib/db";
 import { Textarea } from "@/ui/textarea";
-import type { CatchContent } from "./pipeline";
-
-function parseFormattedContent(json: string): CatchContent | null {
-  try {
-    return JSON.parse(json) as CatchContent;
-  } catch {
-    return null;
-  }
-}
+import { parseCatchContent } from "./pipeline";
 
 const LiveCatch: FC<{ live: CatchUpdate | null }> = ({ live }) => {
   if (!live) return <p>No live catch update yet.</p>;
-  const content = parseFormattedContent(live.formattedContent);
+  const content = parseCatchContent(live.formattedContent);
   if (!content) return <p>Live catch update has unreadable content.</p>;
 
   return (

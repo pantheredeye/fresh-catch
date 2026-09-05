@@ -44,6 +44,17 @@ export function getMarket(id: string): Promise<Market | null> {
   return db.market.findUnique({ where: { id } });
 }
 
+export type MarketStatus = "active" | "inactive" | "live" | "past";
+
+/** Single-row version of the live/past derivation above (C4) — powers the public detail page (#58). */
+export function deriveMarketStatus(market: Market, now = new Date()): MarketStatus {
+  if (market.type === "popup") {
+    const isLive = market.cancelledAt === null && (market.expiresAt === null || market.expiresAt > now);
+    return isLive ? "live" : "past";
+  }
+  return market.active ? "active" : "inactive";
+}
+
 export function createMarket(data: MarketInput): Promise<Market> {
   return db.market.create({ data });
 }
