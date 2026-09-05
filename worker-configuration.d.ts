@@ -3,6 +3,7 @@
 // Runtime types generated with workerd@1.20260714.1 2025-08-21 nodejs_compat
 interface __BaseEnv_Env {
 	DB: D1Database;
+	AI: Ai;
 	ASSETS: Fetcher;
 	ADMIN_EMAILS: "barrett@digitalglue.dev";
 	APP_URL: "http://localhost:5173";
