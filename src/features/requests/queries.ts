@@ -12,22 +12,36 @@ function openingMessageBody(data: RequestInput): string {
   return data.notes ? `${headline}\n\n${data.notes}` : headline;
 }
 
-/** Creates the request and its opening customer message in one call — a thread never starts empty. */
+export type RequestOrigin = "customer" | "vendor";
+
+/**
+ * Creates the request and its opening message in one call — a thread never
+ * starts empty. `origin: "vendor"` is #64's second entry point (Evan's
+ * "New request" button): no device token, opening message is `sender:
+ * "vendor"`, and it's born `status: "confirmed"` instead of the default
+ * `"open"`.
+ */
 export async function createRequest(
   data: RequestInput,
-  identity: { deviceToken: string; userId: string | null },
+  identity: { deviceToken: string | null; userId: string | null },
+  options: { origin?: RequestOrigin; status?: RequestStatus } = {},
 ): Promise<FishRequest> {
+  const origin = options.origin ?? "customer";
+  const status = options.status ?? "open";
+  const sender: MessageSender = origin === "vendor" ? "vendor" : "customer";
   const now = new Date();
   const request = await db.fishRequest.create({
     data: {
       ...data,
       deviceToken: identity.deviceToken,
       userId: identity.userId,
+      origin,
+      status,
       lastMessageAt: now,
     },
   });
   await db.requestMessage.create({
-    data: { requestId: request.id, sender: "customer", body: openingMessageBody(data), createdAt: now },
+    data: { requestId: request.id, sender, body: openingMessageBody(data), createdAt: now },
   });
   return request;
 }
@@ -88,12 +102,19 @@ export async function claimRequestsForUser(deviceToken: string, userId: string):
   await db.fishRequest.updateMany({ where: { deviceToken, userId: null }, data: { userId } });
 }
 
-/** R2: device token OR session user OR admin. A bare unguessable id in the URL is not itself authorization. */
+/**
+ * R2: device token OR session user OR admin. A bare unguessable id in the
+ * URL is not itself authorization — except for `origin: "vendor"` threads
+ * (#64), which are created with no device token or account at all; the
+ * emailed deep link to the unguessable id *is* the access control, since
+ * that's the only way a walk-up customer without an account reaches it.
+ */
 export function canViewRequest(
-  request: Pick<FishRequest, "deviceToken" | "userId">,
+  request: Pick<FishRequest, "deviceToken" | "userId" | "origin">,
   viewer: { deviceToken: string; userId: string | null; isAdmin: boolean },
 ): boolean {
   if (viewer.isAdmin) return true;
+  if (request.origin === "vendor") return true;
   if (request.userId && request.userId === viewer.userId) return true;
   if (request.deviceToken && request.deviceToken === viewer.deviceToken) return true;
   return false;

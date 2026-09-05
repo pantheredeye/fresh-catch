@@ -173,7 +173,7 @@ describe("claimRequestsForUser", () => {
 });
 
 describe("canViewRequest", () => {
-  const request = { deviceToken: "device-a", userId: "user-a" };
+  const request = { deviceToken: "device-a", userId: "user-a", origin: "customer" };
 
   it("allows admin regardless of identity", () => {
     expect(canViewRequest(request, { deviceToken: "other", userId: null, isAdmin: true })).toBe(true);
@@ -186,5 +186,10 @@ describe("canViewRequest", () => {
 
   it("denies a mismatched viewer", () => {
     expect(canViewRequest(request, { deviceToken: "other", userId: "other-user", isAdmin: false })).toBe(false);
+  });
+
+  it("allows any viewer on a vendor-initiated thread (deep link is the access control)", () => {
+    const vendorRequest = { deviceToken: null, userId: null, origin: "vendor" };
+    expect(canViewRequest(vendorRequest, { deviceToken: "anyone", userId: null, isAdmin: false })).toBe(true);
   });
 });
