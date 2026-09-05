@@ -14,6 +14,9 @@ adminRoutes.get("/admin", requireAdmin(), (c) => {
         <p>
           <a href="/admin/markets">Markets</a>
         </p>
+        <p>
+          <a href="/admin/catch">Catch of the week</a>
+        </p>
       </main>
     </Document>,
   );
