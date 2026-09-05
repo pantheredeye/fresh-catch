@@ -13,8 +13,15 @@ import { marketRoutes } from "./features/markets/routes";
 import { catchAdminRoutes } from "./features/catch/admin-routes";
 import { requestRoutes } from "./features/requests/routes";
 import { requestsAdminRoutes } from "./features/requests/admin-routes";
+import { stripeWebhookRoutes } from "./features/payments/webhook";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// Registered ahead of every middleware below — Hono runs handlers in
+// registration order, so the Stripe webhook keeps its raw body (signature
+// verification needs the exact bytes) and never mints a device cookie. It
+// calls `setupDb` itself. See features/payments/webhook.ts.
+app.route("/", stripeWebhookRoutes);
 
 app.use("*", async (c, next) => {
   checkRequiredSecretsOnce(c.env);
