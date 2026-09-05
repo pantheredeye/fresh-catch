@@ -5,6 +5,7 @@ type InputProps = {
   name: string;
   label: string;
   type?: string;
+  inputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   placeholder?: string;
   required?: boolean;
   value?: string;
@@ -18,6 +19,7 @@ export const Input: FC<InputProps> = ({
   name,
   label,
   type = "text",
+  inputMode,
   placeholder,
   required,
   value,
@@ -35,6 +37,7 @@ export const Input: FC<InputProps> = ({
         id={id}
         name={name}
         type={type}
+        inputmode={inputMode}
         placeholder={placeholder}
         required={required}
         value={value}
