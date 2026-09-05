@@ -160,6 +160,15 @@ body {
   background: var(--color-bg-primary);
 }
 
+a {
+  color: var(--color-action-primary);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 /* Button */
 .btn {
   display: inline-flex;
@@ -252,6 +261,43 @@ body {
 }
 
 .field-input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.field-textarea {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid var(--color-border-input);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  resize: vertical;
+}
+
+.field-textarea:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.field-select {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-sm);
+  border: 2px solid var(--color-border-input);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+}
+
+.field-select:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
@@ -354,4 +400,66 @@ body {
 .sheet-body {
   padding: 0 var(--space-md) var(--space-md);
   overflow-y: auto;
+}
+
+/* Page layout (admin markets list, past-popups archive) */
+.page {
+  max-width: var(--width-md);
+  margin: 0 auto;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.market-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-primary);
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-xs);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge-live {
+  background: rgba(0, 217, 177, 0.2); /* --color-status-success-fill at 20% — same hex in both themes */
+  color: var(--color-status-success-text);
+}
+
+.badge-past {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+}
+
+/* Customer landing (#58) */
+.page > .card:first-of-type {
+  border-left: 4px solid var(--color-action-primary-fill);
+  box-shadow: var(--shadow-md);
+}
+
+.market-card h3 {
+  font-size: var(--font-size-lg);
+}
+
+.market-card h3 a {
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+}
+
+.market-card h3 a:hover {
+  text-decoration: underline;
 }

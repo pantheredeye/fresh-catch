@@ -7,6 +7,9 @@ export type Bindings = {
   APP_URL: string;
   SESSION_SECRET?: string;
   RESEND_API_KEY?: string;
+  // Optional: no local emulation (C9). Falls back to a non-AI draft path
+  // when unset — see features/catch/pipeline.ts.
+  AI?: Ai;
 };
 
 export type Variables = {

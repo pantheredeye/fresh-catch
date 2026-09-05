@@ -1,6 +1,8 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import type { Bindings } from "@/types";
 import app from "../../index";
+import { mintAdminSession, mintNonAdminSession } from "./test-helpers";
 
 const formHeaders = { "Content-Type": "application/x-www-form-urlencoded" };
 
@@ -75,18 +77,14 @@ describe("login flow", () => {
   });
 
   it("blocks a non-admin from /admin", async () => {
-    const email = `nonadmin-${crypto.randomUUID()}@example.com`;
-    const verifyRes = await loginAs(email);
-    const cookie = sessionCookie(verifyRes);
+    const { cookie } = await mintNonAdminSession(env as unknown as Bindings);
 
     const adminRes = await app.request("/admin", { headers: { Cookie: cookie } }, env);
     expect(adminRes.status).toBe(403);
   });
 
   it("blocks logout without a matching csrf token", async () => {
-    const email = `logout-${crypto.randomUUID()}@example.com`;
-    const verifyRes = await loginAs(email);
-    const cookie = sessionCookie(verifyRes);
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
 
     const badLogout = await app.request(
       "/logout",

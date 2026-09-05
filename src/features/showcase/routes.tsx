@@ -3,6 +3,8 @@ import type { Bindings } from "../../types";
 import { Document } from "../../ui/document";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
+import { Textarea } from "../../ui/textarea";
+import { Select } from "../../ui/select";
 import { Card } from "../../ui/card";
 import { Sheet } from "../../ui/sheet";
 
@@ -53,6 +55,32 @@ if (import.meta.env.DEV) {
               name="phone"
               label="Phone"
               errorText="Enter a 10-digit phone number."
+            />
+          </section>
+
+          <section>
+            <h2>Textarea</h2>
+            <Textarea
+              id="notes"
+              name="notes"
+              label="Notes"
+              placeholder="Vendor-facing notes"
+              helperText="Plain text, no markdown."
+            />
+            <Textarea id="notes-error" name="notesError" label="Notes" errorText="Must be 1000 characters or less." />
+          </section>
+
+          <section>
+            <h2>Select</h2>
+            <Select
+              id="expiresHour"
+              name="expiresHour"
+              label="Expires hour (UTC)"
+              value="18"
+              options={Array.from({ length: 24 }, (_, hour) => ({
+                value: String(hour),
+                label: String(hour).padStart(2, "0") + ":00",
+              }))}
             />
           </section>
 

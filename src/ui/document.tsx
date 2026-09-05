@@ -1,7 +1,14 @@
 import type { FC, PropsWithChildren } from "hono/jsx";
 
-export const Document: FC<PropsWithChildren<{ title?: string }>> = ({
+/**
+ * `deviceToken` (optional) is rendered into `<body data-device-token>` so
+ * client islands — the favorites island (#58), keyed to the device cookie
+ * per its shape in `useFavorites.ts` on `main` — can read it without the
+ * cookie itself being readable (it's httpOnly).
+ */
+export const Document: FC<PropsWithChildren<{ title?: string; deviceToken?: string }>> = ({
   title = "Fresh Catch",
+  deviceToken,
   children,
 }) => (
   <html lang="en">
@@ -13,6 +20,6 @@ export const Document: FC<PropsWithChildren<{ title?: string }>> = ({
       <title>{title}</title>
       <link rel="stylesheet" href="/style.css" />
     </head>
-    <body>{children}</body>
+    <body data-device-token={deviceToken}>{children}</body>
   </html>
 );

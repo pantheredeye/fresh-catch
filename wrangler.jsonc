@@ -20,5 +20,9 @@
       "database_name": "fresh-catch-v2",
       "database_id": "__replace_at_cutover__"
     }
-  ]
+  ],
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  }
 }

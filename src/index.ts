@@ -8,6 +8,9 @@ import { healthRoutes } from "./features/health/routes";
 import { showcaseRoutes } from "./features/showcase/routes";
 import { authRoutes } from "./features/auth/routes";
 import { adminRoutes } from "./features/admin/routes";
+import { marketsAdminRoutes } from "./features/markets/admin-routes";
+import { marketRoutes } from "./features/markets/routes";
+import { catchAdminRoutes } from "./features/catch/admin-routes";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -25,5 +28,8 @@ app.route("/", healthRoutes);
 app.route("/", showcaseRoutes);
 app.route("/", authRoutes);
 app.route("/", adminRoutes);
+app.route("/", marketsAdminRoutes);
+app.route("/", marketRoutes);
+app.route("/", catchAdminRoutes);
 
 export default app;
