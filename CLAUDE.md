@@ -15,7 +15,7 @@ and `@cloudflare/vite-plugin`. No React, no RedwoodSDK.
 
 - **Hono** — routing, middleware, request/response (`hono/jsx` for server render)
 - **Vite** (`@cloudflare/vite-plugin`) — dev server + build, worker + client bundling
-- **D1** — SQLite on Cloudflare (raw `env.DB` for now; Prisma lands in a later bead)
+- **D1** — SQLite on Cloudflare, via **Prisma** (`@prisma/adapter-d1`)
 - **Vitest** (`@cloudflare/vitest-pool-workers`) — tests run inside a real Workers runtime
 
 ### Why not RedwoodSDK
@@ -40,15 +40,22 @@ the old RedwoodSDK app until `v2` is ready to replace it in production.
 ## Commands
 
 ```bash
-pnpm run dev        # vite dev — serves the worker + client assets
-pnpm run build      # vite build
-pnpm run preview    # preview a production build
-pnpm run deploy     # wrangler deploy (no migration step yet)
-pnpm run types      # tsc
-pnpm run generate   # wrangler types — regenerates worker-configuration.d.ts
-pnpm test           # vitest run
+pnpm run dev          # vite dev — serves the worker + client assets
+pnpm run build        # vite build
+pnpm run preview      # preview a production build
+pnpm run deploy       # migrate:prd, then wrangler deploy
+pnpm run types        # tsc
+pnpm run generate     # prisma generate + wrangler types
+pnpm test             # vitest run (applies D1 migrations to a fresh test DB first)
 pnpm run test:watch
+pnpm run migrate:dev  # prisma generate + apply migrations to local D1
+pnpm run migrate:prd  # apply migrations to remote D1
+pnpm run seed         # apply prisma/seed.sql to local D1
 ```
+
+New migration: hand-edit `prisma/schema.prisma`, then generate the SQL with
+`prisma migrate diff --from-migrations migrations --to-schema-datamodel prisma/schema.prisma --script --output migrations/000N_name.sql`
+and apply with `pnpm run migrate:dev`.
 
 ## Architecture
 
@@ -56,6 +63,8 @@ pnpm run test:watch
 - `src/index.ts` — Hono app entry: bindings, middleware chain, route mounts, default export
 - `src/types.ts` — `Bindings` type (`c.env`)
 - `src/lib/env.ts` — required-secret checks
+- `src/lib/db.ts` — Prisma client, lazily instantiated per isolate with the D1 adapter
+- `prisma/schema.prisma` — data model; `migrations/` holds the generated SQL, applied via `wrangler d1 migrations`
 - `src/ui/document.tsx` — hono/jsx HTML shell
 - `wrangler.jsonc` — Cloudflare config. Worker name is `fresh-catch-v2` (new
   identity, isolated from the live `digitalglue-market` worker and its
@@ -74,6 +83,7 @@ src/
   types.ts
   lib/
     env.ts
+    db.ts
   ui/
     document.tsx        # shared HTML shell
   features/
@@ -81,6 +91,10 @@ src/
       routes.tsx
     health/
       routes.ts
+prisma/
+  schema.prisma
+  seed.sql
+migrations/              # SQL applied via wrangler d1 migrations
 ```
 
 ### Request/response conventions
@@ -127,6 +141,12 @@ follows). Source of truth for design and auth decisions in later beads.
 - TypeScript path: `@/*` → `src/*`
 - pnpm package manager
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ADMIN_EMAILS` (see `.env.example`)
-- D1 binding: `DB`
+- D1 binding: `DB`. Accessed through Prisma (`src/lib/db.ts`); the D1 adapter
+  talks to the binding directly, so `DATABASE_URL` in `prisma/schema.prisma`
+  is a required-but-unused placeholder — `prisma generate`/`migrate diff`
+  never read it, don't bother setting it
+- No prod data has migrated into `v2`'s D1 yet — that's a later cutover bead.
+  `docs/audit/data-stripe.md` §1a and `REBUILD-PLAN.md` §4 record the
+  do-not-migrate list (8 dead `Organization` rows, a stray "Test popup" market)
 - `wrangler.jsonc` worker name / D1 `database_id` are placeholders until the
   production cutover bead
