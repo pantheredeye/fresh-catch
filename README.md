@@ -1,62 +1,35 @@
-# Standard RedwoodSDK Starter
+# Fresh Catch
 
-This "standard starter" is the recommended implementation for RedwoodSDK. You get a Typescript project with:
+Hono on Cloudflare Workers, D1, Vite.
 
-- Vite
-- database (Prisma via D1)
-- Session Management (via DurableObjects)
-- Passkey authentication (Webauthn)
-- Storage (via R2)
-
-## Creating your project
+## Develop
 
 ```shell
-npx create-rwsdk my-project-name
-cd my-project-name
-npm install
-```
-
-## Running the dev server
-
-```shell
+pnpm install
 pnpm run dev
 ```
 
-Point your browser to the URL displayed in the terminal (e.g. `http://localhost:5173/`). You should see a "Hello World" message in your browser.
+Point your browser to the URL printed in the terminal (e.g.
+`http://localhost:5173/`).
 
-## Deploying your app
-
-### Wrangler Setup
-
-Within your project's `wrangler.jsonc`:
-
-- Replace the `__change_me__` placeholders with a name for your application
-
-- Create a new D1 database:
+## Test
 
 ```shell
-npx wrangler d1 create my-project-db
+pnpm test
 ```
 
-Copy the database ID provided and paste it into your project's `wrangler.jsonc` file:
+## Deploy
 
-```jsonc
-{
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "my-project-db",
-      "database_id": "your-database-id",
-    },
-  ],
-}
+```shell
+pnpm run deploy
 ```
 
-### Authentication Setup
+`wrangler.jsonc`'s worker name and D1 `database_id` are placeholders until
+production cutover — see `CLAUDE.md`.
 
-For authentication setup and configuration, including optional bot protection, see the [Authentication Documentation](https://docs.rwsdk.com/core/authentication).
+## Further reading
 
-## Further Reading
-
-- [RedwoodSDK Documentation](https://docs.rwsdk.com/)
-- [Cloudflare Workers Secrets](https://developers.cloudflare.com/workers/runtime-apis/secrets/)
+- `CLAUDE.md` — stack, conventions, git workflow
+- `docs/audit/` — the audit and rebuild plan this app follows
+- [Hono docs](https://hono.dev/)
+- [Cloudflare Workers docs](https://developers.cloudflare.com/workers/)
