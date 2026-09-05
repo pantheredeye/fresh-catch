@@ -3,6 +3,7 @@ import { getCookie, setCookie } from "hono/cookie";
 import type { Bindings, Variables } from "@/types";
 import { requireSecret } from "@/lib/env";
 import { parseSessionValue, SESSION_COOKIE_NAME } from "./session";
+import { requireCsrf } from "./csrf";
 
 const DEVICE_COOKIE_NAME = "device";
 const DEVICE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
@@ -59,6 +60,23 @@ export function requireAdmin(): MiddlewareHandler<{ Bindings: Bindings; Variable
     const session = c.var.session;
     if (!session?.isAdmin) {
       return c.text("Forbidden", 403);
+    }
+    await next();
+  };
+}
+
+/**
+ * C8: every admin POST carries a CSRF hidden input, checked here instead of
+ * copy-pasted per route (`/logout` proved the pattern first). `parseBody()`
+ * caches its result on the request, so the route handler can call it again
+ * afterward without re-reading the body.
+ */
+export function csrfProtect(): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
+  return async (c, next) => {
+    const body = await c.req.parseBody();
+    const submitted = typeof body.csrfToken === "string" ? body.csrfToken : undefined;
+    if (!requireCsrf(c.var.session?.csrfToken, submitted)) {
+      return c.text("Your session expired. Please refresh the page and try again.", 403);
     }
     await next();
   };

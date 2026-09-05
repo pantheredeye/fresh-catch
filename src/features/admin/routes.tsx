@@ -11,6 +11,9 @@ adminRoutes.get("/admin", requireAdmin(), (c) => {
       <main>
         <h1>Admin</h1>
         <p>Signed in as {c.var.session?.email}.</p>
+        <p>
+          <a href="/admin/markets">Markets</a>
+        </p>
       </main>
     </Document>,
   );
