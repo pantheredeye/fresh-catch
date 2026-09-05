@@ -16,6 +16,9 @@ import { notifyCustomerOfVendorReply } from "./notifications";
 import { parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
 import { AdminReplyForm, InboxRow, RequestForm, RequestHeaderCard, StatusForm, Thread, requestTitle } from "./components";
 import { rawToFormValues } from "./routes";
+import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard, formatCents } from "@/features/orders/components";
+import { confirmOrderForRequest, recordPayment } from "@/features/orders/queries";
+import { parseConfirmOrderForm, parseMarkPaidForm } from "@/features/orders/validation";
 
 export const requestsAdminRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -134,6 +137,14 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
           <a href="/admin/requests">← Requests</a>
         </p>
         <RequestHeaderCard request={request} />
+        {request.order ? (
+          <OrderSummaryCard order={request.order} />
+        ) : (
+          <ConfirmOrderForm action={`/admin/requests/${request.id}/confirm-order`} csrfToken={csrfToken} />
+        )}
+        {request.order && !request.order.paidAt ? (
+          <MarkPaidForm action={`/admin/requests/${request.id}/mark-paid`} csrfToken={csrfToken} />
+        ) : null}
         <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
         <AdminReplyForm
           action={`/admin/requests/${request.id}/messages`}
@@ -144,6 +155,74 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
       </main>
     </Document>,
   );
+});
+
+/** Issue #65: price (dollars → cents) + optional deposit → linked Order, request confirmed, quote posted as a vendor message. */
+requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), async (c) => {
+  const request = await getRequestWithMessages(c.req.param("id"));
+  if (!request) return c.text("Not found", 404);
+  // One order per thread — the unique index on Order.requestId is the backstop, this is the friendly path.
+  if (request.order) return c.text("Order already confirmed", 400);
+
+  const body = await c.req.parseBody();
+  const result = parseConfirmOrderForm(body);
+
+  if (!result.success) {
+    return c.html(
+      <Document title={`${requestTitle(request)} — Admin`}>
+        <main class="page stack">
+          <RequestHeaderCard request={request} />
+          <ConfirmOrderForm
+            action={`/admin/requests/${request.id}/confirm-order`}
+            csrfToken={c.var.session!.csrfToken}
+            errors={result.errors}
+          />
+          <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+        </main>
+      </Document>,
+      400,
+    );
+  }
+
+  const order = await confirmOrderForRequest(request, result.data);
+  const quoteBody =
+    `Quoted ${formatCents(order.price!)} for this order.` +
+    (order.depositAmount != null ? ` Deposit of ${formatCents(order.depositAmount)} requested.` : "");
+  await appendMessage(request.id, "vendor", quoteBody);
+  runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
+
+  return c.redirect(`/admin/requests/${request.id}`);
+});
+
+/** Mark-paid-in-person (issue #65) — no Stripe. Records a Payment ledger row and bumps the order's amountPaid. */
+requestsAdminRoutes.post("/admin/requests/:id/mark-paid", csrfProtect(), async (c) => {
+  const request = await getRequestWithMessages(c.req.param("id"));
+  if (!request) return c.text("Not found", 404);
+  if (!request.order) return c.text("No order to pay", 400);
+
+  const body = await c.req.parseBody();
+  const result = parseMarkPaidForm(body);
+
+  if (!result.success) {
+    return c.html(
+      <Document title={`${requestTitle(request)} — Admin`}>
+        <main class="page stack">
+          <RequestHeaderCard request={request} />
+          <OrderSummaryCard order={request.order} />
+          <MarkPaidForm
+            action={`/admin/requests/${request.id}/mark-paid`}
+            csrfToken={c.var.session!.csrfToken}
+            errors={result.errors}
+          />
+          <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+        </main>
+      </Document>,
+      400,
+    );
+  }
+
+  await recordPayment(request.order, result.data);
+  return c.redirect(`/admin/requests/${request.id}`);
 });
 
 requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c) => {

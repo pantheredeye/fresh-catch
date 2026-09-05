@@ -26,6 +26,7 @@ import {
   requestTitle,
   type RequestFormValues,
 } from "./components";
+import { OrderSummaryCard } from "@/features/orders/components";
 
 export const requestRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -154,6 +155,7 @@ requestRoutes.get("/requests/:id", async (c) => {
           <a href="/requests">← My requests</a>
         </p>
         <RequestHeaderCard request={request} />
+        {request.order ? <OrderSummaryCard order={request.order} /> : null}
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
         <MessageForm action={`/requests/${request.id}/messages`} csrfToken={csrfToken} />
       </main>

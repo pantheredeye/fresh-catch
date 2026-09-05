@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { FishRequest, RequestMessage } from "@/lib/db";
+import type { OrderWithPayments } from "@/features/orders/queries";
 import type { RequestInput, RequestStatus } from "./validation";
 
 export type MessageSender = "customer" | "vendor";
@@ -50,10 +51,16 @@ export function getRequest(id: string): Promise<FishRequest | null> {
   return db.fishRequest.findUnique({ where: { id } });
 }
 
-export function getRequestWithMessages(id: string): Promise<(FishRequest & { messages: RequestMessage[] }) | null> {
+export type RequestWithMessages = FishRequest & { messages: RequestMessage[]; order: OrderWithPayments | null };
+
+/** Order summary card (#65) needs the linked order + its payment ledger alongside the thread. */
+export function getRequestWithMessages(id: string): Promise<RequestWithMessages | null> {
   return db.fishRequest.findUnique({
     where: { id },
-    include: { messages: { orderBy: { createdAt: "asc" } } },
+    include: {
+      messages: { orderBy: { createdAt: "asc" } },
+      order: { include: { payments: { orderBy: { createdAt: "desc" } } } },
+    },
   });
 }
 
