@@ -69,3 +69,4 @@ generated/
 
 # Claude Code agent worktrees
 .claude/worktrees/
+scripts/cutover/export/

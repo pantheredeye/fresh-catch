@@ -11,22 +11,23 @@
 # this script only reads and writes local JSON files, nothing else.
 set -euo pipefail
 
-V1_DATABASE="digitalglue-market" # 71d2e8c4-b9a8-48ea-9fc5-550a9206ea61
+V1_DATABASE="fresh-catch-evan-prod" # 71d2e8c4-b9a8-48ea-9fc5-550a9206ea61 (runbook had wrong name "digitalglue-market")
+WRANGLER="${WRANGLER:-pnpm exec wrangler}" # override with WRANGLER=wrangler if global install
 OUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/export"
 mkdir -p "$OUT_DIR"
 
 echo "Exporting Market..."
-wrangler d1 execute "$V1_DATABASE" --remote --json \
+$WRANGLER d1 execute "$V1_DATABASE" --remote --json \
   --command "SELECT id, organizationId, name, schedule, subtitle, locationDetails, customerInfo, active, createdAt, updatedAt, type, expiresAt, catchPreview, notes, rawTranscript, cancelledAt, county, city FROM Market ORDER BY createdAt;" \
   > "$OUT_DIR/market.json"
 
 echo "Exporting CatchUpdate..."
-wrangler d1 execute "$V1_DATABASE" --remote --json \
+$WRANGLER d1 execute "$V1_DATABASE" --remote --json \
   --command "SELECT id, organizationId, recordedBy, rawTranscript, formattedContent, status, createdAt, updatedAt FROM CatchUpdate ORDER BY createdAt;" \
   > "$OUT_DIR/catchupdate.json"
 
 echo "Exporting User..."
-wrangler d1 execute "$V1_DATABASE" --remote --json \
+$WRANGLER d1 execute "$V1_DATABASE" --remote --json \
   --command "SELECT id, username, email, name, phone, deletedAt, createdAt FROM User ORDER BY createdAt;" \
   > "$OUT_DIR/user.json"
 

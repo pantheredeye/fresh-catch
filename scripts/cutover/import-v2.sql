@@ -1,85 +1,42 @@
 -- Cutover data import for v2 — run at G4 (docs/CUTOVER.md), after
--- migrate:prd and after running export-v1.sh.
+-- migrate:prd and export-v1.sh. GENERATED from scripts/cutover/export/*.json
+-- (2026-09-06) — real rows, ready to run after review.
 --
--- The Vendor row below has fixed, known values — it's ready to run as-is.
--- The Market/CatchUpdate/User INSERTs are ONE EXAMPLE ROW EACH, shaped from
--- the real column list in export-v1.sh's queries. Hand-author (and
--- hand-review) the rest from scripts/cutover/export/{market,catchupdate,user}.json
--- before running this file — do not run it with the example rows still in
--- place. SQLite booleans are 0/1 integers (Prisma's mapping).
---
--- Do-not-migrate (docs/audit/data-stripe.md §1a, REBUILD-PLAN.md §4):
---   - Organization x9 / Membership / Invite / Credential / ShareEvent — v2
---     has no target table for any of these; nothing to transcribe.
---   - The "Test popup" Market row (schedule "This weekemd", a manual test,
---     see data-stripe.md §3) — skip it when transcribing market.json.
---   - Orders (6) / Conversations (4) + Messages (19) / Payment / LoginCode —
---     dropped per the plan-review comment on issue #61 ("app isn't in prod
---     yet, still testing — fake test data"). Do not migrate.
+-- Dropped per do-not-migrate list (data-stripe.md §1a, REBUILD-PLAN.md §4,
+-- issue #61 plan comment): Organization/Membership/Invite/Credential/
+-- ShareEvent, Orders, Conversations+Messages, Payment, LoginCode, and the
+-- "Test popup" Market row. organizationId columns dropped (single vendor).
+-- User: v1 username/deletedAt dropped; isAdmin=1 only for the ADMIN_EMAILS
+-- address. CatchUpdate.recordedBy kept verbatim (plain string, no FK; 8 of
+-- 11 reference users deleted in the multi-vendor era — harmless history).
 
--- One row, fixed values — not from export-v1.sh, new to v2's schema.
+-- Vendor: one fixed row, new to v2. Stripe fields NULL/0 — Evan has no
+-- Connect account yet (see docs/CUTOVER.md "Stripe enablement").
 INSERT INTO Vendor (id, name, stripeAccountId, stripeOnboardingComplete, platformFeeBps, notificationEmail)
-VALUES (
-  lower(hex(randomblob(16))),
-  'Fresh Catch',
-  NULL, -- Evan has NO real Connect account yet (2026-09-06); the old
-        -- acct_1U6UxbIM9hQlA7cd was the test-sandbox link, don't carry it.
-        -- Set after launch via docs/CUTOVER.md "Stripe enablement".
-  0, -- stays 0 until Evan's real Connect onboarding completes post-launch.
-  500,
-  NULL -- TODO: Evan's notification email (same address as the ADMIN_EMAILS entry in wrangler.jsonc)
-);
+VALUES (lower(hex(randomblob(16))), 'Fresh Catch', NULL, 0, 500, 'barrett@digitalglue.dev');
 
--- Market — EXAMPLE ROW. Same columns as v1 minus organizationId (single
--- vendor now). Repeat for each real row in market.json except "Test popup".
-INSERT INTO Market (id, name, schedule, subtitle, locationDetails, customerInfo, active, createdAt, updatedAt, type, expiresAt, catchPreview, notes, rawTranscript, cancelledAt, county, city)
-VALUES (
-  'REPLACE-WITH-id-FROM-market.json',
-  'REPLACE-WITH-name',
-  'REPLACE-WITH-schedule',
-  NULL, -- subtitle
-  NULL, -- locationDetails
-  NULL, -- customerInfo
-  1,    -- active
-  'REPLACE-WITH-createdAt',
-  'REPLACE-WITH-updatedAt',
-  'regular', -- type: "regular" | "popup"
-  NULL, -- expiresAt (popup only)
-  NULL, -- catchPreview
-  NULL, -- notes
-  NULL, -- rawTranscript
-  NULL, -- cancelledAt
-  NULL, -- county
-  NULL  -- city
-);
+INSERT INTO Market (id, name, schedule, subtitle, locationDetails, customerInfo, active, createdAt, updatedAt, type, expiresAt, catchPreview, notes, rawTranscript, cancelledAt, county, city) VALUES
+('960ca8c4-8c5a-4c9a-aa04-710c029116f9', 'Hernando Market', 'Saturdays, 8-2am', NULL, NULL, NULL, 1, '2025-12-25T14:04:20.173+00:00', '2025-12-25T14:04:20.173+00:00', 'regular', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+('b87a6bcc-e78e-4596-8707-99dca3127347', 'Olive Branch', 'Saturdays 8-2', NULL, NULL, NULL, 1, '2025-12-28T18:32:22.257+00:00', '2025-12-30T21:08:28.194+00:00', 'regular', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+('fd4e5a03-2585-426c-994e-2251c3b317ea', 'Adobe Ranch', 'Fridays 10-6', NULL, NULL, NULL, 1, '2025-12-30T21:08:47.443+00:00', '2025-12-30T21:08:47.443+00:00', 'regular', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
--- CatchUpdate — EXAMPLE ROW. Same columns as v1 minus organizationId.
--- Repeat for each real row in catchupdate.json.
-INSERT INTO CatchUpdate (id, recordedBy, rawTranscript, formattedContent, status, createdAt, updatedAt)
-VALUES (
-  'REPLACE-WITH-id-FROM-catchupdate.json',
-  NULL, -- recordedBy
-  'REPLACE-WITH-rawTranscript',
-  'REPLACE-WITH-formattedContent', -- JSON string: { headline, items[], summary }
-  'archived', -- status: "live" | "archived" — see note below
-  'REPLACE-WITH-createdAt',
-  'REPLACE-WITH-updatedAt'
-);
--- Note: at most one CatchUpdate should carry status='live' across the whole
--- table (queries.ts picks "the" live one) — if v1 has more than one, archive
--- all but the newest when transcribing.
+INSERT INTO CatchUpdate (id, recordedBy, rawTranscript, formattedContent, status, createdAt, updatedAt) VALUES
+('574aa40e-e78a-4bc4-ba1c-4564c18c15c7', 'a36f6898-35ec-4541-ad95-1cd9b8371db2', ' And for Devin he''ll be like yeah we got some grouper and we got the best grouper you ever had it we got the biggest golf shrimp and it''s $15 a pound we got red fish you know he just keeps talking we have catfish we have catfish we have crawfish and sea bass.', '{"headline":"Devin''s Daily Catch","items":[{"name":"grouper","note":"the best grouper you ever had"},{"name":"golf shrimp","note":"the biggest and only $15 a pound"},{"name":"red fish","note":"Devin''s favorite"},{"name":"catfish","note":"and we have catfish, yes, catfish"},{"name":"crawfish","note":"fresh catch of the day"},{"name":"sea bass","note":"to top off our amazing selection"}],"summary":"Devin''s got a huge catch today with everything from grouper to sea bass"}', 'archived', '2026-03-26T01:04:05.632+00:00', '2026-03-26T13:12:16.132+00:00'),
+('7c0c5682-6531-41b1-9b29-9f33621e83af', 'a36f6898-35ec-4541-ad95-1cd9b8371db2', ' Alright, I''m on the way back. I got some grouper. I got some sea bass. I got some Gulf Shrimp. They are Jumbo Gulf Shrimp. The grouper you want to cook it. It''s a certain way. I have, I''m going to stop and get some catfish. It''s a crawfish on the way back up. This week, that''s what I''ll have.', '{"headline":"Fresh Catch Of The Day","items":[{"name":"Grouper","note":"You want to cook it a certain way."},{"name":"Sea Bass","note":"Fresh sea bass available."},{"name":"Gulf Shrimp","note":"They are jumbo, perfect for any dish."},{"name":"Catfish","note":"Picking some up on the way back."},{"name":"Crawfish","note":"Coming in on the way back up."}],"summary":"Today''s catch includes a variety of fish and seafood, all available this week."}', 'archived', '2026-03-26T13:12:16.176+00:00', '2026-03-29T23:52:33.820+00:00'),
+('34b84e14-9154-4cb1-af8c-b3ac246c2445', 'a36f6898-35ec-4541-ad95-1cd9b8371db2', ' Today''s catch we have redfish, we have sea bass, we have flounder, grouper, crab legs, catfish, and crawfish.', '{"headline":"Today''s Fresh Catch","items":[{"name":"Redfish","note":""},{"name":"Sea Bass","note":""},{"name":"Flounder","note":""},{"name":"Grouper","note":""},{"name":"Crab Legs","note":""},{"name":"Catfish","note":""},{"name":"Crawfish","note":""}],"summary":"Today''s catch includes a variety of fish and seafood."}', 'archived', '2026-03-29T23:52:33.873+00:00', '2026-03-30T17:39:46.893+00:00'),
+('1ab105d6-5f76-4172-981e-b9147b3e372f', 'a36f6898-35ec-4541-ad95-1cd9b8371db2', ' Alright, I''m leaving the coast. I''ve got sea bass, flounder, I have some Gulf shrimp, and we''ve got some Alaskan crab, some King crab, and I''m going to be coming back up and get some catfish and crawfish on the way back.', '{"headline":"Fresh coastal catch","items":[{"name":"Sea Bass","note":"We''ve got sea bass, straight from the coast."},{"name":"Flounder","note":"Flounder is in, and it''s looking great."},{"name":"Gulf Shrimp","note":"I''ve picked up some amazing Gulf shrimp for you."},{"name":"Alaskan Crab","note":"Our Alaskan crab is a must-try, so delicious."},{"name":"King Crab","note":"And for the king of seafood lovers, we''ve got King crab."},{"name":"Catfish","note":"I''ll be catching some catfish on my way back, can''t wait to share."},{"name":"Crawfish","note":"And to top it off, I''ll have some tasty crawfish too."}],"summary":"We''ve got a variety of fresh seafood coming in from the coast, including sea bass, flounder, and more."}', 'archived', '2026-03-30T17:39:46.957+00:00', '2026-04-01T17:24:57.729+00:00'),
+('dd3c1c19-3585-4367-b92e-8606f315de90', 'a36f6898-35ec-4541-ad95-1cd9b8371db2', ' I''m on the way back from the coast. I got team crab. I got sea bass. I got flounder and I''m going to grab some crawl fish and tap. They''re showing my way back up.', '{"headline":"Fresh Catch Of The Day","items":[{"name":"Crab","note":"I got team crab, they''re coming with me."},{"name":"Sea Bass","note":"I picked up some sea bass on my way."},{"name":"Flounder","note":"Flounder is also on the list, looking good."},{"name":"Crawl Fish","note":"I''m going to grab some crawl fish, they''re on the way."},{"name":"Tap","note":"Tap is coming along, can''t wait to show them off."}],"summary":"I''m bringing back a variety of fresh seafood from the coast today."}', 'archived', '2026-04-01T17:24:57.778+00:00', '2026-04-04T17:38:05.487+00:00'),
+('ab39c3d0-b9e4-4a66-82f6-b9e4d1b6e734', '3aa5ad46-7d8d-4f46-b766-1f55ad635ae5', ' Okay, so we''re gonna have king crab and sea bass flounder, some red fish, getting some red fish from Louisiana on the way back and some crawfish and no catfish.', '{"headline":"Fresh Catch Of The Day","items":[{"name":"King Crab","note":"We''ve got king crab coming in, a real treat for you!"},{"name":"Sea Bass Flounder","note":"Our sea bass flounder is always a crowd pleaser, don''t miss out!"},{"name":"Red Fish","note":"And we''re getting a special shipment of red fish all the way from Louisiana, you won''t want to pass this up!"},{"name":"Crawfish","note":"Crawfish is on the menu, because everything''s better with a little crawfish, right?"}],"summary":"Today''s catch includes a variety of seafood favorites like king crab, sea bass flounder, and red fish from Louisiana."}', 'archived', '2026-04-04T17:38:05.540+00:00', '2026-04-04T17:51:15.283+00:00'),
+('e12f3e9b-f96b-4a6a-9d0c-f7ec8e5fa093', '3aa5ad46-7d8d-4f46-b766-1f55ad635ae5', ' He''s just jumping in the truck to leave. He says, alright, I''m leaving the coast. I''ve got some grouper. I''ve got, uh, I still got some flounder. I got sea bass. I''m not getting red fish this time. I''m going to come back up and get some catfish on my way up and some crawfish will be here too.', '{"headline":"Fresh Catch Arriving Soon","items":[{"name":"Grouper","note":"He''s bringing in some gorgeous grouper."},{"name":"Flounder","note":"Still got some flounder available, don''t miss out."},{"name":"Sea Bass","note":"Sea bass is on the list, get ready."},{"name":"Catfish","note":"He''s making a stop to grab some catfish on his way back."},{"name":"Crawfish","note":"Crawfish will be arriving, and they''re going to be a treat."}],"summary":"He''s leaving the coast with a variety of fish and will be picking up more on his way back. "}', 'archived', '2026-04-04T17:51:15.334+00:00', '2026-04-05T00:22:20.078+00:00'),
+('a3410435-6799-4ef4-9bd4-1a6f0b7022ea', '3aa5ad46-7d8d-4f46-b766-1f55ad635ae5', ' I got some crab legs, a lasting crab. King crab, I got some lobster, a grouper, redfish, and that''s it.', '{"headline":"Fresh Catch Of The Day","items":[{"name":"King Crab","note":"The king of crabs, these legs are a lasting delight"},{"name":"Lobster","note":"A luxurious treat, because who doesn''t love a good lobster"},{"name":"Grouper","note":"A classic catch, the grouper is always a favorite"},{"name":"Redfish","note":"A vibrant redfish to add some color to your plate"}],"summary":"Today''s catch includes a variety of seafood favorites like king crab, lobster, and more"}', 'archived', '2026-04-05T00:22:20.125+00:00', '2026-04-07T23:29:50.376+00:00'),
+('08ffe559-35e5-4b54-a844-31011b29c565', '044fb454-e843-4d1a-afa9-de94909b87c9', ' We have grouper, flounder, redfish, sea bass, and catfish.', '{"headline":"Fresh Catch Of The Day","items":[{"name":"Grouper","note":"We''ve got gorgeous grouper for you"},{"name":"Flounder","note":"Delicious flounder is in stock"},{"name":"Redfish","note":"Beautiful redfish available today"},{"name":"Sea Bass","note":"Tasty sea bass is waiting for you"},{"name":"Catfish","note":"Our catfish is a must-try"}],"summary":"We have a variety of fresh fish available today"}', 'archived', '2026-04-07T23:29:50.429+00:00', '2026-04-09T00:00:40.526+00:00'),
+('509f97ee-1103-41c1-ac03-ca5008775a8a', '044fb454-e843-4d1a-afa9-de94909b87c9', ' This catch. All right, y''all got I got some floundering here. Some more grouper. We''re getting crawfish this time catfish this time on the way back through no sea bass. And what else I got some keen crab legs and sounds like I said, that''s a good rest of the loadout. Alright, so then...', '{"headline":"Fresh Catch Of The Day","items":[{"name":"Flounder","note":"We''re getting some floundering in here."},{"name":"Grouper","note":"Some more grouper to add to the mix."},{"name":"Crawfish","note":"Crawfish are making an appearance this time around."},{"name":"Catfish","note":"Catfish are also on the way back through."},{"name":"Crab Legs","note":"And let''s not forget those keen crab legs."}],"summary":"Today''s catch includes a variety of fish and seafood like flounder, grouper, and crab legs."}', 'archived', '2026-04-09T00:00:40.575+00:00', '2026-04-19T18:33:16.834+00:00'),
+('c2104ea7-5fc4-4273-b912-b9d24e2319ac', '044fb454-e843-4d1a-afa9-de94909b87c9', ' I''m so proud back and he''s only does he Chris is that button and he''s I''ve got macro look at flounder. I''ve got sea bass And swordfish and I''m gonna swing by and get some catfish and some crawfish away back', '{"headline":"Fresh Catch Of The Day","items":[{"name":"Flounder","note":"I''ve got macro look at flounder."},{"name":"Sea Bass","note":"I''ve got sea bass"},{"name":"Swordfish","note":"And swordfish"},{"name":"Catfish","note":"I''m gonna swing by and get some catfish"},{"name":"Crawfish","note":"And some crawfish away back"}],"summary":"We have a variety of fresh fish including flounder, sea bass, swordfish, catfish, and crawfish."}', 'live', '2026-04-19T18:33:16.891+00:00', '2026-04-19T18:33:16.891+00:00');
 
--- User — EXAMPLE ROW. v1's username/delivery*/deletedAt have no v2 column
--- (dropped — single-vendor schema, no delivery/guest-checkout fields carried
--- over). isAdmin=1 only for the two rows matching wrangler.jsonc's
--- ADMIN_EMAILS (Barrett + Evan); 0 for the other four. Repeat for each real
--- row in user.json.
-INSERT INTO User (id, email, name, phone, isAdmin, createdAt)
-VALUES (
-  'REPLACE-WITH-id-FROM-user.json',
-  NULL, -- email (nullable in v2 — v1's `username` doesn't carry over)
-  NULL, -- name
-  NULL, -- phone
-  0,    -- isAdmin: 1 only for Barrett's and Evan's rows
-  'REPLACE-WITH-createdAt'
-);
+INSERT INTO User (id, email, name, phone, isAdmin, createdAt) VALUES
+('044fb454-e843-4d1a-afa9-de94909b87c9', 'barrett@digitalglue.dev', 'Barrett Burnworth', NULL, 1, '2026-04-06T01:05:48.761+00:00'),
+('75e7684f-53bf-4a43-8a37-1a2cb843fdf3', 'barrettburnworth@gmail.com', 'Barrett Burnworth', NULL, 0, '2026-04-08T00:55:40.041+00:00'),
+('621d7b7f-19af-45d1-9268-4d7bef93d8ac', 'michaeltankersley1990@gmail.com', 'Michael Tankersley', '9017133575', 0, '2026-04-28T22:42:17.401+00:00'),
+('f49bf493-a994-4e7f-bf9a-1a62b2bc79af', 'barre.ttburnworth@gmail.com', 'Barrett', NULL, 0, '2026-07-24T17:47:11.345+00:00'),
+('2a049fcb-95cd-49ae-b9ab-d0fa5c586abc', 'barrettburnworth+manager@gmail.com', NULL, NULL, 0, '2026-08-05T11:51:11.229+00:00'),
+('61bc6130-fcab-495c-a6c7-12ad92db2cde', 'barrettburnworth+testorder@gmail.com', 'Bbq', NULL, 0, '2026-08-16T18:29:36.323+00:00');

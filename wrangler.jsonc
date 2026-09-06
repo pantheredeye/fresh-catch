@@ -8,20 +8,25 @@
     "binding": "ASSETS"
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    }
   },
   // Production values — this file is deployed as-is (see docs/CUTOVER.md).
   // Override locally via .dev.vars (see .env.example), not by editing these.
   "vars": {
-    "ADMIN_EMAILS": "barrett@digitalglue.dev,__evan_email_todo__", // G1: replace with Evan's real login email before G5 deploy
+    "ADMIN_EMAILS": "barrett@digitalglue.dev", // Evan's email pending — append it (comma-separated) + redeploy when known
     "APP_URL": "https://market.digitalglue.dev"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "fresh-catch-v2",
-      // G1: `wrangler d1 create fresh-catch-v2`, paste the id here before G5 deploy.
-      "database_id": "__replace_at_cutover__"
+      "database_id": "96307b95-87b4-40eb-93c1-64b10c3244e7"
     }
   ],
   // Local-dev convenience only: `vite dev`/`wrangler dev` proxy this binding to
