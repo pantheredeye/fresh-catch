@@ -36,33 +36,25 @@ wrangler d1 create fresh-catch-v2
 Paste the resulting `database_id` into `wrangler.jsonc`'s `d1_databases[0]`,
 replacing `__replace_at_cutover__`.
 
-## G2 — set secrets
+## G2 — set secrets (payments-off launch: only these two)
 
 ```bash
 wrangler secret put SESSION_SECRET
 wrangler secret put RESEND_API_KEY
-wrangler secret put STRIPE_SECRET_KEY
-wrangler secret put STRIPE_WEBHOOK_SECRET
-wrangler secret put STRIPE_CONNECT_ACCOUNT_ID
 ```
 
-`STRIPE_CONNECT_ACCOUNT_ID` is `acct_1U6UxbIM9hQlA7cd` (Evan's connected
-account — see `docs/audit/data-stripe.md` §3). `STRIPE_WEBHOOK_SECRET` comes
-from G3 below, so do G3 before finishing this step, or come back to it.
+The three Stripe secrets are deliberately NOT set at launch: Evan has no
+real Connect account yet (the audit-era `acct_1U6UxbIM9hQlA7cd` was the
+test-sandbox link). With `STRIPE_SECRET_KEY` unset, the payments module
+disables itself (`src/features/payments/config.ts` returns null) — request
+threads and mark-paid-in-person still work. See "Stripe enablement" below
+for turning payments on after Evan's review.
 
-## G3 — Stripe dashboard reconcile
+## G3 — Stripe reconcile — SKIPPED AT LAUNCH
 
-1. Confirm `acct_1U6UxbIM9hQlA7cd` is live and fully onboarded (Connect
-   dashboard). `docs/audit/data-stripe.md` §1a flagged
-   `stripeOnboardingComplete = 0` in v1's DB despite Connect reportedly being
-   activated — this is the moment to find out which is stale. If onboarding
-   is confirmed complete, flip the `0` to `1` in
-   `scripts/cutover/import-v2.sql`'s `Vendor` row before G4.
-2. Delete any sandbox/test webhook endpoints still configured.
-3. Create the **Connect** webhook endpoint →
-   `https://market.digitalglue.dev/webhooks/stripe` (adjust the hostname
-   here if G6 uses a different one). Capture the `whsec_...` signing secret
-   for `STRIPE_WEBHOOK_SECRET` in G2.
+Deferred to "Stripe enablement" below (payments off for this launch).
+One piece remains now: delete any sandbox/test webhook endpoints still
+configured in the Stripe dashboard, so nothing stale fires later.
 
 ## G4 — migrate schema, then import data
 
@@ -131,6 +123,34 @@ low-traffic hour. Once attached, smoke-test again on the real domain.
 
 Evan logs in via OTP on `market.digitalglue.dev` and publishes a catch-of-
 the-week update. Once that works, cutover is complete.
+
+## Stripe enablement (post-launch, after Evan's review)
+
+Payments stay off until Evan approves the app. Then:
+
+1. Create Evan's real Connect Express account from the platform account and
+   have him complete onboarding (the flow the audit's `data-stripe.md` §3
+   describes, now singular).
+2. In the dashboard, create the **Connect** webhook endpoint →
+   `https://market.digitalglue.dev/webhooks/stripe`; capture `whsec_...`.
+3. Set the three secrets (each `wrangler secret put` rolls a new worker
+   version — no redeploy needed):
+
+```bash
+wrangler secret put STRIPE_SECRET_KEY
+wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put STRIPE_CONNECT_ACCOUNT_ID   # Evan's NEW acct_...
+```
+
+4. Update the Vendor row:
+
+```bash
+wrangler d1 execute fresh-catch-v2 --remote --command \
+  "UPDATE Vendor SET stripeAccountId='acct_NEW', stripeOnboardingComplete=1;"
+```
+
+5. Verify: request thread → "Request payment" → test charge → webhook 200 →
+   status paid → receipt.
 
 ## Rollback
 

@@ -22,10 +22,10 @@ INSERT INTO Vendor (id, name, stripeAccountId, stripeOnboardingComplete, platfor
 VALUES (
   lower(hex(randomblob(16))),
   'Fresh Catch',
-  'acct_1U6UxbIM9hQlA7cd',
-  0, -- data-stripe.md §1a: v1 has this false despite Connect reportedly active.
-     -- G3 reconciles the real status in the Stripe dashboard — flip to 1 here
-     -- first if G3 confirms onboarding is actually complete.
+  NULL, -- Evan has NO real Connect account yet (2026-09-06); the old
+        -- acct_1U6UxbIM9hQlA7cd was the test-sandbox link, don't carry it.
+        -- Set after launch via docs/CUTOVER.md "Stripe enablement".
+  0, -- stays 0 until Evan's real Connect onboarding completes post-launch.
   500,
   NULL -- TODO: Evan's notification email (same address as the ADMIN_EMAILS entry in wrangler.jsonc)
 );
