@@ -1,6 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { CatchUpdate } from "@/lib/db";
 import { Textarea } from "@/ui/textarea";
+import { Page } from "@/ui/page";
 import { parseCatchContent } from "./pipeline";
 
 const LiveCatch: FC<{ live: CatchUpdate | null }> = ({ live }) => {
@@ -31,7 +32,7 @@ const LiveCatch: FC<{ live: CatchUpdate | null }> = ({ live }) => {
  * form POST, same pattern as the markets admin routes.
  */
 export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string }> = ({ live, csrfToken }) => (
-  <main class="page">
+  <Page>
     <h1>Catch of the week</h1>
 
     <section>
@@ -44,7 +45,7 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string }> = ({
       <p id="catch-record-status" role="status"></p>
 
       <p>
-        <button type="button" class="btn btn-primary" id="catch-mic-button">
+        <button type="button" class="btn btn-primary" id="catch-mic-button" aria-pressed="false">
           Start recording
         </button>
       </p>
@@ -75,5 +76,5 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string }> = ({
     </section>
 
     <script type="module" src="/js/catch-record.js"></script>
-  </main>
+  </Page>
 );

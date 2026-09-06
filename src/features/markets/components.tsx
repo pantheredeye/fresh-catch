@@ -5,6 +5,7 @@ import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
+import { Page } from "@/ui/page";
 import { splitExpiresAt } from "./validation";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
@@ -169,7 +170,7 @@ function marketLocation(market: Market): string | null {
 /** Favoriting is client-side only (localStorage island, #58) — every card ships the same inert markup and `favorites.js` hydrates state on load. */
 const FavoriteToggle: FC<{ marketId: string }> = ({ marketId }) => (
   <button type="button" class="btn btn-ghost favorite-toggle" data-market-id={marketId} aria-pressed="false">
-    ☆ Save
+    <span aria-hidden="true">☆</span> Save
   </button>
 );
 
@@ -201,7 +202,7 @@ export const PublicMarketCard: FC<{ market: Market; kind: "regular" | "live-popu
 export const MarketDetail: FC<{ market: Market; status: MarketStatus }> = ({ market, status }) => {
   const location = marketLocation(market);
   return (
-    <main class="page">
+    <Page>
       <p>
         <a href="/">← Back to Fresh Catch</a>
       </p>
@@ -226,6 +227,6 @@ export const MarketDetail: FC<{ market: Market; status: MarketStatus }> = ({ mar
         <FavoriteToggle marketId={market.id} />
       </div>
       <script type="module" src="/js/favorites.js"></script>
-    </main>
+    </Page>
   );
 };

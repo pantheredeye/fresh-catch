@@ -74,6 +74,11 @@
   --color-action-primary: #0052a3; /* text/link use — 7.68:1 on white, AAA */
   --color-action-primary-fill: #0066cc; /* button/gradient fills only, not text */
 
+  /* .btn-primary specifically (§4 A4) — #0066cc + white is only 5.57:1 (AA),
+     and 16px/600 is normal text under WCAG, not large. This pair targets AAA. */
+  --color-button-primary-bg: #0052a3; /* 7.68:1 with white text */
+  --color-button-primary-text: #ffffff;
+
   /* Color — status. Fill colors are unchanged brand hues; *-text variants are
      the only AAA-safe way to render these hues as text/icon glyphs (§2). */
   --color-action-secondary-fill: #ff6b6b; /* coral */
@@ -112,6 +117,12 @@
 
     --color-action-primary: #43a9ff; /* 7.06:1 on dark bg, AAA text/link */
     --color-action-primary-fill: #0066cc; /* unchanged — still 3:1+ vs dark bg, 5.57:1 with white text */
+
+    /* .btn-primary specifically (§4 A4) — dark mode can't reuse -action-primary-fill's
+       5.57:1 (AA only). Deepened fill, not a text-color flip, keeps white-on-fill
+       semantics identical to light mode. ~8.42:1 with white text. */
+    --color-button-primary-bg: #004c99;
+    --color-button-primary-text: #ffffff;
 
     --color-action-secondary-fill: #ff6b6b;
     --color-action-secondary-text: #ff7a7a; /* 7.03:1 on dark bg */
@@ -169,6 +180,25 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+/* First focusable element in <body> (document.tsx) — hidden until keyboard focus. */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 100;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  border: 2px solid transparent;
+  border-radius: 0 0 var(--radius-xs) 0;
+}
+
+.skip-link:focus-visible {
+  top: 0;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 /* Button */
 .btn {
   display: inline-flex;
@@ -210,8 +240,8 @@ a:focus-visible {
 }
 
 .btn-primary {
-  background: var(--color-action-primary-fill);
-  color: var(--color-text-inverse);
+  background: var(--color-button-primary-bg);
+  color: var(--color-button-primary-text);
 }
 .btn-primary:hover:not(:disabled) {
   filter: brightness(0.92);

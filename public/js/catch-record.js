@@ -76,7 +76,7 @@
 
   if (!navigator.mediaDevices || !window.MediaRecorder) {
     micButton.disabled = true;
-    micButton.title = "Recording isn't supported in this browser — use the text box instead.";
+    setStatus("Recording isn't supported in this browser — use the text box instead.", true);
     return;
   }
 
@@ -94,10 +94,12 @@
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
         micButton.textContent = "Start recording";
+        micButton.setAttribute("aria-pressed", "false");
         submitDraft(blob, { "Content-Type": blob.type });
       };
       mediaRecorder.start();
       micButton.textContent = "Stop recording";
+      micButton.setAttribute("aria-pressed", "true");
       setStatus("Recording…", false);
     } catch {
       setStatus("Microphone access denied or unavailable.", true);

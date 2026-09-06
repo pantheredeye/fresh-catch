@@ -20,6 +20,11 @@ export const Document: FC<PropsWithChildren<{ title?: string; deviceToken?: stri
       <title>{title}</title>
       <link rel="stylesheet" href="/style.css" />
     </head>
-    <body data-device-token={deviceToken}>{children}</body>
+    <body data-device-token={deviceToken}>
+      <a href="#main" class="skip-link">
+        Skip to content
+      </a>
+      {children}
+    </body>
   </html>
 );

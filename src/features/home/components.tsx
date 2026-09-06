@@ -1,29 +1,5 @@
 import type { FC } from "hono/jsx";
-import type { SessionPayload } from "@/features/auth/session";
 import type { CatchContent } from "@/features/catch/pipeline";
-
-export const HomeNav: FC<{ session: SessionPayload | null }> = ({ session }) => (
-  <p style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
-    {session ? (
-      <>
-        <span class="field-helper">
-          {session.email}
-          {session.isAdmin ? " (admin)" : ""}
-        </span>
-        <form method="post" action="/logout" style="display: inline">
-          <input type="hidden" name="csrfToken" value={session.csrfToken} />
-          <button type="submit" class="btn btn-ghost">
-            Log out
-          </button>
-        </form>
-        {session.isAdmin ? <a href="/admin">Admin</a> : null}
-      </>
-    ) : (
-      <a href="/login">Log in</a>
-    )}
-    <a href="/requests">My requests</a>
-  </p>
-);
 
 /** Live catch-of-the-week hero (#58) — `content` is already null'd out by the 7-day staleness cutoff upstream. */
 export const CatchHero: FC<{ content: CatchContent | null }> = ({ content }) => {

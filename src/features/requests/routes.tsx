@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
+import { Page } from "@/ui/page";
+import { SiteNav } from "@/ui/site-nav";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
 import { csrfProtect } from "@/features/auth/middleware";
@@ -81,13 +83,14 @@ requestRoutes.get("/requests/new", async (c) => {
   };
   return c.html(
     <Document title="New request — Fresh Catch" deviceToken={c.var.deviceToken}>
-      <main class="page stack">
+      <SiteNav session={c.var.session} />
+      <Page>
         <p>
           <a href="/">← Back to Fresh Catch</a>
         </p>
         <h1>New request</h1>
         <RequestForm action="/requests" csrfToken={csrfToken} values={values} />
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -103,10 +106,11 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
     const csrfToken = await csrfTokenFor(c);
     return c.html(
       <Document title="New request — Fresh Catch" deviceToken={c.var.deviceToken}>
-        <main class="page stack">
+        <SiteNav session={c.var.session} />
+        <Page>
           <h1>New request</h1>
           <RequestForm action="/requests" csrfToken={csrfToken} values={rawToFormValues(body)} errors={result.errors} />
-        </main>
+        </Page>
       </Document>,
       400,
     );
@@ -127,7 +131,8 @@ requestRoutes.get("/requests", async (c) => {
   });
   return c.html(
     <Document title="My requests — Fresh Catch" deviceToken={c.var.deviceToken}>
-      <main class="page stack">
+      <SiteNav session={c.var.session} />
+      <Page>
         <p>
           <a href="/">← Back to Fresh Catch</a>
         </p>
@@ -138,7 +143,7 @@ requestRoutes.get("/requests", async (c) => {
             <RequestListRow request={request} />
           ))}
         </div>
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -154,7 +159,8 @@ requestRoutes.get("/requests/:id", async (c) => {
   const checkout = c.req.query("checkout");
   return c.html(
     <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
-      <main class="page stack">
+      <SiteNav session={c.var.session} />
+      <Page>
         <p>
           <a href="/requests">← My requests</a>
         </p>
@@ -163,7 +169,7 @@ requestRoutes.get("/requests/:id", async (c) => {
         {request.order ? <OrderSummaryCard order={request.order} /> : null}
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
         <MessageForm action={`/requests/${request.id}/messages`} csrfToken={csrfToken} />
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -183,7 +189,8 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
     const csrfToken = await csrfTokenFor(c);
     return c.html(
       <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
-        <main class="page stack">
+        <SiteNav session={c.var.session} />
+        <Page>
           <RequestHeaderCard request={request} />
           <Thread messages={withMessages?.messages ?? []} viewer="customer" customerName={request.contactName} />
           <MessageForm
@@ -191,7 +198,7 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
             csrfToken={csrfToken}
             errorText={result.errors.body}
           />
-        </main>
+        </Page>
       </Document>,
       400,
     );

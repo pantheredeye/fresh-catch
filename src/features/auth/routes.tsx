@@ -6,6 +6,7 @@ import { Document } from "@/ui/document";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Card } from "@/ui/card";
+import { Page } from "@/ui/page";
 import { db } from "@/lib/db";
 import { requireSecret } from "@/lib/env";
 import { createLoginCode, normalizeEmail, verifyLoginCode } from "./login-codes";
@@ -30,7 +31,7 @@ function isAllowlistedAdmin(env: Bindings, email: string): boolean {
 
 const EmailForm: FC<{ errorText?: string }> = ({ errorText }) => (
   <Document title="Log in — Fresh Catch">
-    <main>
+    <Page>
       <Card>
         <h1>Log in</h1>
         <form method="post" action="/login">
@@ -45,7 +46,7 @@ const EmailForm: FC<{ errorText?: string }> = ({ errorText }) => (
           <Button type="submit">Send login code</Button>
         </form>
       </Card>
-    </main>
+    </Page>
   </Document>
 );
 
@@ -55,7 +56,7 @@ const CodeForm: FC<{ email: string; devCode?: string; errorText?: string }> = ({
   errorText,
 }) => (
   <Document title="Enter your code — Fresh Catch">
-    <main>
+    <Page>
       <Card>
         <h1>Enter your code</h1>
         <p>We sent a 6-digit code to {email}.</p>
@@ -70,7 +71,7 @@ const CodeForm: FC<{ email: string; devCode?: string; errorText?: string }> = ({
           <Button type="submit">Verify</Button>
         </form>
       </Card>
-    </main>
+    </Page>
   </Document>
 );
 

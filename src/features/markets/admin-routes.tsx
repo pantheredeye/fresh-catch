@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Button } from "@/ui/button";
+import { Page } from "@/ui/page";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
 import { cancelMarket, createMarket, getMarket, listActiveMarkets, listLivePopups, updateMarket } from "./queries";
 import { parseMarketForm } from "./validation";
@@ -40,7 +41,7 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
   const [regular, popups] = await Promise.all([listActiveMarkets(), listLivePopups()]);
   return c.html(
     <Document title="Markets — Admin">
-      <main class="page">
+      <Page>
         <h1>Markets</h1>
         <p style="display: flex; gap: 12px;">
           <Button href="/admin/markets/new?type=regular">New market</Button>
@@ -71,7 +72,7 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
             <a href="/markets/past">Past popups →</a>
           </p>
         </section>
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -81,10 +82,10 @@ marketsAdminRoutes.get("/admin/markets/new", (c) => {
   const csrfToken = c.var.session!.csrfToken;
   return c.html(
     <Document title={type === "popup" ? "New popup — Admin" : "New market — Admin"}>
-      <main class="page">
+      <Page>
         <h1>{type === "popup" ? "New popup" : "New market"}</h1>
         <MarketForm type={type} action="/admin/markets" csrfToken={csrfToken} />
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -97,7 +98,7 @@ marketsAdminRoutes.post("/admin/markets", csrfProtect(), async (c) => {
   if (!result.success) {
     return c.html(
       <Document title={type === "popup" ? "New popup — Admin" : "New market — Admin"}>
-        <main class="page">
+        <Page>
           <h1>{type === "popup" ? "New popup" : "New market"}</h1>
           <MarketForm
             type={type}
@@ -106,7 +107,7 @@ marketsAdminRoutes.post("/admin/markets", csrfProtect(), async (c) => {
             values={rawToFormValues(body)}
             errors={result.errors}
           />
-        </main>
+        </Page>
       </Document>,
       400,
     );
@@ -123,7 +124,7 @@ marketsAdminRoutes.get("/admin/markets/:id/edit", async (c) => {
 
   return c.html(
     <Document title={`Edit ${market.name} — Admin`}>
-      <main class="page">
+      <Page>
         <h1>Edit {market.name}</h1>
         <MarketForm
           type={type}
@@ -137,7 +138,7 @@ marketsAdminRoutes.get("/admin/markets/:id/edit", async (c) => {
             {type === "popup" ? "Cancel popup" : "Deactivate market"}
           </Button>
         </form>
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -156,7 +157,7 @@ marketsAdminRoutes.post("/admin/markets/:id", csrfProtect(), async (c) => {
   if (!result.success) {
     return c.html(
       <Document title={`Edit ${market.name} — Admin`}>
-        <main class="page">
+        <Page>
           <h1>Edit {market.name}</h1>
           <MarketForm
             type={type}
@@ -165,7 +166,7 @@ marketsAdminRoutes.post("/admin/markets/:id", csrfProtect(), async (c) => {
             values={rawToFormValues(body)}
             errors={result.errors}
           />
-        </main>
+        </Page>
       </Document>,
       400,
     );

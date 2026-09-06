@@ -7,6 +7,7 @@ import { Textarea } from "../../ui/textarea";
 import { Select } from "../../ui/select";
 import { Card } from "../../ui/card";
 import { Sheet } from "../../ui/sheet";
+import { Page } from "../../ui/page";
 
 export const showcaseRoutes = new Hono<{ Bindings: Bindings }>();
 
@@ -18,7 +19,7 @@ if (import.meta.env.DEV) {
   showcaseRoutes.get("/dev/showcase", (c) => {
     return c.html(
       <Document title="Design showcase (dev only)">
-        <main>
+        <Page>
           <h1>Design showcase</h1>
           <p>
             Dev-only route — not present in production builds. Toggle your OS color
@@ -103,7 +104,7 @@ if (import.meta.env.DEV) {
               <Button variant="primary">Confirm</Button>
             </Sheet>
           </section>
-        </main>
+        </Page>
       </Document>,
     );
   });
