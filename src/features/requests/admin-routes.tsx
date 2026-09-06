@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
+import { Page } from "@/ui/page";
 import { runInBackground } from "@/lib/background";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
 import {
@@ -46,9 +47,9 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
 
   return c.html(
     <Document title="Requests — Admin">
-      <main class="page stack">
+      <Page>
         <h1>Requests</h1>
-        <nav style="display: flex; gap: 12px;">
+        <nav aria-label="Requests filter" style="display: flex; gap: 12px;">
           <a href="/admin/requests" aria-current={filter === "active" ? "page" : undefined}>
             {FILTER_LABEL.active}
           </a>
@@ -66,7 +67,7 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
             <InboxRow entry={entry} />
           ))}
         </div>
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -79,13 +80,13 @@ requestsAdminRoutes.get("/admin/requests/new", async (c) => {
   const csrfToken = c.var.session!.csrfToken;
   return c.html(
     <Document title="New request — Admin">
-      <main class="page stack">
+      <Page>
         <p>
           <a href="/admin/requests">← Requests</a>
         </p>
         <h1>New request</h1>
         <RequestForm action="/admin/requests" csrfToken={csrfToken} />
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -105,7 +106,7 @@ requestsAdminRoutes.post("/admin/requests", csrfProtect(), async (c) => {
   if (!result.success) {
     return c.html(
       <Document title="New request — Admin">
-        <main class="page stack">
+        <Page>
           <h1>New request</h1>
           <RequestForm
             action="/admin/requests"
@@ -113,7 +114,7 @@ requestsAdminRoutes.post("/admin/requests", csrfProtect(), async (c) => {
             values={rawToFormValues(body)}
             errors={result.errors}
           />
-        </main>
+        </Page>
       </Document>,
       400,
     );
@@ -139,7 +140,7 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
 
   return c.html(
     <Document title={`${requestTitle(request)} — Admin`}>
-      <main class="page stack">
+      <Page>
         <p>
           <a href="/admin/requests">← Requests</a>
         </p>
@@ -167,7 +168,7 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
           currentStatus={request.status}
         />
         <StatusForm action={`/admin/requests/${request.id}/status`} csrfToken={csrfToken} currentStatus={request.status} />
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -185,7 +186,7 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
   if (!result.success) {
     return c.html(
       <Document title={`${requestTitle(request)} — Admin`}>
-        <main class="page stack">
+        <Page>
           <RequestHeaderCard request={request} />
           <ConfirmOrderForm
             action={`/admin/requests/${request.id}/confirm-order`}
@@ -193,7 +194,7 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
             errors={result.errors}
           />
           <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        </main>
+        </Page>
       </Document>,
       400,
     );
@@ -252,7 +253,7 @@ requestsAdminRoutes.post("/admin/requests/:id/mark-paid", csrfProtect(), async (
   if (!result.success) {
     return c.html(
       <Document title={`${requestTitle(request)} — Admin`}>
-        <main class="page stack">
+        <Page>
           <RequestHeaderCard request={request} />
           <OrderSummaryCard order={request.order} />
           <MarkPaidForm
@@ -261,7 +262,7 @@ requestsAdminRoutes.post("/admin/requests/:id/mark-paid", csrfProtect(), async (
             errors={result.errors}
           />
           <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        </main>
+        </Page>
       </Document>,
       400,
     );
@@ -282,7 +283,7 @@ requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c
     const withMessages = await getRequestWithMessages(request.id);
     return c.html(
       <Document title={`${requestTitle(request)} — Admin`}>
-        <main class="page stack">
+        <Page>
           <RequestHeaderCard request={request} />
           <Thread messages={withMessages?.messages ?? []} viewer="admin" customerName={request.contactName} />
           <AdminReplyForm
@@ -291,7 +292,7 @@ requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c
             currentStatus={request.status}
             errorText={result.errors.body}
           />
-        </main>
+        </Page>
       </Document>,
       400,
     );

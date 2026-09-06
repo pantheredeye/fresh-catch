@@ -10,19 +10,29 @@
   "observability": {
     "enabled": true
   },
+  // Production values — this file is deployed as-is (see docs/CUTOVER.md).
+  // Override locally via .dev.vars (see .env.example), not by editing these.
   "vars": {
-    "ADMIN_EMAILS": "barrett@digitalglue.dev",
-    "APP_URL": "http://localhost:5173"
+    "ADMIN_EMAILS": "barrett@digitalglue.dev,__evan_email_todo__", // G1: replace with Evan's real login email before G5 deploy
+    "APP_URL": "https://market.digitalglue.dev"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "fresh-catch-v2",
+      // G1: `wrangler d1 create fresh-catch-v2`, paste the id here before G5 deploy.
       "database_id": "__replace_at_cutover__"
     }
   ],
+  // Local-dev convenience only: `vite dev`/`wrangler dev` proxy this binding to
+  // the real remote AI service instead of local emulation. Deployed Workers
+  // always call the live binding regardless of this flag — harmless on deploy.
   "ai": {
     "binding": "AI",
     "remote": true
   }
+  // Custom domain (G6) is deliberately NOT declared here as a `routes` block —
+  // committing one would make *any* `wrangler deploy` seize market.digitalglue.dev
+  // away from the still-live v1 worker before G5/G6 are ready for that. It's
+  // attached manually via the dashboard at G6 instead — see docs/CUTOVER.md.
 }

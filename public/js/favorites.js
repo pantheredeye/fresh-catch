@@ -27,7 +27,9 @@
 
   function applyState(button, isFavorite) {
     button.setAttribute("aria-pressed", String(isFavorite));
-    button.textContent = isFavorite ? "★ Saved" : "☆ Save";
+    button.innerHTML = isFavorite
+      ? '<span aria-hidden="true">★</span> Saved'
+      : '<span aria-hidden="true">☆</span> Save';
   }
 
   const favorites = loadFavorites();

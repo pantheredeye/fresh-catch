@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
+import { Page } from "@/ui/page";
+import { SiteNav } from "@/ui/site-nav";
 import { deriveMarketStatus, getMarket, listPastPopups } from "./queries";
 import { MarketDetail } from "./components";
 
@@ -16,7 +18,8 @@ marketRoutes.get("/markets/past", async (c) => {
   const popups = await listPastPopups();
   return c.html(
     <Document title="Past popups — Fresh Catch">
-      <main class="page">
+      <SiteNav session={c.var.session} />
+      <Page>
         <h1>Past popups</h1>
         <div class="stack">
           {popups.length === 0 ? <p>No past popups yet.</p> : null}
@@ -32,7 +35,7 @@ marketRoutes.get("/markets/past", async (c) => {
         <p>
           <a href="/requests/new?type=question">Ask about a market</a>
         </p>
-      </main>
+      </Page>
     </Document>,
   );
 });
@@ -43,6 +46,7 @@ marketRoutes.get("/markets/:id", async (c) => {
   if (!market) return c.text("Not found", 404);
   return c.html(
     <Document title={`${market.name} — Fresh Catch`} deviceToken={c.var.deviceToken}>
+      <SiteNav session={c.var.session} />
       <MarketDetail market={market} status={deriveMarketStatus(market)} />
     </Document>,
   );

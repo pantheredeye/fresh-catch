@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
+import { Page } from "@/ui/page";
+import { SiteNav } from "@/ui/site-nav";
 import { getLiveCatchUpdate, isCatchUpdateFresh } from "@/features/catch/queries";
 import { parseCatchContent } from "@/features/catch/pipeline";
 import { listActiveMarkets, listLivePopups } from "@/features/markets/queries";
 import { PublicMarketCard } from "@/features/markets/components";
-import { CatchHero, HomeNav } from "./components";
+import { CatchHero } from "./components";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -20,8 +22,8 @@ homeRoutes.get("/", async (c) => {
 
   return c.html(
     <Document deviceToken={c.var.deviceToken}>
-      <main class="page stack">
-        <HomeNav session={session} />
+      <SiteNav session={session} />
+      <Page>
         <h1>Fresh Catch</h1>
         <CatchHero content={catchContent} />
 
@@ -42,7 +44,7 @@ homeRoutes.get("/", async (c) => {
         </section>
 
         <script type="module" src="/js/favorites.js"></script>
-      </main>
+      </Page>
     </Document>,
   );
 });

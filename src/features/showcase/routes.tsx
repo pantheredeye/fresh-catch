@@ -7,6 +7,7 @@ import { Textarea } from "../../ui/textarea";
 import { Select } from "../../ui/select";
 import { Card } from "../../ui/card";
 import { Sheet } from "../../ui/sheet";
+import { Page } from "../../ui/page";
 
 export const showcaseRoutes = new Hono<{ Bindings: Bindings }>();
 
@@ -18,7 +19,7 @@ if (import.meta.env.DEV) {
   showcaseRoutes.get("/dev/showcase", (c) => {
     return c.html(
       <Document title="Design showcase (dev only)">
-        <main>
+        <Page>
           <h1>Design showcase</h1>
           <p>
             Dev-only route — not present in production builds. Toggle your OS color
@@ -93,6 +94,66 @@ if (import.meta.env.DEV) {
           </section>
 
           <section>
+            <h2>Badges</h2>
+            <p style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <span class="badge badge-live">Live</span>
+              <span class="badge badge-past">Past</span>
+              <span class="badge badge-open">Open</span>
+              <span class="badge badge-confirmed">Confirmed</span>
+              <span class="badge badge-fulfilled">Fulfilled</span>
+              <span class="badge badge-declined">Declined</span>
+            </p>
+          </section>
+
+          <section>
+            <h2>Notices</h2>
+            <div class="stack">
+              <p class="notice notice-success">Payment received — thanks!</p>
+              <p class="notice notice-info">Checkout was cancelled. No charge was made.</p>
+            </div>
+          </section>
+
+          <section>
+            <h2>Market row</h2>
+            <div class="market-row">
+              <span>
+                <strong>Saturday Farmers Market</strong> — Sat 8-2
+              </span>
+              <span class="badge badge-live">Active</span>
+            </div>
+          </section>
+
+          <section>
+            <h2>Inbox row</h2>
+            <a class="inbox-row" href="#showcase">
+              <span>Ada Lovelace — 2 lbs salmon</span>
+              <span class="badge badge-open">Open</span>
+            </a>
+          </section>
+
+          <section>
+            <h2>Thread</h2>
+            <div class="stack thread">
+              <div class="msg msg-customer">
+                <p>Do you have any rockfish this week?</p>
+                <p class="msg-meta">Ada — 9:02am</p>
+              </div>
+              <div class="msg msg-vendor">
+                <p>Yep, just brought some in — want me to set some aside?</p>
+                <p class="msg-meta">Evan — 9:14am</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Page / stack</h2>
+            <p>
+              This showcase page is itself a <code>Page</code> (<code>.page.stack</code>) — every route wraps its
+              content the same way, so there's nothing further to demo in isolation.
+            </p>
+          </section>
+
+          <section>
             <h2>Sheet</h2>
             <p>
               Rendered open here for visual review. Real usage opens it via
@@ -103,7 +164,7 @@ if (import.meta.env.DEV) {
               <Button variant="primary">Confirm</Button>
             </Sheet>
           </section>
-        </main>
+        </Page>
       </Document>,
     );
   });
