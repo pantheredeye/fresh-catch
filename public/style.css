@@ -90,6 +90,18 @@
   --color-status-error-fill: #ff6b6b;
   --color-status-error-text: #b60000;
 
+  /* §4 block B: the *-text tokens above are AAA (~7:1) against a *flat*
+     surface, but .badge-* renders them on top of a 20%-alpha fill over
+     --color-surface-primary — a lighter composited background than the flat
+     surface, which erodes their thin margin below 7:1. Computed against the
+     actual composited badge bg (fg*0.2 + surface*0.8), not eyeballed:
+     success 6.08:1, warning 6.00:1, error 5.75:1 with the shared tokens.
+     These dedicated, darker badge-only tokens restore AAA without touching
+     the shared tokens' (already-passing) plain-surface uses (.field-error). */
+  --color-badge-success-text: #004d3d; /* 8.53:1 on the composited badge-live/-confirmed bg */
+  --color-badge-warning-text: #5c3b00; /* 8.66:1 on the composited badge-open bg */
+  --color-badge-error-text: #8a0000; /* 8.25:1 on the composited badge-declined bg */
+
   /* Color — surfaces / backgrounds (light) */
   --color-surface-primary: #ffffff;
   --color-surface-secondary: #f1f5f9;
@@ -132,6 +144,15 @@
     --color-status-warning-text: #f59e0b; /* already 8.26:1 on dark bg, no swap needed */
     --color-status-error-fill: #ff6b6b;
     --color-status-error-text: #ff7a7a;
+
+    /* Same §4 block B composite problem as light mode, mirrored: the shared
+       *-text tokens above are AAA against flat --color-surface-primary
+       (#111827) but drop once composited under the badge's 20%-alpha fill —
+       success 6.42:1, warning 5.75:1, error 5.25:1 computed against the
+       actual composited bg. Lighter, badge-only tokens restore AAA. */
+    --color-badge-success-text: #4de6c9; /* 7.49:1 on the composited badge-live/-confirmed bg */
+    --color-badge-warning-text: #ffc95c; /* 8.09:1 on the composited badge-open bg */
+    --color-badge-error-text: #ffabab; /* 7.36:1 on the composited badge-declined bg */
 
     /* surface-primary matches bg-primary exactly (not lighter, as elevation
        schemes usually do) — any lighter and --color-text-secondary drops
@@ -373,6 +394,11 @@ a:focus-visible {
   box-shadow: var(--shadow-lg);
 }
 
+/* §4 block B: dims the page behind the modal, not a text background — no
+   -text token renders on it directly, so no AAA pairing applies. Verified
+   it stays visually distinct from .sheet's own surface-primary fill in dark
+   mode too (0.4 black over #111827 composites to ~#0a0e17, darker than the
+   sheet itself). */
 .sheet::backdrop {
   background: rgba(0, 0, 0, 0.4);
 }
@@ -467,7 +493,7 @@ a:focus-visible {
 
 .badge-live {
   background: rgba(0, 217, 177, 0.2); /* --color-status-success-fill at 20% — same hex in both themes */
-  color: var(--color-status-success-text);
+  color: var(--color-badge-success-text); /* not -status-success-text — see §4 block B comment on that token */
 }
 
 .badge-past {
@@ -569,12 +595,12 @@ a:focus-visible {
 
 .badge-open {
   background: rgba(245, 158, 11, 0.2); /* --color-status-warning-fill at 20% — same hex in both themes */
-  color: var(--color-status-warning-text);
+  color: var(--color-badge-warning-text); /* not -status-warning-text — see §4 block B comment on that token */
 }
 
 .badge-confirmed {
   background: rgba(0, 217, 177, 0.2); /* --color-status-success-fill at 20%, same as badge-live */
-  color: var(--color-status-success-text);
+  color: var(--color-badge-success-text); /* not -status-success-text — see §4 block B comment on that token */
 }
 
 .badge-fulfilled {
@@ -584,7 +610,7 @@ a:focus-visible {
 
 .badge-declined {
   background: rgba(255, 107, 107, 0.2); /* --color-status-error-fill at 20% */
-  color: var(--color-status-error-text);
+  color: var(--color-badge-error-text); /* not -status-error-text — see §4 block B comment on that token */
 }
 
 /* Post-checkout return banners (#60). Colour comes from the status tokens,
@@ -598,6 +624,9 @@ a:focus-visible {
   line-height: var(--line-height-relaxed);
 }
 
+/* §4 block B: verified against the composited bg, not just the flat surface
+   (12% alpha, half the badges' 20%) — 13.21:1 light, 11.47:1 dark. No fix
+   needed, unlike the badges above. */
 .notice-success {
   background: rgba(0, 217, 177, 0.12); /* --color-status-success-fill at 12%, same hex both themes */
   border-color: var(--color-status-success-fill);
