@@ -29,6 +29,9 @@ marketRoutes.get("/markets/past", async (c) => {
             </div>
           ))}
         </div>
+        <p>
+          <a href="/requests/new?type=question">Ask about a market</a>
+        </p>
       </main>
     </Document>,
   );

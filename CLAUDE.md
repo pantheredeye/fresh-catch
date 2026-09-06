@@ -141,6 +141,14 @@ follows). Source of truth for design and auth decisions in later beads.
 - TypeScript path: `@/*` → `src/*`
 - pnpm package manager
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ADMIN_EMAILS` (see `.env.example`)
+- Payments are optional (`src/features/payments/`, issue #60): without
+  `STRIPE_SECRET_KEY` + a connected account (`STRIPE_CONNECT_ACCOUNT_ID` or
+  `Vendor.stripeAccountId`) the "Request payment" action is hidden and orders
+  settle in person. Charges are Stripe **Connect direct charges** on Evan's
+  account with an `application_fee_amount` — he is merchant of record; never
+  reintroduce destination charges. The webhook (`POST /webhooks/stripe`, a
+  Connect endpoint) is mounted ahead of all middleware in `src/index.ts` so it
+  keeps its raw body for signature verification
 - D1 binding: `DB`. Accessed through Prisma (`src/lib/db.ts`); the D1 adapter
   talks to the binding directly, so `DATABASE_URL` in `prisma/schema.prisma`
   is a required-but-unused placeholder — `prisma generate`/`migrate diff`

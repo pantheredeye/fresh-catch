@@ -21,6 +21,11 @@ export const ENDPOINT_LIMITS = {
   otpSendIp: { maxRequests: 100, windowMs: FIFTEEN_MIN }, // per-IP ceiling
   otpVerify: { maxRequests: 10, windowMs: FIFTEEN_MIN }, // per EMAIL
   otpVerifyIp: { maxRequests: 200, windowMs: FIFTEEN_MIN }, // per-IP ceiling
+  // Identity is the device token, not an email (#59) — same tight+loose shape.
+  requestCreate: { maxRequests: 5, windowMs: FIFTEEN_MIN }, // per DEVICE
+  requestCreateIp: { maxRequests: 60, windowMs: FIFTEEN_MIN }, // per-IP ceiling
+  messageCreate: { maxRequests: 20, windowMs: FIFTEEN_MIN }, // per DEVICE
+  messageCreateIp: { maxRequests: 200, windowMs: FIFTEEN_MIN }, // per-IP ceiling
 } as const satisfies Record<string, Limit>;
 
 export type RateLimitEndpoint = keyof typeof ENDPOINT_LIMITS;

@@ -9,6 +9,7 @@ import { Card } from "@/ui/card";
 import { db } from "@/lib/db";
 import { requireSecret } from "@/lib/env";
 import { createLoginCode, normalizeEmail, verifyLoginCode } from "./login-codes";
+import { claimRequestsForUser } from "@/features/requests/queries";
 import { checkRateLimit } from "./rate-limit";
 import { sendLoginCodeEmail } from "./email";
 import { createSessionValue, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "./session";
@@ -128,6 +129,9 @@ authRoutes.post("/login/verify", async (c) => {
     create: { email, isAdmin },
     update: { isAdmin },
   });
+
+  // R3: carries the device's anonymous requests over to the account being logged into.
+  await claimRequestsForUser(c.var.deviceToken, user.id);
 
   const secret = requireSecret(c.env, "SESSION_SECRET");
   const sessionValue = await createSessionValue(

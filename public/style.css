@@ -463,3 +463,119 @@ a:focus-visible {
 .market-card h3 a:hover {
   text-decoration: underline;
 }
+
+/* Requests (#59) */
+.request-type-toggle {
+  display: flex;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  border: none;
+}
+
+.request-type-toggle legend {
+  padding: 0;
+}
+
+.request-type-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 48px;
+  padding: 0 var(--space-sm);
+  cursor: pointer;
+}
+
+/* Pure-CSS toggle (R10: zero JS) — hides the species/quantity fields when the "question" radio is checked. */
+.request-form:has(#type-question:checked) .fish-only {
+  display: none;
+}
+
+.thread {
+  align-items: stretch;
+}
+
+.msg {
+  max-width: 85%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.msg-customer {
+  align-self: flex-end;
+  background: var(--color-surface-secondary);
+}
+
+.msg-vendor {
+  align-self: flex-start;
+  background: var(--color-surface-primary);
+}
+
+.msg-meta {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.inbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-primary);
+  color: inherit;
+  text-decoration: none;
+}
+
+.inbox-row:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.badge-open {
+  background: rgba(245, 158, 11, 0.2); /* --color-status-warning-fill at 20% — same hex in both themes */
+  color: var(--color-status-warning-text);
+}
+
+.badge-confirmed {
+  background: rgba(0, 217, 177, 0.2); /* --color-status-success-fill at 20%, same as badge-live */
+  color: var(--color-status-success-text);
+}
+
+.badge-fulfilled {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+}
+
+.badge-declined {
+  background: rgba(255, 107, 107, 0.2); /* --color-status-error-fill at 20% */
+  color: var(--color-status-error-text);
+}
+
+/* Post-checkout return banners (#60). Colour comes from the status tokens,
+   which already swap per theme — no unpaired values to author here. */
+.notice {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border-left: 4px solid;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+}
+
+.notice-success {
+  background: rgba(0, 217, 177, 0.12); /* --color-status-success-fill at 12%, same hex both themes */
+  border-color: var(--color-status-success-fill);
+  color: var(--color-text-primary);
+}
+
+.notice-info {
+  background: var(--color-surface-secondary);
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}

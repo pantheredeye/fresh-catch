@@ -189,7 +189,10 @@ export const PublicMarketCard: FC<{ market: Market; kind: "regular" | "live-popu
       {kind === "live-popup" && market.expiresAt ? (
         <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
       ) : null}
-      <FavoriteToggle marketId={market.id} />
+      <div style="display: flex; gap: 12px;">
+        <FavoriteToggle marketId={market.id} />
+        <a href="/requests/new?type=question">Ask about a market</a>
+      </div>
     </div>
   );
 };

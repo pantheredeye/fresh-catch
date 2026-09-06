@@ -21,6 +21,7 @@ export const HomeNav: FC<{ session: SessionPayload | null }> = ({ session }) => 
     ) : (
       <a href="/login">Log in</a>
     )}
+    <a href="/requests">My requests</a>
   </p>
 );
 
@@ -42,7 +43,8 @@ export const CatchHero: FC<{ content: CatchContent | null }> = ({ content }) => 
         {content.items.map((item) => (
           <li>
             <strong>{item.name}</strong>
-            {item.note ? ` — ${item.note}` : ""}
+            {item.note ? ` — ${item.note}` : ""}{" "}
+            <a href={`/requests/new?species=${encodeURIComponent(item.name)}`}>Request this</a>
           </li>
         ))}
       </ul>
