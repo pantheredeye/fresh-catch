@@ -1,7 +1,7 @@
 {
   "name": "fresh-catch",
   "version": "1.0.0",
-  "description": "Fresh Catch — Hono on Cloudflare Workers.",
+  "description": "Fresh Catch \u2014 Hono on Cloudflare Workers.",
   "main": "index.js",
   "type": "module",
   "keywords": [],
@@ -12,7 +12,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run migrate:prd && npm run build && wrangler deploy",
+    "deploy": "npm run migrate:prd && npm run build && wrangler deploy -c dist/worker/wrangler.json",
     "generate": "prisma generate && wrangler types",
     "check": "npm run generate && npm run types",
     "types": "tsc",

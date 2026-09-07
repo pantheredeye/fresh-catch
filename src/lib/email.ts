@@ -2,7 +2,7 @@ import type { Bindings } from "@/types";
 
 // Placeholder sender domain, same as wrangler.jsonc's other cutover
 // placeholders (worker name, D1 database_id) — swap at cutover.
-const DEFAULT_FROM = "Fresh Catch <notifications@notifications.freshcatch.app>";
+const DEFAULT_FROM = "Fresh Catch <notifications@digitalglue.dev>";
 
 export type EmailMessage = {
   to: string;

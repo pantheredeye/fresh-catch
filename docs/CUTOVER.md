@@ -98,7 +98,12 @@ production yet, these are fake test rows, not real customer history).
 ## G5 — deploy and smoke-test on workers.dev
 
 ```bash
-wrangler deploy
+pnpm install          # v2 deps — stale v1 node_modules breaks the build
+pnpm build            # REQUIRED: vite build produces dist/worker. Bare
+                      # `wrangler deploy` bundles raw src instead → worker
+                      # throws "Callback returned incorrect type; expected
+                      # 'Promise'" on every request (hit 2026-09-06).
+pnpm wrangler deploy -c dist/worker/wrangler.json
 ```
 
 No route is attached yet (see the comment in `wrangler.jsonc`), so this is

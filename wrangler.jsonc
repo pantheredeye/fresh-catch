@@ -35,7 +35,16 @@
   "ai": {
     "binding": "AI",
     "remote": true
-  }
+  },
+  // G6 cutover (2026-09-06): custom domain now declared here — deploy attaches
+  // it to fresh-catch-v2, taking it over from v1 (digitalglue-market). Rollback:
+  // remove this block, redeploy v1 (its config re-seizes the domain).
+  "routes": [
+    {
+      "pattern": "market.digitalglue.dev",
+      "custom_domain": true
+    }
+  ]
   // Custom domain (G6) is deliberately NOT declared here as a `routes` block —
   // committing one would make *any* `wrangler deploy` seize market.digitalglue.dev
   // away from the still-live v1 worker before G5/G6 are ready for that. It's

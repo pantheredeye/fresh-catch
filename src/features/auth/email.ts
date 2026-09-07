@@ -4,7 +4,7 @@ import { sendEmail } from "@/lib/email";
 // Plain HTML template, not @react-email/components — that broke under rwsdk
 // 1.5+ and is a deliberate scope cut for v2 (see CLAUDE.md "Removed in the
 // rebuild").
-const FROM_ADDRESS = "Fresh Catch <login@notifications.freshcatch.app>";
+const FROM_ADDRESS = "Fresh Catch <auth@digitalglue.dev>";
 
 function loginCodeEmailHtml(code: string): string {
   return `<!doctype html>

@@ -2,8 +2,11 @@
  * Design tokens — ported from docs/audit/ux-a11y.md §1, with the AAA-contrast
  * swaps from §2 applied as the *default* values (not the pre-audit originals).
  * Every color is authored as a light/dark pair up front (§3 day-1 plan) to
- * avoid the old app's glass/tint patch-layer. The --color-glass-*/--tint-*/
- * --nav-accent-* tokens are deliberately NOT ported — see CLAUDE.md.
+ * avoid the old app's glass/tint patch-layer. The glass/tint/nav-accent
+ * token families are deliberately NOT ported — see CLAUDE.md.
+ * (NB: never write "star-slash" sequences like --foo-* / bar inside CSS
+ * comments without a space — it terminates the comment and killed the
+ * entire :root token block on 2026-09-06.)
  */
 :root {
   color-scheme: light dark;
