@@ -10,7 +10,7 @@ const formHeaders = { "Content-Type": "application/x-www-form-urlencoded" };
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
   await db.vendor.deleteMany();
-  await db.vendor.create({ data: { id: "test-vendor", name: "Fresh Catch Seafood Markets" } });
+  await db.vendor.create({ data: { id: "test-vendor", name: "2 Fishes Seafood" } });
 });
 
 async function post(path: string, cookie: string, fields: Record<string, string>) {

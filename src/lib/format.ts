@@ -133,5 +133,5 @@ export function mapsHref(address: string): string {
 
 /** "Sam" (displayName) or the vendor's plain `name`, falling back when there's no vendor row yet. */
 export function vendorDisplayName(vendor: { displayName?: string | null; name?: string | null } | null): string {
-  return vendor?.displayName || vendor?.name || "Fresh Catch";
+  return vendor?.displayName || vendor?.name || "2 Fishes Seafood";
 }

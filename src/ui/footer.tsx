@@ -7,8 +7,7 @@ import { Button } from "@/ui/button";
 /**
  * Footer — vendor line + login/"My requests"/Admin. Shared across every
  * customer-facing page, per handoff §3's "login lives in the footer"
- * content rule. `note` carries page-specific copy (e.g. the landing page's
- * "fish list rewritten every Monday" line).
+ * content rule. `note` carries page-specific copy.
  */
 export const Footer: FC<{ vendor: Vendor | null; session: SessionPayload | null; note?: string }> = ({
   vendor,

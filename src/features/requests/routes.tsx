@@ -86,10 +86,10 @@ requestRoutes.get("/requests/new", async (c) => {
     contactEmail: c.var.session?.email,
   };
   return c.html(
-    <Document title="New request — Fresh Catch" deviceToken={c.var.deviceToken}>
+    <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
       <BrandBar vendor={vendor} />
       <Page>
-        <BackLink href="/">Back to Fresh Catch</BackLink>
+        <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <h1>New request</h1>
         <RequestForm action="/requests" csrfToken={csrfToken} values={values} />
       </Page>
@@ -108,10 +108,10 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
   if (!result.success) {
     const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
     return c.html(
-      <Document title="New request — Fresh Catch" deviceToken={c.var.deviceToken}>
+      <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
         <BrandBar vendor={vendor} />
         <Page>
-          <BackLink href="/">Back to Fresh Catch</BackLink>
+          <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
           <h1>New request</h1>
           <RequestForm action="/requests" csrfToken={csrfToken} values={rawToFormValues(body)} errors={result.errors} />
         </Page>
@@ -138,10 +138,10 @@ requestRoutes.get("/requests", async (c) => {
     getVendor(),
   ]);
   return c.html(
-    <Document title="My requests — Fresh Catch" deviceToken={c.var.deviceToken}>
+    <Document title="My requests — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
       <BrandBar vendor={vendor} />
       <Page>
-        <BackLink href="/">Back to Fresh Catch</BackLink>
+        <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <h1>My requests</h1>
         {requests.length === 0 ? <p class="muted">No requests yet.</p> : null}
         <div class="stack">
@@ -168,7 +168,7 @@ requestRoutes.get("/requests/:id", async (c) => {
   // same verb through the flow — "Request bass" → "Requested").
   const created = c.req.query("created") === "1";
   return c.html(
-    <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
+    <Document title={`${requestTitle(request)} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
       <BrandBar vendor={vendor} />
       <Page>
         <BackLink href="/requests">My requests</BackLink>
@@ -201,7 +201,7 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
       getVendor(),
     ]);
     return c.html(
-      <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
+      <Document title={`${requestTitle(request)} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
         <BrandBar vendor={vendor} />
         <Page>
           <BackLink href="/requests">My requests</BackLink>

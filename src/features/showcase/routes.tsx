@@ -185,7 +185,7 @@ if (import.meta.env.DEV) {
 
           <section>
             <SectionHeading title="BackLink" size="sm" level={3} />
-            <BackLink href="#showcase">Back to Fresh Catch</BackLink>
+            <BackLink href="#showcase">Back to 2 Fishes Seafood</BackLink>
           </section>
 
           <section>
@@ -193,7 +193,7 @@ if (import.meta.env.DEV) {
             <SplitControl
               items={[
                 { href: "#showcase", label: "Directions", ariaLabel: "Directions to Mesa View" },
-                { href: "#showcase", label: "Call", ariaLabel: "Call Fresh Catch" },
+                { href: "#showcase", label: "Call", ariaLabel: "Call 2 Fishes Seafood" },
               ]}
             />
           </section>

@@ -33,7 +33,7 @@ function isAllowlistedAdmin(env: Bindings, email: string): boolean {
 }
 
 const EmailForm: FC<{ vendor: Vendor | null; errorText?: string }> = ({ vendor, errorText }) => (
-  <Document title="Log in — Fresh Catch">
+  <Document title="Log in — 2 Fishes Seafood">
     <BrandBar vendor={vendor} />
     <Page>
       <Card>
@@ -60,7 +60,7 @@ const CodeForm: FC<{ vendor: Vendor | null; email: string; devCode?: string; err
   devCode,
   errorText,
 }) => (
-  <Document title="Enter your code — Fresh Catch">
+  <Document title="Enter your code — 2 Fishes Seafood">
     <BrandBar vendor={vendor} />
     <Page>
       <Card>

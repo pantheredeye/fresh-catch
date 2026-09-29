@@ -27,7 +27,7 @@ export const RequestPaymentForm: FC<{ action: string; csrfToken: string; amountC
 export const CheckoutNotice: FC<{ outcome: "success" | "cancel" }> = ({ outcome }) =>
   outcome === "success" ? (
     <p class="notice notice-success" role="status">
-      Payment received — thank you! Your order below updates as soon as Fresh Catch's bank confirms it, usually within a
+      Payment received — thank you! Your order below updates as soon as 2 Fishes Seafood's bank confirms it, usually within a
       few seconds.
     </p>
   ) : (

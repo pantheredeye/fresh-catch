@@ -11,7 +11,7 @@ beforeAll(async () => {
 describe("getVendor / updateVendor (single-vendor app)", () => {
   it("returns the sole vendor row and updates phone/displayName in place", async () => {
     await db.vendor.deleteMany();
-    const created = await db.vendor.create({ data: { id: "test-vendor", name: "Fresh Catch Seafood Markets" } });
+    const created = await db.vendor.create({ data: { id: "test-vendor", name: "2 Fishes Seafood" } });
 
     const fetched = await getVendor();
     expect(fetched?.id).toBe(created.id);

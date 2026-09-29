@@ -6,7 +6,7 @@ describe("app", () => {
   it("GET / renders the home page", async () => {
     const res = await app.request("/", {}, env);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("Fresh Catch");
+    expect(await res.text()).toContain("2 Fishes Seafood");
   });
 
   it("GET /health reports db connectivity", async () => {
