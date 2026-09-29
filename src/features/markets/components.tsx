@@ -14,6 +14,7 @@ import { CardHeader } from "@/ui/card-header";
 import { BackLink } from "@/ui/back-link";
 import { SplitControl } from "@/ui/split-control";
 import { mapsHref, telHref, vendorDisplayName } from "@/lib/format";
+import { assetUrl } from "@/lib/assets";
 import { splitExpiresAt, splitHours } from "./validation";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
@@ -331,7 +332,7 @@ export const MarketDetail: FC<{
         </div>
       </Band>
       <Footer vendor={vendor} session={session} />
-      <script type="module" src="/js/favorites.js"></script>
+      <script type="module" src={assetUrl("/js/favorites.js")}></script>
     </Page>
   );
 };

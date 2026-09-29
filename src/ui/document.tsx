@@ -1,4 +1,5 @@
 import type { FC, PropsWithChildren } from "hono/jsx";
+import { assetUrl } from "@/lib/assets";
 
 /**
  * `deviceToken` (optional) is rendered into `<body data-device-token>` so
@@ -28,7 +29,7 @@ export const Document: FC<PropsWithChildren<{ title?: string; deviceToken?: stri
         href="/fonts/hanken-grotesk-var.woff2"
         crossorigin="anonymous"
       />
-      <link rel="stylesheet" href="/style.css" />
+      <link rel="stylesheet" href={assetUrl("/style.css")} />
     </head>
     <body data-device-token={deviceToken}>
       <a href="#main" class="skip-link">

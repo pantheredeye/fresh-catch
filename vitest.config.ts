@@ -13,6 +13,9 @@ export default defineConfig({
       "@generated": path.resolve(__dirname, "generated"),
     },
   },
+  define: {
+    __ASSET_VERSION__: JSON.stringify("test"),
+  },
   plugins: [
     cloudflareTest({
       // Workers AI (and other remote-only bindings) have no local emulation, so

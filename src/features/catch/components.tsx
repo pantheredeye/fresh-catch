@@ -7,6 +7,7 @@ import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
 import { CardHeader } from "@/ui/card-header";
 import { BackLink } from "@/ui/back-link";
+import { assetUrl } from "@/lib/assets";
 import { parseCatchContent, type CatchContent } from "./pipeline";
 
 const LiveCatch: FC<{ content: CatchContent }> = ({ content }) => (
@@ -120,7 +121,7 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string; prices
         </form>
       </section>
 
-      <script type="module" src="/js/catch-record.js"></script>
+      <script type="module" src={assetUrl("/js/catch-record.js")}></script>
     </Page>
   );
 };

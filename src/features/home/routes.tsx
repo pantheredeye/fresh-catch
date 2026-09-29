@@ -18,6 +18,7 @@ import {
   type TodayStatus,
 } from "@/features/markets/status";
 import { WEEKDAY_NAMES, formatClockTime, formatFullDate, formatHoursRange, formatWeekOf, localParts } from "@/lib/format";
+import { assetUrl } from "@/lib/assets";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
@@ -161,7 +162,7 @@ homeRoutes.get("/", async (c) => {
           <ClosingBand vendor={vendor} />
         </Band>
         <Footer vendor={vendor} session={session} note="The fish list is rewritten every Monday morning." />
-        <script type="module" src="/js/favorites.js"></script>
+        <script type="module" src={assetUrl("/js/favorites.js")}></script>
       </Page>
     </Document>,
   );
