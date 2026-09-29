@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
-import { CatchPipelineError, runCatchPipeline, type CatchPipelineInput } from "./pipeline";
-import { parsePublishForm } from "./validation";
-import { getLiveCatchUpdate, publishCatchUpdate } from "./queries";
+import { CatchPipelineError, parseCatchContent, runCatchPipeline, type CatchItem, type CatchPipelineInput } from "./pipeline";
+import { parsePricesForm, parsePublishForm } from "./validation";
+import { getLiveCatchUpdate, publishCatchUpdate, updateCatchContent } from "./queries";
 import { CatchPage } from "./components";
 
 export const catchAdminRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -63,5 +63,35 @@ catchAdminRoutes.post("/admin/catch/publish", csrfProtect(), async (c) => {
     rawTranscript: result.data.rawTranscript,
     formattedContent: JSON.stringify(result.data.content),
   });
+  return c.redirect("/admin/catch");
+});
+
+/** The correction path (#71): always available to fix or add a price/sold-out flag after publish, regardless of what the LLM extracted. */
+catchAdminRoutes.post("/admin/catch/prices", csrfProtect(), async (c) => {
+  const live = await getLiveCatchUpdate();
+  if (!live) return c.text("No live catch update", 404);
+  const content = parseCatchContent(live.formattedContent);
+  if (!content) return c.text("Live catch update has unreadable content", 500);
+
+  const body = await c.req.parseBody();
+  const result = parsePricesForm(body, content.items.length);
+  if (!result.success) {
+    return c.html(
+      <Document title="Catch of the week — Admin">
+        <CatchPage live={live} csrfToken={c.var.session!.csrfToken} pricesError={result.error} />
+      </Document>,
+      400,
+    );
+  }
+
+  const items: CatchItem[] = content.items.map((item, i) => {
+    const row = result.data[i];
+    const updated: CatchItem = { name: item.name, note: item.note };
+    if (row.priceCents !== null) updated.priceCents = row.priceCents;
+    if (row.soldOut) updated.soldOut = true;
+    return updated;
+  });
+
+  await updateCatchContent(live.id, { ...content, items });
   return c.redirect("/admin/catch");
 });

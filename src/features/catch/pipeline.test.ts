@@ -49,6 +49,23 @@ describe("runCatchPipeline — text input", () => {
   });
 });
 
+describe("runCatchPipeline — price extraction (#71)", () => {
+  it("carries an LLM-extracted priceCents onto the item", async () => {
+    const withPrice = JSON.stringify({
+      headline: "Big Haul",
+      items: [{ name: "Mahi Mahi", note: "Fresh off the boat", priceCents: 1500 }],
+      summary: "A great catch today.",
+    });
+    const draft = await runCatchPipeline(fakeAi(withPrice), { kind: "text", text: "mahi mahi, only $15 a pound" });
+    expect(draft.formatted.items[0].priceCents).toBe(1500);
+  });
+
+  it("leaves priceCents undefined when no price was mentioned", async () => {
+    const draft = await runCatchPipeline(fakeAi(VALID_JSON), { kind: "text", text: "mahi mahi, fresh" });
+    expect(draft.formatted.items[0].priceCents).toBeUndefined();
+  });
+});
+
 describe("runCatchPipeline — audio input", () => {
   it("501s when the AI binding is absent", async () => {
     await expect(

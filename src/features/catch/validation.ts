@@ -12,6 +12,8 @@ export const CATCH_FIELD_LIMITS = {
 const catchItemSchema = z.object({
   name: z.string().trim().min(1).max(CATCH_FIELD_LIMITS.itemName),
   note: z.string().trim().max(CATCH_FIELD_LIMITS.itemNote),
+  priceCents: z.number().int().nonnegative().optional(),
+  soldOut: z.boolean().optional(),
 });
 
 const publishFieldsSchema = z.object({
@@ -54,4 +56,31 @@ export function parsePublishForm(raw: Record<string, unknown>): PublishResult {
       rawTranscript: fields.data.rawTranscript,
     },
   };
+}
+
+const DOLLAR_RE = /^\d{1,5}(\.\d{1,2})?$/;
+
+export type PriceRow = { priceCents: number | null; soldOut: boolean };
+export type PricesFormResult = { success: true; data: PriceRow[] } | { success: false; error: string };
+
+/**
+ * Parses the "Prices & availability" form (§`GET /admin/catch`) — one
+ * `price_<i>`/`soldOut_<i>` pair per live item, keyed by array position since
+ * the form always round-trips the full current item list.
+ */
+export function parsePricesForm(raw: Record<string, unknown>, itemCount: number): PricesFormResult {
+  const data: PriceRow[] = [];
+  for (let i = 0; i < itemCount; i++) {
+    const priceRaw = raw[`price_${i}`];
+    const priceStr = typeof priceRaw === "string" ? priceRaw.trim() : "";
+    let priceCents: number | null = null;
+    if (priceStr) {
+      if (!DOLLAR_RE.test(priceStr)) {
+        return { success: false, error: `Enter a valid price for item ${i + 1}` };
+      }
+      priceCents = Math.round(Number(priceStr) * 100);
+    }
+    data.push({ priceCents, soldOut: raw[`soldOut_${i}`] === "on" });
+  }
+  return { success: true, data };
 }

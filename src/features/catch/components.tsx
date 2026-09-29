@@ -1,30 +1,58 @@
 import type { FC } from "hono/jsx";
 import type { CatchUpdate } from "@/lib/db";
 import { Textarea } from "@/ui/textarea";
+import { Input } from "@/ui/input";
 import { Page } from "@/ui/page";
 import { Button } from "@/ui/button";
-import { parseCatchContent } from "./pipeline";
+import { parseCatchContent, type CatchContent } from "./pipeline";
 
-const LiveCatch: FC<{ live: CatchUpdate | null }> = ({ live }) => {
-  if (!live) return <p>No live catch update yet.</p>;
-  const content = parseCatchContent(live.formattedContent);
-  if (!content) return <p>Live catch update has unreadable content.</p>;
+const LiveCatch: FC<{ content: CatchContent }> = ({ content }) => (
+  <div class="card stack">
+    <h3>{content.headline}</h3>
+    <ul>
+      {content.items.map((item) => (
+        <li>
+          <strong>{item.name}</strong>
+          {item.note ? ` — ${item.note}` : ""}
+          {item.priceCents !== undefined ? ` — $${(item.priceCents / 100).toFixed(2)}` : ""}
+          {item.soldOut ? " (Sold out)" : ""}
+        </li>
+      ))}
+    </ul>
+    <p>{content.summary}</p>
+  </div>
+);
 
-  return (
-    <div class="card stack">
-      <h3>{content.headline}</h3>
-      <ul>
-        {content.items.map((item) => (
-          <li>
-            <strong>{item.name}</strong>
-            {item.note ? ` — ${item.note}` : ""}
-          </li>
-        ))}
-      </ul>
-      <p>{content.summary}</p>
-    </div>
-  );
-};
+/** Per-item price ($, optional) + sold-out checkbox → `POST /admin/catch/prices` rewrites `formattedContent` (issue #71's correction path — always available regardless of what the LLM extracted). */
+const PricesForm: FC<{ content: CatchContent; csrfToken: string; errorText?: string }> = ({
+  content,
+  csrfToken,
+  errorText,
+}) => (
+  <form method="post" action="/admin/catch/prices" class="stack">
+    <input type="hidden" name="csrfToken" value={csrfToken} />
+    {errorText ? (
+      <p class="field-error" role="alert">
+        {errorText}
+      </p>
+    ) : null}
+    {content.items.map((item, i) => (
+      <div class="cluster">
+        <Input
+          id={`price_${i}`}
+          name={`price_${i}`}
+          label={`${item.name} — price ($)`}
+          inputMode="decimal"
+          value={item.priceCents !== undefined ? (item.priceCents / 100).toFixed(2) : ""}
+        />
+        <label class="field-label" for={`soldOut_${i}`}>
+          <input type="checkbox" id={`soldOut_${i}`} name={`soldOut_${i}`} checked={item.soldOut === true} /> Sold out
+        </label>
+      </div>
+    ))}
+    <Button type="submit">Update prices</Button>
+  </form>
+);
 
 /**
  * One admin page, one mic, one concept (#57). Recording a draft is
@@ -32,46 +60,63 @@ const LiveCatch: FC<{ live: CatchUpdate | null }> = ({ live }) => {
  * fills the hidden fields below); publishing is a boring server-rendered
  * form POST, same pattern as the markets admin routes.
  */
-export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string }> = ({ live, csrfToken }) => (
-  <Page>
-    <h1>Catch of the week</h1>
+export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string; pricesError?: string }> = ({
+  live,
+  csrfToken,
+  pricesError,
+}) => {
+  const content = live ? parseCatchContent(live.formattedContent) : null;
+  return (
+    <Page>
+      <h1>Catch of the week</h1>
 
-    <section>
-      <h2>Currently live</h2>
-      <LiveCatch live={live} />
-    </section>
+      <section>
+        <h2>Currently live</h2>
+        {!live ? (
+          <p>No live catch update yet.</p>
+        ) : !content ? (
+          <p>Live catch update has unreadable content.</p>
+        ) : (
+          <>
+            <LiveCatch content={content} />
+            <h3>Prices &amp; availability</h3>
+            <PricesForm content={content} csrfToken={csrfToken} errorText={pricesError} />
+          </>
+        )}
+      </section>
 
-    <section>
-      <h2>Record a new catch</h2>
-      <p id="catch-record-status" role="status"></p>
+      <section>
+        <h2>Record a new catch</h2>
+        <p id="catch-record-status" role="status"></p>
 
-      <Button type="button" id="catch-mic-button" ariaPressed={false}>
-        Start recording
-      </Button>
-
-      <Textarea id="catch-text-input" name="catchText" label="Or type it instead" rows={4} />
-      <Button type="button" variant="secondary" id="catch-text-submit">
-        Format from text
-      </Button>
-
-      <div class="card stack" id="catch-draft-preview" hidden>
-        <h3 id="catch-draft-headline"></h3>
-        <ul id="catch-draft-items"></ul>
-        <p id="catch-draft-summary"></p>
-      </div>
-
-      <form method="post" action="/admin/catch/publish" id="catch-publish-form">
-        <input type="hidden" name="csrfToken" value={csrfToken} />
-        <input type="hidden" name="headline" id="catch-publish-headline" />
-        <input type="hidden" name="summary" id="catch-publish-summary" />
-        <input type="hidden" name="itemsJson" id="catch-publish-items" />
-        <input type="hidden" name="rawTranscript" id="catch-publish-transcript" />
-        <Button type="submit" id="catch-publish-submit" disabled>
-          Publish
+        <Button type="button" id="catch-mic-button" ariaPressed={false}>
+          Start recording
         </Button>
-      </form>
-    </section>
 
-    <script type="module" src="/js/catch-record.js"></script>
-  </Page>
-);
+        <Textarea id="catch-text-input" name="catchText" label="Or type it instead" rows={4} />
+        <Button type="button" variant="secondary" id="catch-text-submit">
+          Format from text
+        </Button>
+
+        <div class="card stack" id="catch-draft-preview" hidden>
+          <h3 id="catch-draft-headline"></h3>
+          <ul id="catch-draft-items"></ul>
+          <p id="catch-draft-summary"></p>
+        </div>
+
+        <form method="post" action="/admin/catch/publish" id="catch-publish-form">
+          <input type="hidden" name="csrfToken" value={csrfToken} />
+          <input type="hidden" name="headline" id="catch-publish-headline" />
+          <input type="hidden" name="summary" id="catch-publish-summary" />
+          <input type="hidden" name="itemsJson" id="catch-publish-items" />
+          <input type="hidden" name="rawTranscript" id="catch-publish-transcript" />
+          <Button type="submit" id="catch-publish-submit" disabled>
+            Publish
+          </Button>
+        </form>
+      </section>
+
+      <script type="module" src="/js/catch-record.js"></script>
+    </Page>
+  );
+};

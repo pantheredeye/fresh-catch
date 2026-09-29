@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CATCH_FIELD_LIMITS, parsePublishForm } from "./validation";
+import { CATCH_FIELD_LIMITS, parsePricesForm, parsePublishForm } from "./validation";
 
 function publishForm(overrides: Record<string, unknown> = {}) {
   return {
@@ -49,5 +49,55 @@ describe("parsePublishForm", () => {
   it("accepts an item with a blank note", () => {
     const result = parsePublishForm(publishForm({ itemsJson: JSON.stringify([{ name: "Cod", note: "" }]) }));
     expect(result.success).toBe(true);
+  });
+
+  it("accepts an item with an LLM-extracted priceCents", () => {
+    const result = parsePublishForm(
+      publishForm({ itemsJson: JSON.stringify([{ name: "Cod", note: "", priceCents: 1500 }]) }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.content.items[0].priceCents).toBe(1500);
+  });
+
+  it("accepts an item with no price mentioned (priceCents omitted)", () => {
+    const result = parsePublishForm(publishForm({ itemsJson: JSON.stringify([{ name: "Cod", note: "" }]) }));
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.content.items[0].priceCents).toBeUndefined();
+  });
+
+  it("rejects a non-numeric priceCents", () => {
+    const result = parsePublishForm(
+      publishForm({ itemsJson: JSON.stringify([{ name: "Cod", note: "", priceCents: "15.00" }]) }),
+    );
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("parsePricesForm", () => {
+  it("accepts blank prices as null and unchecked boxes as not sold out", () => {
+    const result = parsePricesForm({}, 2);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual([
+        { priceCents: null, soldOut: false },
+        { priceCents: null, soldOut: false },
+      ]);
+    }
+  });
+
+  it("parses a dollar price into cents and a checked box as sold out", () => {
+    const result = parsePricesForm({ price_0: "15.50", soldOut_0: "on" }, 1);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data[0]).toEqual({ priceCents: 1550, soldOut: true });
+  });
+
+  it("rejects an invalid price", () => {
+    const result = parsePricesForm({ price_0: "abc" }, 1);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a negative price", () => {
+    const result = parsePricesForm({ price_0: "-5" }, 1);
+    expect(result.success).toBe(false);
   });
 });
