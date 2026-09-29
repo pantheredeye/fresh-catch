@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
+import { SectionHeading } from "@/ui/section-heading";
+import { BackLink } from "@/ui/back-link";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
 import { getVendor, updateVendor } from "./queries";
 import { parseVendorForm } from "./validation";
@@ -20,7 +22,8 @@ vendorAdminRoutes.get("/admin/vendor", async (c) => {
   return c.html(
     <Document title="Vendor settings — Admin">
       <Page>
-        <h1>Vendor settings</h1>
+        <BackLink href="/admin">Admin</BackLink>
+        <SectionHeading title="Vendor settings" level={1} />
         <VendorForm
           csrfToken={c.var.session!.csrfToken}
           values={{ displayName: vendor?.displayName, phone: vendor?.phone }}
@@ -40,7 +43,8 @@ vendorAdminRoutes.post("/admin/vendor", csrfProtect(), async (c) => {
     return c.html(
       <Document title="Vendor settings — Admin">
         <Page>
-          <h1>Vendor settings</h1>
+          <BackLink href="/admin">Admin</BackLink>
+          <SectionHeading title="Vendor settings" level={1} />
           <VendorForm
             csrfToken={c.var.session!.csrfToken}
             values={{ displayName: formString(body.displayName), phone: formString(body.phone) }}

@@ -3,6 +3,8 @@ import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Button } from "@/ui/button";
 import { Page } from "@/ui/page";
+import { SectionHeading } from "@/ui/section-heading";
+import { BackLink } from "@/ui/back-link";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
 import { cancelMarket, createMarket, getMarket, listActiveMarkets, listLivePopups, updateMarket } from "./queries";
 import { parseMarketForm } from "./validation";
@@ -49,7 +51,8 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
   return c.html(
     <Document title="Markets — Admin">
       <Page>
-        <h1>Markets</h1>
+        <BackLink href="/admin">Admin</BackLink>
+        <SectionHeading title="Markets" level={1} />
         <p class="cluster">
           <Button href="/admin/markets/new?type=regular" inline>
             New market
@@ -60,7 +63,7 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
         </p>
 
         <section>
-          <h2>Regular markets</h2>
+          <SectionHeading title="Regular markets" level={2} size="sm" />
           <div class="stack">
             {regular.length === 0 ? <p>No active markets yet.</p> : null}
             {regular.map((market) => (
@@ -70,7 +73,7 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
         </section>
 
         <section>
-          <h2>Live popups</h2>
+          <SectionHeading title="Live popups" level={2} size="sm" />
           <div class="stack">
             {popups.length === 0 ? <p>No live popups.</p> : null}
             {popups.map((market) => (
@@ -92,7 +95,8 @@ marketsAdminRoutes.get("/admin/markets/new", (c) => {
   return c.html(
     <Document title={type === "popup" ? "New popup — Admin" : "New market — Admin"}>
       <Page>
-        <h1>{type === "popup" ? "New popup" : "New market"}</h1>
+        <BackLink href="/admin/markets">Markets</BackLink>
+        <SectionHeading title={type === "popup" ? "New popup" : "New market"} level={1} />
         <MarketForm type={type} action="/admin/markets" csrfToken={csrfToken} />
       </Page>
     </Document>,
@@ -108,7 +112,8 @@ marketsAdminRoutes.post("/admin/markets", csrfProtect(), async (c) => {
     return c.html(
       <Document title={type === "popup" ? "New popup — Admin" : "New market — Admin"}>
         <Page>
-          <h1>{type === "popup" ? "New popup" : "New market"}</h1>
+          <BackLink href="/admin/markets">Markets</BackLink>
+          <SectionHeading title={type === "popup" ? "New popup" : "New market"} level={1} />
           <MarketForm
             type={type}
             action="/admin/markets"
@@ -134,7 +139,8 @@ marketsAdminRoutes.get("/admin/markets/:id/edit", async (c) => {
   return c.html(
     <Document title={`Edit ${market.name} — Admin`}>
       <Page>
-        <h1>Edit {market.name}</h1>
+        <BackLink href="/admin/markets">Markets</BackLink>
+        <SectionHeading title={`Edit ${market.name}`} level={1} />
         <MarketForm
           type={type}
           action={`/admin/markets/${market.id}`}
@@ -167,7 +173,8 @@ marketsAdminRoutes.post("/admin/markets/:id", csrfProtect(), async (c) => {
     return c.html(
       <Document title={`Edit ${market.name} — Admin`}>
         <Page>
-          <h1>Edit {market.name}</h1>
+          <BackLink href="/admin/markets">Markets</BackLink>
+          <SectionHeading title={`Edit ${market.name}`} level={1} />
           <MarketForm
             type={type}
             action={`/admin/markets/${id}`}

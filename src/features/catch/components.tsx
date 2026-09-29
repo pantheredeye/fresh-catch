@@ -4,11 +4,14 @@ import { Textarea } from "@/ui/textarea";
 import { Input } from "@/ui/input";
 import { Page } from "@/ui/page";
 import { Button } from "@/ui/button";
+import { SectionHeading } from "@/ui/section-heading";
+import { CardHeader } from "@/ui/card-header";
+import { BackLink } from "@/ui/back-link";
 import { parseCatchContent, type CatchContent } from "./pipeline";
 
 const LiveCatch: FC<{ content: CatchContent }> = ({ content }) => (
   <div class="card stack">
-    <h3>{content.headline}</h3>
+    <CardHeader level={3} title={content.headline} />
     <ul>
       {content.items.map((item) => (
         <li>
@@ -68,10 +71,11 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string; prices
   const content = live ? parseCatchContent(live.formattedContent) : null;
   return (
     <Page>
-      <h1>Catch of the week</h1>
+      <BackLink href="/admin">Admin</BackLink>
+      <SectionHeading title="Catch of the week" level={1} />
 
       <section>
-        <h2>Currently live</h2>
+        <SectionHeading title="Currently live" level={2} size="sm" />
         {!live ? (
           <p>No live catch update yet.</p>
         ) : !content ? (
@@ -79,14 +83,14 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string; prices
         ) : (
           <>
             <LiveCatch content={content} />
-            <h3>Prices &amp; availability</h3>
+            <SectionHeading title="Prices & availability" level={3} size="sm" />
             <PricesForm content={content} csrfToken={csrfToken} errorText={pricesError} />
           </>
         )}
       </section>
 
       <section>
-        <h2>Record a new catch</h2>
+        <SectionHeading title="Record a new catch" level={2} size="sm" />
         <p id="catch-record-status" role="status"></p>
 
         <Button type="button" id="catch-mic-button" ariaPressed={false}>

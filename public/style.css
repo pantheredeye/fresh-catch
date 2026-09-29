@@ -512,17 +512,6 @@ ol.stack {
   color: var(--color-text-secondary);
 }
 
-/* Market names, section headings, wordmark — the display face's job is
-   personality; every current page picks it up for free via h1-h3 above. */
-.market-card h3 a {
-  text-decoration: none;
-  font-weight: var(--font-weight-bold);
-}
-
-.market-card h3 a:hover {
-  text-decoration: underline;
-}
-
 /* Requests (#59) */
 .request-type-toggle {
   display: flex;
