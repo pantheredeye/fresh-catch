@@ -22,6 +22,11 @@ function marketInput(overrides: Partial<MarketInput> = {}): MarketInput {
     notes: null,
     county: null,
     city: null,
+    address: null,
+    landmark: null,
+    dayOfWeek: null,
+    openMinutes: null,
+    closeMinutes: null,
     expiresAt: null,
     ...overrides,
   };

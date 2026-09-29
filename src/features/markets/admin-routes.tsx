@@ -32,6 +32,13 @@ function rawToFormValues(raw: Record<string, unknown>): MarketFormValues {
     notes: formString(raw.notes),
     county: formString(raw.county),
     city: formString(raw.city),
+    address: formString(raw.address),
+    landmark: formString(raw.landmark),
+    dayOfWeek: formString(raw.dayOfWeek),
+    openHour: formString(raw.openHour),
+    openMinute: formString(raw.openMinute),
+    closeHour: formString(raw.closeHour),
+    closeMinute: formString(raw.closeMinute),
     expiresDate: formString(raw.expiresDate),
     expiresHour: formString(raw.expiresHour),
   };

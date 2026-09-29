@@ -77,6 +77,11 @@ describe("a11y floors across every GET HTML route", () => {
       notes: null,
       county: null,
       city: null,
+      address: null,
+      landmark: null,
+      dayOfWeek: null,
+      openMinutes: null,
+      closeMinutes: null,
       expiresAt: null,
     });
     marketId = market.id;
@@ -116,6 +121,7 @@ describe("a11y floors across every GET HTML route", () => {
       { path: "/admin/markets/new", init: { headers: { Cookie: adminCookie } } },
       { path: `/admin/markets/${marketId}/edit`, init: { headers: { Cookie: adminCookie } } },
       { path: "/admin/catch", init: { headers: { Cookie: adminCookie } } },
+      { path: "/admin/vendor", init: { headers: { Cookie: adminCookie } } },
       { path: "/admin/requests", init: { headers: { Cookie: adminCookie } } },
       { path: "/admin/requests/new", init: { headers: { Cookie: adminCookie } } },
       { path: `/admin/requests/${requestId}`, init: { headers: { Cookie: adminCookie } } },

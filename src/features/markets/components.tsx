@@ -8,12 +8,35 @@ import { Button } from "@/ui/button";
 import { Page } from "@/ui/page";
 import { CardHeader } from "@/ui/card-header";
 import { BackLink } from "@/ui/back-link";
-import { splitExpiresAt } from "./validation";
+import { splitExpiresAt, splitHours } from "./validation";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
   value: String(hour),
   label: `${String(hour).padStart(2, "0")}:00`,
 }));
+
+const UNSET_OPTION = { value: "", label: "—" };
+
+const DAY_OPTIONS = [
+  UNSET_OPTION,
+  { value: "0", label: "Sunday" },
+  { value: "1", label: "Monday" },
+  { value: "2", label: "Tuesday" },
+  { value: "3", label: "Wednesday" },
+  { value: "4", label: "Thursday" },
+  { value: "5", label: "Friday" },
+  { value: "6", label: "Saturday" },
+];
+
+const HOUR_OPTIONS_WITH_UNSET = [UNSET_OPTION, ...HOUR_OPTIONS];
+
+const MINUTE_OPTIONS = [
+  UNSET_OPTION,
+  { value: "0", label: ":00" },
+  { value: "15", label: ":15" },
+  { value: "30", label: ":30" },
+  { value: "45", label: ":45" },
+];
 
 export type MarketFormValues = {
   name?: string;
@@ -25,6 +48,13 @@ export type MarketFormValues = {
   notes?: string | null;
   county?: string | null;
   city?: string | null;
+  address?: string | null;
+  landmark?: string | null;
+  dayOfWeek?: string;
+  openHour?: string;
+  openMinute?: string;
+  closeHour?: string;
+  closeMinute?: string;
   expiresDate?: string;
   expiresHour?: string;
 };
@@ -36,6 +66,7 @@ function asOptional(value: string | null | undefined): string | undefined {
 /** Turns a stored `Market` row into the form's flat string values, splitting `expiresAt` per C5. */
 export function marketToFormValues(market: Market): MarketFormValues {
   const { expiresDate, expiresHour } = splitExpiresAt(market.expiresAt);
+  const hours = splitHours(market);
   return {
     name: market.name,
     schedule: market.schedule,
@@ -46,6 +77,9 @@ export function marketToFormValues(market: Market): MarketFormValues {
     notes: market.notes,
     county: market.county,
     city: market.city,
+    address: market.address,
+    landmark: market.landmark,
+    ...hours,
     expiresDate,
     expiresHour,
   };
@@ -81,6 +115,66 @@ export const MarketForm: FC<{
     />
     <Input id="county" name="county" label="County" value={asOptional(values.county)} errorText={errors.county} />
     <Input id="city" name="city" label="City" value={asOptional(values.city)} errorText={errors.city} />
+    <Input
+      id="address"
+      name="address"
+      label="Address"
+      value={asOptional(values.address)}
+      errorText={errors.address}
+    />
+    <Input
+      id="landmark"
+      name="landmark"
+      label="Landmark"
+      helperText='e.g. "Next to the gas station"'
+      value={asOptional(values.landmark)}
+      errorText={errors.landmark}
+    />
+    <Select
+      id="dayOfWeek"
+      name="dayOfWeek"
+      label="Day"
+      helperText="Set day + open/close together, or leave all blank — schedule text above still shows either way."
+      value={values.dayOfWeek ?? ""}
+      options={DAY_OPTIONS}
+      errorText={errors.dayOfWeek}
+    />
+    <div class="cluster">
+      <Select
+        id="openHour"
+        name="openHour"
+        label="Open hour"
+        value={values.openHour ?? ""}
+        options={HOUR_OPTIONS_WITH_UNSET}
+        errorText={errors.openHour}
+      />
+      <Select
+        id="openMinute"
+        name="openMinute"
+        label="Open minute"
+        value={values.openMinute ?? ""}
+        options={MINUTE_OPTIONS}
+        errorText={errors.openMinute}
+      />
+    </div>
+    <div class="cluster">
+      <Select
+        id="closeHour"
+        name="closeHour"
+        label="Close hour"
+        value={values.closeHour ?? ""}
+        options={HOUR_OPTIONS_WITH_UNSET}
+        errorText={errors.closeHour}
+      />
+      <Select
+        id="closeMinute"
+        name="closeMinute"
+        label="Close minute"
+        value={values.closeMinute ?? ""}
+        options={MINUTE_OPTIONS}
+        errorText={errors.closeMinute}
+      />
+    </div>
     {type === "popup" ? (
       <>
         <Input

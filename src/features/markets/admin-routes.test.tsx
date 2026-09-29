@@ -131,4 +131,37 @@ describe("admin markets routes", () => {
     const afterHtml = await (await app.request("/admin/markets", { headers: { Cookie: cookie } }, env)).text();
     expect(afterHtml).toContain("Renamed Market");
   });
+
+  it("creates a market with address, landmark, and structured hours, prefilled on edit", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const fields = regularFields({
+      address: "123 Main St",
+      landmark: "Next to the gas station",
+      dayOfWeek: "6",
+      openHour: "8",
+      openMinute: "30",
+      closeHour: "14",
+      closeMinute: "0",
+    });
+    const createRes = await post("/admin/markets", cookie, { ...fields, csrfToken });
+    expect(createRes.status).toBe(302);
+
+    const listHtml = await (await app.request("/admin/markets", { headers: { Cookie: cookie } }, env)).text();
+    const id = extractIdFor(listHtml, fields.name);
+
+    const editHtml = await (
+      await app.request(`/admin/markets/${id}/edit`, { headers: { Cookie: cookie } }, env)
+    ).text();
+    expect(editHtml).toContain("123 Main St");
+    expect(editHtml).toContain("Next to the gas station");
+    expect(editHtml).toContain('value="6" selected');
+  });
+
+  it("400s a partial set of hours (all-or-none)", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const fields = regularFields({ dayOfWeek: "6", openHour: "8" });
+    const res = await post("/admin/markets", cookie, { ...fields, csrfToken });
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("leave all blank");
+  });
 });

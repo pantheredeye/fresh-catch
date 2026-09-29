@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FIELD_LIMITS, parseMarketForm, splitExpiresAt } from "./validation";
+import { FIELD_LIMITS, parseMarketForm, splitExpiresAt, splitHours } from "./validation";
 
 function regularForm(overrides: Record<string, unknown> = {}) {
   return {
@@ -91,6 +91,78 @@ describe("parseMarketForm", () => {
     const result = parseMarketForm(regularForm({ subtitle: "   " }));
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.subtitle).toBeNull();
+  });
+
+  it("accepts an address and landmark", () => {
+    const result = parseMarketForm(regularForm({ address: "123 Main St", landmark: "Next to the gas station" }));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.address).toBe("123 Main St");
+      expect(result.data.landmark).toBe("Next to the gas station");
+    }
+  });
+
+  it("leaves hours null when day/open/close are all blank", () => {
+    const result = parseMarketForm(regularForm());
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dayOfWeek).toBeNull();
+      expect(result.data.openMinutes).toBeNull();
+      expect(result.data.closeMinutes).toBeNull();
+    }
+  });
+
+  it("accepts a full set of hours and combines hour+minute into minutes-after-midnight", () => {
+    const result = parseMarketForm(
+      regularForm({ dayOfWeek: "6", openHour: "8", openMinute: "30", closeHour: "14", closeMinute: "0" }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dayOfWeek).toBe(6);
+      expect(result.data.openMinutes).toBe(8 * 60 + 30);
+      expect(result.data.closeMinutes).toBe(14 * 60);
+    }
+  });
+
+  it("rejects a partial set of hours (all-or-none)", () => {
+    const result = parseMarketForm(regularForm({ dayOfWeek: "6", openHour: "8" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.dayOfWeek).toBeTruthy();
+  });
+
+  it("rejects a close time that isn't after the open time", () => {
+    const result = parseMarketForm(
+      regularForm({ dayOfWeek: "6", openHour: "14", openMinute: "0", closeHour: "8", closeMinute: "0" }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.dayOfWeek).toBeTruthy();
+  });
+});
+
+describe("splitHours", () => {
+  it("round-trips through parseMarketForm's combined minutes", () => {
+    const result = parseMarketForm(
+      regularForm({ dayOfWeek: "3", openHour: "9", openMinute: "15", closeHour: "17", closeMinute: "45" }),
+    );
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(splitHours(result.data)).toEqual({
+      dayOfWeek: "3",
+      openHour: "9",
+      openMinute: "15",
+      closeHour: "17",
+      closeMinute: "45",
+    });
+  });
+
+  it("returns all-blank fields when hours are unset", () => {
+    expect(splitHours({ dayOfWeek: null, openMinutes: null, closeMinutes: null })).toEqual({
+      dayOfWeek: "",
+      openHour: "",
+      openMinute: "",
+      closeHour: "",
+      closeMinute: "",
+    });
   });
 });
 
