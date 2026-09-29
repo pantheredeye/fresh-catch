@@ -43,9 +43,11 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
     <Document title="Markets — Admin">
       <Page>
         <h1>Markets</h1>
-        <p style="display: flex; gap: 12px;">
-          <Button href="/admin/markets/new?type=regular">New market</Button>
-          <Button href="/admin/markets/new?type=popup" variant="secondary">
+        <p class="cluster">
+          <Button href="/admin/markets/new?type=regular" inline>
+            New market
+          </Button>
+          <Button href="/admin/markets/new?type=popup" variant="secondary" inline>
             New popup
           </Button>
         </p>

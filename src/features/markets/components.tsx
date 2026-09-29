@@ -6,6 +6,8 @@ import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { Page } from "@/ui/page";
+import { CardHeader } from "@/ui/card-header";
+import { BackLink } from "@/ui/back-link";
 import { splitExpiresAt } from "./validation";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
@@ -149,7 +151,7 @@ export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "li
     <span>
       <strong>{market.name}</strong> — {market.schedule}
     </span>
-    <span style="display: flex; align-items: center; gap: 12px;">
+    <span class="cluster">
       <StatusBadge status={status} />
       <a href={`/admin/markets/${market.id}/edit`}>Edit</a>
     </span>
@@ -169,9 +171,9 @@ function marketLocation(market: Market): string | null {
 
 /** Favoriting is client-side only (localStorage island, #58) — every card ships the same inert markup and `favorites.js` hydrates state on load. */
 const FavoriteToggle: FC<{ marketId: string }> = ({ marketId }) => (
-  <button type="button" class="btn btn-ghost favorite-toggle" data-market-id={marketId} aria-pressed="false">
+  <Button variant="ghost" class="favorite-toggle" data={{ "market-id": marketId }} ariaPressed={false}>
     <span aria-hidden="true">☆</span> Save
-  </button>
+  </Button>
 );
 
 /** Customer-facing card for the `/` landing list (#58) — link to the detail page + favorite toggle. */
@@ -179,18 +181,16 @@ export const PublicMarketCard: FC<{ market: Market; kind: "regular" | "live-popu
   const location = marketLocation(market);
   return (
     <div class="card stack market-card">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-        <h3 style="margin: 0;">
+      <div class="card-header">
+        <h3>
           <a href={`/markets/${market.id}`}>{market.name}</a>
         </h3>
         {kind === "live-popup" ? <span class="badge badge-live">Popup</span> : null}
       </div>
       <p>{market.schedule}</p>
-      {location ? <p class="field-helper">{location}</p> : null}
-      {kind === "live-popup" && market.expiresAt ? (
-        <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
-      ) : null}
-      <div style="display: flex; gap: 12px;">
+      {location ? <p class="muted">{location}</p> : null}
+      {kind === "live-popup" && market.expiresAt ? <p class="muted">{formatExpiresAt(market.expiresAt)}</p> : null}
+      <div class="cluster">
         <FavoriteToggle marketId={market.id} />
         <a href="/requests/new?type=question">Ask about a market</a>
       </div>
@@ -203,20 +203,13 @@ export const MarketDetail: FC<{ market: Market; status: MarketStatus }> = ({ mar
   const location = marketLocation(market);
   return (
     <Page>
-      <p>
-        <a href="/">← Back to Fresh Catch</a>
-      </p>
+      <BackLink href="/">Back to Fresh Catch</BackLink>
       <div class="card stack">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <h1 style="margin: 0;">{market.name}</h1>
-          <StatusBadge status={status} />
-        </div>
+        <CardHeader level={1} title={market.name} meta={<StatusBadge status={status} />} />
         <p>{market.schedule}</p>
         {market.subtitle ? <p>{market.subtitle}</p> : null}
-        {location ? <p class="field-helper">{location}</p> : null}
-        {market.type === "popup" && market.expiresAt ? (
-          <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
-        ) : null}
+        {location ? <p class="muted">{location}</p> : null}
+        {market.type === "popup" && market.expiresAt ? <p class="muted">{formatExpiresAt(market.expiresAt)}</p> : null}
         {market.customerInfo ? <p>{market.customerInfo}</p> : null}
         {market.catchPreview ? (
           <div>

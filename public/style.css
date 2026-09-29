@@ -1,37 +1,62 @@
 /*
- * Design tokens — ported from docs/audit/ux-a11y.md §1, with the AAA-contrast
- * swaps from §2 applied as the *default* values (not the pre-audit originals).
- * Every color is authored as a light/dark pair up front (§3 day-1 plan) to
- * avoid the old app's glass/tint patch-layer. The glass/tint/nav-accent
- * token families are deliberately NOT ported — see CLAUDE.md.
+ * Design tokens — Tideline (docs/redesign/fresh-catch-handoff.md §3, §5).
+ * Two layers: a palette (the only hex literals in this file) and a semantic
+ * layer that components actually use. Light-only — no dark mode, no
+ * prefers-color-scheme block. Every pairing below is checked against §3's
+ * 7:1 (body/small text) and 3:1 (input/control borders) floors.
  * (NB: never write "star-slash" sequences like --foo-* / bar inside CSS
  * comments without a space — it terminates the comment and killed the
  * entire :root token block on 2026-09-06.)
  */
+
+@font-face {
+  font-family: "Hanken Grotesk";
+  src: url("/fonts/hanken-grotesk-var.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("/fonts/fraunces-var.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+
+  /* Palette — Tideline hexes (docs/redesign/fresh-catch-handoff.md §5). The
+     only hex literals in this file; every other rule reaches these through
+     the semantic layer below. */
+  --palette-sand: #f6efe3;
+  --palette-paper: #ffffff;
+  --palette-shallow: #eaf5f3;
+  --palette-shallow-line: #bcd9d6;
+  --palette-deep: #06282e;
+  --palette-sea: #0d4f5a;
+  --palette-muted: #3d4d50;
+  --palette-coral: #8e2609;
+  --palette-coral-fill: #fb9a5e;
+  --palette-line: #d8cbb4;
+  --palette-on-sea-muted: #d8ecec;
+  --palette-on-deep-muted: #bcd2d4;
 
   /* Typography */
-  --font-modern: "DM Sans", -apple-system, system-ui, sans-serif;
+  --font-display: Fraunces, Georgia, serif;
+  --font-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
 
-  --font-size-xs: 12px; /* decorative/non-text use only — never labels or body copy, see §4 */
-  --font-size-sm: 14px; /* floor for labels, captions, helper/error text */
-  --font-size-md: 16px; /* floor for body text and inputs */
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
-  --font-size-3xl: 28px;
-  --font-size-4xl: 32px;
-  --font-size-5xl: 40px;
+  --font-size-meta: 17px; /* floor for labels, helper/error text, meta, footer — §3 type table */
+  --font-size-body: 19px; /* floor for body text and inputs; 20px at >=700px below */
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  --line-height-tight: 1.2;
-  --line-height-base: 1.5;
+  --line-height-tight: 1.06;
+  --line-height-base: 1.55;
   --line-height-relaxed: 1.6;
 
   /* Spacing */
@@ -43,136 +68,56 @@
   --space-2xl: 56px;
 
   /* Widths */
+  --width-content: 35rem; /* §3: line length under 80 characters, 34-36rem column */
   --width-sm: 450px;
   --width-md: 800px;
   --width-lg: 1200px;
   --width-xl: 1400px;
 
-  /* Radii */
-  --radius-xs: 6px;
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 28px;
-  --radius-xl: 36px;
-  --radius-full: 9999px;
+  /* Color — text. Every pairing is >=7:1 against the surfaces it actually
+     renders on (computed from the palette hexes above — see contrast notes
+     inline below each semantic block using them). */
+  --color-text-primary: var(--palette-deep); /* 15.55:1 on paper, 13.60:1 on sand */
+  --color-text-secondary: var(--palette-muted); /* 8.84:1 on paper, 7.73:1 on sand */
+  --color-text-inverse: var(--palette-paper); /* white text for dark/filled surfaces */
 
-  /* Shadows (colored — brand signature, unthemed) */
-  --shadow-sm: 0 2px 8px rgba(0, 102, 204, 0.08);
-  --shadow-md: 0 8px 24px rgba(0, 102, 204, 0.12);
-  --shadow-lg: 0 20px 40px rgba(0, 102, 204, 0.15);
+  /* Color — actions. Tideline has one accent for links/structure (sea) and
+     one for the thing you act on (coral) — see handoff §5 "Colour discipline". */
+  --color-action-primary: var(--palette-sea); /* 9.20:1 on paper, 8.05:1 on sand */
+  --color-action-primary-fill: var(--palette-sea); /* secondary-button border/fill — same tone as the link color */
 
-  /* Motion */
-  --duration-fast: 150ms;
-  --duration-normal: 300ms;
-  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --color-button-primary-bg: var(--palette-sea);
+  --color-button-primary-text: var(--palette-paper); /* 9.20:1 with sea */
 
-  /* Color — text (light). AAA (7:1) target for primary/secondary; tertiary
-     is AA (4.5:1) by design — see ux-a11y.md §2 for why tertiary stops at AA. */
-  --color-text-primary: #1a2b3d; /* 14.09:1 on bg-primary */
-  --color-text-secondary: #4c596a; /* was #64748B — now 7:1, AAA */
-  --color-text-tertiary: #627794; /* was #94A3B8 — now 4.5:1, usable (was non-compliant) */
-  --color-text-inverse: #ffffff;
+  /* Color — status. No separate success/warning/error hues in Tideline's
+     2-accent palette — collapsed to: coral-fill+deep (live/positive),
+     shallow+coral (needs attention), sand+coral (negative/declined). */
+  --color-status-success-fill: var(--palette-coral-fill);
+  --color-status-success-text: var(--palette-deep); /* 7.32:1 on coral-fill */
+  --color-status-warning-fill: var(--palette-shallow);
+  --color-status-warning-text: var(--palette-coral); /* 7.75:1 on shallow */
+  --color-status-error-fill: var(--palette-sand);
+  --color-status-error-text: var(--palette-coral); /* 7.56:1 on sand */
 
-  /* Color — actions (light) */
-  --color-action-primary: #0052a3; /* text/link use — 7.68:1 on white, AAA */
-  --color-action-primary-fill: #0066cc; /* button/gradient fills only, not text */
+  --color-badge-success-text: var(--palette-deep);
+  --color-badge-warning-text: var(--palette-coral);
+  --color-badge-error-text: var(--palette-coral);
 
-  /* .btn-primary specifically (§4 A4) — #0066cc + white is only 5.57:1 (AA),
-     and 16px/600 is normal text under WCAG, not large. This pair targets AAA. */
-  --color-button-primary-bg: #0052a3; /* 7.68:1 with white text */
-  --color-button-primary-text: #ffffff;
+  /* Color — surfaces / backgrounds. No elevation via lighter tone — Tideline
+     is flat; distinction comes from borders, not shadows (none exist). */
+  --color-surface-primary: var(--palette-paper);
+  --color-surface-secondary: var(--palette-shallow);
+  --color-bg-primary: var(--palette-sand);
+  --color-bg-elevated: var(--palette-paper);
 
-  /* Color — status. Fill colors are unchanged brand hues; *-text variants are
-     the only AAA-safe way to render these hues as text/icon glyphs (§2). */
-  --color-action-secondary-fill: #ff6b6b; /* coral */
-  --color-action-secondary-text: #b60000;
-  --color-status-success-fill: #00d9b1; /* mint */
-  --color-status-success-text: #006553;
-  --color-status-warning-fill: #f59e0b; /* gold */
-  --color-status-warning-text: #7c5005;
-  --color-status-error-fill: #ff6b6b;
-  --color-status-error-text: #b60000;
+  /* Color — borders */
+  --color-border-subtle: var(--palette-shallow); /* hover-state fill for ghost/secondary controls */
+  --color-border-light: var(--palette-line); /* decorative container borders — 1.60:1, non-text, not a control boundary */
+  --color-border-medium: var(--palette-line);
+  --color-border-input: var(--palette-sea); /* >=3:1 non-text floor for form controls — line-on-paper is only 1.60:1 */
 
-  /* §4 block B: the *-text tokens above are AAA (~7:1) against a *flat*
-     surface, but .badge-* renders them on top of a 20%-alpha fill over
-     --color-surface-primary — a lighter composited background than the flat
-     surface, which erodes their thin margin below 7:1. Computed against the
-     actual composited badge bg (fg*0.2 + surface*0.8), not eyeballed:
-     success 6.08:1, warning 6.00:1, error 5.75:1 with the shared tokens.
-     These dedicated, darker badge-only tokens restore AAA without touching
-     the shared tokens' (already-passing) plain-surface uses (.field-error). */
-  --color-badge-success-text: #004d3d; /* 8.53:1 on the composited badge-live/-confirmed bg */
-  --color-badge-warning-text: #5c3b00; /* 8.66:1 on the composited badge-open bg */
-  --color-badge-error-text: #8a0000; /* 8.25:1 on the composited badge-declined bg */
-
-  /* Color — surfaces / backgrounds (light) */
-  --color-surface-primary: #ffffff;
-  --color-surface-secondary: #f1f5f9;
-  --color-bg-primary: #fffcf8;
-  --color-bg-elevated: #ffffff;
-
-  /* Color — borders (light) */
-  --color-border-subtle: rgba(0, 102, 204, 0.08);
-  --color-border-light: rgba(0, 102, 204, 0.12);
-  --color-border-medium: rgba(0, 102, 204, 0.2);
-  --color-border-input: #c7d6e3; /* was #E8EFF5 (1.16:1, nearly invisible) — bumped for visibility */
-
-  --color-focus-ring: #0052a3;
-
-  --color-gradient-primary: linear-gradient(135deg, #0066cc, #00a896);
-  --color-gradient-secondary: linear-gradient(135deg, #ff6b6b, #ffb366);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-text-primary: #e2e8f0; /* 14.39:1 on dark bg */
-    --color-text-secondary: #95a4b9; /* 7:1 on dark bg, AAA */
-    --color-text-tertiary: #71829c; /* ~4.5:1 on dark bg, matches light's AA target */
-    --color-text-inverse: #ffffff;
-
-    --color-action-primary: #43a9ff; /* 7.06:1 on dark bg, AAA text/link */
-    --color-action-primary-fill: #0066cc; /* unchanged — still 3:1+ vs dark bg, 5.57:1 with white text */
-
-    /* .btn-primary specifically (§4 A4) — dark mode can't reuse -action-primary-fill's
-       5.57:1 (AA only). Deepened fill, not a text-color flip, keeps white-on-fill
-       semantics identical to light mode. ~8.42:1 with white text. */
-    --color-button-primary-bg: #004c99;
-    --color-button-primary-text: #ffffff;
-
-    --color-action-secondary-fill: #ff6b6b;
-    --color-action-secondary-text: #ff7a7a; /* 7.03:1 on dark bg */
-    --color-status-success-fill: #00d9b1;
-    --color-status-success-text: #00d9b1; /* already 9.77:1 on dark bg, no swap needed */
-    --color-status-warning-fill: #f59e0b;
-    --color-status-warning-text: #f59e0b; /* already 8.26:1 on dark bg, no swap needed */
-    --color-status-error-fill: #ff6b6b;
-    --color-status-error-text: #ff7a7a;
-
-    /* Same §4 block B composite problem as light mode, mirrored: the shared
-       *-text tokens above are AAA against flat --color-surface-primary
-       (#111827) but drop once composited under the badge's 20%-alpha fill —
-       success 6.42:1, warning 5.75:1, error 5.25:1 computed against the
-       actual composited bg. Lighter, badge-only tokens restore AAA. */
-    --color-badge-success-text: #4de6c9; /* 7.49:1 on the composited badge-live/-confirmed bg */
-    --color-badge-warning-text: #ffc95c; /* 8.09:1 on the composited badge-open bg */
-    --color-badge-error-text: #ffabab; /* 7.36:1 on the composited badge-declined bg */
-
-    /* surface-primary matches bg-primary exactly (not lighter, as elevation
-       schemes usually do) — any lighter and --color-text-secondary drops
-       below its 7:1 AAA floor on cards. Elevation comes from border+shadow
-       instead, same as the light theme's near-flat surface/bg relationship. */
-    --color-surface-primary: #111827;
-    --color-surface-secondary: #1a2436;
-    --color-bg-primary: #111827;
-    --color-bg-elevated: #111827;
-
-    --color-border-subtle: rgba(255, 255, 255, 0.08);
-    --color-border-light: rgba(255, 255, 255, 0.14);
-    --color-border-medium: rgba(255, 255, 255, 0.24);
-    --color-border-input: #3a4a5c;
-
-    --color-focus-ring: #43a9ff;
-  }
+  --color-focus-ring: var(--palette-deep); /* 15.55:1 on paper */
+  --color-focus-ring-on-dark: var(--palette-sand); /* flipped inside .band-sea/.band-deep */
 }
 
 *,
@@ -182,26 +127,77 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   padding: var(--space-lg);
-  font-family: var(--font-modern);
-  font-size: var(--font-size-md);
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
   line-height: var(--line-height-base);
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
+}
+
+@media (min-width: 700px) {
+  body {
+    font-size: 20px;
+  }
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.018em;
+}
+
+h1 {
+  font-size: clamp(32px, 8.5vw, 44px);
+}
+
+h2 {
+  font-size: clamp(28px, 7.6vw, 34px);
+}
+
+h3 {
+  font-size: 25px;
+}
+
+/* Hero-scale display heading (#73's landing hero) — not a plain h1 size. */
+.h-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.018em;
+  font-size: clamp(38px, 11.8vw, 58px);
+}
+
+p {
+  margin: 0;
 }
 
 a {
   color: var(--color-action-primary);
 }
 
-a:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+/* Single global focus treatment — §3: 4px outline, 3px offset, in a color
+   that contrasts against both the control and the page. Flip inside dark
+   bands (.band-sea, .band-deep) via --color-focus-ring-on-dark. */
+:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.band-sea :focus-visible,
+.band-deep :focus-visible {
+  outline-color: var(--color-focus-ring-on-dark);
 }
 
 /* First focusable element in <body> (document.tsx) — hidden until keyboard focus. */
@@ -214,43 +210,89 @@ a:focus-visible {
   background: var(--color-surface-primary);
   color: var(--color-text-primary);
   border: 2px solid transparent;
-  border-radius: 0 0 var(--radius-xs) 0;
 }
 
 .skip-link:focus-visible {
   top: 0;
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+}
+
+/* Utilities */
+.wrap {
+  max-width: var(--width-content);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.stack-tight {
+  gap: 4px;
+}
+
+ul.stack,
+ol.stack {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.align-end {
+  align-items: flex-end;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Button */
 .btn {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  min-height: 48px;
-  min-width: 48px;
+  min-height: 58px;
   padding: 0 var(--space-md);
-  border-radius: var(--radius-sm);
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   font-family: inherit;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
+  margin-bottom: 11px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .btn {
-    transition:
-      filter var(--duration-fast) var(--ease-out),
-      transform var(--duration-fast) var(--ease-out);
-  }
-  .btn:active:not(:disabled) {
-    transform: scale(0.97);
-  }
+.btn-inline {
+  display: inline-flex;
+  width: auto;
+  margin-bottom: 0;
 }
 
 .btn:disabled {
@@ -258,17 +300,14 @@ a:focus-visible {
   opacity: 0.5;
 }
 
-.btn:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
 .btn-primary {
   background: var(--color-button-primary-bg);
+  border-color: var(--color-button-primary-bg);
   color: var(--color-button-primary-text);
 }
-.btn-primary:hover:not(:disabled) {
-  filter: brightness(0.92);
+.btn-primary:active:not(:disabled) {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .btn-secondary {
@@ -276,19 +315,48 @@ a:focus-visible {
   border-color: var(--color-action-primary-fill);
   color: var(--color-action-primary);
 }
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-border-subtle);
+.btn-secondary:active:not(:disabled) {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
 }
 
+/* Ghost = the mock's ".quiet": an underlined text-style action, not a boxed button. */
 .btn-ghost {
   background: transparent;
+  border: none;
+  justify-content: flex-start;
+  padding-left: 0;
   color: var(--color-action-primary);
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
 }
-.btn-ghost:hover:not(:disabled) {
-  background: var(--color-border-subtle);
+.btn-ghost:active:not(:disabled) {
+  color: var(--palette-coral);
 }
 
-/* Field (Input) */
+/* Dark-ground override (.band-sea/.band-deep) — primary action on dark ground
+   is coral-fill + deep text (handoff §5 "Colour discipline"). */
+.band-sea .btn-primary,
+.band-deep .btn-primary {
+  background: var(--palette-coral-fill);
+  border-color: var(--palette-coral-fill);
+  color: var(--palette-deep);
+}
+.band-sea .btn-secondary,
+.band-deep .btn-secondary {
+  background: transparent;
+  border-color: var(--palette-sand);
+  color: var(--palette-sand);
+}
+.band-sea .btn-ghost,
+.band-deep .btn-ghost {
+  color: var(--palette-sand);
+}
+
+/* Field (Input / Select / Textarea) */
 .field {
   margin-bottom: var(--space-md);
 }
@@ -296,64 +364,28 @@ a:focus-visible {
 .field-label {
   display: block;
   margin-bottom: var(--space-xs);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-meta);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
 }
 
-.field-input {
-  display: block;
-  width: 100%;
-  min-height: 48px;
-  padding: 0 var(--space-sm);
-  border: 2px solid var(--color-border-input);
-  border-radius: var(--radius-xs);
-  background: var(--color-surface-primary);
-  color: var(--color-text-primary);
-  font-family: inherit;
-  font-size: var(--font-size-md);
-}
-
-.field-input:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.field-textarea {
-  display: block;
-  width: 100%;
-  min-height: 48px;
-  padding: var(--space-xs) var(--space-sm);
-  border: 2px solid var(--color-border-input);
-  border-radius: var(--radius-xs);
-  background: var(--color-surface-primary);
-  color: var(--color-text-primary);
-  font-family: inherit;
-  font-size: var(--font-size-md);
-  resize: vertical;
-}
-
-.field-textarea:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
+.field-input,
+.field-textarea,
 .field-select {
   display: block;
   width: 100%;
-  min-height: 48px;
+  min-height: 58px;
   padding: 0 var(--space-sm);
   border: 2px solid var(--color-border-input);
-  border-radius: var(--radius-xs);
   background: var(--color-surface-primary);
   color: var(--color-text-primary);
   font-family: inherit;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-body);
 }
 
-.field-select:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+.field-textarea {
+  padding: var(--space-xs) var(--space-sm);
+  resize: vertical;
 }
 
 .field-input-error {
@@ -363,7 +395,7 @@ a:focus-visible {
 .field-helper,
 .field-error {
   margin: var(--space-xs) 0 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-meta);
 }
 
 .field-helper {
@@ -379,9 +411,14 @@ a:focus-visible {
 .card {
   padding: var(--space-lg);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
   background: var(--color-surface-primary);
-  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
 }
 
 /* Sheet (bottom sheet, native <dialog>) */
@@ -390,35 +427,14 @@ a:focus-visible {
   width: min(100%, var(--width-sm));
   max-height: 85vh;
   padding: 0;
-  border: none;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border: 3px solid var(--color-text-primary);
+  border-bottom: none;
   background: var(--color-surface-primary);
   color: var(--color-text-primary);
-  box-shadow: var(--shadow-lg);
 }
 
-/* §4 block B: dims the page behind the modal, not a text background — no
-   -text token renders on it directly, so no AAA pairing applies. Verified
-   it stays visually distinct from .sheet's own surface-primary fill in dark
-   mode too (0.4 black over #111827 composites to ~#0a0e17, darker than the
-   sheet itself). */
 .sheet::backdrop {
   background: rgba(0, 0, 0, 0.4);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .sheet[open] {
-    animation: sheet-slide-up var(--duration-normal) var(--ease-out);
-  }
-}
-
-@keyframes sheet-slide-up {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
 }
 
 .sheet-header {
@@ -432,8 +448,6 @@ a:focus-visible {
 
 .sheet-title {
   margin: 0;
-  font-size: var(--font-size-xl);
-  color: var(--color-text-primary);
 }
 
 .sheet-close {
@@ -443,17 +457,11 @@ a:focus-visible {
   min-width: 48px;
   min-height: 48px;
   border: none;
-  border-radius: var(--radius-full);
   background: transparent;
   color: var(--color-text-secondary);
-  font-size: var(--font-size-xl);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
-}
-
-.sheet-close:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
 }
 
 .sheet-body {
@@ -467,10 +475,8 @@ a:focus-visible {
   margin: 0 auto;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+.page-wide {
+  max-width: var(--width-lg);
 }
 
 .market-row {
@@ -480,7 +486,6 @@ a:focus-visible {
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
   background: var(--color-surface-primary);
 }
 
@@ -489,14 +494,13 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   padding: 2px var(--space-xs);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
 }
 
 .badge-live {
-  background: rgba(0, 217, 177, 0.2); /* --color-status-success-fill at 20% — same hex in both themes */
-  color: var(--color-badge-success-text); /* not -status-success-text — see §4 block B comment on that token */
+  background: var(--color-status-success-fill);
+  color: var(--color-badge-success-text);
 }
 
 .badge-past {
@@ -504,19 +508,11 @@ a:focus-visible {
   color: var(--color-text-secondary);
 }
 
-/* Customer landing (#58) */
-.page > .card:first-of-type {
-  border-left: 4px solid var(--color-action-primary-fill);
-  box-shadow: var(--shadow-md);
-}
-
-.market-card h3 {
-  font-size: var(--font-size-lg);
-}
-
+/* Market names, section headings, wordmark — the display face's job is
+   personality; every current page picks it up for free via h1-h3 above. */
 .market-card h3 a {
   text-decoration: none;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
 }
 
 .market-card h3 a:hover {
@@ -540,7 +536,7 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  min-height: 48px;
+  min-height: 58px;
   padding: 0 var(--space-sm);
   cursor: pointer;
 }
@@ -558,7 +554,11 @@ a:focus-visible {
   max-width: 85%;
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
+}
+
+.msg p {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .msg-customer {
@@ -573,7 +573,7 @@ a:focus-visible {
 
 .msg-meta {
   margin: var(--space-xs) 0 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-meta);
   color: var(--color-text-secondary);
 }
 
@@ -582,28 +582,22 @@ a:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  min-height: 48px;
+  min-height: 58px;
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
   background: var(--color-surface-primary);
   color: inherit;
   text-decoration: none;
 }
 
-.inbox-row:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
 .badge-open {
-  background: rgba(245, 158, 11, 0.2); /* --color-status-warning-fill at 20% — same hex in both themes */
-  color: var(--color-badge-warning-text); /* not -status-warning-text — see §4 block B comment on that token */
+  background: var(--color-status-warning-fill);
+  color: var(--color-badge-warning-text);
 }
 
 .badge-confirmed {
-  background: rgba(0, 217, 177, 0.2); /* --color-status-success-fill at 20%, same as badge-live */
-  color: var(--color-badge-success-text); /* not -status-success-text — see §4 block B comment on that token */
+  background: var(--color-status-success-fill);
+  color: var(--color-badge-success-text);
 }
 
 .badge-fulfilled {
@@ -612,32 +606,154 @@ a:focus-visible {
 }
 
 .badge-declined {
-  background: rgba(255, 107, 107, 0.2); /* --color-status-error-fill at 20% */
-  color: var(--color-badge-error-text); /* not -status-error-text — see §4 block B comment on that token */
+  background: var(--color-status-error-fill);
+  color: var(--color-badge-error-text);
 }
 
-/* Post-checkout return banners (#60). Colour comes from the status tokens,
-   which already swap per theme — no unpaired values to author here. */
+/* Post-checkout return banners (#60). */
 .notice {
   margin: 0;
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
   border-left: 4px solid;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-body);
   line-height: var(--line-height-relaxed);
 }
 
-/* §4 block B: verified against the composited bg, not just the flat surface
-   (12% alpha, half the badges' 20%) — 13.21:1 light, 11.47:1 dark. No fix
-   needed, unlike the badges above. */
 .notice-success {
-  background: rgba(0, 217, 177, 0.12); /* --color-status-success-fill at 12%, same hex both themes */
+  background: var(--color-status-success-fill);
   border-color: var(--color-status-success-fill);
-  color: var(--color-text-primary);
+  color: var(--color-status-success-text);
 }
 
 .notice-info {
   background: var(--color-surface-secondary);
   border-color: var(--color-border-light);
   color: var(--color-text-primary);
+}
+
+/* SectionHeading (src/ui/section-heading.tsx) — the signature device: a
+   heavy rule under the heading with a hairline below it, and the section's
+   meta right-aligned on the heading's baseline (handoff §5). */
+.hdrow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  border-bottom: 6px solid var(--color-text-primary);
+  padding-bottom: 9px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.hdrow::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -16px;
+  height: 2px;
+  background: var(--color-text-primary);
+}
+
+.hdrow-sm {
+  border-bottom-width: 4px;
+  padding-bottom: 7px;
+  margin-bottom: 14px;
+}
+
+.hdrow-sm::after {
+  display: none;
+}
+
+.hd {
+  margin: 0;
+}
+
+.hd-sm {
+  font-size: 24px;
+}
+
+.hd-meta {
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  padding-bottom: 3px;
+}
+
+/* Band (src/ui/band.tsx) — full-bleed surface, inner content clamped by .wrap. */
+.band {
+  background: var(--color-bg-primary);
+}
+
+.band-paper {
+  background: var(--color-surface-primary);
+}
+
+.band-shallow {
+  background: var(--color-surface-secondary);
+}
+
+.band-sea {
+  background: var(--palette-sea);
+  color: var(--palette-paper);
+}
+
+.band-sea a {
+  color: var(--palette-on-sea-muted);
+}
+
+.band-deep {
+  background: var(--palette-deep);
+  color: var(--palette-sand);
+}
+
+.band-deep a {
+  color: var(--palette-on-deep-muted);
+}
+
+/* SplitControl (src/ui/split-control.tsx) — two 60px halves, permitted per
+   handoff §3's amendment for exactly-two-action rows (directions + phone). */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 3px solid var(--color-action-primary-fill);
+}
+
+.split a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 60px;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-action-primary);
+  text-decoration: none;
+  line-height: 1.25;
+}
+
+.split a + a {
+  border-left: 3px solid var(--color-action-primary-fill);
+}
+
+.split a:active {
+  background: var(--color-action-primary-fill);
+  color: var(--color-text-inverse);
+}
+
+/* BackLink (src/ui/back-link.tsx) — 58px quiet link with a leading arrow. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 58px;
+  color: var(--color-action-primary);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }

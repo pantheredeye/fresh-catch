@@ -15,7 +15,7 @@ export const RequestPaymentForm: FC<{ action: string; csrfToken: string; amountC
 }) => (
   <form method="post" action={action} class="stack">
     <input type="hidden" name="csrfToken" value={csrfToken} />
-    <p class="field-helper">
+    <p class="muted">
       Posts a card payment link into the thread for {formatCents(amountCents)}
       {isDeposit ? " (deposit)" : ""}. The link is shareable — text or email it if that's easier.
     </p>

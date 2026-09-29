@@ -15,9 +15,19 @@ export const Document: FC<PropsWithChildren<{ title?: string; deviceToken?: stri
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      {/* light dark, not light — audit flagged the old app for forcing light mode here */}
-      <meta name="color-scheme" content="light dark" />
+      {/* Light-only per Tideline (docs/redesign/fresh-catch-handoff.md §3) — not
+          a mismatch bug like the old app's light-only meta; here the content
+          theme itself is light-only, so native controls should match. */}
+      <meta name="color-scheme" content="light" />
       <title>{title}</title>
+      <link rel="preload" as="font" type="font/woff2" href="/fonts/fraunces-var.woff2" crossorigin="anonymous" />
+      <link
+        rel="preload"
+        as="font"
+        type="font/woff2"
+        href="/fonts/hanken-grotesk-var.woff2"
+        crossorigin="anonymous"
+      />
       <link rel="stylesheet" href="/style.css" />
     </head>
     <body data-device-token={deviceToken}>

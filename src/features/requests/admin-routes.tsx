@@ -49,7 +49,7 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
     <Document title="Requests — Admin">
       <Page>
         <h1>Requests</h1>
-        <nav aria-label="Requests filter" style="display: flex; gap: 12px;">
+        <nav aria-label="Requests filter" class="cluster">
           <a href="/admin/requests" aria-current={filter === "active" ? "page" : undefined}>
             {FILTER_LABEL.active}
           </a>

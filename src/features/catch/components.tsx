@@ -2,6 +2,7 @@ import type { FC } from "hono/jsx";
 import type { CatchUpdate } from "@/lib/db";
 import { Textarea } from "@/ui/textarea";
 import { Page } from "@/ui/page";
+import { Button } from "@/ui/button";
 import { parseCatchContent } from "./pipeline";
 
 const LiveCatch: FC<{ live: CatchUpdate | null }> = ({ live }) => {
@@ -44,18 +45,14 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string }> = ({
       <h2>Record a new catch</h2>
       <p id="catch-record-status" role="status"></p>
 
-      <p>
-        <button type="button" class="btn btn-primary" id="catch-mic-button" aria-pressed="false">
-          Start recording
-        </button>
-      </p>
+      <Button type="button" id="catch-mic-button" ariaPressed={false}>
+        Start recording
+      </Button>
 
       <Textarea id="catch-text-input" name="catchText" label="Or type it instead" rows={4} />
-      <p>
-        <button type="button" class="btn btn-secondary" id="catch-text-submit">
-          Format from text
-        </button>
-      </p>
+      <Button type="button" variant="secondary" id="catch-text-submit">
+        Format from text
+      </Button>
 
       <div class="card stack" id="catch-draft-preview" hidden>
         <h3 id="catch-draft-headline"></h3>
@@ -69,9 +66,9 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string }> = ({
         <input type="hidden" name="summary" id="catch-publish-summary" />
         <input type="hidden" name="itemsJson" id="catch-publish-items" />
         <input type="hidden" name="rawTranscript" id="catch-publish-transcript" />
-        <button type="submit" class="btn btn-primary" id="catch-publish-submit" disabled>
+        <Button type="submit" id="catch-publish-submit" disabled>
           Publish
-        </button>
+        </Button>
       </form>
     </section>
 
