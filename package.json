@@ -12,7 +12,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run migrate:prd && npm run build && wrangler deploy -c dist/worker/wrangler.json",
+    "deploy": "npm run generate && npm run migrate:prd && npm run build && wrangler deploy -c dist/worker/wrangler.json",
     "generate": "prisma generate && wrangler types",
     "check": "npm run generate && npm run types",
     "types": "tsc",
