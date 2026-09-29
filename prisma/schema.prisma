@@ -26,6 +26,13 @@ model Vendor {
   stripeOnboardingComplete Boolean @default(false)
   platformFeeBps           Int     @default(500)
   notificationEmail        String?
+
+  // #71: phone/timezone live on Vendor only (single vendor, no per-market
+  // override). timezone defaults Central — real markets (Hernando, Olive
+  // Branch) are north Mississippi; Workers run in UTC so status logic needs it.
+  phone       String?
+  displayName String? // "Evan …" for "Call Evan" copy
+  timezone    String  @default("America/Chicago")
 }
 
 model User {
@@ -61,6 +68,15 @@ model Market {
 
   county String?
   city   String?
+
+  // #71: structured hours/address — optional, `schedule` stays as the
+  // fallback display when these are null. dayOfWeek 0=Sun; open/closeMinutes
+  // are minutes after local midnight (all-or-none, validated in validation.ts).
+  dayOfWeek    Int?
+  openMinutes  Int?
+  closeMinutes Int?
+  address      String?
+  landmark     String?
 
   @@index([active])
   @@index([type, active])

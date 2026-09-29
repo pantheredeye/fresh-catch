@@ -19,7 +19,17 @@ beforeAll(async () => {
  */
 function assertA11yFloors(html: string, path: string) {
   expect(html, `${path}: <html lang="en">`).toMatch(/<html[^>]*\blang="en"/);
-  expect(html, `${path}: color-scheme meta`).toMatch(/<meta name="color-scheme" content="light dark"\s*\/?>/);
+  expect(html, `${path}: color-scheme meta`).toMatch(/<meta name="color-scheme" content="light"\s*\/?>/);
+  expect(html, `${path}: no maximum-scale/user-scalable in viewport meta`).not.toMatch(
+    /<meta name="viewport"[^>]*(maximum-scale|user-scalable)/,
+  );
+
+  const headingLevels = [...html.matchAll(/<h([1-6])[\s>]/g)].map((m) => Number(m[1]));
+  for (let i = 1; i < headingLevels.length; i++) {
+    const prev = headingLevels[i - 1];
+    const cur = headingLevels[i];
+    expect(cur - prev, `${path}: heading level skip from h${prev} to h${cur}`).toBeLessThanOrEqual(1);
+  }
 
   const h1Count = (html.match(/<h1[\s>]/g) ?? []).length;
   expect(h1Count, `${path}: exactly one <h1>`).toBe(1);
@@ -67,6 +77,11 @@ describe("a11y floors across every GET HTML route", () => {
       notes: null,
       county: null,
       city: null,
+      address: null,
+      landmark: null,
+      dayOfWeek: null,
+      openMinutes: null,
+      closeMinutes: null,
       expiresAt: null,
     });
     marketId = market.id;
@@ -106,6 +121,7 @@ describe("a11y floors across every GET HTML route", () => {
       { path: "/admin/markets/new", init: { headers: { Cookie: adminCookie } } },
       { path: `/admin/markets/${marketId}/edit`, init: { headers: { Cookie: adminCookie } } },
       { path: "/admin/catch", init: { headers: { Cookie: adminCookie } } },
+      { path: "/admin/vendor", init: { headers: { Cookie: adminCookie } } },
       { path: "/admin/requests", init: { headers: { Cookie: adminCookie } } },
       { path: "/admin/requests/new", init: { headers: { Cookie: adminCookie } } },
       { path: `/admin/requests/${requestId}`, init: { headers: { Cookie: adminCookie } } },
@@ -118,6 +134,25 @@ describe("a11y floors across every GET HTML route", () => {
       expect(res.status, `${path}: expected 200`).toBe(200);
       assertA11yFloors(await res.text(), path);
     }
+  });
+});
+
+/**
+ * "JS-off render of /" (#75) — every test above already hits the Worker via
+ * plain `fetch`, no JS execution, so the suite already proves this by
+ * construction. This test names the requirement explicitly and pins the
+ * specific JS-off contract: the saved-markets band ships real (if `hidden`)
+ * markup rather than an empty mount point `favorites.js` fills in later, and
+ * the enhancement scripts are inert `<script type="module">` tags that don't
+ * gate any content above them.
+ */
+describe("/ renders correctly with JavaScript disabled", () => {
+  it("ships real saved-band markup and non-blocking enhancement scripts", async () => {
+    const res = await app.request("/", {}, env);
+    const html = await res.text();
+    expect(html).toMatch(/<div class="band band-paper saved" hidden="" id="saved-band">/);
+    expect(html).toMatch(/<h2 class="hd hd-sm">Your saved markets<\/h2>/);
+    expect(html).toMatch(/<script type="module" src="\/js\/favorites\.js\?v=/);
   });
 });
 

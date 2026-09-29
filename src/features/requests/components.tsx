@@ -7,6 +7,7 @@ import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
+import { CardHeader } from "@/ui/card-header";
 import { REQUEST_STATUSES } from "./validation";
 
 export type RequestFormValues = {
@@ -33,6 +34,13 @@ export function requestToFormValues(request: FishRequest): RequestFormValues {
     contactEmail: asOptional(request.contactEmail),
     contactPhone: asOptional(request.contactPhone),
   };
+}
+
+/** Active-voice submit label, same verb the confirmation echoes (handoff §3: "Request bass" → "Requested"). */
+function submitLabel(values: RequestFormValues): string {
+  if (values.requestType === "question") return "Send question";
+  if (values.species) return `Request ${values.species}`;
+  return "Request fish";
 }
 
 /**
@@ -115,10 +123,17 @@ export const RequestForm: FC<{
         value={values.contactPhone}
         errorText={errors.contactPhone}
       />
-      <Button type="submit">Send request</Button>
+      <Button type="submit">{submitLabel(values)}</Button>
     </form>
   );
 };
+
+/** Post-submit confirmation (handoff §3: same verb all the way through — "Request bass" → "Requested"). */
+export const RequestConfirmation: FC<{ requestType: string }> = ({ requestType }) => (
+  <p class="notice notice-success" role="status">
+    {requestType === "question" ? "Sent." : "Requested."} Fresh Catch will reply here.
+  </p>
+);
 
 const STATUS_LABEL: Record<RequestStatus, string> = {
   open: "Open",
@@ -137,12 +152,9 @@ export function requestTitle(request: FishRequest): string {
 
 export const RequestHeaderCard: FC<{ request: FishRequest }> = ({ request }) => (
   <div class="card stack">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-      <h1 style="margin: 0;">{requestTitle(request)}</h1>
-      <RequestStatusBadge status={request.status} />
-    </div>
-    {request.quantity ? <p class="field-helper">{request.quantity}</p> : null}
-    <p class="field-helper">
+    <CardHeader level={1} title={requestTitle(request)} meta={<RequestStatusBadge status={request.status} />} />
+    {request.quantity ? <p class="muted">{request.quantity}</p> : null}
+    <p class="muted">
       From {request.contactName}
       {request.contactEmail ? ` · ${request.contactEmail}` : ""}
       {request.contactPhone ? ` · ${request.contactPhone}` : ""}
@@ -168,7 +180,7 @@ export const Thread: FC<{ messages: RequestMessage[]; viewer: "customer" | "admi
   <div class="thread stack">
     {messages.map((message) => (
       <div class={`msg msg-${message.sender}`}>
-        <p style="margin: 0; white-space: pre-wrap;">{message.body}</p>
+        <p>{message.body}</p>
         <p class="msg-meta">
           {senderLabel(message.sender, viewer, customerName)} ·{" "}
           <time datetime={message.createdAt.toISOString()}>{formatMessageTime(message.createdAt)}</time>
@@ -213,10 +225,10 @@ export const StatusForm: FC<{ action: string; csrfToken: string; currentStatus: 
   csrfToken,
   currentStatus,
 }) => (
-  <form method="post" action={action} style="display: flex; align-items: flex-end; gap: 12px;">
+  <form method="post" action={action} class="cluster align-end">
     <input type="hidden" name="csrfToken" value={csrfToken} />
     <Select id="status-only" name="status" label="Set status" value={currentStatus} options={STATUS_OPTIONS} />
-    <Button type="submit" variant="secondary">
+    <Button type="submit" variant="secondary" inline>
       Update
     </Button>
   </form>
@@ -224,9 +236,9 @@ export const StatusForm: FC<{ action: string; csrfToken: string; currentStatus: 
 
 export const RequestListRow: FC<{ request: FishRequest }> = ({ request }) => (
   <a href={`/requests/${request.id}`} class="inbox-row">
-    <span class="stack" style="gap: 4px;">
+    <span class="stack stack-tight">
       <strong>{requestTitle(request)}</strong>
-      {request.quantity ? <span class="field-helper">{request.quantity}</span> : null}
+      {request.quantity ? <span class="muted">{request.quantity}</span> : null}
     </span>
     <RequestStatusBadge status={request.status} />
   </a>
@@ -234,14 +246,14 @@ export const RequestListRow: FC<{ request: FishRequest }> = ({ request }) => (
 
 export const InboxRow: FC<{ entry: InboxEntry }> = ({ entry }) => (
   <a href={`/admin/requests/${entry.id}`} class="inbox-row">
-    <span class="stack" style="gap: 4px;">
+    <span class="stack stack-tight">
       <strong>{requestTitle(entry)}</strong>
-      <span class="field-helper">
+      <span class="muted">
         {entry.contactName}
         {entry.quantity ? ` · ${entry.quantity}` : ""}
       </span>
     </span>
-    <span style="display: flex; align-items: center; gap: 12px;">
+    <span class="cluster">
       {needsReply(entry) ? <span class="badge badge-open">Needs reply</span> : null}
       <RequestStatusBadge status={entry.status} />
     </span>

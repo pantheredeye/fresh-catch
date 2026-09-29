@@ -3,7 +3,10 @@ import type { Context } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
-import { SiteNav } from "@/ui/site-nav";
+import { BrandBar } from "@/ui/brand-bar";
+import { Footer } from "@/ui/footer";
+import { BackLink } from "@/ui/back-link";
+import { getVendor } from "@/features/vendor/queries";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
 import { csrfProtect } from "@/features/auth/middleware";
@@ -21,6 +24,7 @@ import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notific
 import { parseMessageForm, parseRequestForm } from "./validation";
 import {
   MessageForm,
+  RequestConfirmation,
   RequestForm,
   RequestHeaderCard,
   RequestListRow,
@@ -75,7 +79,7 @@ export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues
 requestRoutes.get("/requests/new", async (c) => {
   const type = c.req.query("type") === "question" ? "question" : "fish";
   const species = c.req.query("species");
-  const csrfToken = await csrfTokenFor(c);
+  const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
   const values: RequestFormValues = {
     requestType: type,
     species: species ?? undefined,
@@ -83,14 +87,13 @@ requestRoutes.get("/requests/new", async (c) => {
   };
   return c.html(
     <Document title="New request — Fresh Catch" deviceToken={c.var.deviceToken}>
-      <SiteNav session={c.var.session} />
+      <BrandBar vendor={vendor} />
       <Page>
-        <p>
-          <a href="/">← Back to Fresh Catch</a>
-        </p>
+        <BackLink href="/">Back to Fresh Catch</BackLink>
         <h1>New request</h1>
         <RequestForm action="/requests" csrfToken={csrfToken} values={values} />
       </Page>
+      <Footer vendor={vendor} session={c.var.session} />
     </Document>,
   );
 });
@@ -103,14 +106,16 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
   const result = parseRequestForm(body);
 
   if (!result.success) {
-    const csrfToken = await csrfTokenFor(c);
+    const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
     return c.html(
       <Document title="New request — Fresh Catch" deviceToken={c.var.deviceToken}>
-        <SiteNav session={c.var.session} />
+        <BrandBar vendor={vendor} />
         <Page>
+          <BackLink href="/">Back to Fresh Catch</BackLink>
           <h1>New request</h1>
           <RequestForm action="/requests" csrfToken={csrfToken} values={rawToFormValues(body)} errors={result.errors} />
         </Page>
+        <Footer vendor={vendor} session={c.var.session} />
       </Document>,
       400,
     );
@@ -121,29 +126,31 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
     userId: c.var.session?.userId ?? null,
   });
   runInBackground(c, notifyVendorOfNewRequest(c.env, request));
-  return c.redirect(`/requests/${request.id}`);
+  return c.redirect(`/requests/${request.id}?created=1`);
 });
 
 requestRoutes.get("/requests", async (c) => {
-  const requests = await listRequestsForViewer({
-    deviceToken: c.var.deviceToken,
-    userId: c.var.session?.userId ?? null,
-  });
+  const [requests, vendor] = await Promise.all([
+    listRequestsForViewer({
+      deviceToken: c.var.deviceToken,
+      userId: c.var.session?.userId ?? null,
+    }),
+    getVendor(),
+  ]);
   return c.html(
     <Document title="My requests — Fresh Catch" deviceToken={c.var.deviceToken}>
-      <SiteNav session={c.var.session} />
+      <BrandBar vendor={vendor} />
       <Page>
-        <p>
-          <a href="/">← Back to Fresh Catch</a>
-        </p>
+        <BackLink href="/">Back to Fresh Catch</BackLink>
         <h1>My requests</h1>
-        {requests.length === 0 ? <p>No requests yet.</p> : null}
+        {requests.length === 0 ? <p class="muted">No requests yet.</p> : null}
         <div class="stack">
           {requests.map((request) => (
             <RequestListRow request={request} />
           ))}
         </div>
       </Page>
+      <Footer vendor={vendor} session={c.var.session} />
     </Document>,
   );
 });
@@ -153,23 +160,26 @@ requestRoutes.get("/requests/:id", async (c) => {
   // R2: 404, not 403 — a bare unguessable id in the URL must not confirm a thread exists.
   if (!request || !canViewRequest(request, viewerFor(c))) return c.text("Not found", 404);
 
-  const csrfToken = await csrfTokenFor(c);
+  const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
   // Where Stripe Checkout returns the customer (#60). Purely a message —
   // the order card's paid state comes from the webhook, not this param.
   const checkout = c.req.query("checkout");
+  // Set by the POST /requests redirect right after creation (handoff §3:
+  // same verb through the flow — "Request bass" → "Requested").
+  const created = c.req.query("created") === "1";
   return c.html(
     <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
-      <SiteNav session={c.var.session} />
+      <BrandBar vendor={vendor} />
       <Page>
-        <p>
-          <a href="/requests">← My requests</a>
-        </p>
+        <BackLink href="/requests">My requests</BackLink>
+        {created ? <RequestConfirmation requestType={request.requestType} /> : null}
         {checkout === "success" || checkout === "cancel" ? <CheckoutNotice outcome={checkout} /> : null}
         <RequestHeaderCard request={request} />
         {request.order ? <OrderSummaryCard order={request.order} /> : null}
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
         <MessageForm action={`/requests/${request.id}/messages`} csrfToken={csrfToken} />
       </Page>
+      <Footer vendor={vendor} session={c.var.session} />
     </Document>,
   );
 });
@@ -185,12 +195,16 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
   const result = parseMessageForm(body);
 
   if (!result.success) {
-    const withMessages = await getRequestWithMessages(request.id);
-    const csrfToken = await csrfTokenFor(c);
+    const [withMessages, csrfToken, vendor] = await Promise.all([
+      getRequestWithMessages(request.id),
+      csrfTokenFor(c),
+      getVendor(),
+    ]);
     return c.html(
       <Document title={`${requestTitle(request)} — Fresh Catch`} deviceToken={c.var.deviceToken}>
-        <SiteNav session={c.var.session} />
+        <BrandBar vendor={vendor} />
         <Page>
+          <BackLink href="/requests">My requests</BackLink>
           <RequestHeaderCard request={request} />
           <Thread messages={withMessages?.messages ?? []} viewer="customer" customerName={request.contactName} />
           <MessageForm
@@ -199,6 +213,7 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
             errorText={result.errors.body}
           />
         </Page>
+        <Footer vendor={vendor} session={c.var.session} />
       </Document>,
       400,
     );

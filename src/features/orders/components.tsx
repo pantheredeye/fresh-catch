@@ -3,6 +3,7 @@ import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
+import { CardHeader } from "@/ui/card-header";
 import type { OrderWithPayments } from "./queries";
 import { PAYMENT_METHODS } from "./validation";
 
@@ -22,20 +23,22 @@ export const OrderSummaryCard: FC<{ order: OrderWithPayments }> = ({ order }) =>
   const remaining = order.totalDue != null ? Math.max(order.totalDue - order.amountPaid, 0) : null;
   return (
     <div class="card stack">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-        <h2 style="margin: 0;">Order #{order.orderNumber}</h2>
-        <span class={`badge ${order.paidAt ? "badge-confirmed" : "badge-open"}`}>
-          {order.paidAt ? "Paid" : "Unpaid"}
-        </span>
-      </div>
-      {order.price != null ? <p class="field-helper">Price: {formatCents(order.price)}</p> : null}
-      {order.depositAmount != null ? <p class="field-helper">Deposit: {formatCents(order.depositAmount)}</p> : null}
-      <p class="field-helper">
+      <CardHeader
+        title={`Order #${order.orderNumber}`}
+        meta={
+          <span class={`badge ${order.paidAt ? "badge-confirmed" : "badge-open"}`}>
+            {order.paidAt ? "Paid" : "Unpaid"}
+          </span>
+        }
+      />
+      {order.price != null ? <p class="muted">Price: {formatCents(order.price)}</p> : null}
+      {order.depositAmount != null ? <p class="muted">Deposit: {formatCents(order.depositAmount)}</p> : null}
+      <p class="muted">
         Paid so far: {formatCents(order.amountPaid)}
         {remaining != null && remaining > 0 ? ` · ${formatCents(remaining)} remaining` : ""}
       </p>
       {order.payments.length > 0 ? (
-        <ul class="stack" style="margin: 0; padding-left: 20px;">
+        <ul class="stack">
           {order.payments.map((payment) => (
             <li>
               {payment.type === "refund" ? `Refund ${formatCents(-payment.amount)}` : formatCents(payment.amount)} via{" "}

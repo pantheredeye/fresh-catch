@@ -2,7 +2,8 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { setupDb, db } from "@/lib/db";
 import type { Bindings } from "@/types";
-import { getLiveCatchUpdate, isCatchUpdateFresh, publishCatchUpdate } from "./queries";
+import { getLiveCatchUpdate, isCatchUpdateFresh, publishCatchUpdate, updateCatchContent } from "./queries";
+import { parseCatchContent } from "./pipeline";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
@@ -33,6 +34,30 @@ describe("publishCatchUpdate", () => {
 
     const live = await getLiveCatchUpdate();
     expect(live?.id).toBe(second.id);
+  });
+});
+
+describe("updateCatchContent (#71's price-correction path)", () => {
+  it("rewrites formattedContent in place without changing status", async () => {
+    const live = await publishCatchUpdate({
+      recordedBy: "admin@example.com",
+      rawTranscript: "t",
+      formattedContent: content("Priced"),
+    });
+
+    const updated = await updateCatchContent(live.id, {
+      headline: "Priced",
+      items: [{ name: "Cod", note: "", priceCents: 1200, soldOut: true }],
+      summary: "s",
+    });
+
+    expect(updated.status).toBe("live");
+    expect(parseCatchContent(updated.formattedContent)?.items[0]).toEqual({
+      name: "Cod",
+      note: "",
+      priceCents: 1200,
+      soldOut: true,
+    });
   });
 });
 

@@ -1,17 +1,49 @@
 import type { FC } from "hono/jsx";
-import type { Market } from "@/lib/db";
-import type { MarketStatus } from "./queries";
+import type { Market, Vendor } from "@/lib/db";
+import type { SessionPayload } from "@/features/auth/session";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { Page } from "@/ui/page";
-import { splitExpiresAt } from "./validation";
+import { Band } from "@/ui/band";
+import { BrandBar } from "@/ui/brand-bar";
+import { Footer } from "@/ui/footer";
+import { StatusStrip } from "@/ui/status-strip";
+import { CardHeader } from "@/ui/card-header";
+import { BackLink } from "@/ui/back-link";
+import { SplitControl } from "@/ui/split-control";
+import { mapsHref, telHref, vendorDisplayName } from "@/lib/format";
+import { assetUrl } from "@/lib/assets";
+import { splitExpiresAt, splitHours } from "./validation";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
   value: String(hour),
   label: `${String(hour).padStart(2, "0")}:00`,
 }));
+
+const UNSET_OPTION = { value: "", label: "—" };
+
+const DAY_OPTIONS = [
+  UNSET_OPTION,
+  { value: "0", label: "Sunday" },
+  { value: "1", label: "Monday" },
+  { value: "2", label: "Tuesday" },
+  { value: "3", label: "Wednesday" },
+  { value: "4", label: "Thursday" },
+  { value: "5", label: "Friday" },
+  { value: "6", label: "Saturday" },
+];
+
+const HOUR_OPTIONS_WITH_UNSET = [UNSET_OPTION, ...HOUR_OPTIONS];
+
+const MINUTE_OPTIONS = [
+  UNSET_OPTION,
+  { value: "0", label: ":00" },
+  { value: "15", label: ":15" },
+  { value: "30", label: ":30" },
+  { value: "45", label: ":45" },
+];
 
 export type MarketFormValues = {
   name?: string;
@@ -23,6 +55,13 @@ export type MarketFormValues = {
   notes?: string | null;
   county?: string | null;
   city?: string | null;
+  address?: string | null;
+  landmark?: string | null;
+  dayOfWeek?: string;
+  openHour?: string;
+  openMinute?: string;
+  closeHour?: string;
+  closeMinute?: string;
   expiresDate?: string;
   expiresHour?: string;
 };
@@ -34,6 +73,7 @@ function asOptional(value: string | null | undefined): string | undefined {
 /** Turns a stored `Market` row into the form's flat string values, splitting `expiresAt` per C5. */
 export function marketToFormValues(market: Market): MarketFormValues {
   const { expiresDate, expiresHour } = splitExpiresAt(market.expiresAt);
+  const hours = splitHours(market);
   return {
     name: market.name,
     schedule: market.schedule,
@@ -44,6 +84,9 @@ export function marketToFormValues(market: Market): MarketFormValues {
     notes: market.notes,
     county: market.county,
     city: market.city,
+    address: market.address,
+    landmark: market.landmark,
+    ...hours,
     expiresDate,
     expiresHour,
   };
@@ -79,6 +122,66 @@ export const MarketForm: FC<{
     />
     <Input id="county" name="county" label="County" value={asOptional(values.county)} errorText={errors.county} />
     <Input id="city" name="city" label="City" value={asOptional(values.city)} errorText={errors.city} />
+    <Input
+      id="address"
+      name="address"
+      label="Address"
+      value={asOptional(values.address)}
+      errorText={errors.address}
+    />
+    <Input
+      id="landmark"
+      name="landmark"
+      label="Landmark"
+      helperText='e.g. "Next to the gas station"'
+      value={asOptional(values.landmark)}
+      errorText={errors.landmark}
+    />
+    <Select
+      id="dayOfWeek"
+      name="dayOfWeek"
+      label="Day"
+      helperText="Set day + open/close together, or leave all blank — schedule text above still shows either way."
+      value={values.dayOfWeek ?? ""}
+      options={DAY_OPTIONS}
+      errorText={errors.dayOfWeek}
+    />
+    <div class="cluster">
+      <Select
+        id="openHour"
+        name="openHour"
+        label="Open hour"
+        value={values.openHour ?? ""}
+        options={HOUR_OPTIONS_WITH_UNSET}
+        errorText={errors.openHour}
+      />
+      <Select
+        id="openMinute"
+        name="openMinute"
+        label="Open minute"
+        value={values.openMinute ?? ""}
+        options={MINUTE_OPTIONS}
+        errorText={errors.openMinute}
+      />
+    </div>
+    <div class="cluster">
+      <Select
+        id="closeHour"
+        name="closeHour"
+        label="Close hour"
+        value={values.closeHour ?? ""}
+        options={HOUR_OPTIONS_WITH_UNSET}
+        errorText={errors.closeHour}
+      />
+      <Select
+        id="closeMinute"
+        name="closeMinute"
+        label="Close minute"
+        value={values.closeMinute ?? ""}
+        options={MINUTE_OPTIONS}
+        errorText={errors.closeMinute}
+      />
+    </div>
     {type === "popup" ? (
       <>
         <Input
@@ -149,18 +252,12 @@ export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "li
     <span>
       <strong>{market.name}</strong> — {market.schedule}
     </span>
-    <span style="display: flex; align-items: center; gap: 12px;">
+    <span class="cluster">
       <StatusBadge status={status} />
       <a href={`/admin/markets/${market.id}/edit`}>Edit</a>
     </span>
   </div>
 );
-
-/** `Market.expiresAt` is UTC day+hour precision (C5) — displayed plainly, no tz conversion. */
-function formatExpiresAt(expiresAt: Date): string {
-  const iso = expiresAt.toISOString();
-  return `Expires ${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
-}
 
 function marketLocation(market: Market): string | null {
   const parts = [market.city, market.county].filter((part): part is string => Boolean(part));
@@ -169,64 +266,73 @@ function marketLocation(market: Market): string | null {
 
 /** Favoriting is client-side only (localStorage island, #58) — every card ships the same inert markup and `favorites.js` hydrates state on load. */
 const FavoriteToggle: FC<{ marketId: string }> = ({ marketId }) => (
-  <button type="button" class="btn btn-ghost favorite-toggle" data-market-id={marketId} aria-pressed="false">
+  <Button variant="ghost" class="favorite-toggle" data={{ "market-id": marketId }} ariaPressed={false}>
     <span aria-hidden="true">☆</span> Save
-  </button>
+  </Button>
 );
 
-/** Customer-facing card for the `/` landing list (#58) — link to the detail page + favorite toggle. */
-export const PublicMarketCard: FC<{ market: Market; kind: "regular" | "live-popup" }> = ({ market, kind }) => {
-  const location = marketLocation(market);
-  return (
-    <div class="card stack market-card">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-        <h3 style="margin: 0;">
-          <a href={`/markets/${market.id}`}>{market.name}</a>
-        </h3>
-        {kind === "live-popup" ? <span class="badge badge-live">Popup</span> : null}
-      </div>
-      <p>{market.schedule}</p>
-      {location ? <p class="field-helper">{location}</p> : null}
-      {kind === "live-popup" && market.expiresAt ? (
-        <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
-      ) : null}
-      <div style="display: flex; gap: 12px;">
-        <FavoriteToggle marketId={market.id} />
-        <a href="/requests/new?type=question">Ask about a market</a>
-      </div>
-    </div>
-  );
-};
+/** Open/closed status for one specific market — `null` when there's no computable occurrence (schedule-only market). */
+export type MarketDetailStatus = { open: boolean; label: string; message: string } | null;
 
-/** Public detail view for `GET /markets/:id` (#58) — customer-facing fields only, no `locationDetails`/`notes`/`rawTranscript`. */
-export const MarketDetail: FC<{ market: Market; status: MarketStatus }> = ({ market, status }) => {
+/** Public detail view for `GET /markets/:id` (bead #74) — hero-style header with spelled-out hours (#72) and a directions/call SplitControl, customer-facing fields only, no `locationDetails`/`notes`/`rawTranscript`. */
+export const MarketDetail: FC<{
+  market: Market;
+  vendor: Vendor | null;
+  session: SessionPayload | null;
+  dayLabel: string | null;
+  hoursLine: string | null;
+  addressLine: string | null;
+  status: MarketDetailStatus;
+  endedNote: string | null;
+}> = ({ market, vendor, session, dayLabel, hoursLine, addressLine, status, endedNote }) => {
+  const name = vendorDisplayName(vendor);
   const location = marketLocation(market);
+  const hasAddress = Boolean(market.address);
+  const hasPhone = Boolean(vendor?.phone);
   return (
-    <Page>
-      <p>
-        <a href="/">← Back to Fresh Catch</a>
-      </p>
-      <div class="card stack">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <h1 style="margin: 0;">{market.name}</h1>
-          <StatusBadge status={status} />
+    <Page bleed>
+      <BrandBar vendor={vendor} />
+      {status ? <StatusStrip open={status.open} label={status.label} message={status.message} /> : null}
+      <Band tone="shallow">
+        <div class="stack">
+          <BackLink href="/">Back to Fresh Catch</BackLink>
+          {dayLabel ? <p class="hero-date">{dayLabel}</p> : null}
+          <h1 class="h-display">{market.name}</h1>
+          {hoursLine ? <p class="hero-hrs">{hoursLine}</p> : null}
+          {addressLine ? <p class="hero-addr">{addressLine}</p> : null}
+          {endedNote ? <p class="muted">{endedNote}</p> : null}
+          {hasAddress && hasPhone ? (
+            <SplitControl
+              items={[
+                { href: mapsHref(market.address!), label: "Directions", ariaLabel: `Directions to ${market.name}` },
+                { href: telHref(vendor!.phone!), label: `Call ${name}`, ariaLabel: `Call ${name} about ${market.name}` },
+              ]}
+            />
+          ) : hasAddress ? (
+            <Button href={mapsHref(market.address!)}>Directions to {market.name}</Button>
+          ) : hasPhone ? (
+            <Button variant="secondary" href={telHref(vendor!.phone!)}>
+              Call {name} about {market.name}
+            </Button>
+          ) : null}
         </div>
-        <p>{market.schedule}</p>
-        {market.subtitle ? <p>{market.subtitle}</p> : null}
-        {location ? <p class="field-helper">{location}</p> : null}
-        {market.type === "popup" && market.expiresAt ? (
-          <p class="field-helper">{formatExpiresAt(market.expiresAt)}</p>
-        ) : null}
-        {market.customerInfo ? <p>{market.customerInfo}</p> : null}
-        {market.catchPreview ? (
-          <div>
-            <h2>Catch preview</h2>
-            <p>{market.catchPreview}</p>
-          </div>
-        ) : null}
-        <FavoriteToggle marketId={market.id} />
-      </div>
-      <script type="module" src="/js/favorites.js"></script>
+      </Band>
+      <Band tone="paper">
+        <div class="stack">
+          {market.subtitle ? <p>{market.subtitle}</p> : null}
+          {location ? <p class="muted">{location}</p> : null}
+          {market.customerInfo ? <p>{market.customerInfo}</p> : null}
+          {market.catchPreview ? (
+            <div>
+              <h2>Catch preview</h2>
+              <p>{market.catchPreview}</p>
+            </div>
+          ) : null}
+          <FavoriteToggle marketId={market.id} />
+        </div>
+      </Band>
+      <Footer vendor={vendor} session={session} />
+      <script type="module" src={assetUrl("/js/favorites.js")}></script>
     </Page>
   );
 };

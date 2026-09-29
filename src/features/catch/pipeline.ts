@@ -8,6 +8,9 @@
 export interface CatchItem {
   name: string;
   note: string;
+  /** LLM-extracted or admin-entered (issue #71) — omitted, not zero, when no price is known. */
+  priceCents?: number;
+  soldOut?: boolean;
 }
 
 export interface CatchContent {
@@ -33,7 +36,7 @@ export class CatchPipelineError extends Error {
 }
 
 const SYSTEM_PROMPT =
-  'You are a seafood market assistant. Given a description of today\'s catch, output ONLY valid JSON (no markdown, no explanation) with this exact shape: { "headline": "short catchy headline", "items": [{ "name": "Fish Name", "note": "Colorful description preserving the speaker\'s personality" }], "summary": "One-sentence summary" }. Capitalize all fish names (e.g. "Mahi Mahi", "Red Snapper"). Use proper sentence casing for notes, headline, and summary. Preserve the speaker\'s colorful descriptions and personality in the notes.';
+  'You are a seafood market assistant. Given a description of today\'s catch, output ONLY valid JSON (no markdown, no explanation) with this exact shape: { "headline": "short catchy headline", "items": [{ "name": "Fish Name", "note": "Colorful description preserving the speaker\'s personality", "priceCents": 1500 }], "summary": "One-sentence summary" }. Capitalize all fish names (e.g. "Mahi Mahi", "Red Snapper"). Use proper sentence casing for notes, headline, and summary. Preserve the speaker\'s colorful descriptions and personality in the notes. Only include "priceCents" on an item if a price was actually said for it (e.g. "only $15 a pound" becomes 1500); omit the field entirely if no price was mentioned — do not guess or invent one.';
 
 function validateCatchContent(obj: unknown): CatchContent {
   if (
@@ -49,6 +52,12 @@ function validateCatchContent(obj: unknown): CatchContent {
   const content = obj as CatchContent;
   for (const item of content.items) {
     if (typeof item.name !== "string" || typeof item.note !== "string") {
+      throw new Error("Invalid item shape");
+    }
+    if (item.priceCents !== undefined && typeof item.priceCents !== "number") {
+      throw new Error("Invalid item shape");
+    }
+    if (item.soldOut !== undefined && typeof item.soldOut !== "boolean") {
       throw new Error("Invalid item shape");
     }
   }

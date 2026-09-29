@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
+import { SectionHeading } from "@/ui/section-heading";
+import { BackLink } from "@/ui/back-link";
 import { runInBackground } from "@/lib/background";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
 import {
@@ -48,8 +50,9 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
   return c.html(
     <Document title="Requests — Admin">
       <Page>
-        <h1>Requests</h1>
-        <nav aria-label="Requests filter" style="display: flex; gap: 12px;">
+        <BackLink href="/admin">Admin</BackLink>
+        <SectionHeading title="Requests" level={1} />
+        <nav aria-label="Requests filter" class="cluster">
           <a href="/admin/requests" aria-current={filter === "active" ? "page" : undefined}>
             {FILTER_LABEL.active}
           </a>
@@ -81,10 +84,8 @@ requestsAdminRoutes.get("/admin/requests/new", async (c) => {
   return c.html(
     <Document title="New request — Admin">
       <Page>
-        <p>
-          <a href="/admin/requests">← Requests</a>
-        </p>
-        <h1>New request</h1>
+        <BackLink href="/admin/requests">Requests</BackLink>
+        <SectionHeading title="New request" level={1} />
         <RequestForm action="/admin/requests" csrfToken={csrfToken} />
       </Page>
     </Document>,
@@ -107,7 +108,8 @@ requestsAdminRoutes.post("/admin/requests", csrfProtect(), async (c) => {
     return c.html(
       <Document title="New request — Admin">
         <Page>
-          <h1>New request</h1>
+          <BackLink href="/admin/requests">Requests</BackLink>
+          <SectionHeading title="New request" level={1} />
           <RequestForm
             action="/admin/requests"
             csrfToken={c.var.session!.csrfToken}
@@ -141,9 +143,7 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
   return c.html(
     <Document title={`${requestTitle(request)} — Admin`}>
       <Page>
-        <p>
-          <a href="/admin/requests">← Requests</a>
-        </p>
+        <BackLink href="/admin/requests">Requests</BackLink>
         <RequestHeaderCard request={request} />
         {request.order ? (
           <OrderSummaryCard order={request.order} />
@@ -187,6 +187,7 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
     return c.html(
       <Document title={`${requestTitle(request)} — Admin`}>
         <Page>
+          <BackLink href="/admin/requests">Requests</BackLink>
           <RequestHeaderCard request={request} />
           <ConfirmOrderForm
             action={`/admin/requests/${request.id}/confirm-order`}
@@ -254,6 +255,7 @@ requestsAdminRoutes.post("/admin/requests/:id/mark-paid", csrfProtect(), async (
     return c.html(
       <Document title={`${requestTitle(request)} — Admin`}>
         <Page>
+          <BackLink href="/admin/requests">Requests</BackLink>
           <RequestHeaderCard request={request} />
           <OrderSummaryCard order={request.order} />
           <MarkPaidForm
@@ -284,6 +286,7 @@ requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c
     return c.html(
       <Document title={`${requestTitle(request)} — Admin`}>
         <Page>
+          <BackLink href="/admin/requests">Requests</BackLink>
           <RequestHeaderCard request={request} />
           <Thread messages={withMessages?.messages ?? []} viewer="admin" customerName={request.contactName} />
           <AdminReplyForm

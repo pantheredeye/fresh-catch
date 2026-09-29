@@ -10,6 +10,8 @@ const VALID_JSON = JSON.stringify({
   summary: "A great catch today.",
 });
 
+const formHeaders = { "Content-Type": "application/x-www-form-urlencoded" };
+
 /** Stubs `env.AI` (C9 — no local emulation) rather than calling the real remote binding in tests. */
 function envWithFakeAi(response: string) {
   return { ...(env as unknown as Bindings), AI: { run: async () => ({ response }) } as unknown as Ai };
@@ -156,5 +158,106 @@ describe("POST /admin/catch/publish", () => {
     const html = await afterSecond.text();
     expect(html).toContain("Second Catch");
     expect(html).not.toContain("First Catch");
+  });
+});
+
+describe("POST /admin/catch/prices", () => {
+  async function publishOneItem(cookie: string, csrfToken: string) {
+    return app.request(
+      "/admin/catch/publish",
+      {
+        method: "POST",
+        body: new URLSearchParams({
+          csrfToken,
+          headline: `Headline ${crypto.randomUUID()}`,
+          summary: "A great catch today.",
+          itemsJson: JSON.stringify([{ name: "Mahi Mahi", note: "Fresh" }]),
+          rawTranscript: "mahi mahi, fresh",
+        }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: cookie },
+      },
+      env,
+    );
+  }
+
+  it("403s an unauthenticated request", async () => {
+    const res = await app.request(
+      "/admin/catch/prices",
+      { method: "POST", body: new URLSearchParams({ csrfToken: "x" }), headers: formHeaders },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("403s without a valid CSRF token", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    const res = await app.request(
+      "/admin/catch/prices",
+      { method: "POST", body: new URLSearchParams({ csrfToken: "wrong" }), headers: { ...formHeaders, Cookie: cookie } },
+      env,
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("updates price and sold-out on the live catch, shown on GET /admin/catch", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    await publishOneItem(cookie, csrfToken);
+
+    const res = await app.request(
+      "/admin/catch/prices",
+      {
+        method: "POST",
+        body: new URLSearchParams({ csrfToken, price_0: "12.50", soldOut_0: "on" }),
+        headers: { ...formHeaders, Cookie: cookie },
+      },
+      env,
+    );
+    expect(res.status).toBe(302);
+
+    const html = await (await app.request("/admin/catch", { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain("$12.50");
+    expect(html).toContain("Sold out");
+  });
+
+  it("400s an invalid price, re-rendering the page with the error", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    await publishOneItem(cookie, csrfToken);
+
+    const res = await app.request(
+      "/admin/catch/prices",
+      {
+        method: "POST",
+        body: new URLSearchParams({ csrfToken, price_0: "not-a-price" }),
+        headers: { ...formHeaders, Cookie: cookie },
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("Enter a valid price");
+  });
+
+  it("clearing a price removes it (degrades cleanly to no-price)", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    await publishOneItem(cookie, csrfToken);
+
+    await app.request(
+      "/admin/catch/prices",
+      {
+        method: "POST",
+        body: new URLSearchParams({ csrfToken, price_0: "12.50" }),
+        headers: { ...formHeaders, Cookie: cookie },
+      },
+      env,
+    );
+
+    const cleared = await app.request(
+      "/admin/catch/prices",
+      { method: "POST", body: new URLSearchParams({ csrfToken, price_0: "" }), headers: { ...formHeaders, Cookie: cookie } },
+      env,
+    );
+    expect(cleared.status).toBe(302);
+
+    const html = await (await app.request("/admin/catch", { headers: { Cookie: cookie } }, env)).text();
+    expect(html).not.toContain("$12.50");
   });
 });
