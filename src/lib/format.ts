@@ -99,6 +99,12 @@ export function formatWeekOf(date: Date, tz: string): string {
   return `Week of ${MONTH_NAMES[sunday.getUTCMonth()]} ${sunday.getUTCDate()}`;
 }
 
+/** "Friday, September 11" — the landing hero's date line. */
+export function formatFullDate(date: Date, tz: string): string {
+  const { month, day, weekday } = localParts(date, tz);
+  return `${WEEKDAY_NAMES[weekday]}, ${MONTH_NAMES[month - 1]} ${day}`;
+}
+
 /** "$14" / "$14.50" */
 export function formatPrice(cents: number): string {
   const dollars = cents / 100;
@@ -110,6 +116,14 @@ export function telHref(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   const withCountryCode = digits.length === 10 ? `1${digits}` : digits;
   return `tel:+${withCountryCode}`;
+}
+
+/** "(662) 555-1234" from `Vendor.phone`'s stored E.164 form. Falls back to the raw input if it's not a 10-digit US number. */
+export function formatPhoneDisplay(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const tenDigits = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (tenDigits.length !== 10) return phone;
+  return `(${tenDigits.slice(0, 3)}) ${tenDigits.slice(3, 6)}-${tenDigits.slice(6)}`;
 }
 
 /** Google Maps search link for a free-text address. */

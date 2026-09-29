@@ -135,6 +135,30 @@ export function describeTodayStatus(status: TodayStatus, now: Date, tz: string):
 }
 
 /**
+ * The next *different* market on the weekly route after today, for the
+ * hero's "Then Saturday, …" line (handoff §5). Walks day-of-week forward
+ * from tomorrow, skipping `excludeMarketId` (whichever market the hero is
+ * already showing) — popups don't recur so they're not candidates here.
+ */
+export function nextDifferentMarketByDay(
+  markets: StatusMarket[],
+  excludeMarketId: string | null,
+  now: Date,
+  tz: string,
+): { weekday: number; market: StatusMarket } | null {
+  const regulars = markets.filter(
+    (m) => m.type === "regular" && m.active && m.dayOfWeek !== null && m.id !== excludeMarketId,
+  );
+  const todayWeekday = localParts(now, tz).weekday;
+  for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
+    const weekday = (todayWeekday + daysAhead) % 7;
+    const market = regulars.find((m) => m.dayOfWeek === weekday);
+    if (market) return { weekday, market };
+  }
+  return null;
+}
+
+/**
  * For the saved-markets band: "Open today until 6pm" / "Opens today at
  * 3pm" / "Next Wednesday, 3pm to 7pm". A live popup's `closesAt` is its
  * `expiresAt`, which may land on a later calendar day than `now` (a

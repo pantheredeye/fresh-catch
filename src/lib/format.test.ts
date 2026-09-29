@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   formatClockTime,
+  formatFullDate,
   formatHoursRange,
+  formatPhoneDisplay,
   formatPrice,
   formatRelativeHours,
   formatWeekOf,
@@ -87,6 +89,23 @@ describe("telHref", () => {
 
   it("passes through an already-11-digit number", () => {
     expect(telHref("1-505-555-0142")).toBe("tel:+15055550142");
+  });
+});
+
+describe("formatPhoneDisplay", () => {
+  it("formats a stored E.164 number for display", () => {
+    expect(formatPhoneDisplay("+16625551234")).toBe("(662) 555-1234");
+  });
+
+  it("falls back to the raw input when it isn't a 10-digit US number", () => {
+    expect(formatPhoneDisplay("+44 20 7946 0958")).toBe("+44 20 7946 0958");
+  });
+});
+
+describe("formatFullDate", () => {
+  it("spells out the weekday and month", () => {
+    // Friday September 11 2026, checked at noon Central.
+    expect(formatFullDate(new Date("2026-09-11T17:00:00Z"), "America/Chicago")).toBe("Friday, September 11");
   });
 });
 
