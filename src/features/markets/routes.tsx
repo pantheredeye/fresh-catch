@@ -33,7 +33,7 @@ marketRoutes.get("/markets/past", async (c) => {
       <BrandBar vendor={vendor} />
       <Page>
         <BackLink href="/">Back to Fresh Catch</BackLink>
-        <SectionHeading title="Past popups" meta={`${popups.length} popup${popups.length === 1 ? "" : "s"}`} />
+        <SectionHeading level={1} title="Past popups" meta={`${popups.length} popup${popups.length === 1 ? "" : "s"}`} />
         {popups.length === 0 ? (
           <p class="muted">No past popups yet.</p>
         ) : (
