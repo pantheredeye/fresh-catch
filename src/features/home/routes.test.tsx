@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { setupDb, db } from "@/lib/db";
 import type { Bindings } from "@/types";
 import app from "../../index";
@@ -9,6 +9,20 @@ import type { MarketInput } from "@/features/markets/validation";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
+  await db.vendor.deleteMany();
+  await db.vendor.create({
+    data: { id: "test-vendor", name: "Fresh Catch Test", displayName: "Sam", phone: "+15055550142", timezone: "UTC" },
+  });
+});
+
+const createdMarketIds: string[] = [];
+
+// Every market created in a test is cancelled/deactivated afterward — status
+// (`resolveToday`) considers every active market in the DB, so leftovers
+// from one test would leak into another test's "which market is featured"
+// assertions.
+afterEach(async () => {
+  await Promise.all(createdMarketIds.splice(0).map((id) => cancelMarket(id)));
 });
 
 function marketInput(overrides: Partial<MarketInput> = {}): MarketInput {
@@ -33,17 +47,46 @@ function marketInput(overrides: Partial<MarketInput> = {}): MarketInput {
   };
 }
 
-describe("GET /", () => {
-  it("shows a fresh live catch update", async () => {
+async function addMarket(overrides: Partial<MarketInput> = {}) {
+  const market = await createMarket(marketInput(overrides));
+  createdMarketIds.push(market.id);
+  return market;
+}
+
+/** UTC weekday/minutes-of-day for "now" — the vendor's test timezone is UTC, so these line up directly with `dayOfWeek`/`openMinutes`/`closeMinutes`. */
+function nowUtcParts() {
+  const now = new Date();
+  return { weekday: now.getUTCDay(), minutesOfDay: now.getUTCHours() * 60 + now.getUTCMinutes() };
+}
+
+describe("GET / — fish board", () => {
+  it("shows a row with a price, a row with no price, and a sold-out row", async () => {
     await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
     await publishCatchUpdate({
       recordedBy: "admin@example.com",
-      rawTranscript: "mahi mahi",
-      formattedContent: JSON.stringify({ headline: "Big Haul Today", items: [{ name: "Mahi Mahi", note: "" }], summary: "s" }),
+      rawTranscript: "redfish 16 a pound, mullet, flounder sold out",
+      formattedContent: JSON.stringify({
+        headline: "h",
+        items: [
+          { name: "Redfish", note: "Line-caught.", priceCents: 1600 },
+          { name: "Mullet", note: "Bait or table fare." },
+          { name: "Flounder", note: "Back next week.", soldOut: true },
+        ],
+        summary: "s",
+      }),
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    expect(html).toContain("Big Haul Today");
+    expect(html).toContain("Request Redfish, $16 a pound");
+    expect(html).toContain("Request Mullet");
+    expect(html).not.toContain("Request Flounder"); // sold-out row is a non-link
+    expect(html).toContain("Sold out");
+  });
+
+  it("shows a plain notice when there's no fresh catch update at all", async () => {
+    await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain("Check back soon — nothing posted yet this week.");
   });
 
   it("hides a stale (>7 day old) live catch update", async () => {
@@ -59,26 +102,109 @@ describe("GET /", () => {
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    expect(html).not.toContain("Stale Headline");
+    expect(html).not.toContain("Cod");
     expect(html).toContain("Check back soon");
   });
+});
 
-  it("hides the hero when there is no live catch update at all", async () => {
-    await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+describe("GET / — market status states (handoff §4)", () => {
+  it("open: strip says 'Open now' and the hero features the open market", async () => {
+    const { weekday, minutesOfDay } = nowUtcParts();
+    const market = await addMarket({
+      name: `OpenMarket ${crypto.randomUUID()}`,
+      dayOfWeek: weekday,
+      openMinutes: Math.max(0, minutesOfDay - 60),
+      closeMinutes: Math.min(1439, minutesOfDay + 60),
+      address: "1 Test St",
+    });
+
     const html = await (await app.request("/", {}, env)).text();
-    expect(html).toContain("Check back soon");
+    expect(html).toContain("Open now");
+    expect(html).toContain(`<h1 class="h-display">${market.name}</h1>`);
+    expect(html).toContain(`Directions to ${market.name}`);
+    expect(html).toContain("Call Sam");
   });
 
+  it("opens-later: strip says 'Opens later today' for a market not open yet", async () => {
+    const { weekday, minutesOfDay } = nowUtcParts();
+    const openMinutes = Math.min(1439, minutesOfDay + 30);
+    const market = await addMarket({
+      name: `LaterMarket ${crypto.randomUUID()}`,
+      dayOfWeek: weekday,
+      openMinutes,
+      closeMinutes: Math.min(1439, openMinutes + 60),
+    });
+
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain("Opens later today");
+    expect(html).toContain(`<h1 class="h-display">${market.name}</h1>`);
+  });
+
+  it("closed-today: strip says 'Closed today' and the hero falls forward to the next stop", async () => {
+    const { weekday } = nowUtcParts();
+    const otherDay = (weekday + 2) % 7;
+    const market = await addMarket({
+      name: `LaterWeekMarket ${crypto.randomUUID()}`,
+      dayOfWeek: otherDay,
+      openMinutes: 10 * 60,
+      closeMinutes: 18 * 60,
+    });
+
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain("Closed today");
+    expect(html).toContain("No market today. Next stop");
+    expect(html).toContain(`<h1 class="h-display">${market.name}</h1>`);
+  });
+
+  it("no-structured-data: no status strip; hero falls back to the market's free-text schedule", async () => {
+    const market = await addMarket({
+      name: `ScheduleOnly ${crypto.randomUUID()}`,
+      schedule: "Every other Saturday, call ahead",
+    });
+
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).not.toContain("Open now");
+    expect(html).not.toContain("Closed today");
+    expect(html).not.toContain("Opens later today");
+    expect(html).toContain(`<h1 class="h-display">${market.name}</h1>`);
+    expect(html).toContain("Every other Saturday, call ahead");
+  });
+
+  it("a live popup leads the hero over a regular market open the same day (epic #69, locked)", async () => {
+    const { weekday, minutesOfDay } = nowUtcParts();
+    const regularMarket = await addMarket({
+      name: `RegularOpen ${crypto.randomUUID()}`,
+      dayOfWeek: weekday,
+      openMinutes: Math.max(0, minutesOfDay - 60),
+      closeMinutes: Math.min(1439, minutesOfDay + 60),
+    });
+    const popupMarket = await addMarket({
+      type: "popup",
+      name: `LivePopup ${crypto.randomUUID()}`,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain(`<h1 class="h-display">${popupMarket.name}</h1>`);
+    expect(html).toContain(regularMarket.name); // still listed on the route below
+  });
+});
+
+describe("GET / — route + saved band", () => {
   it("lists active regular markets and live popups, excludes inactive/past ones, and links to /markets/past", async () => {
-    const active = await createMarket(marketInput({ name: `Active ${crypto.randomUUID()}` }));
-    const inactiveSource = await createMarket(marketInput({ name: `Inactive ${crypto.randomUUID()}` }));
+    const active = await addMarket({ name: `Active ${crypto.randomUUID()}` });
+    const inactiveSource = await addMarket({ name: `Inactive ${crypto.randomUUID()}` });
     await cancelMarket(inactiveSource.id);
-    const livePopup = await createMarket(
-      marketInput({ type: "popup", name: `LivePopup ${crypto.randomUUID()}`, expiresAt: new Date(Date.now() + 60_000) }),
-    );
-    const pastPopup = await createMarket(
-      marketInput({ type: "popup", name: `PastPopup ${crypto.randomUUID()}`, expiresAt: new Date(Date.now() - 60_000) }),
-    );
+    const livePopup = await addMarket({
+      type: "popup",
+      name: `LivePopupRoute ${crypto.randomUUID()}`,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const pastPopup = await addMarket({
+      type: "popup",
+      name: `PastPopup ${crypto.randomUUID()}`,
+      expiresAt: new Date(Date.now() - 60_000),
+    });
 
     const html = await (await app.request("/", {}, env)).text();
     expect(html).toContain(active.name);
@@ -86,5 +212,20 @@ describe("GET /", () => {
     expect(html).toContain(livePopup.name);
     expect(html).not.toContain(pastPopup.name);
     expect(html).toContain('href="/markets/past"');
+  });
+
+  it("renders a hidden saved-band pin, keyed by market id, for a market with a computable occurrence", async () => {
+    const { weekday } = nowUtcParts();
+    const market = await addMarket({
+      name: `Pinned ${crypto.randomUUID()}`,
+      dayOfWeek: weekday,
+      openMinutes: 0,
+      closeMinutes: 1439,
+    });
+
+    const html = await (await app.request("/", {}, env)).text();
+    const bandTag = html.match(/<div class="band band-paper saved"[^>]*>/)?.[0];
+    expect(bandTag).toContain("hidden");
+    expect(html).toContain(`data-market-id="${market.id}"`);
   });
 });
