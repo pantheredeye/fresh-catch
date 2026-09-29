@@ -1,13 +1,19 @@
 import type { FC } from "hono/jsx";
-import type { Market } from "@/lib/db";
-import type { MarketStatus } from "./queries";
+import type { Market, Vendor } from "@/lib/db";
+import type { SessionPayload } from "@/features/auth/session";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { Page } from "@/ui/page";
+import { Band } from "@/ui/band";
+import { BrandBar } from "@/ui/brand-bar";
+import { Footer } from "@/ui/footer";
+import { StatusStrip } from "@/ui/status-strip";
 import { CardHeader } from "@/ui/card-header";
 import { BackLink } from "@/ui/back-link";
+import { SplitControl } from "@/ui/split-control";
+import { mapsHref, telHref, vendorDisplayName } from "@/lib/format";
 import { splitExpiresAt, splitHours } from "./validation";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
@@ -252,12 +258,6 @@ export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "li
   </div>
 );
 
-/** `Market.expiresAt` is UTC day+hour precision (C5) — displayed plainly, no tz conversion. */
-function formatExpiresAt(expiresAt: Date): string {
-  const iso = expiresAt.toISOString();
-  return `Expires ${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
-}
-
 function marketLocation(market: Market): string | null {
   const parts = [market.city, market.county].filter((part): part is string => Boolean(part));
   return parts.length ? parts.join(", ") : null;
@@ -270,49 +270,67 @@ const FavoriteToggle: FC<{ marketId: string }> = ({ marketId }) => (
   </Button>
 );
 
-/** Customer-facing card for the `/` landing list (#58) — link to the detail page + favorite toggle. */
-export const PublicMarketCard: FC<{ market: Market; kind: "regular" | "live-popup" }> = ({ market, kind }) => {
-  const location = marketLocation(market);
-  return (
-    <div class="card stack market-card">
-      <div class="card-header">
-        <h3>
-          <a href={`/markets/${market.id}`}>{market.name}</a>
-        </h3>
-        {kind === "live-popup" ? <span class="badge badge-live">Popup</span> : null}
-      </div>
-      <p>{market.schedule}</p>
-      {location ? <p class="muted">{location}</p> : null}
-      {kind === "live-popup" && market.expiresAt ? <p class="muted">{formatExpiresAt(market.expiresAt)}</p> : null}
-      <div class="cluster">
-        <FavoriteToggle marketId={market.id} />
-        <a href="/requests/new?type=question">Ask about a market</a>
-      </div>
-    </div>
-  );
-};
+/** Open/closed status for one specific market — `null` when there's no computable occurrence (schedule-only market). */
+export type MarketDetailStatus = { open: boolean; label: string; message: string } | null;
 
-/** Public detail view for `GET /markets/:id` (#58) — customer-facing fields only, no `locationDetails`/`notes`/`rawTranscript`. */
-export const MarketDetail: FC<{ market: Market; status: MarketStatus }> = ({ market, status }) => {
+/** Public detail view for `GET /markets/:id` (bead #74) — hero-style header with spelled-out hours (#72) and a directions/call SplitControl, customer-facing fields only, no `locationDetails`/`notes`/`rawTranscript`. */
+export const MarketDetail: FC<{
+  market: Market;
+  vendor: Vendor | null;
+  session: SessionPayload | null;
+  dayLabel: string | null;
+  hoursLine: string | null;
+  addressLine: string | null;
+  status: MarketDetailStatus;
+  endedNote: string | null;
+}> = ({ market, vendor, session, dayLabel, hoursLine, addressLine, status, endedNote }) => {
+  const name = vendorDisplayName(vendor);
   const location = marketLocation(market);
+  const hasAddress = Boolean(market.address);
+  const hasPhone = Boolean(vendor?.phone);
   return (
-    <Page>
-      <BackLink href="/">Back to Fresh Catch</BackLink>
-      <div class="card stack">
-        <CardHeader level={1} title={market.name} meta={<StatusBadge status={status} />} />
-        <p>{market.schedule}</p>
-        {market.subtitle ? <p>{market.subtitle}</p> : null}
-        {location ? <p class="muted">{location}</p> : null}
-        {market.type === "popup" && market.expiresAt ? <p class="muted">{formatExpiresAt(market.expiresAt)}</p> : null}
-        {market.customerInfo ? <p>{market.customerInfo}</p> : null}
-        {market.catchPreview ? (
-          <div>
-            <h2>Catch preview</h2>
-            <p>{market.catchPreview}</p>
-          </div>
-        ) : null}
-        <FavoriteToggle marketId={market.id} />
-      </div>
+    <Page bleed>
+      <BrandBar vendor={vendor} />
+      {status ? <StatusStrip open={status.open} label={status.label} message={status.message} /> : null}
+      <Band tone="shallow">
+        <div class="stack">
+          <BackLink href="/">Back to Fresh Catch</BackLink>
+          {dayLabel ? <p class="hero-date">{dayLabel}</p> : null}
+          <h1 class="h-display">{market.name}</h1>
+          {hoursLine ? <p class="hero-hrs">{hoursLine}</p> : null}
+          {addressLine ? <p class="hero-addr">{addressLine}</p> : null}
+          {endedNote ? <p class="muted">{endedNote}</p> : null}
+          {hasAddress && hasPhone ? (
+            <SplitControl
+              items={[
+                { href: mapsHref(market.address!), label: "Directions", ariaLabel: `Directions to ${market.name}` },
+                { href: telHref(vendor!.phone!), label: `Call ${name}`, ariaLabel: `Call ${name} about ${market.name}` },
+              ]}
+            />
+          ) : hasAddress ? (
+            <Button href={mapsHref(market.address!)}>Directions to {market.name}</Button>
+          ) : hasPhone ? (
+            <Button variant="secondary" href={telHref(vendor!.phone!)}>
+              Call {name} about {market.name}
+            </Button>
+          ) : null}
+        </div>
+      </Band>
+      <Band tone="paper">
+        <div class="stack">
+          {market.subtitle ? <p>{market.subtitle}</p> : null}
+          {location ? <p class="muted">{location}</p> : null}
+          {market.customerInfo ? <p>{market.customerInfo}</p> : null}
+          {market.catchPreview ? (
+            <div>
+              <h2>Catch preview</h2>
+              <p>{market.catchPreview}</p>
+            </div>
+          ) : null}
+          <FavoriteToggle marketId={market.id} />
+        </div>
+      </Band>
+      <Footer vendor={vendor} session={session} />
       <script type="module" src="/js/favorites.js"></script>
     </Page>
   );
