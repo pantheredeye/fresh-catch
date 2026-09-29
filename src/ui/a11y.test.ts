@@ -137,6 +137,25 @@ describe("a11y floors across every GET HTML route", () => {
   });
 });
 
+/**
+ * "JS-off render of /" (#75) — every test above already hits the Worker via
+ * plain `fetch`, no JS execution, so the suite already proves this by
+ * construction. This test names the requirement explicitly and pins the
+ * specific JS-off contract: the saved-markets band ships real (if `hidden`)
+ * markup rather than an empty mount point `favorites.js` fills in later, and
+ * the enhancement scripts are inert `<script type="module">` tags that don't
+ * gate any content above them.
+ */
+describe("/ renders correctly with JavaScript disabled", () => {
+  it("ships real saved-band markup and non-blocking enhancement scripts", async () => {
+    const res = await app.request("/", {}, env);
+    const html = await res.text();
+    expect(html).toMatch(/<div class="band band-paper saved" hidden="" id="saved-band">/);
+    expect(html).toMatch(/<h2 class="hd hd-sm">Your saved markets<\/h2>/);
+    expect(html).toMatch(/<script type="module" src="\/js\/favorites\.js\?v=/);
+  });
+});
+
 // Vite resolves this glob at build time to string literals — no runtime `fs`
 // access, which the Workers test runtime doesn't have. `notifications.ts` /
 // `receipt.ts` / `email.ts` (inline-styled email HTML by necessity) are `.ts`,

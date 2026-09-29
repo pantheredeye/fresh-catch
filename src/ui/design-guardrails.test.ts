@@ -104,6 +104,10 @@ describe("Tideline palette contrast (docs/redesign/fresh-catch-handoff.md §3)",
     ["sand", "deep"],
     ["on-sea-muted", "sea"],
     ["on-deep-muted", "deep"],
+    // #75 audit — pairs already rendered pre-#75 but not previously pinned:
+    ["deep", "shallow"], // .notice-info text on its background
+    ["paper", "muted"], // .strip.shut (closed status strip)
+    ["coral", "paper"], // .field-error text on a paper form/card surface
   ];
 
   it.each(textPairs)("%s on %s meets the 7:1 text floor", (fg, bg) => {
@@ -115,6 +119,7 @@ describe("Tideline palette contrast (docs/redesign/fresh-catch-handoff.md §3)",
     ["deep", "coral-fill"],
     ["coral", "shallow"],
     ["coral", "sand"],
+    ["muted", "shallow"], // .badge-past (also badge-fulfilled)
   ];
 
   it.each(largeTextPairs)("%s on %s meets the 4.5:1 large-text/graphic floor", (fg, bg) => {
