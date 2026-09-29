@@ -122,11 +122,20 @@ function parseHours(raw: HoursFields): HoursResult {
   }
 
   const dayOfWeek = Number(raw.dayOfWeek);
-  const openMinutes = Number(raw.openHour) * 60 + Number(raw.openMinute);
-  const closeMinutes = Number(raw.closeHour) * 60 + Number(raw.closeMinute);
+  const openHour = Number(raw.openHour);
+  const openMinute = Number(raw.openMinute);
+  const closeHour = Number(raw.closeHour);
+  const closeMinute = Number(raw.closeMinute);
   if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
     return { success: false, error: "Enter a valid day" };
   }
+  const validHour = (h: number) => Number.isInteger(h) && h >= 0 && h <= 23;
+  const validMinute = (m: number) => Number.isInteger(m) && m >= 0 && m <= 59;
+  if (!validHour(openHour) || !validMinute(openMinute) || !validHour(closeHour) || !validMinute(closeMinute)) {
+    return { success: false, error: "Enter a valid time" };
+  }
+  const openMinutes = openHour * 60 + openMinute;
+  const closeMinutes = closeHour * 60 + closeMinute;
   if (closeMinutes <= openMinutes) {
     return { success: false, error: "Close time must be after open time" };
   }

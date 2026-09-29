@@ -11,6 +11,7 @@ import { getVendor } from "@/features/vendor/queries";
 import {
   describeOccurrence,
   describeTodayStatus,
+  isSameLocalDate,
   nextDifferentMarketByDay,
   nextOccurrence,
   resolveToday,
@@ -50,7 +51,8 @@ function heroHoursLine(market: Market, tz: string): string | null {
 }
 
 function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Date, tz: string): RouteRow[] {
-  const todayWeekday = localParts(now, tz).weekday;
+  const local = localParts(now, tz);
+  const todayWeekday = local.weekday;
 
   const popupRows: RouteRow[] = livePopups.map((market) => {
     const occurrence = nextOccurrence(market, now, tz);
@@ -67,7 +69,8 @@ function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Dat
 
   const regularRows: RouteRow[] = regularMarkets.map((market) => {
     const occurrence = nextOccurrence(market, now, tz);
-    const isToday = market.dayOfWeek === todayWeekday;
+    const occursToday = occurrence === null || isSameLocalDate(localParts(occurrence.opensAt, tz), local);
+    const isToday = market.dayOfWeek === todayWeekday && occursToday;
     return {
       market,
       isPopup: false,

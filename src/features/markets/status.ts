@@ -34,7 +34,7 @@ function isLivePopup(market: StatusMarket, now: Date): market is LivePopup {
   return market.type === "popup" && market.cancelledAt === null && market.expiresAt !== null && market.expiresAt > now;
 }
 
-function isSameLocalDate(a: { year: number; month: number; day: number }, b: { year: number; month: number; day: number }): boolean {
+export function isSameLocalDate(a: { year: number; month: number; day: number }, b: { year: number; month: number; day: number }): boolean {
   return a.year === b.year && a.month === b.month && a.day === b.day;
 }
 
