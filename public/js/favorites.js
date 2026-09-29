@@ -32,7 +32,28 @@
       : '<span aria-hidden="true">☆</span> Save';
   }
 
+  // Saved band (#73 item 4): the server renders a pin for every market with
+  // a computable occurrence, hidden by default (`hidden` attribute, not
+  // display:none, so it degrades correctly with no JS). This function is
+  // re-run after every toggle so the band/count/pin set stays in sync.
+  function renderSavedBand(favorites) {
+    const band = document.getElementById("saved-band");
+    if (!band) return;
+    const pins = band.querySelectorAll(".pin");
+    let shown = 0;
+    pins.forEach((pin) => {
+      const isSaved = favorites.includes(pin.dataset.marketId);
+      pin.hidden = !isSaved;
+      if (isSaved) shown++;
+    });
+    band.hidden = shown === 0;
+    const count = document.getElementById("saved-count");
+    if (count) count.textContent = shown === 1 ? "1 saved" : `${shown} saved`;
+  }
+
   const favorites = loadFavorites();
+  renderSavedBand(favorites);
+
   document.querySelectorAll(".favorite-toggle").forEach((button) => {
     const marketId = button.dataset.marketId;
     applyState(button, favorites.includes(marketId));
@@ -45,6 +66,7 @@
       }
       saveFavorites(favorites);
       applyState(button, favorites.includes(marketId));
+      renderSavedBand(favorites);
     });
   });
 })();
