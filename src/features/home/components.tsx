@@ -1,43 +1,11 @@
 import type { FC } from "hono/jsx";
 import type { Market, Vendor } from "@/lib/db";
-import type { SessionPayload } from "@/features/auth/session";
 import type { CatchContent, CatchItem } from "@/features/catch/pipeline";
-import type { TodayStatus } from "@/features/markets/status";
-import { WEEKDAY_NAMES, formatPhoneDisplay, formatPrice, mapsHref, telHref } from "@/lib/format";
-import { Band } from "@/ui/band";
+import { WEEKDAY_NAMES, formatPrice, mapsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
 import { SplitControl } from "@/ui/split-control";
 import { FishArt } from "./fish-art";
-
-function vendorName(vendor: Vendor | null): string {
-  return vendor?.displayName || vendor?.name || "Fresh Catch";
-}
-
-/** Brand bar (item 1) — wordmark + tappable phone; login/"My requests" live in the footer instead. */
-export const BrandBar: FC<{ vendor: Vendor | null }> = ({ vendor }) => (
-  <Band tone="paper" class="bar">
-    <span class="brand">Fresh Catch</span>
-    {vendor?.phone ? <a href={telHref(vendor.phone)}>{formatPhoneDisplay(vendor.phone)}</a> : null}
-  </Band>
-);
-
-const STATUS_LABEL: Record<TodayStatus["kind"], string> = {
-  open: "Open now",
-  "opens-later": "Opens later today",
-  "closed-today": "Closed today",
-};
-
-/** Status strip (item 2) — teal/open vs muted/closed, dot shape also changes so state is never color-only. */
-export const StatusStrip: FC<{ status: TodayStatus; message: string }> = ({ status, message }) => (
-  <div class={status.kind === "closed-today" ? "strip shut" : "strip"}>
-    <div class="wrap">
-      <span class="dot" aria-hidden="true"></span>
-      <b>{STATUS_LABEL[status.kind]}</b>
-      <span>{message}</span>
-    </div>
-  </div>
-);
 
 export type HeroData = {
   market: Market | null;
@@ -67,7 +35,7 @@ export const Hero: FC<HeroData & { vendor: Vendor | null }> = ({
       </div>
     );
   }
-  const name = vendorName(vendor);
+  const name = vendorDisplayName(vendor);
   return (
     <div class="stack">
       {dateLine ? <p class="hero-date">{dateLine}</p> : null}
@@ -218,7 +186,7 @@ export type RouteRow = {
 /** One stop on the week's route (item 6) — today's row gets `.now` + a tag, per handoff §3's split-control amendment. */
 const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendor }) => {
   const { market, isPopup, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
-  const name = vendorName(vendor);
+  const name = vendorDisplayName(vendor);
   const hasAddress = Boolean(market.address);
   const hasPhone = Boolean(vendor?.phone);
   return (
@@ -262,7 +230,7 @@ export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ row
 
 /** Closing band (item 7, deep) — coral-fill primary on dark ground via the existing .band-deep override. */
 export const ClosingBand: FC<{ vendor: Vendor | null }> = ({ vendor }) => {
-  const name = vendorName(vendor);
+  const name = vendorDisplayName(vendor);
   return (
     <>
       <h2>Ask {name} to hold one</h2>
@@ -278,32 +246,3 @@ export const ClosingBand: FC<{ vendor: Vendor | null }> = ({ vendor }) => {
     </>
   );
 };
-
-/** Footer (item 8) — vendor line + login/"My requests"/Admin, moved down here per §3's "login lives in the footer" content rule. */
-export const HomeFooter: FC<{ vendor: Vendor | null; session: SessionPayload | null }> = ({ vendor, session }) => (
-  <footer>
-    <div class="wrap stack-tight">
-      <p>
-        {vendorName(vendor)}
-        {vendor?.phone ? `, ${formatPhoneDisplay(vendor.phone)}` : ""}.
-      </p>
-      <p>The fish list is rewritten every Monday morning.</p>
-      <p class="cluster">
-        {session ? (
-          <>
-            <a href="/requests">My requests</a>
-            {session.isAdmin ? <a href="/admin">Admin</a> : null}
-            <form method="post" action="/logout">
-              <input type="hidden" name="csrfToken" value={session.csrfToken} />
-              <Button type="submit" variant="ghost" inline>
-                Log out
-              </Button>
-            </form>
-          </>
-        ) : (
-          <a href="/login">Log in to see your requests</a>
-        )}
-      </p>
-    </div>
-  </footer>
-);

@@ -130,3 +130,8 @@ export function formatPhoneDisplay(phone: string): string {
 export function mapsHref(address: string): string {
   return `https://maps.google.com/?q=${encodeURIComponent(address)}`;
 }
+
+/** "Sam" (displayName) or the vendor's plain `name`, falling back when there's no vendor row yet. */
+export function vendorDisplayName(vendor: { displayName?: string | null; name?: string | null } | null): string {
+  return vendor?.displayName || vendor?.name || "Fresh Catch";
+}

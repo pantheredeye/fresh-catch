@@ -15,11 +15,21 @@ import {
   nextOccurrence,
   resolveToday,
   type StatusMarket,
+  type TodayStatus,
 } from "@/features/markets/status";
 import { WEEKDAY_NAMES, formatClockTime, formatFullDate, formatHoursRange, formatWeekOf, localParts } from "@/lib/format";
-import { BrandBar, ClosingBand, FishBoard, Hero, HomeFooter, RouteBand, SavedBand, StatusStrip, type RouteRow, type SavedPin } from "./components";
+import { BrandBar } from "@/ui/brand-bar";
+import { Footer } from "@/ui/footer";
+import { StatusStrip } from "@/ui/status-strip";
+import { ClosingBand, FishBoard, Hero, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+const STATUS_LABEL: Record<TodayStatus["kind"], string> = {
+  open: "Open now",
+  "opens-later": "Opens later today",
+  "closed-today": "Closed today",
+};
 
 function marketAddressLine(market: Pick<Market, "address" | "landmark">): string | null {
   if (!market.address) return null;
@@ -122,7 +132,13 @@ homeRoutes.get("/", async (c) => {
     <Document deviceToken={c.var.deviceToken}>
       <Page bleed>
         <BrandBar vendor={vendor} />
-        {!scheduleFallback ? <StatusStrip status={status} message={describeTodayStatus(status, now, tz)} /> : null}
+        {!scheduleFallback ? (
+          <StatusStrip
+            open={status.kind === "open"}
+            label={STATUS_LABEL[status.kind]}
+            message={describeTodayStatus(status, now, tz)}
+          />
+        ) : null}
         <Band tone="shallow">
           <Hero
             market={heroMarket}
@@ -144,7 +160,7 @@ homeRoutes.get("/", async (c) => {
         <Band tone="deep">
           <ClosingBand vendor={vendor} />
         </Band>
-        <HomeFooter vendor={vendor} session={session} />
+        <Footer vendor={vendor} session={session} note="The fish list is rewritten every Monday morning." />
         <script type="module" src="/js/favorites.js"></script>
       </Page>
     </Document>,
