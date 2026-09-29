@@ -133,7 +133,6 @@ html {
 
 body {
   margin: 0;
-  padding: var(--space-lg);
   font-family: var(--font-body);
   font-size: var(--font-size-body);
   line-height: var(--line-height-base);
@@ -156,6 +155,7 @@ h3 {
   font-weight: 800;
   line-height: var(--line-height-tight);
   letter-spacing: -0.018em;
+  overflow-wrap: break-word;
 }
 
 h1 {
@@ -469,10 +469,14 @@ ol.stack {
   overflow-y: auto;
 }
 
-/* Page layout (admin markets list, past-popups archive) */
+/* Page layout (admin markets list, past-popups archive). Padding lives here,
+   not on `body` — `Page bleed` (full-bleed Band layouts, e.g. the landing
+   page) renders straight into `<main>` with no wrapper, and needs body to
+   stay unpadded so its Bands can actually reach the viewport edge. */
 .page {
   max-width: var(--width-md);
   margin: 0 auto;
+  padding: var(--space-lg);
 }
 
 .page-wide {
@@ -636,6 +640,7 @@ ol.stack {
    meta right-aligned on the heading's baseline (handoff §5). */
 .hdrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-md);
@@ -743,6 +748,20 @@ ol.stack {
   color: var(--color-text-inverse);
 }
 
+@media (max-width: 359px) {
+  /* Two 1fr columns can still force overflow when both labels are long
+     relative to the available width (e.g. "Directions" / "Call Evan") —
+     grid track minimums are content-based, not container-clamped. Stack
+     instead of fighting it, same call as the fish row breakpoint above. */
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .split a + a {
+    border-left: none;
+    border-top: 3px solid var(--color-action-primary-fill);
+  }
+}
+
 /* BackLink (src/ui/back-link.tsx) — 58px quiet link with a leading arrow. */
 .back-link {
   display: inline-flex;
@@ -756,4 +775,377 @@ ol.stack {
 
 .back-link:hover {
   text-decoration: underline;
+}
+
+/* Landing page (#73, handoff §5) — brand bar, status strip, hero, saved
+   band, fish board, route, closing band, footer. */
+
+.bar {
+  padding: 7px 0;
+  border-bottom: 3px solid var(--color-text-primary);
+}
+
+.bar .wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bar a {
+  color: var(--color-action-primary);
+  font-weight: 700;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 4px 2px;
+  text-decoration: none;
+}
+
+.bar a:hover {
+  text-decoration: underline;
+}
+
+.strip {
+  background: var(--palette-sea);
+  color: var(--palette-paper);
+  padding: var(--space-sm) 0;
+}
+
+.strip .wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.strip .dot {
+  width: 13px;
+  height: 13px;
+  background: var(--palette-coral-fill);
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.strip b {
+  font-size: var(--font-size-body);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.strip span {
+  font-size: var(--font-size-body);
+  color: var(--palette-on-sea-muted);
+}
+
+.strip.shut {
+  background: var(--palette-muted);
+}
+
+.strip.shut .dot {
+  background: var(--palette-paper);
+  border-radius: 0;
+}
+
+.hero-date {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.hero-hrs {
+  font-family: var(--font-body);
+  font-size: clamp(27px, 7.6vw, 34px);
+  font-weight: 800;
+  color: var(--palette-coral);
+  letter-spacing: -0.03em;
+}
+
+.hero-addr {
+  color: var(--color-text-secondary);
+  max-width: 26rem;
+}
+
+.hero-then {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-meta);
+  margin-top: var(--space-xs);
+}
+
+.hero-then::before {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 3px;
+  background: var(--color-action-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.saved {
+  padding: var(--space-lg) 0;
+  border-bottom: 3px solid var(--color-border-light);
+}
+
+.saved[hidden] {
+  display: none;
+}
+
+.pin {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 3px solid var(--color-action-primary);
+  background: var(--color-surface-secondary);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  min-height: 68px;
+}
+
+.pin svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  color: var(--palette-coral);
+  margin-top: 4px;
+}
+
+.pin b {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  overflow-wrap: break-word;
+}
+
+.pin em {
+  display: block;
+  font-style: normal;
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.stamp {
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  margin: var(--space-xl) 0 var(--space-md);
+}
+
+.fish {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: var(--space-md);
+  align-items: start;
+  border-top: 2px solid var(--color-border-light);
+  padding: var(--space-md) 0 15px;
+}
+
+.fish.first {
+  border-top: none;
+}
+
+.fish.last {
+  border-bottom: 6px solid var(--color-text-primary);
+}
+
+.fside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+
+.draw {
+  width: 104px;
+  height: 63px;
+  color: var(--color-text-primary);
+  flex: 0 0 auto;
+}
+
+.fbody {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 359px) {
+  /* Below the fish art's own breakpoint, a squeezed `1fr auto` grid can
+     still starve the text column if the price track's intrinsic width
+     doesn't shrink — drop to a single column instead of fighting it. */
+  .fish {
+    grid-template-columns: 1fr;
+  }
+  .draw {
+    display: none;
+  }
+}
+
+.fish.out .draw {
+  color: var(--color-text-secondary);
+}
+
+.fish h3 {
+  font-size: 26px;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.price {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--palette-coral);
+  white-space: nowrap;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.fish p {
+  color: var(--color-text-secondary);
+  margin: 6px 0 8px;
+  max-width: 26rem;
+}
+
+a.fish {
+  text-decoration: none;
+  color: inherit;
+}
+
+.req {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 58px;
+  padding-bottom: 4px;
+  font-size: var(--font-size-body);
+  font-weight: 800;
+  color: var(--color-action-primary);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+}
+
+.req svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+a.fish:active .req {
+  color: var(--palette-coral);
+}
+
+.fish.out h3,
+.fish.out .price {
+  color: var(--color-text-secondary);
+}
+
+.fish.out .price {
+  font-size: 20px;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+.mk {
+  border-top: 2px solid var(--color-border-light);
+  padding: var(--space-md) 0 22px;
+}
+
+.mk:first-of-type {
+  border-top: none;
+}
+
+.mk:last-of-type {
+  border-bottom: 3px solid var(--color-text-primary);
+}
+
+.mk .dy {
+  font-family: var(--font-body);
+  font-size: var(--font-size-meta);
+  font-weight: 800;
+  color: var(--palette-coral);
+  margin-bottom: 3px;
+  letter-spacing: 0.02em;
+}
+
+.mk h3 {
+  font-size: 25px;
+}
+
+.mk .hrs2 {
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 5px;
+}
+
+.mk .addr2 {
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  margin: 1px 0 14px;
+}
+
+.mk.now .dy {
+  display: none;
+}
+
+.mk.now .split {
+  background: var(--color-action-primary);
+}
+
+.mk.now .split a {
+  color: var(--color-text-inverse);
+}
+
+.mk.now .split a + a {
+  border-left-color: rgba(255, 255, 255, 0.45);
+  border-top-color: rgba(255, 255, 255, 0.45);
+}
+
+.mk.now {
+  background: var(--color-surface-secondary);
+  border: 3px solid var(--color-action-primary);
+  padding: var(--space-md);
+  margin: 0 calc(var(--space-md) * -1);
+}
+
+.tag {
+  display: inline-block;
+  background: var(--palette-coral-fill);
+  color: var(--palette-deep);
+  font-size: 16px;
+  font-weight: 800;
+  padding: 4px 11px;
+  margin-bottom: 10px;
+}
+
+.band-deep p {
+  color: var(--palette-on-deep-muted);
+  max-width: 26rem;
+}
+
+footer {
+  padding: var(--space-lg) 0 36px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-meta);
+}
+
+footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 6px 0;
 }
