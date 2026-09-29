@@ -11,6 +11,7 @@ import { adminRoutes } from "./features/admin/routes";
 import { marketsAdminRoutes } from "./features/markets/admin-routes";
 import { marketRoutes } from "./features/markets/routes";
 import { catchAdminRoutes } from "./features/catch/admin-routes";
+import { vendorAdminRoutes } from "./features/vendor/admin-routes";
 import { requestRoutes } from "./features/requests/routes";
 import { requestsAdminRoutes } from "./features/requests/admin-routes";
 import { stripeWebhookRoutes } from "./features/payments/webhook";
@@ -40,6 +41,7 @@ app.route("/", adminRoutes);
 app.route("/", marketsAdminRoutes);
 app.route("/", marketRoutes);
 app.route("/", catchAdminRoutes);
+app.route("/", vendorAdminRoutes);
 app.route("/", requestRoutes);
 app.route("/", requestsAdminRoutes);
 

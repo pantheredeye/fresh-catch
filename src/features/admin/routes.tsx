@@ -24,6 +24,9 @@ adminRoutes.get("/admin", requireAdmin(), async (c) => {
           <a class="inbox-row" href="/admin/requests">
             Requests{openCount > 0 ? ` (${openCount} open)` : ""}
           </a>
+          <a class="inbox-row" href="/admin/vendor">
+            Vendor settings
+          </a>
         </nav>
       </Page>
     </Document>,
