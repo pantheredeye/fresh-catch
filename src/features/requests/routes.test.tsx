@@ -30,6 +30,11 @@ function extractDeviceCookie(res: Response): string {
   return match[0];
 }
 
+/** POST /requests now redirects to `/requests/:id?created=1` (bead #74's confirmation banner) — strip the query before treating the tail as an id or composing another query onto it. */
+function locationPath(location: string): string {
+  return new URL(location, "http://x").pathname;
+}
+
 function extractCsrfToken(html: string): string {
   const match = html.match(/name="csrfToken" value="([^"]+)"/);
   if (!match) throw new Error(`no csrfToken in: ${html}`);
@@ -163,7 +168,7 @@ describe("POST /requests/:id/messages", () => {
     const { cookie, csrfToken } = await visitAsNewDevice();
     const createRes = await createRequestAs(cookie, csrfToken, fishFields());
     const location = createRes.headers.get("location")!;
-    const id = location.split("/").pop();
+    const id = locationPath(location).split("/").pop();
 
     const replyRes = await app.request(
       `/requests/${id}/messages`,
@@ -183,7 +188,7 @@ describe("POST /requests/:id/messages", () => {
 
     const other = await visitAsNewDevice();
     const res = await app.request(
-      location.replace("/requests/", "/requests/") + "/messages",
+      `${locationPath(location)}/messages`,
       { method: "POST", body: new URLSearchParams({ body: "hi", csrfToken: other.csrfToken }), headers: { ...formHeaders, Cookie: other.cookie } },
       env,
     );
@@ -285,7 +290,7 @@ describe("#64 email alerts", () => {
 
     const ctx = createExecutionContext();
     const res = await app.request(
-      `${location}/messages`,
+      `${locationPath(location)}/messages`,
       { method: "POST", body: new URLSearchParams({ body: "Any updates?", csrfToken }), headers: { ...formHeaders, Cookie: cookie } },
       env,
       ctx,
@@ -294,7 +299,7 @@ describe("#64 email alerts", () => {
 
     expect(res.status).toBe(302);
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
-    expect(sendEmailMock.mock.calls[0][1].html).toContain(`/admin/requests/${location.split("/").pop()}`);
+    expect(sendEmailMock.mock.calls[0][1].html).toContain(`/admin/requests/${locationPath(location).split("/").pop()}`);
   });
 });
 
@@ -302,7 +307,7 @@ describe("#60 checkout return notice", () => {
   async function threadForNewDevice() {
     const { cookie, csrfToken } = await visitAsNewDevice();
     const res = await createRequestAs(cookie, csrfToken, fishFields());
-    return { cookie, path: res.headers.get("location")! };
+    return { cookie, path: locationPath(res.headers.get("location")!) };
   }
 
   it("acknowledges a successful return from Stripe Checkout", async () => {

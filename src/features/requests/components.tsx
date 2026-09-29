@@ -36,6 +36,13 @@ export function requestToFormValues(request: FishRequest): RequestFormValues {
   };
 }
 
+/** Active-voice submit label, same verb the confirmation echoes (handoff §3: "Request bass" → "Requested"). */
+function submitLabel(values: RequestFormValues): string {
+  if (values.requestType === "question") return "Send question";
+  if (values.species) return `Request ${values.species}`;
+  return "Request fish";
+}
+
 /**
  * One form for both request types (plan addendum #2) — a radio toggle plus a
  * pure-CSS `:has()` rule (`.request-form:has(#type-question:checked)
@@ -116,10 +123,17 @@ export const RequestForm: FC<{
         value={values.contactPhone}
         errorText={errors.contactPhone}
       />
-      <Button type="submit">Send request</Button>
+      <Button type="submit">{submitLabel(values)}</Button>
     </form>
   );
 };
+
+/** Post-submit confirmation (handoff §3: same verb all the way through — "Request bass" → "Requested"). */
+export const RequestConfirmation: FC<{ requestType: string }> = ({ requestType }) => (
+  <p class="notice notice-success" role="status">
+    {requestType === "question" ? "Sent." : "Requested."} Fresh Catch will reply here.
+  </p>
+);
 
 const STATUS_LABEL: Record<RequestStatus, string> = {
   open: "Open",
