@@ -105,15 +105,46 @@ migrations/              # SQL applied via wrangler d1 migrations
 - Mount feature routers in `src/index.ts` with `app.route(...)`
 
 ### Accessibility floors
-- 48px minimum touch targets, 16px minimum body text
-- AAA contrast targets (see `docs/audit/ux-a11y.md` for the token-level detail)
-- `:focus-visible` on all interactive elements
-- Respect `prefers-reduced-motion`
-- `color-scheme: light dark` — never force light-only (the old app's
-  light-only `<meta name="color-scheme">` was a known bug)
 
-Token system + primitives are not in yet — see `docs/audit/ux-a11y.md` for
-the target design; a later bead ports it into `src/ui/`.
+Tideline (`docs/redesign/fresh-catch-handoff.md` §3 — the source of truth for
+this section) supersedes the pre-rebuild audit's AA-leaning floors:
+
+- **Light-only.** `color-scheme: light`, `:root { color-scheme: light }`, no
+  `prefers-color-scheme: dark` block. Locked decision (epic #69) — the old
+  app's failure mode was a dark reading surface on phones in direct sun, not
+  a light/dark mismatch, so the fix is dropping dark mode outright rather
+  than pairing it correctly.
+- 58px minimum touch targets (buttons/fields), 19px minimum body text (20px
+  at ≥700px viewport), 17px floor for labels/helper/meta text.
+- **7:1 (AAA) contrast for body/small text**, not 4.5:1 — see the pairing
+  comments in `public/style.css`'s `:root` block. 4.5:1 for large text and
+  graphic elements; 3:1 for input/control borders.
+- `:focus-visible { outline: 4px solid var(--color-focus-ring); outline-offset: 3px }`
+  globally, flipped to `--color-focus-ring-on-dark` inside `.band-sea`/`.band-deep`.
+- Square corners, no shadows — Tideline is flat.
+- Respect `prefers-reduced-motion` (moot today: no ambient motion exists).
+
+**Primitives** (`src/ui/`): `Button` (variants `primary`/`secondary`/`ghost`,
+full-width 58px block by default, `inline` for rare non-block usage, plus
+`id`/`class`/`ariaLabel`/`ariaPressed`/`data` pass-through), `Input`/`Select`/
+`Textarea`, `Card`, `CardHeader`, `Sheet`, `Page` (`bleed` for full-bleed
+Band layouts, `wide` for admin tables), `SectionHeading` (the heavy-rule/
+hairline/right-aligned-meta device), `SplitControl` (exactly two 60px halves
+— don't extend to three-up), `BackLink`, `Band` (`tone`: `sand`/`paper`/
+`shallow`/`sea`/`deep`).
+
+**Guardrails, enforced by `src/ui/design-guardrails.test.ts`:**
+- No `style=` attrs anywhere in `src/**/*.tsx` — go through a utility class
+  (`.stack`, `.cluster`, `.muted`, …) or a primitive.
+- No raw `.btn` class outside `src/ui/` — use `Button`.
+- Every color lives in `public/style.css`'s `--palette-*` layer; components
+  only ever reach it through the semantic `--color-*` layer (also enforced
+  by `a11y.test.ts`'s no-raw-colour-literal check on `src/**/*.tsx`).
+- The palette layer's documented pairs are checked against the 7:1/4.5:1/3:1
+  floors above, and against a `prefers-color-scheme: dark` absence — fetched
+  live from `public/style.css` via the `ASSETS` binding (needs
+  `wrangler.jsonc`'s `assets.directory` set even though the Vite plugin
+  resolves its own directory for real dev/build/deploy).
 
 ## Removed in the rebuild — do not reintroduce
 
@@ -135,6 +166,11 @@ default.
 `docs/audit/` — the pre-rebuild audit: `features.md`, `auth-platform.md`,
 `data-stripe.md`, `ux-a11y.md`, and `REBUILD-PLAN.md` (the plan this rebuild
 follows). Source of truth for design and auth decisions in later beads.
+
+`docs/redesign/` — the Tideline redesign (epic #69, beads #70-75):
+`fresh-catch-handoff.md` §3 is the current a11y source of truth, superseding
+`docs/audit/ux-a11y.md`'s AA-leaning floors above. `fresh-catch-E-tideline.html`
+is the static mock the tokens/fonts were ported from.
 
 ## Development Notes
 
