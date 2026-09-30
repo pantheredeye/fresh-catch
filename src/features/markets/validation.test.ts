@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { FIELD_LIMITS, parseMarketForm, splitExpiresAt, splitHours } from "./validation";
+import { FIELD_LIMITS, parseMarketForm as parse, splitExpiresAt, splitHours } from "./validation";
+
+const TZ = "America/Chicago";
+// Wed 2026-09-09 12:00 Chicago (CDT) = 17:00Z
+const NOW = new Date("2026-09-09T17:00:00Z");
+const opts = { tz: TZ, now: NOW };
+const parseMarketForm = (raw: Record<string, unknown>, o: Parameters<typeof parse>[1] = opts) => parse(raw, o);
 
 function regularForm(overrides: Record<string, unknown> = {}) {
   return {
     type: "regular",
     name: "Downtown Market",
     schedule: "Sat 8-2",
-    subtitle: "",
-    locationDetails: "",
     customerInfo: "",
     catchPreview: "",
     notes: "",
@@ -22,7 +26,7 @@ function popupForm(overrides: Record<string, unknown> = {}) {
     ...regularForm(),
     type: "popup",
     expiresDate: "2026-09-10",
-    expiresHour: "18",
+    expiresTime: "1080",
     ...overrides,
   };
 }
@@ -37,11 +41,12 @@ describe("parseMarketForm", () => {
     }
   });
 
-  it("accepts a valid popup and combines date+hour as UTC", () => {
+  it("accepts a valid popup and converts vendor-local date+time to UTC", () => {
     const result = parseMarketForm(popupForm());
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.expiresAt?.toISOString()).toBe("2026-09-10T18:00:00.000Z");
+      // Chicago 18:00 CDT = 23:00Z
+      expect(result.data.expiresAt?.toISOString()).toBe("2026-09-10T23:00:00.000Z");
     }
   });
 
@@ -51,10 +56,49 @@ describe("parseMarketForm", () => {
     if (!result.success) expect(result.errors.expiresDate).toBeTruthy();
   });
 
-  it("rejects a regular market that supplies an expiry", () => {
-    // `type: "regular"` with popup-only fields fails the discriminated union on the `type` literal itself.
-    const result = parseMarketForm({ ...regularForm(), expiresDate: "2026-09-10", expiresHour: "18" });
-    expect(result.success).toBe(true); // extra fields are simply ignored for the "regular" branch
+  it("rejects a popup missing expiresTime", () => {
+    const result = parseMarketForm(popupForm({ expiresTime: "" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.expiresTime).toBeTruthy();
+  });
+
+  it("rejects an impossible date", () => {
+    const result = parseMarketForm(popupForm({ expiresDate: "2026-02-31" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.expiresDate).toBeTruthy();
+  });
+
+  it("rejects an expiry in the past, keyed to expiresTime", () => {
+    const result = parseMarketForm(popupForm({ expiresDate: "2026-09-09", expiresTime: "660" })); // 11:00 local, now is 12:00
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.expiresTime).toMatch(/passed/);
+  });
+
+  it("allows an unchanged past expiry on edit", () => {
+    const existing = new Date("2026-09-08T23:00:00Z");
+    const result = parseMarketForm(popupForm({ expiresDate: "2026-09-08" }), { ...opts, existingExpiresAt: existing });
+    expect(result.success).toBe(true);
+  });
+
+  it("still rejects a changed past expiry on edit", () => {
+    const existing = new Date("2026-09-08T23:00:00Z");
+    const result = parseMarketForm(popupForm({ expiresDate: "2026-09-07" }), { ...opts, existingExpiresAt: existing });
+    expect(result.success).toBe(false);
+  });
+
+  it("saves a popup with partial hours — hours are ignored and nulled", () => {
+    const result = parseMarketForm(popupForm({ dayOfWeek: "6" }));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dayOfWeek).toBeNull();
+      expect(result.data.openMinutes).toBeNull();
+      expect(result.data.closeMinutes).toBeNull();
+    }
+  });
+
+  it("ignores expiry fields on a regular market", () => {
+    const result = parseMarketForm({ ...regularForm(), expiresDate: "2020-01-01", expiresTime: "0" });
+    expect(result.success).toBe(true);
     if (result.success) expect(result.data.expiresAt).toBeNull();
   });
 
@@ -87,10 +131,14 @@ describe("parseMarketForm", () => {
     if (!result.success) expect(result.errors.name).toBeTruthy();
   });
 
-  it("treats blank optional fields as null", () => {
-    const result = parseMarketForm(regularForm({ subtitle: "   " }));
+  it("treats blank optional fields as null and retires subtitle/locationDetails", () => {
+    const result = parseMarketForm(regularForm({ notes: "   ", subtitle: "old", locationDetails: "old" }));
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.subtitle).toBeNull();
+    if (result.success) {
+      expect(result.data.notes).toBeNull();
+      expect(result.data.subtitle).toBeNull();
+      expect(result.data.locationDetails).toBeNull();
+    }
   });
 
   it("accepts an address and landmark", () => {
@@ -112,69 +160,69 @@ describe("parseMarketForm", () => {
     }
   });
 
-  it("accepts a full set of hours and combines hour+minute into minutes-after-midnight", () => {
-    const result = parseMarketForm(
-      regularForm({ dayOfWeek: "6", openHour: "8", openMinute: "30", closeHour: "14", closeMinute: "0" }),
-    );
+  it("accepts a full set of hours as minutes-after-midnight", () => {
+    const result = parseMarketForm(regularForm({ dayOfWeek: "6", openTime: "510", closeTime: "840" }));
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.dayOfWeek).toBe(6);
-      expect(result.data.openMinutes).toBe(8 * 60 + 30);
-      expect(result.data.closeMinutes).toBe(14 * 60);
+      expect(result.data.openMinutes).toBe(510);
+      expect(result.data.closeMinutes).toBe(840);
     }
   });
 
-  it("rejects a partial set of hours (all-or-none)", () => {
-    const result = parseMarketForm(regularForm({ dayOfWeek: "6", openHour: "8" }));
-    expect(result.success).toBe(false);
-    if (!result.success) expect(result.errors.dayOfWeek).toBeTruthy();
+  it("keys the all-or-none error to the first blank field", () => {
+    const dayOnly = parseMarketForm(regularForm({ dayOfWeek: "6" }));
+    expect(dayOnly.success).toBe(false);
+    if (!dayOnly.success) expect(Object.keys(dayOnly.errors)).toEqual(["openTime"]);
+
+    const noDay = parseMarketForm(regularForm({ openTime: "480", closeTime: "840" }));
+    expect(noDay.success).toBe(false);
+    if (!noDay.success) expect(Object.keys(noDay.errors)).toEqual(["dayOfWeek"]);
+
+    const noClose = parseMarketForm(regularForm({ dayOfWeek: "6", openTime: "480" }));
+    expect(noClose.success).toBe(false);
+    if (!noClose.success) expect(Object.keys(noClose.errors)).toEqual(["closeTime"]);
   });
 
   it("rejects a close time that isn't after the open time", () => {
-    const result = parseMarketForm(
-      regularForm({ dayOfWeek: "6", openHour: "14", openMinute: "0", closeHour: "8", closeMinute: "0" }),
-    );
+    const result = parseMarketForm(regularForm({ dayOfWeek: "6", openTime: "840", closeTime: "480" }));
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.errors.dayOfWeek).toBeTruthy();
+    if (!result.success) expect(result.errors.closeTime).toBeTruthy();
   });
 });
 
 describe("splitHours", () => {
-  it("round-trips through parseMarketForm's combined minutes", () => {
-    const result = parseMarketForm(
-      regularForm({ dayOfWeek: "3", openHour: "9", openMinute: "15", closeHour: "17", closeMinute: "45" }),
-    );
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(splitHours(result.data)).toEqual({
+  it("round-trips minutes", () => {
+    expect(splitHours({ dayOfWeek: 3, openMinutes: 555, closeMinutes: 1065 })).toEqual({
       dayOfWeek: "3",
-      openHour: "9",
-      openMinute: "15",
-      closeHour: "17",
-      closeMinute: "45",
+      openTime: "555",
+      closeTime: "1065",
     });
   });
 
   it("returns all-blank fields when hours are unset", () => {
     expect(splitHours({ dayOfWeek: null, openMinutes: null, closeMinutes: null })).toEqual({
       dayOfWeek: "",
-      openHour: "",
-      openMinute: "",
-      closeHour: "",
-      closeMinute: "",
+      openTime: "",
+      closeTime: "",
     });
   });
 });
 
 describe("splitExpiresAt", () => {
-  it("round-trips through parseMarketForm's combined UTC instant", () => {
-    const result = parseMarketForm(popupForm({ expiresDate: "2026-09-10", expiresHour: "5" }));
+  it("round-trips through parseMarketForm in the vendor timezone", () => {
+    const result = parseMarketForm(popupForm({ expiresDate: "2026-09-10", expiresTime: "300" }));
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(splitExpiresAt(result.data.expiresAt)).toEqual({ expiresDate: "2026-09-10", expiresHour: "5" });
+    expect(splitExpiresAt(result.data.expiresAt, TZ, NOW)).toEqual({ expiresDate: "2026-09-10", expiresTime: "300" });
   });
 
-  it("defaults to hour 23 with an empty date when null", () => {
-    expect(splitExpiresAt(null)).toEqual({ expiresDate: "", expiresHour: "23" });
+  it("defaults a new popup to today 6:00 pm local", () => {
+    expect(splitExpiresAt(null, TZ, NOW)).toEqual({ expiresDate: "2026-09-09", expiresTime: "1080" });
+  });
+
+  it("uses the local date, not UTC, for the default", () => {
+    // 2026-09-10T02:00Z is still Sep 9 evening in Chicago
+    expect(splitExpiresAt(null, TZ, new Date("2026-09-10T02:00:00Z")).expiresDate).toBe("2026-09-09");
   });
 });
