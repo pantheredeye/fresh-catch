@@ -6,6 +6,7 @@ type TextareaProps = {
   label: string;
   placeholder?: string;
   required?: boolean;
+  autofocus?: boolean;
   value?: string;
   rows?: number;
   helperText?: string;
@@ -19,6 +20,7 @@ export const Textarea: FC<TextareaProps> = ({
   label,
   placeholder,
   required,
+  autofocus,
   value,
   rows = 4,
   helperText,
@@ -29,6 +31,7 @@ export const Textarea: FC<TextareaProps> = ({
     <div class="field">
       <label class="field-label" for={id}>
         {label}
+        {required ? <span class="field-required"> (required)</span> : null}
       </label>
       <textarea
         class={`field-textarea${errorText ? " field-input-error" : ""}`}
@@ -36,6 +39,7 @@ export const Textarea: FC<TextareaProps> = ({
         name={name}
         placeholder={placeholder}
         required={required}
+        autofocus={autofocus}
         rows={rows}
         aria-describedby={describedBy}
         aria-invalid={errorText ? "true" : undefined}
