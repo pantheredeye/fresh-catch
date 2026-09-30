@@ -234,7 +234,7 @@ export const ClosingBand: FC<{ vendor: Vendor | null }> = ({ vendor }) => {
   return (
     <>
       <h2>Ask {name} to hold one</h2>
-      <p>Call or text by Thursday night. It waits in the cooler with your name on it, and you pay at the stall.</p>
+      <p>Call or text. Evan will touch base on availability and pickup.</p>
       {vendor?.phone ? (
         <>
           <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
