@@ -12,13 +12,9 @@ import { describeOccurrence, nextOccurrence } from "@/features/markets/status";
 import { WEEKDAY_NAMES, formatHoursRange } from "@/lib/format";
 import { getMarket, listPastPopups } from "./queries";
 import { MarketDetail, type MarketDetailStatus } from "./components";
+import { marketAddressLine } from "./display";
 
 export const marketRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
-
-function marketAddressLine(market: Pick<Market, "address" | "landmark">): string | null {
-  if (!market.address) return null;
-  return market.landmark ? `${market.address}, ${market.landmark}` : market.address;
-}
 
 /**
  * C7: #56 owns this route + query end to end; #58 links it into customer
