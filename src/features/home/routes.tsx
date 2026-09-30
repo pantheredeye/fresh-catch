@@ -4,7 +4,7 @@ import type { Market } from "@/lib/db";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
 import { Band } from "@/ui/band";
-import { getLiveCatchUpdate, isCatchUpdateFresh } from "@/features/catch/queries";
+import { getLiveCatchUpdate } from "@/features/catch/queries";
 import { parseCatchContent } from "@/features/catch/pipeline";
 import { listActiveMarkets, listLivePopups } from "@/features/markets/queries";
 import { getVendor } from "@/features/vendor/queries";
@@ -108,8 +108,8 @@ homeRoutes.get("/", async (c) => {
     getVendor(),
   ]);
   const tz = vendor?.timezone ?? "America/Chicago";
-  const catchContent = live && isCatchUpdateFresh(live) ? parseCatchContent(live.formattedContent) : null;
-  const weekOf = live && isCatchUpdateFresh(live) ? formatWeekOf(live.createdAt, tz) : null;
+  const catchContent = live ? parseCatchContent(live.formattedContent) : null;
+  const weekOf = live ? formatWeekOf(live.createdAt, tz) : null;
 
   const allMarkets: StatusMarket[] = [...livePopups, ...regularMarkets];
   const status = resolveToday(allMarkets, now, tz);

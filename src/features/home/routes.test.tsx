@@ -83,13 +83,13 @@ describe("GET / — fish board", () => {
     expect(html).toContain("Sold out");
   });
 
-  it("shows a plain notice when there's no fresh catch update at all", async () => {
+  it("shows a plain notice when there's no live catch update at all", async () => {
     await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
     const html = await (await app.request("/", {}, env)).text();
     expect(html).toContain("Check back soon — nothing posted yet this week.");
   });
 
-  it("hides a stale (>7 day old) live catch update", async () => {
+  it("keeps showing a live catch update however old, until admin replaces it", async () => {
     await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
     const stale = await publishCatchUpdate({
       recordedBy: "admin@example.com",
@@ -102,8 +102,8 @@ describe("GET / — fish board", () => {
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    expect(html).not.toContain("Cod");
-    expect(html).toContain("Check back soon");
+    expect(html).toContain("Cod");
+    expect(html).not.toContain("nothing posted yet this week");
   });
 });
 
