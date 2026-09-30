@@ -11,8 +11,6 @@ function regularFields(overrides: Record<string, string> = {}) {
     type: "regular",
     name: `Test Market ${crypto.randomUUID()}`,
     schedule: "Sat 8-2",
-    subtitle: "",
-    locationDetails: "",
     customerInfo: "",
     catchPreview: "",
     notes: "",
@@ -28,7 +26,7 @@ function popupFields(overrides: Record<string, string> = {}) {
     type: "popup",
     name: `Test Popup ${crypto.randomUUID()}`,
     expiresDate: "2099-12-31",
-    expiresHour: "18",
+    expiresTime: "1080",
     ...overrides,
   };
 }
@@ -110,7 +108,8 @@ describe("admin markets routes", () => {
     expect(cancelRes.status).toBe(302);
 
     const afterHtml = await (await app.request("/admin/markets", { headers: { Cookie: cookie } }, env)).text();
-    expect(afterHtml).not.toContain(fields.name);
+    const liveSection = afterHtml.split("Live popups")[1].split("Past popups")[0];
+    expect(liveSection).not.toContain(fields.name);
   });
 
   it("edits a market and shows the updated fields", async () => {
@@ -138,10 +137,8 @@ describe("admin markets routes", () => {
       address: "123 Main St",
       landmark: "Next to the gas station",
       dayOfWeek: "6",
-      openHour: "8",
-      openMinute: "30",
-      closeHour: "14",
-      closeMinute: "0",
+      openTime: "510",
+      closeTime: "840",
     });
     const createRes = await post("/admin/markets", cookie, { ...fields, csrfToken });
     expect(createRes.status).toBe(302);
@@ -159,9 +156,49 @@ describe("admin markets routes", () => {
 
   it("400s a partial set of hours (all-or-none)", async () => {
     const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
-    const fields = regularFields({ dayOfWeek: "6", openHour: "8" });
+    const fields = regularFields({ dayOfWeek: "6" });
     const res = await post("/admin/markets", cookie, { ...fields, csrfToken });
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("leave all blank");
+    const html = await res.text();
+    expect(html).toContain("leave day, opens, and closes all blank");
+    expect(html).toContain('href="#openTime"');
+    expect(html).toMatch(/<select[^>]*id="openTime"[^>]*autofocus|<select[^>]*autofocus[^>]*id="openTime"/);
+  });
+
+  it("saves a popup with partial hours (hours are ignored)", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const res = await post("/admin/markets", cookie, { ...popupFields({ dayOfWeek: "6" }), csrfToken });
+    expect(res.status).toBe(302);
+  });
+
+  it("400s a past popup expiry with a summary and focus on the field", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const res = await post("/admin/markets", cookie, {
+      ...popupFields({ expiresDate: "2020-01-01" }),
+      csrfToken,
+    });
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(html).toContain("error-summary");
+    expect(html).toContain("End time has passed");
+    expect(html).toContain('href="#expiresTime"');
+    expect(html).toMatch(/<select[^>]*id="expiresTime"[^>]*autofocus|<select[^>]*autofocus[^>]*id="expiresTime"/);
+  });
+
+  it("flashes a saved notice after create and lists past popups", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const fields = popupFields();
+    const createRes = await post("/admin/markets", cookie, { ...fields, csrfToken });
+    const location = createRes.headers.get("location")!;
+    expect(location).toContain("saved=created");
+    const html = await (await app.request(location, { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain("Popup saved — live until");
+
+    const id = extractIdFor(html, fields.name);
+    await post(`/admin/markets/${id}/cancel`, cookie, { csrfToken });
+    const after = await (await app.request("/admin/markets", { headers: { Cookie: cookie } }, env)).text();
+    expect(after).toContain("Past popups");
+    expect(after).toContain(fields.name);
+    expect(after).toContain("Cancelled");
   });
 });

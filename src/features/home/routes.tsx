@@ -24,6 +24,7 @@ import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
 import { ClosingBand, FishBoard, Hero, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
+import { marketAddressLine } from "@/features/markets/display";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -32,11 +33,6 @@ const STATUS_LABEL: Record<TodayStatus["kind"], string> = {
   "opens-later": "Opens later today",
   "closed-today": "Closed today",
 };
-
-function marketAddressLine(market: Pick<Market, "address" | "landmark">): string | null {
-  if (!market.address) return null;
-  return market.landmark ? `${market.address}, ${market.landmark}` : market.address;
-}
 
 function heroHoursLine(market: Market, tz: string): string | null {
   if (market.type === "popup") {

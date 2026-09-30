@@ -1,11 +1,10 @@
 import { z } from "zod";
+import { localParts, zonedTimeToUtc } from "@/lib/format";
 
 /** Ported verbatim from v1 (`git show main:src/app/pages/admin/market-functions.ts`). */
 export const FIELD_LIMITS = {
   name: 200,
   schedule: 500,
-  subtitle: 200,
-  locationDetails: 500,
   customerInfo: 1000,
   catchPreview: 2000,
   notes: 1000,
@@ -33,8 +32,8 @@ function optionalText(field: keyof typeof FIELD_LIMITS) {
     .transform((v) => (v && v.trim() ? v.trim() : null));
 }
 
-/** Raw hour/minute select values — "" means unset, combined post-parse by `parseHours`. */
-function hourMinuteField() {
+/** Raw select values — "" means unset, parsed post-schema by `parseHours` / `parseExpiry`. */
+function rawSelect() {
   return z
     .string()
     .optional()
@@ -44,8 +43,6 @@ function hourMinuteField() {
 const sharedFields = {
   name: requiredText("name", "Name"),
   schedule: requiredText("schedule", "Schedule"),
-  subtitle: optionalText("subtitle"),
-  locationDetails: optionalText("locationDetails"),
   customerInfo: optionalText("customerInfo"),
   catchPreview: optionalText("catchPreview"),
   notes: optionalText("notes"),
@@ -53,25 +50,16 @@ const sharedFields = {
   city: optionalText("city"),
   address: optionalText("address"),
   landmark: optionalText("landmark"),
-  dayOfWeek: hourMinuteField(),
-  openHour: hourMinuteField(),
-  openMinute: hourMinuteField(),
-  closeHour: hourMinuteField(),
-  closeMinute: hourMinuteField(),
+  dayOfWeek: rawSelect(),
+  openTime: rawSelect(),
+  closeTime: rawSelect(),
+  expiresDate: rawSelect(),
+  expiresTime: rawSelect(),
 };
 
-const regularMarketSchema = z.object({ type: z.literal("regular"), ...sharedFields });
+export const marketFormSchema = z.object({ type: z.enum(["regular", "popup"]), ...sharedFields });
 
-const popupMarketSchema = z.object({
-  type: z.literal("popup"),
-  ...sharedFields,
-  expiresDate: z.string().regex(DATE_RE, "Enter a valid expiry date"),
-  expiresHour: z.coerce.number().int().min(0, "Enter a valid hour").max(23, "Enter a valid hour"),
-});
-
-/** C5: popups require an expiry (UTC date + hour, no tz library); regulars reject one. */
-export const marketFormSchema = z.discriminatedUnion("type", [regularMarketSchema, popupMarketSchema]);
-
+/** `subtitle` / `locationDetails` are retired from the form — always written null; legacy text is folded into `customerInfo` / `notes` on edit prefill. */
 export type MarketInput = {
   type: "regular" | "popup";
   name: string;
@@ -95,49 +83,56 @@ export type MarketFormResult =
   | { success: true; data: MarketInput }
   | { success: false; errors: Record<string, string> };
 
-function combineExpiresAt(expiresDate: string, expiresHour: number): Date {
-  return new Date(`${expiresDate}T${String(expiresHour).padStart(2, "0")}:00:00Z`);
+export type ParseOptions = {
+  /** Vendor timezone (IANA) — expiry is entered as local wall-clock time. */
+  tz: string;
+  now: Date;
+  /** Edit only: an unchanged (even past) expiry stays valid so notes on an ended popup can still be edited. */
+  existingExpiresAt?: Date | null;
+};
+
+/** Minutes-of-day select value ("" → null, invalid → NaN). */
+function parseMinutes(v: string): number | null {
+  if (v === "") return null;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 && n < 24 * 60 ? n : Number.NaN;
 }
 
-/** Inverse of `combineExpiresAt`, for prefilling the edit form. */
-export function splitExpiresAt(expiresAt: Date | null): { expiresDate: string; expiresHour: string } {
-  if (!expiresAt) return { expiresDate: "", expiresHour: "23" };
-  const iso = expiresAt.toISOString(); // YYYY-MM-DDTHH:mm:ss.sssZ
-  return { expiresDate: iso.slice(0, 10), expiresHour: String(Number(iso.slice(11, 13))) };
-}
-
-export type HoursFields = { dayOfWeek: string; openHour: string; openMinute: string; closeHour: string; closeMinute: string };
+export type HoursFields = { dayOfWeek: string; openTime: string; closeTime: string };
 type HoursResult =
   | { success: true; data: { dayOfWeek: number | null; openMinutes: number | null; closeMinutes: number | null } }
-  | { success: false; error: string };
+  | { success: false; field: keyof HoursFields; error: string };
 
-/** All-or-none (issue #71): a market either has no structured hours (`schedule` stays the fallback), or all five fields are set. */
+/** All-or-none (issue #71): no structured hours (`schedule` stays the fallback), or day + open + close all set. Error is keyed to the first blank field. */
 function parseHours(raw: HoursFields): HoursResult {
-  const values = [raw.dayOfWeek, raw.openHour, raw.openMinute, raw.closeHour, raw.closeMinute];
-  if (values.every((v) => v === "")) {
+  const entries: [keyof HoursFields, string][] = [
+    ["dayOfWeek", raw.dayOfWeek],
+    ["openTime", raw.openTime],
+    ["closeTime", raw.closeTime],
+  ];
+  if (entries.every(([, v]) => v === "")) {
     return { success: true, data: { dayOfWeek: null, openMinutes: null, closeMinutes: null } };
   }
-  if (values.some((v) => v === "")) {
-    return { success: false, error: "Enter day, open, and close time together, or leave all blank" };
+  const blank = entries.find(([, v]) => v === "");
+  if (blank) {
+    const label = { dayOfWeek: "a day", openTime: "an opening time", closeTime: "a closing time" }[blank[0]];
+    return { success: false, field: blank[0], error: `Choose ${label}, or leave day, opens, and closes all blank` };
   }
 
   const dayOfWeek = Number(raw.dayOfWeek);
-  const openHour = Number(raw.openHour);
-  const openMinute = Number(raw.openMinute);
-  const closeHour = Number(raw.closeHour);
-  const closeMinute = Number(raw.closeMinute);
   if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
-    return { success: false, error: "Enter a valid day" };
+    return { success: false, field: "dayOfWeek", error: "Choose a valid day" };
   }
-  const validHour = (h: number) => Number.isInteger(h) && h >= 0 && h <= 23;
-  const validMinute = (m: number) => Number.isInteger(m) && m >= 0 && m <= 59;
-  if (!validHour(openHour) || !validMinute(openMinute) || !validHour(closeHour) || !validMinute(closeMinute)) {
-    return { success: false, error: "Enter a valid time" };
+  const openMinutes = parseMinutes(raw.openTime);
+  const closeMinutes = parseMinutes(raw.closeTime);
+  if (openMinutes === null || Number.isNaN(openMinutes)) {
+    return { success: false, field: "openTime", error: "Choose a valid opening time" };
   }
-  const openMinutes = openHour * 60 + openMinute;
-  const closeMinutes = closeHour * 60 + closeMinute;
+  if (closeMinutes === null || Number.isNaN(closeMinutes)) {
+    return { success: false, field: "closeTime", error: "Choose a valid closing time" };
+  }
   if (closeMinutes <= openMinutes) {
-    return { success: false, error: "Close time must be after open time" };
+    return { success: false, field: "closeTime", error: "Close time must be after open time" };
   }
   return { success: true, data: { dayOfWeek, openMinutes, closeMinutes } };
 }
@@ -145,23 +140,57 @@ function parseHours(raw: HoursFields): HoursResult {
 /** Inverse of `parseHours`, for prefilling the edit form. */
 export function splitHours(market: { dayOfWeek: number | null; openMinutes: number | null; closeMinutes: number | null }): HoursFields {
   if (market.dayOfWeek === null || market.openMinutes === null || market.closeMinutes === null) {
-    return { dayOfWeek: "", openHour: "", openMinute: "", closeHour: "", closeMinute: "" };
+    return { dayOfWeek: "", openTime: "", closeTime: "" };
   }
   return {
     dayOfWeek: String(market.dayOfWeek),
-    openHour: String(Math.floor(market.openMinutes / 60)),
-    openMinute: String(market.openMinutes % 60),
-    closeHour: String(Math.floor(market.closeMinutes / 60)),
-    closeMinute: String(market.closeMinutes % 60),
+    openTime: String(market.openMinutes),
+    closeTime: String(market.closeMinutes),
   };
 }
 
+/** Default popup end: today 6:00 pm in the vendor's timezone. If that has already passed, the save is rejected with a visible error — no silent shift. */
+const DEFAULT_EXPIRES_MINUTES = 18 * 60;
+
+/** Local date/time for the form. `null` expiry (new popup) → today 6:00 pm local. */
+export function splitExpiresAt(expiresAt: Date | null, tz: string, now: Date): { expiresDate: string; expiresTime: string } {
+  const p = localParts(expiresAt ?? now, tz);
+  const expiresDate = `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+  if (!expiresAt) return { expiresDate, expiresTime: String(DEFAULT_EXPIRES_MINUTES) };
+  return { expiresDate, expiresTime: String(p.hour * 60 + p.minute) };
+}
+
+function parseExpiry(
+  raw: { expiresDate: string; expiresTime: string },
+  { tz, now, existingExpiresAt }: ParseOptions,
+): { success: true; data: Date } | { success: false; errors: Record<string, string> } {
+  const errors: Record<string, string> = {};
+  const m = DATE_RE.test(raw.expiresDate) ? raw.expiresDate.split("-").map(Number) : null;
+  if (!m) errors.expiresDate = raw.expiresDate === "" ? "Choose the day it ends" : "Enter a valid end date";
+  const minutes = parseMinutes(raw.expiresTime);
+  if (minutes === null) errors.expiresTime = "Choose the time it ends";
+  else if (Number.isNaN(minutes)) errors.expiresTime = "Choose a valid end time";
+  if (!m || minutes === null || Number.isNaN(minutes)) return { success: false, errors };
+
+  const [year, month, day] = m;
+  const check = new Date(Date.UTC(year, month - 1, day));
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) {
+    return { success: false, errors: { expiresDate: "Enter a valid end date" } };
+  }
+  const expiresAt = zonedTimeToUtc(year, month, day, Math.floor(minutes / 60), minutes % 60, tz);
+  const unchanged = existingExpiresAt && existingExpiresAt.getTime() === expiresAt.getTime();
+  if (expiresAt.getTime() <= now.getTime() && !unchanged) {
+    return { success: false, errors: { expiresTime: "End time has passed — pick a later day or time" } };
+  }
+  return { success: true, data: expiresAt };
+}
+
 /** Parses a raw `c.req.parseBody()` submission into a `Market` write, or field-keyed errors. */
-export function parseMarketForm(raw: Record<string, unknown>): MarketFormResult {
+export function parseMarketForm(raw: Record<string, unknown>, options: ParseOptions): MarketFormResult {
   const result = marketFormSchema.safeParse(raw);
+  const errors: Record<string, string> = {};
   if (!result.success) {
     const fieldErrors = result.error.flatten().fieldErrors as Record<string, string[] | undefined>;
-    const errors: Record<string, string> = {};
     for (const [field, messages] of Object.entries(fieldErrors)) {
       if (messages?.[0]) errors[field] = messages[0];
     }
@@ -169,15 +198,25 @@ export function parseMarketForm(raw: Record<string, unknown>): MarketFormResult 
   }
 
   const parsed = result.data;
-  const expiresAt = parsed.type === "popup" ? combineExpiresAt(parsed.expiresDate, parsed.expiresHour) : null;
-  if (expiresAt && Number.isNaN(expiresAt.getTime())) {
-    return { success: false, errors: { expiresDate: "Enter a valid expiry date" } };
+  let expiresAt: Date | null = null;
+  let hoursData: { dayOfWeek: number | null; openMinutes: number | null; closeMinutes: number | null } = {
+    dayOfWeek: null,
+    openMinutes: null,
+    closeMinutes: null,
+  };
+
+  if (parsed.type === "popup") {
+    // Popups have no weekly hours — they end at a specific moment.
+    const expiry = parseExpiry(parsed, options);
+    if (expiry.success) expiresAt = expiry.data;
+    else Object.assign(errors, expiry.errors);
+  } else {
+    const hours = parseHours(parsed);
+    if (hours.success) hoursData = hours.data;
+    else errors[hours.field] = hours.error;
   }
 
-  const hours = parseHours(parsed);
-  if (!hours.success) {
-    return { success: false, errors: { dayOfWeek: hours.error } };
-  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
 
   return {
     success: true,
@@ -185,8 +224,8 @@ export function parseMarketForm(raw: Record<string, unknown>): MarketFormResult 
       type: parsed.type,
       name: parsed.name,
       schedule: parsed.schedule,
-      subtitle: parsed.subtitle,
-      locationDetails: parsed.locationDetails,
+      subtitle: null,
+      locationDetails: null,
       customerInfo: parsed.customerInfo,
       catchPreview: parsed.catchPreview,
       notes: parsed.notes,
@@ -195,7 +234,7 @@ export function parseMarketForm(raw: Record<string, unknown>): MarketFormResult 
       address: parsed.address,
       landmark: parsed.landmark,
       expiresAt,
-      ...hours.data,
+      ...hoursData,
     },
   };
 }

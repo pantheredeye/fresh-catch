@@ -8,7 +8,9 @@ type InputProps = {
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel" | "url" | "search";
   placeholder?: string;
   required?: boolean;
+  autofocus?: boolean;
   value?: string;
+  min?: string;
   helperText?: string;
   errorText?: string;
 };
@@ -22,7 +24,9 @@ export const Input: FC<InputProps> = ({
   inputMode,
   placeholder,
   required,
+  autofocus,
   value,
+  min,
   helperText,
   errorText,
 }) => {
@@ -31,6 +35,7 @@ export const Input: FC<InputProps> = ({
     <div class="field">
       <label class="field-label" for={id}>
         {label}
+        {required ? <span class="field-required"> (required)</span> : null}
       </label>
       <input
         class={`field-input${errorText ? " field-input-error" : ""}`}
@@ -40,7 +45,9 @@ export const Input: FC<InputProps> = ({
         inputmode={inputMode}
         placeholder={placeholder}
         required={required}
+        autofocus={autofocus}
         value={value}
+        min={min}
         aria-describedby={describedBy}
         aria-invalid={errorText ? "true" : undefined}
       />

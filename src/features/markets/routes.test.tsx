@@ -85,3 +85,15 @@ describe("GET /markets/:id", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /markets/:id landmark", () => {
+  it("renders a landmark with no street address, without a Directions button", async () => {
+    const market = await createMarket(
+      marketInput({ name: `Landmark ${crypto.randomUUID()}`, landmark: "Behind the old mill" }),
+    );
+    const res = await app.request(`/markets/${market.id}`, {}, env);
+    const html = await res.text();
+    expect(html).toContain("Behind the old mill");
+    expect(html).not.toContain("Directions to");
+  });
+});

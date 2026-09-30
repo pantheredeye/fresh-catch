@@ -9,6 +9,7 @@ type SelectProps = {
   options: SelectOption[];
   value?: string;
   required?: boolean;
+  autofocus?: boolean;
   helperText?: string;
   errorText?: string;
 };
@@ -21,6 +22,7 @@ export const Select: FC<SelectProps> = ({
   options,
   value,
   required,
+  autofocus,
   helperText,
   errorText,
 }) => {
@@ -29,12 +31,14 @@ export const Select: FC<SelectProps> = ({
     <div class="field">
       <label class="field-label" for={id}>
         {label}
+        {required ? <span class="field-required"> (required)</span> : null}
       </label>
       <select
         class={`field-select${errorText ? " field-input-error" : ""}`}
         id={id}
         name={name}
         required={required}
+        autofocus={autofocus}
         aria-describedby={describedBy}
         aria-invalid={errorText ? "true" : undefined}
       >

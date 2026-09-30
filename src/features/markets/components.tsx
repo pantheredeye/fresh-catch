@@ -15,12 +15,10 @@ import { BackLink } from "@/ui/back-link";
 import { SplitControl } from "@/ui/split-control";
 import { mapsHref, telHref, vendorDisplayName } from "@/lib/format";
 import { assetUrl } from "@/lib/assets";
+import { Fieldset } from "@/ui/fieldset";
+import { Disclosure } from "@/ui/disclosure";
+import { ErrorSummary } from "@/ui/error-summary";
 import { splitExpiresAt, splitHours } from "./validation";
-
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
-  value: String(hour),
-  label: `${String(hour).padStart(2, "0")}:00`,
-}));
 
 const UNSET_OPTION = { value: "", label: "—" };
 
@@ -35,21 +33,19 @@ const DAY_OPTIONS = [
   { value: "6", label: "Saturday" },
 ];
 
-const HOUR_OPTIONS_WITH_UNSET = [UNSET_OPTION, ...HOUR_OPTIONS];
+/** 96 × 15-min steps, labelled "6:00 pm" (`formatClockTime` gives "6pm" — spell the minutes out for a picker). */
+export const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
+  const minutes = i * 15;
+  const h24 = Math.floor(minutes / 60);
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return { value: String(minutes), label: `${h12}:${String(minutes % 60).padStart(2, "0")} ${h24 < 12 ? "am" : "pm"}` };
+});
 
-const MINUTE_OPTIONS = [
-  UNSET_OPTION,
-  { value: "0", label: ":00" },
-  { value: "15", label: ":15" },
-  { value: "30", label: ":30" },
-  { value: "45", label: ":45" },
-];
+const TIME_OPTIONS_WITH_UNSET = [UNSET_OPTION, ...TIME_OPTIONS];
 
 export type MarketFormValues = {
   name?: string;
   schedule?: string;
-  subtitle?: string | null;
-  locationDetails?: string | null;
   customerInfo?: string | null;
   catchPreview?: string | null;
   notes?: string | null;
@@ -58,185 +54,220 @@ export type MarketFormValues = {
   address?: string | null;
   landmark?: string | null;
   dayOfWeek?: string;
-  openHour?: string;
-  openMinute?: string;
-  closeHour?: string;
-  closeMinute?: string;
+  openTime?: string;
+  closeTime?: string;
   expiresDate?: string;
-  expiresHour?: string;
+  expiresTime?: string;
 };
 
 function asOptional(value: string | null | undefined): string | undefined {
   return value ?? undefined;
 }
 
-/** Turns a stored `Market` row into the form's flat string values, splitting `expiresAt` per C5. */
-export function marketToFormValues(market: Market): MarketFormValues {
-  const { expiresDate, expiresHour } = splitExpiresAt(market.expiresAt);
-  const hours = splitHours(market);
+function joinBlocks(...parts: (string | null)[]): string {
+  return parts.filter((p): p is string => Boolean(p)).join("\n\n");
+}
+
+/** Turns a stored `Market` row into the form's flat string values. Legacy `subtitle` / `locationDetails` have no field of their own anymore — they're folded into the note fields so they survive the next save. */
+export function marketToFormValues(market: Market, tz: string, now: Date): MarketFormValues {
+  const { expiresDate, expiresTime } = splitExpiresAt(market.expiresAt, tz, now);
   return {
     name: market.name,
     schedule: market.schedule,
-    subtitle: market.subtitle,
-    locationDetails: market.locationDetails,
-    customerInfo: market.customerInfo,
+    customerInfo: joinBlocks(market.subtitle, market.customerInfo),
     catchPreview: market.catchPreview,
-    notes: market.notes,
+    notes: joinBlocks(market.locationDetails, market.notes),
     county: market.county,
     city: market.city,
     address: market.address,
     landmark: market.landmark,
-    ...hours,
-    expiresDate,
-    expiresHour,
+    ...splitHours(market),
+    expiresDate: market.type === "popup" ? expiresDate : "",
+    expiresTime,
   };
 }
 
-/** One form for both market types (C1) — `type` decides whether the expiry fields render. */
+/** Values for a brand-new form — popups default to today 6:00 pm local. */
+export function newMarketFormValues(type: "regular" | "popup", tz: string, now: Date): MarketFormValues {
+  if (type !== "popup") return {};
+  return splitExpiresAt(null, tz, now);
+}
+
+const FIELD_ORDER = [
+  "name",
+  "schedule",
+  "landmark",
+  "address",
+  "city",
+  "county",
+  "expiresDate",
+  "expiresTime",
+  "dayOfWeek",
+  "openTime",
+  "closeTime",
+  "customerInfo",
+  "catchPreview",
+  "notes",
+];
+const ADVANCED_FIELDS = ["dayOfWeek", "openTime", "closeTime", "customerInfo", "catchPreview", "notes"];
+
+/** Admin form for both market types — Basics / Where / (popup) When it ends / collapsed Advanced. */
 export const MarketForm: FC<{
   type: "regular" | "popup";
   action: string;
   csrfToken: string;
   values?: MarketFormValues;
   errors?: Record<string, string>;
-}> = ({ type, action, csrfToken, values = {}, errors = {} }) => (
-  <form method="post" action={action}>
-    <input type="hidden" name="csrfToken" value={csrfToken} />
-    <input type="hidden" name="type" value={type} />
-    <Input id="name" name="name" label="Name" required value={values.name} errorText={errors.name} />
-    <Input
-      id="schedule"
-      name="schedule"
-      label="Schedule"
-      required
-      value={values.schedule}
-      helperText='e.g. "Sat 8-2"'
-      errorText={errors.schedule}
-    />
-    <Input
-      id="subtitle"
-      name="subtitle"
-      label="Subtitle"
-      value={asOptional(values.subtitle)}
-      errorText={errors.subtitle}
-    />
-    <Input id="county" name="county" label="County" value={asOptional(values.county)} errorText={errors.county} />
-    <Input id="city" name="city" label="City" value={asOptional(values.city)} errorText={errors.city} />
-    <Input
-      id="address"
-      name="address"
-      label="Address"
-      value={asOptional(values.address)}
-      errorText={errors.address}
-    />
-    <Input
-      id="landmark"
-      name="landmark"
-      label="Landmark"
-      helperText='e.g. "Next to the gas station"'
-      value={asOptional(values.landmark)}
-      errorText={errors.landmark}
-    />
-    <Select
-      id="dayOfWeek"
-      name="dayOfWeek"
-      label="Day"
-      helperText="Set day + open/close together, or leave all blank — schedule text above still shows either way."
-      value={values.dayOfWeek ?? ""}
-      options={DAY_OPTIONS}
-      errorText={errors.dayOfWeek}
-    />
-    <div class="cluster">
-      <Select
-        id="openHour"
-        name="openHour"
-        label="Open hour"
-        value={values.openHour ?? ""}
-        options={HOUR_OPTIONS_WITH_UNSET}
-        errorText={errors.openHour}
-      />
-      <Select
-        id="openMinute"
-        name="openMinute"
-        label="Open minute"
-        value={values.openMinute ?? ""}
-        options={MINUTE_OPTIONS}
-        errorText={errors.openMinute}
-      />
-    </div>
-    <div class="cluster">
-      <Select
-        id="closeHour"
-        name="closeHour"
-        label="Close hour"
-        value={values.closeHour ?? ""}
-        options={HOUR_OPTIONS_WITH_UNSET}
-        errorText={errors.closeHour}
-      />
-      <Select
-        id="closeMinute"
-        name="closeMinute"
-        label="Close minute"
-        value={values.closeMinute ?? ""}
-        options={MINUTE_OPTIONS}
-        errorText={errors.closeMinute}
-      />
-    </div>
-    {type === "popup" ? (
-      <>
+  /** Local today (YYYY-MM-DD) — the earliest selectable end date; the server check stays authoritative. */
+  minDate?: string;
+}> = ({ type, action, csrfToken, values = {}, errors = {}, minDate }) => {
+  const summary = FIELD_ORDER.filter((id) => errors[id]).map((id) => ({ id, message: errors[id] }));
+  const firstError = summary[0]?.id;
+  const focus = (id: string) => id === firstError;
+  const advancedOpen =
+    ADVANCED_FIELDS.some((id) => errors[id]) ||
+    Boolean(values.dayOfWeek || values.customerInfo || values.catchPreview || values.notes);
+  return (
+    <form method="post" action={action}>
+      <input type="hidden" name="csrfToken" value={csrfToken} />
+      <input type="hidden" name="type" value={type} />
+      <ErrorSummary items={summary} />
+
+      <Fieldset legend="Basics">
+        <Input id="name" name="name" label="Name" required autofocus={focus("name")} value={values.name} errorText={errors.name} />
         <Input
-          id="expiresDate"
-          name="expiresDate"
-          type="date"
-          label="Expires (UTC)"
+          id="schedule"
+          name="schedule"
+          label="Schedule"
           required
-          value={values.expiresDate}
-          errorText={errors.expiresDate}
+          autofocus={focus("schedule")}
+          value={values.schedule}
+          helperText="How it reads to customers, e.g. Saturdays 8–2"
+          errorText={errors.schedule}
         />
-        <Select
-          id="expiresHour"
-          name="expiresHour"
-          label="Expires hour (UTC)"
-          required
-          value={values.expiresHour ?? "23"}
-          options={HOUR_OPTIONS}
-          errorText={errors.expiresHour}
+        <Input
+          id="landmark"
+          name="landmark"
+          label="Landmark"
+          autofocus={focus("landmark")}
+          helperText='e.g. "Next to the gas station"'
+          value={asOptional(values.landmark)}
+          errorText={errors.landmark}
         />
-      </>
-    ) : null}
-    <Textarea
-      id="locationDetails"
-      name="locationDetails"
-      label="Location details (vendor-facing)"
-      helperText="Booth location, setup notes, parking info."
-      value={asOptional(values.locationDetails)}
-      errorText={errors.locationDetails}
-    />
-    <Textarea
-      id="customerInfo"
-      name="customerInfo"
-      label="Customer info"
-      helperText="Payment methods, what to bring, best times."
-      value={asOptional(values.customerInfo)}
-      errorText={errors.customerInfo}
-    />
-    <Textarea
-      id="catchPreview"
-      name="catchPreview"
-      label="Catch preview"
-      value={asOptional(values.catchPreview)}
-      errorText={errors.catchPreview}
-    />
-    <Textarea
-      id="notes"
-      name="notes"
-      label="Notes"
-      value={asOptional(values.notes)}
-      errorText={errors.notes}
-    />
-    <Button type="submit">Save</Button>
-  </form>
-);
+      </Fieldset>
+
+      <Fieldset legend="Where">
+        <Input
+          id="address"
+          name="address"
+          label="Address"
+          autofocus={focus("address")}
+          helperText="Street address turns on the Directions button"
+          value={asOptional(values.address)}
+          errorText={errors.address}
+        />
+        <Input id="city" name="city" label="City" autofocus={focus("city")} value={asOptional(values.city)} errorText={errors.city} />
+        <Input
+          id="county"
+          name="county"
+          label="County"
+          autofocus={focus("county")}
+          value={asOptional(values.county)}
+          errorText={errors.county}
+        />
+      </Fieldset>
+
+      {type === "popup" ? (
+        <Fieldset legend="When it ends">
+          <Input
+            id="expiresDate"
+            name="expiresDate"
+            type="date"
+            label="Ends on"
+            required
+            min={minDate}
+            autofocus={focus("expiresDate")}
+            value={values.expiresDate}
+            errorText={errors.expiresDate}
+          />
+          <Select
+            id="expiresTime"
+            name="expiresTime"
+            label="Ends at"
+            required
+            autofocus={focus("expiresTime")}
+            value={values.expiresTime ?? "1080"}
+            options={TIME_OPTIONS}
+            errorText={errors.expiresTime}
+          />
+        </Fieldset>
+      ) : null}
+
+      <Disclosure summary="Advanced" open={advancedOpen}>
+        {type === "regular" ? (
+          <>
+            <Select
+              id="dayOfWeek"
+              name="dayOfWeek"
+              label="Day"
+              autofocus={focus("dayOfWeek")}
+              helperText="Day, opens, and closes go together — or leave all blank. Turns on “open now” status."
+              value={values.dayOfWeek ?? ""}
+              options={DAY_OPTIONS}
+              errorText={errors.dayOfWeek}
+            />
+            <Select
+              id="openTime"
+              name="openTime"
+              label="Opens"
+              autofocus={focus("openTime")}
+              value={values.openTime ?? ""}
+              options={TIME_OPTIONS_WITH_UNSET}
+              errorText={errors.openTime}
+            />
+            <Select
+              id="closeTime"
+              name="closeTime"
+              label="Closes"
+              autofocus={focus("closeTime")}
+              value={values.closeTime ?? ""}
+              options={TIME_OPTIONS_WITH_UNSET}
+              errorText={errors.closeTime}
+            />
+          </>
+        ) : null}
+        <Textarea
+          id="customerInfo"
+          name="customerInfo"
+          label="Note for customers"
+          helperText="Payment methods, what to bring, best times."
+          autofocus={focus("customerInfo")}
+          value={asOptional(values.customerInfo)}
+          errorText={errors.customerInfo}
+        />
+        <Textarea
+          id="catchPreview"
+          name="catchPreview"
+          label="Catch preview"
+          autofocus={focus("catchPreview")}
+          value={asOptional(values.catchPreview)}
+          errorText={errors.catchPreview}
+        />
+        <Textarea
+          id="notes"
+          name="notes"
+          label="Private notes"
+          helperText="Only you see these — booth location, setup, parking."
+          autofocus={focus("notes")}
+          value={asOptional(values.notes)}
+          errorText={errors.notes}
+        />
+      </Disclosure>
+
+      <Button type="submit">Save</Button>
+    </form>
+  );
+};
 
 export const StatusBadge: FC<{ status: "active" | "inactive" | "live" | "past" }> = ({ status }) => {
   const label = { active: "Active", inactive: "Inactive", live: "Live", past: "Past" }[status];
@@ -253,7 +284,11 @@ export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "li
       <strong>{market.name}</strong> — {market.schedule}
     </span>
     <span class="cluster">
-      <StatusBadge status={status} />
+      {status === "past" && market.type === "popup" ? (
+        <span class="badge badge-past">{market.cancelledAt ? "Cancelled" : "Ended"}</span>
+      ) : (
+        <StatusBadge status={status} />
+      )}
       <a href={`/admin/markets/${market.id}/edit`}>Edit</a>
     </span>
   </div>
