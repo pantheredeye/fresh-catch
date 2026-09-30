@@ -67,4 +67,3 @@ describe("getLiveCatchUpdate", () => {
     expect(await getLiveCatchUpdate()).toBeNull();
   });
 });
-
