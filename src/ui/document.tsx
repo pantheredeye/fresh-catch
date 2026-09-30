@@ -8,7 +8,7 @@ import { assetUrl } from "@/lib/assets";
  * cookie itself being readable (it's httpOnly).
  */
 export const Document: FC<PropsWithChildren<{ title?: string; deviceToken?: string }>> = ({
-  title = "Fresh Catch",
+  title = "2 Fishes Seafood",
   deviceToken,
   children,
 }) => (

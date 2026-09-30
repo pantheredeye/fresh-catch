@@ -164,7 +164,7 @@ homeRoutes.get("/", async (c) => {
         <Band tone="deep">
           <ClosingBand vendor={vendor} />
         </Band>
-        <Footer vendor={vendor} session={session} note="The fish list is rewritten every Monday morning." />
+        <Footer vendor={vendor} session={session} />
         <script type="module" src={assetUrl("/js/favorites.js")}></script>
       </Page>
     </Document>,

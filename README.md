@@ -1,4 +1,4 @@
-# Fresh Catch
+# 2 Fishes Seafood
 
 Hono on Cloudflare Workers, D1, Vite.
 

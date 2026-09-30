@@ -68,7 +68,7 @@ export async function notifyCustomerOfVendorReply(env: Bindings, request: FishRe
   const url = `${env.APP_URL}/requests/${request.id}`;
   await sendEmail(env, {
     to: request.contactEmail,
-    subject: `Fresh Catch replied: ${requestTitle(request)}`,
-    html: alertHtml("Fresh Catch replied to your request", requestSummary(request), url, "View your request"),
+    subject: `2 Fishes Seafood replied: ${requestTitle(request)}`,
+    html: alertHtml("2 Fishes Seafood replied to your request", requestSummary(request), url, "View your request"),
   });
 }

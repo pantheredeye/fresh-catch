@@ -11,7 +11,7 @@ beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
   await db.vendor.deleteMany();
   await db.vendor.create({
-    data: { id: "test-vendor", name: "Fresh Catch Test", displayName: "Sam", phone: "+15055550142", timezone: "UTC" },
+    data: { id: "test-vendor", name: "2 Fishes Seafood Test", displayName: "Sam", phone: "+15055550142", timezone: "UTC" },
   });
 });
 

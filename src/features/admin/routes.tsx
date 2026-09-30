@@ -13,7 +13,7 @@ adminRoutes.get("/admin", requireAdmin(), async (c) => {
   const openCount = await countOpenRequests();
   const session = c.var.session!;
   return c.html(
-    <Document title="Admin — Fresh Catch">
+    <Document title="Admin — 2 Fishes Seafood">
       <Page>
         <SectionHeading title="Admin" level={1} />
         <p class="muted">Signed in as {session.email}.</p>

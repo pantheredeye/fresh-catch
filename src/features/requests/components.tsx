@@ -131,7 +131,7 @@ export const RequestForm: FC<{
 /** Post-submit confirmation (handoff §3: same verb all the way through — "Request bass" → "Requested"). */
 export const RequestConfirmation: FC<{ requestType: string }> = ({ requestType }) => (
   <p class="notice notice-success" role="status">
-    {requestType === "question" ? "Sent." : "Requested."} Fresh Catch will reply here.
+    {requestType === "question" ? "Sent." : "Requested."} 2 Fishes Seafood will reply here.
   </p>
 );
 
@@ -168,7 +168,7 @@ function formatMessageTime(date: Date): string {
 }
 
 function senderLabel(sender: string, viewer: "customer" | "admin", customerName: string): string {
-  if (sender === "vendor") return viewer === "admin" ? "You" : "Fresh Catch";
+  if (sender === "vendor") return viewer === "admin" ? "You" : "2 Fishes Seafood";
   return viewer === "customer" ? "You" : customerName;
 }
 

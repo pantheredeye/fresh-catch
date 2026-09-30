@@ -29,10 +29,10 @@ function marketAddressLine(market: Pick<Market, "address" | "landmark">): string
 marketRoutes.get("/markets/past", async (c) => {
   const [popups, vendor] = await Promise.all([listPastPopups(), getVendor()]);
   return c.html(
-    <Document title="Past popups — Fresh Catch">
+    <Document title="Past popups — 2 Fishes Seafood">
       <BrandBar vendor={vendor} />
       <Page>
-        <BackLink href="/">Back to Fresh Catch</BackLink>
+        <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <SectionHeading level={1} title="Past popups" meta={`${popups.length} popup${popups.length === 1 ? "" : "s"}`} />
         {popups.length === 0 ? (
           <p class="muted">No past popups yet.</p>
@@ -82,7 +82,7 @@ marketRoutes.get("/markets/:id", async (c) => {
   const endedNote = market.type === "popup" && !occurrence ? "This popup has ended." : null;
 
   return c.html(
-    <Document title={`${market.name} — Fresh Catch`} deviceToken={c.var.deviceToken}>
+    <Document title={`${market.name} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
       <MarketDetail
         market={market}
         vendor={vendor}

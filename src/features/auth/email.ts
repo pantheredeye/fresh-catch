@@ -4,7 +4,7 @@ import { sendEmail } from "@/lib/email";
 // Plain HTML template, not @react-email/components — that broke under rwsdk
 // 1.5+ and is a deliberate scope cut for v2 (see CLAUDE.md "Removed in the
 // rebuild").
-const FROM_ADDRESS = "Fresh Catch <auth@digitalglue.dev>";
+const FROM_ADDRESS = "2 Fishes Seafood <auth@digitalglue.dev>";
 
 function loginCodeEmailHtml(code: string): string {
   return `<!doctype html>
@@ -13,7 +13,7 @@ function loginCodeEmailHtml(code: string): string {
     <table role="presentation" style="max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 32px;">
       <tr>
         <td>
-          <h1 style="font-size: 20px; margin: 0 0 16px;">Your Fresh Catch login code</h1>
+          <h1 style="font-size: 20px; margin: 0 0 16px;">Your 2 Fishes Seafood login code</h1>
           <p style="font-size: 16px; color: #333; margin: 0 0 24px;">
             Enter this code to finish signing in. It expires in 10 minutes.
           </p>
@@ -43,7 +43,7 @@ export async function sendLoginCodeEmail(
   return sendEmail(env, {
     from: FROM_ADDRESS,
     to: email,
-    subject: `Your Fresh Catch login code: ${code}`,
+    subject: `Your 2 Fishes Seafood login code: ${code}`,
     html: loginCodeEmailHtml(code),
   });
 }

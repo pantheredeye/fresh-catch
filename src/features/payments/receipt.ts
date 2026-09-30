@@ -20,7 +20,7 @@ export async function sendPaymentReceipt(
   if (!order.contactEmail) return;
 
   const vendor = await db.vendor.findFirst();
-  const businessName = vendor?.name ?? "Fresh Catch";
+  const businessName = vendor?.name ?? "2 Fishes Seafood";
   const remaining = order.totalDue != null ? Math.max(order.totalDue - order.amountPaid, 0) : 0;
   const threadUrl = order.requestId ? `${env.APP_URL}/requests/${order.requestId}` : env.APP_URL;
 

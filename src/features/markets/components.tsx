@@ -295,7 +295,7 @@ export const MarketDetail: FC<{
       {status ? <StatusStrip open={status.open} label={status.label} message={status.message} /> : null}
       <Band tone="shallow">
         <div class="stack">
-          <BackLink href="/">Back to Fresh Catch</BackLink>
+          <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
           {dayLabel ? <p class="hero-date">{dayLabel}</p> : null}
           <h1 class="h-display">{market.name}</h1>
           {hoursLine ? <p class="hero-hrs">{hoursLine}</p> : null}
