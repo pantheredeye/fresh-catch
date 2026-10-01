@@ -269,10 +269,10 @@ export const MarketForm: FC<{
   );
 };
 
+/** Badges flag exceptions only — a healthy (active/live) market gets none. */
 export const StatusBadge: FC<{ status: "active" | "inactive" | "live" | "past" }> = ({ status }) => {
-  const label = { active: "Active", inactive: "Inactive", live: "Live", past: "Past" }[status];
-  const className = status === "active" || status === "live" ? "badge-live" : "badge-past";
-  return <span class={`badge ${className}`}>{label}</span>;
+  if (status === "active" || status === "live") return null;
+  return <span class="badge badge-past">{status === "inactive" ? "Inactive" : "Past"}</span>;
 };
 
 export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "live" | "past" }> = ({

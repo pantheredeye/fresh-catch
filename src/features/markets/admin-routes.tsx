@@ -5,6 +5,7 @@ import { getVendor } from "@/features/vendor/queries";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Button } from "@/ui/button";
+import { SplitControl } from "@/ui/split-control";
 import { Page } from "@/ui/page";
 import { SectionHeading } from "@/ui/section-heading";
 import { BackLink } from "@/ui/back-link";
@@ -86,16 +87,14 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
             {notice}
           </p>
         ) : null}
-        <p class="cluster">
-          <Button href="/admin/markets/new?type=regular" inline>
-            New market
-          </Button>
-          <Button href="/admin/markets/new?type=popup" variant="secondary" inline>
-            New popup
-          </Button>
-        </p>
+        <SplitControl
+          items={[
+            { href: "/admin/markets/new?type=regular", label: "New market", ariaLabel: "New market" },
+            { href: "/admin/markets/new?type=popup", label: "New popup", ariaLabel: "New popup" },
+          ]}
+        />
 
-        <section>
+        <section class="stack">
           <SectionHeading title="Regular markets" level={2} size="sm" />
           <div class="stack">
             {regular.length === 0 ? <p>No active markets yet.</p> : null}
@@ -105,7 +104,7 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
           </div>
         </section>
 
-        <section>
+        <section class="stack">
           <SectionHeading title="Live popups" level={2} size="sm" />
           <div class="stack">
             {popups.length === 0 ? <p>No live popups.</p> : null}
@@ -115,7 +114,7 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
           </div>
         </section>
 
-        <section>
+        <section class="stack">
           <SectionHeading title="Past popups" level={2} size="sm" />
           <div class="stack">
             {past.length === 0 ? <p>No past popups.</p> : null}

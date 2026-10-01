@@ -1344,3 +1344,42 @@ footer a {
     display: none;
   }
 }
+
+/* Catch prices (#86): one row per fish — name | $ [__] / lb | sold-out. */
+.price-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+}
+
+.price-name {
+  font-weight: var(--font-weight-semibold);
+}
+
+.price-input,
+.price-sold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 58px;
+}
+
+.price-input .field-input {
+  width: 6.5rem;
+}
+
+.price-sold input {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 519px) {
+  .price-grid {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .price-grid > .field-label:nth-child(3),
+  .price-grid > .price-sold {
+    grid-column: 1 / -1;
+  }
+}
