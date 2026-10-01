@@ -1,7 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { Market, Vendor } from "@/lib/db";
 import type { CatchContent, CatchItem } from "@/features/catch/pipeline";
-import { WEEKDAY_NAMES, formatPrice, mapsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
+import { WEEKDAY_NAMES, formatPrice, mapsHref, smsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
 import { SplitControl } from "@/ui/split-control";
@@ -154,13 +154,22 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
   );
 };
 
+/** True when at least one posted item carries a price — gates the "per pound" label and the call-for-price copy. */
+export function hasPrices(content: CatchContent | null): boolean {
+  return Boolean(content?.items.some((item) => item.priceCents !== undefined && !item.soldOut));
+}
+
 /** Fish board (item 5, sand band) — the weekly list, or a plain notice when nothing's posted. */
-export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null }> = ({ content, weekOf }) => (
+export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null; vendor: Vendor | null }> = ({
+  content,
+  weekOf,
+  vendor,
+}) => (
   <>
-    <SectionHeading title="On ice this week" meta="per pound" />
+    <SectionHeading title="On ice this week" meta={hasPrices(content) ? "per pound" : undefined} />
     {content && content.items.length > 0 ? (
       <>
-        <p class="stamp">{weekOf} Sam sets the list each Monday.</p>
+        <p class="stamp">{weekOf}. {vendorDisplayName(vendor)} sets the list each Monday.</p>
         <div class="stack-tight">
           {content.items.map((item, index) => (
             <FishRow item={item} position={index === 0 ? "first" : index === content.items.length - 1 ? "last" : "middle"} />
@@ -220,7 +229,7 @@ const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendo
 export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ rows, vendor }) => (
   <>
     <SectionHeading title="The week's route" meta={`${rows.length} stop${rows.length === 1 ? "" : "s"}`} />
-    <p class="stamp">The same days all year. Star a market above to pin it to the top of this page.</p>
+    <p class="stamp">The same days all year.</p>
     {rows.length === 0 ? <p class="muted">No markets posted yet.</p> : rows.map((row) => <RouteRowView row={row} vendor={vendor} />)}
     <p>
       <a href="/markets/past">Past popups →</a>
@@ -229,16 +238,18 @@ export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ row
 );
 
 /** Closing band (item 7, deep) — coral-fill primary on dark ground via the existing .band-deep override. */
-export const ClosingBand: FC<{ vendor: Vendor | null }> = ({ vendor }) => {
+export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
   const name = vendorDisplayName(vendor);
   return (
     <>
       <h2>Ask {name} to hold one</h2>
-      <p>Call or text. Evan will touch base on availability and pickup.</p>
+      <p>
+        {priced ? "Call or text." : "Call/text for price."} {name} will touch base on availability and pickup.
+      </p>
       {vendor?.phone ? (
         <>
           <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
-          <Button variant="secondary" href={`sms:${vendor.phone}`}>
+          <Button variant="secondary" href={smsHref(vendor.phone)}>
             Text {formatPhoneDisplay(vendor.phone)}
           </Button>
         </>

@@ -635,11 +635,16 @@ ol.stack {
   gap: var(--space-md);
   border-bottom: 6px solid var(--color-text-primary);
   padding-bottom: 9px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-md);
   position: relative;
 }
 
-.hdrow::after {
+/* Hairline under the heavy rule — page-title level only; sections get the single rule. */
+.hdrow-title {
+  margin-bottom: 22px;
+}
+
+.hdrow-title::after {
   content: "";
   position: absolute;
   left: 0;
@@ -653,10 +658,6 @@ ol.stack {
   border-bottom-width: 4px;
   padding-bottom: 7px;
   margin-bottom: 14px;
-}
-
-.hdrow-sm::after {
-  display: none;
 }
 
 .hd {
@@ -678,6 +679,13 @@ ol.stack {
 /* Band (src/ui/band.tsx) — full-bleed surface, inner content clamped by .wrap. */
 .band {
   background: var(--color-bg-primary);
+  padding: var(--space-xl) 0;
+}
+
+@media (min-width: 700px) {
+  .band {
+    padding: 48px 0;
+  }
 }
 
 .band-paper {
@@ -946,10 +954,6 @@ ol.stack {
   border-top: none;
 }
 
-.fish.last {
-  border-bottom: 6px solid var(--color-text-primary);
-}
-
 .fside {
   display: flex;
   flex-direction: column;
@@ -1121,6 +1125,10 @@ a.fish:active .req {
   margin-bottom: 10px;
 }
 
+.band-deep h2 {
+  text-wrap: balance;
+}
+
 .band-deep p {
   color: var(--palette-on-deep-muted);
   max-width: 26rem;
@@ -1203,4 +1211,36 @@ footer a {
 .error-summary-list {
   margin: 0;
   padding-left: var(--space-md);
+}
+
+/* ActionBar (src/ui/action-bar.tsx) — three 58px cells, sticky to the viewport
+   bottom on phones. Sits last in <main>, after the footer, so it never covers it. */
+.action-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--color-action-primary-fill);
+  border-top: 3px solid var(--color-text-primary);
+}
+
+.action-bar a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+}
+
+.action-bar a + a {
+  border-left: 2px solid rgba(255, 255, 255, 0.45);
+}
+
+@media (min-width: 700px) {
+  .action-bar {
+    display: none;
+  }
 }

@@ -11,7 +11,7 @@ beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
   await db.vendor.deleteMany();
   await db.vendor.create({
-    data: { id: "test-vendor", name: "2 Fishes Seafood Test", displayName: "Sam", phone: "+15055550142", timezone: "UTC" },
+    data: { id: "test-vendor", name: "2 Fishes Seafood Test", displayName: "Evan", phone: "+15055550142", timezone: "UTC" },
   });
 });
 
@@ -107,6 +107,57 @@ describe("GET / — fish board", () => {
   });
 });
 
+describe("GET / — public page polish (#82)", () => {
+  async function publish(items: object[]) {
+    await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+    await publishCatchUpdate({
+      recordedBy: "admin@example.com",
+      rawTranscript: "t",
+      formattedContent: JSON.stringify({ headline: "h", items, summary: "s" }),
+    });
+  }
+
+  it("omits 'per pound' and says call/text for price when nothing is priced", async () => {
+    await publish([{ name: "Mullet", note: "Fresh." }]);
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).not.toContain("per pound");
+    expect(html).toContain("Call/text for price.");
+  });
+
+  it("shows 'per pound' when at least one item is priced", async () => {
+    await publish([{ name: "Redfish", note: "Fresh.", priceCents: 1600 }, { name: "Mullet", note: "Fresh." }]);
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain("per pound");
+    expect(html).not.toContain("Call/text for price.");
+  });
+
+  it("uses the vendor display name, ends the week-of stamp with a period, and drops the star copy", async () => {
+    await publish([{ name: "Mullet", note: "Fresh." }]);
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toMatch(/Week of \w+ \d+\. Evan sets the list each Monday\./);
+    expect(html).not.toContain("Sam");
+    expect(html).not.toContain("Star a market");
+    expect(html).toContain("Evan will touch base");
+  });
+
+  it("renders the sticky action bar and a normalized sms: link when the vendor has a phone", async () => {
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain('class="action-bar"');
+    expect(html).toContain('href="/requests/new"');
+    expect(html).toContain('href="sms:+15055550142"');
+  });
+
+  it("omits the action bar when the vendor has no phone", async () => {
+    await db.vendor.update({ where: { id: "test-vendor" }, data: { phone: null } });
+    try {
+      const html = await (await app.request("/", {}, env)).text();
+      expect(html).not.toContain('class="action-bar"');
+    } finally {
+      await db.vendor.update({ where: { id: "test-vendor" }, data: { phone: "+15055550142" } });
+    }
+  });
+});
+
 describe("GET / — market status states (handoff §4)", () => {
   it("open: strip says 'Open now' and the hero features the open market", async () => {
     const { weekday, minutesOfDay } = nowUtcParts();
@@ -122,7 +173,7 @@ describe("GET / — market status states (handoff §4)", () => {
     expect(html).toContain("Open now");
     expect(html).toContain(`<h1 class="h-display">${market.name}</h1>`);
     expect(html).toContain(`Directions to ${market.name}`);
-    expect(html).toContain("Call Sam");
+    expect(html).toContain("Call Evan");
   });
 
   it("opens-later: strip says 'Opens later today' for a market not open yet", async () => {
