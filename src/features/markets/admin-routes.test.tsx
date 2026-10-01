@@ -70,6 +70,15 @@ describe("admin markets routes", () => {
     expect(await listRes.text()).toContain(fields.name);
   });
 
+  it("shows no Active/Live badge on healthy markets", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const fields = regularFields();
+    await post("/admin/markets", cookie, { ...fields, csrfToken });
+    const html = await (await app.request("/admin/markets", { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain(fields.name);
+    expect(html).not.toMatch(/class="badge[^"]*">(Active|Live)</);
+  });
+
   it("creates a popup with an expiry and lists it under live", async () => {
     const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
     const fields = popupFields();

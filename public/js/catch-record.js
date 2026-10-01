@@ -9,7 +9,8 @@
   const textInput = document.getElementById("catch-text-input");
   const textSubmit = document.getElementById("catch-text-submit");
   const status = document.getElementById("catch-record-status");
-  const preview = document.getElementById("catch-draft-preview");
+  const previewEmpty = document.getElementById("catch-draft-empty");
+  const previewContent = document.getElementById("catch-draft-content");
   const draftHeadline = document.getElementById("catch-draft-headline");
   const draftItems = document.getElementById("catch-draft-items");
   const draftSummary = document.getElementById("catch-draft-summary");
@@ -39,7 +40,8 @@
       li.textContent = item.note ? `${item.name} — ${item.note}` : item.name;
       draftItems.appendChild(li);
     }
-    preview.hidden = false;
+    previewEmpty.hidden = true;
+    previewContent.hidden = false;
 
     publishHeadline.value = formatted.headline;
     publishSummary.value = formatted.summary;

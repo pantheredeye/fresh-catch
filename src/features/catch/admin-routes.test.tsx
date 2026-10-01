@@ -39,6 +39,13 @@ describe("GET /admin/catch", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("Catch of the week");
   });
+
+  it("renders a labelled preview box with an empty state", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    const html = await (await app.request("/admin/catch", { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain("Preview will appear here");
+    expect(html).toContain('id="catch-preview-label"');
+  });
 });
 
 describe("POST /admin/catch/record", () => {

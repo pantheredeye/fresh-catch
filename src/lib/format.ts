@@ -118,6 +118,11 @@ export function telHref(phone: string): string {
   return `tel:+${withCountryCode}`;
 }
 
+/** "sms:+15055550142" from any US phone formatting. */
+export function smsHref(phone: string): string {
+  return telHref(phone).replace(/^tel:/, "sms:");
+}
+
 /** "(662) 555-1234" from `Vendor.phone`'s stored E.164 form. Falls back to the raw input if it's not a 10-digit US number. */
 export function formatPhoneDisplay(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -131,7 +136,7 @@ export function mapsHref(address: string): string {
   return `https://maps.google.com/?q=${encodeURIComponent(address)}`;
 }
 
-/** "Sam" (displayName) or the vendor's plain `name`, falling back when there's no vendor row yet. */
+/** The vendor's `displayName` or the vendor's plain `name`, falling back when there's no vendor row yet. */
 export function vendorDisplayName(vendor: { displayName?: string | null; name?: string | null } | null): string {
   return vendor?.displayName || vendor?.name || "2 Fishes Seafood";
 }

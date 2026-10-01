@@ -18,12 +18,22 @@ import {
   type StatusMarket,
   type TodayStatus,
 } from "@/features/markets/status";
-import { WEEKDAY_NAMES, formatClockTime, formatFullDate, formatHoursRange, formatWeekOf, localParts } from "@/lib/format";
+import {
+  WEEKDAY_NAMES,
+  formatClockTime,
+  formatFullDate,
+  formatHoursRange,
+  formatWeekOf,
+  localParts,
+  smsHref,
+  telHref,
+} from "@/lib/format";
 import { assetUrl } from "@/lib/assets";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
-import { ClosingBand, FishBoard, Hero, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
+import { ActionBar } from "@/ui/action-bar";
+import { CallCard, ClosingBand, FishBoard, Hero, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
 import { marketAddressLine } from "@/features/markets/display";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -151,16 +161,30 @@ homeRoutes.get("/", async (c) => {
           />
         </Band>
         <SavedBand pins={savedPins} />
-        <Band tone="sand">
-          <FishBoard content={catchContent} weekOf={weekOf} />
-        </Band>
-        <Band tone="paper">
-          <RouteBand rows={routeRows} vendor={vendor} />
-        </Band>
+        <div class="home-split">
+          <Band tone="sand" class="home-fish">
+            <FishBoard content={catchContent} weekOf={weekOf} vendor={vendor} />
+          </Band>
+          <Band tone="paper" class="home-route">
+            <div class="home-route-inner">
+              <RouteBand rows={routeRows} vendor={vendor} />
+              <CallCard vendor={vendor} priced={hasPrices(catchContent)} />
+            </div>
+          </Band>
+        </div>
         <Band tone="deep">
-          <ClosingBand vendor={vendor} />
+          <ClosingBand vendor={vendor} priced={hasPrices(catchContent)} />
         </Band>
         <Footer vendor={vendor} session={session} />
+        {vendor?.phone ? (
+          <ActionBar
+            items={[
+              { href: telHref(vendor.phone), label: "Call" },
+              { href: smsHref(vendor.phone), label: "Text" },
+              { href: "/requests/new", label: "Request" },
+            ]}
+          />
+        ) : null}
         <script type="module" src={assetUrl("/js/favorites.js")}></script>
       </Page>
     </Document>,

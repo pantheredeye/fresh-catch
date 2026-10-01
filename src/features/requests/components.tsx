@@ -7,8 +7,9 @@ import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
+import { ErrorSummary } from "@/ui/error-summary";
 import { CardHeader } from "@/ui/card-header";
-import { REQUEST_STATUSES } from "./validation";
+import { OTHER_SPECIES, REQUEST_STATUSES } from "./validation";
 
 export type RequestFormValues = {
   requestType?: string;
@@ -43,6 +44,41 @@ function submitLabel(values: RequestFormValues): string {
   return "Request fish";
 }
 
+/** Species select of live catch items + "Other" (reveals a free-text input via CSS `:has()`, zero JS). Prefill selects the match. */
+const SpeciesPicker: FC<{ options: string[]; species?: string; errors: Record<string, string> }> = ({
+  options,
+  species,
+  errors,
+}) => {
+  const match = species ? options.find((o) => o.toLowerCase() === species.trim().toLowerCase()) : undefined;
+  const isOther = species === OTHER_SPECIES || (!!species && !match);
+  const selected = match ?? (isOther ? OTHER_SPECIES : "");
+  return (
+    <>
+      <Select
+        id="species"
+        name="species"
+        label="Species"
+        value={selected}
+        options={[
+          { value: "", label: "Choose a fish" },
+          ...options.map((o) => ({ value: o, label: o })),
+          { value: OTHER_SPECIES, label: "Other" },
+        ]}
+        errorText={errors.species}
+      />
+      <div class="other-only">
+        <Input
+          id="speciesOther"
+          name="speciesOther"
+          label="Which fish?"
+          value={species && species !== OTHER_SPECIES && !match ? species : undefined}
+        />
+      </div>
+    </>
+  );
+};
+
 /**
  * One form for both request types (plan addendum #2) — a radio toggle plus a
  * pure-CSS `:has()` rule (`.request-form:has(#type-question:checked)
@@ -56,31 +92,55 @@ export const RequestForm: FC<{
   csrfToken: string;
   values?: RequestFormValues;
   errors?: Record<string, string>;
-}> = ({ action, csrfToken, values = {}, errors = {} }) => {
+  /** Customer form: this week's live species for the select. Omit for the admin walk-up form (free-text species, radio toggle). */
+  speciesOptions?: string[];
+}> = ({ action, csrfToken, values = {}, errors = {}, speciesOptions }) => {
   const isQuestion = values.requestType === "question";
+  const customer = speciesOptions !== undefined;
   return (
     <form method="post" action={action} class="request-form stack">
       <input type="hidden" name="csrfToken" value={csrfToken} />
-      <fieldset class="request-type-toggle">
-        <legend class="field-label">What do you need?</legend>
-        <label>
-          <input type="radio" id="type-fish" name="requestType" value="fish" checked={!isQuestion} /> Request an
-          order
-        </label>
-        <label>
-          <input type="radio" id="type-question" name="requestType" value="question" checked={isQuestion} /> Ask a
-          question
-        </label>
-      </fieldset>
+      <ErrorSummary items={Object.entries(errors).map(([id, message]) => ({ id, message }))} />
+      {customer ? (
+        <fieldset class="segmented">
+          <legend class="field-label">What do you need?</legend>
+          <div class="segmented-options">
+            <label>
+              <input type="radio" id="type-fish" name="requestType" value="fish" checked={!isQuestion} />
+              <span>Request an order</span>
+            </label>
+            <label>
+              <input type="radio" id="type-question" name="requestType" value="question" checked={isQuestion} />
+              <span>Ask a question</span>
+            </label>
+          </div>
+        </fieldset>
+      ) : (
+        <fieldset class="request-type-toggle">
+          <legend class="field-label">What do you need?</legend>
+          <label>
+            <input type="radio" id="type-fish" name="requestType" value="fish" checked={!isQuestion} /> Request an
+            order
+          </label>
+          <label>
+            <input type="radio" id="type-question" name="requestType" value="question" checked={isQuestion} /> Ask a
+            question
+          </label>
+        </fieldset>
+      )}
       <div class="fish-only stack">
-        <Input
-          id="species"
-          name="species"
-          label="Species"
-          value={values.species}
-          helperText="What fish are you looking for?"
-          errorText={errors.species}
-        />
+        {customer && speciesOptions.length > 0 ? (
+          <SpeciesPicker options={speciesOptions} species={values.species} errors={errors} />
+        ) : (
+          <Input
+            id="species"
+            name="species"
+            label="Species"
+            value={values.species}
+            helperText="What fish are you looking for?"
+            errorText={errors.species}
+          />
+        )}
         <Input
           id="quantity"
           name="quantity"
@@ -112,7 +172,7 @@ export const RequestForm: FC<{
         label="Email"
         type="email"
         value={values.contactEmail}
-        helperText="Optional — we'll also reply here in the thread."
+        helperText="Email or phone — at least one. We'll also reply here in the thread."
         errorText={errors.contactEmail}
       />
       <Input
@@ -123,7 +183,10 @@ export const RequestForm: FC<{
         value={values.contactPhone}
         errorText={errors.contactPhone}
       />
-      <Button type="submit">{submitLabel(values)}</Button>
+      <Button type="submit">
+        <span class="submit-fish">{submitLabel({ ...values, requestType: "fish" })}</span>
+        <span class="submit-question">Send question</span>
+      </Button>
     </form>
   );
 };

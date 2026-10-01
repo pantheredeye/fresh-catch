@@ -56,7 +56,7 @@ function fishFields(overrides: Record<string, string> = {}) {
     quantity: "2 lbs",
     notes: "",
     contactName: "Jamie",
-    contactEmail: "",
+    contactEmail: "jamie@example.com",
     contactPhone: "",
     ...overrides,
   };
@@ -75,6 +75,28 @@ describe("GET /requests/new", () => {
     const res = await newVisitorRequest("/requests/new");
     expect(res.status).toBe(200);
     expect(res.headers.get("set-cookie")).toContain("device=");
+  });
+});
+
+describe("customer form (#85)", () => {
+  it("renders the segmented control, an Other-reveal and the swapped submit labels", async () => {
+    const html = await (await newVisitorRequest("/requests/new?species=Flounder")).text();
+    expect(html).toContain('class="segmented"');
+    expect(html).toContain("submit-question");
+    expect(html).toContain("Request Flounder");
+  });
+
+  it("accepts Other + free-text species", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ species: "__other", speciesOther: "Wahoo" }));
+    expect(res.status).toBe(302);
+  });
+
+  it("400s with no email and no phone", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ contactEmail: "", contactPhone: "" }));
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("Add an email or phone");
   });
 });
 

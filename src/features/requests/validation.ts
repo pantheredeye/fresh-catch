@@ -10,6 +10,9 @@ export const FIELD_LIMITS = {
   messageBody: 2000,
 } as const;
 
+/** Sentinel `species` value for the "Other" option of the customer form's species select. */
+export const OTHER_SPECIES = "__other";
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function requiredText(field: keyof typeof FIELD_LIMITS, label: string) {
@@ -28,7 +31,7 @@ function optionalText(field: keyof typeof FIELD_LIMITS) {
     .transform((v) => (v && v.trim() ? v.trim() : null));
 }
 
-/** Contact info is optional (plan addendum #1) — validated only when present. */
+/** Format-checked only when present; `parseRequestForm` requires at least one of email/phone. */
 const optionalEmail = z
   .string()
   .max(FIELD_LIMITS.contactEmail)
@@ -84,12 +87,18 @@ function flattenErrors(error: z.ZodError): Record<string, string> {
 
 /** Parses a raw `c.req.parseBody()` submission into a `FishRequest` create, or field-keyed errors. */
 export function parseRequestForm(raw: Record<string, unknown>): RequestFormResult {
-  const result = requestFormSchema.safeParse(raw);
+  // The customer form's species <select> posts OTHER_SPECIES plus a free-text `speciesOther`.
+  const input =
+    raw.species === OTHER_SPECIES ? { ...raw, species: typeof raw.speciesOther === "string" ? raw.speciesOther : "" } : raw;
+  const result = requestFormSchema.safeParse(input);
   if (!result.success) {
     return { success: false, errors: flattenErrors(result.error) };
   }
 
   const parsed = result.data;
+  if (!parsed.contactEmail && !parsed.contactPhone) {
+    return { success: false, errors: { contactEmail: "Add an email or phone so we can reach you" } };
+  }
   if (parsed.requestType === "question") {
     return {
       success: true,

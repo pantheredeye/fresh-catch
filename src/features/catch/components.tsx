@@ -1,7 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { CatchUpdate } from "@/lib/db";
 import { Textarea } from "@/ui/textarea";
-import { Input } from "@/ui/input";
 import { Page } from "@/ui/page";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
@@ -40,20 +39,32 @@ const PricesForm: FC<{ content: CatchContent; csrfToken: string; errorText?: str
         {errorText}
       </p>
     ) : null}
-    {content.items.map((item, i) => (
-      <div class="cluster">
-        <Input
-          id={`price_${i}`}
-          name={`price_${i}`}
-          label={`${item.name} — price ($)`}
-          inputMode="decimal"
-          value={item.priceCents !== undefined ? (item.priceCents / 100).toFixed(2) : ""}
-        />
-        <label class="field-label" for={`soldOut_${i}`}>
-          <input type="checkbox" id={`soldOut_${i}`} name={`soldOut_${i}`} checked={item.soldOut === true} /> Sold out
-        </label>
-      </div>
-    ))}
+    <div class="price-grid">
+      <span class="field-label">Fish</span>
+      <span class="field-label">Price per lb</span>
+      <span class="field-label">Sold out</span>
+      {content.items.map((item, i) => (
+        <>
+          <span class="price-name">{item.name}</span>
+          <span class="price-input">
+            <span aria-hidden="true">$</span>
+            <input
+              class="field-input"
+              id={`price_${i}`}
+              name={`price_${i}`}
+              inputmode="decimal"
+              aria-label={`${item.name} — price per lb ($)`}
+              value={item.priceCents !== undefined ? (item.priceCents / 100).toFixed(2) : ""}
+            />
+            <span aria-hidden="true">/ lb</span>
+          </span>
+          <label class="price-sold" for={`soldOut_${i}`}>
+            <input type="checkbox" id={`soldOut_${i}`} name={`soldOut_${i}`} checked={item.soldOut === true} />
+            <span class="visually-hidden">{item.name} </span>Sold out
+          </label>
+        </>
+      ))}
+    </div>
     <Button type="submit">Update prices</Button>
   </form>
 );
@@ -103,10 +114,16 @@ export const CatchPage: FC<{ live: CatchUpdate | null; csrfToken: string; prices
           Format from text
         </Button>
 
-        <div class="card stack" id="catch-draft-preview" hidden>
-          <h3 id="catch-draft-headline"></h3>
-          <ul id="catch-draft-items"></ul>
-          <p id="catch-draft-summary"></p>
+        <div class="card stack" id="catch-draft-preview" role="region" aria-labelledby="catch-preview-label">
+          <h3 id="catch-preview-label">Preview</h3>
+          <p id="catch-draft-empty" class="muted">
+            Preview will appear here
+          </p>
+          <div class="stack" id="catch-draft-content" hidden>
+            <h4 id="catch-draft-headline"></h4>
+            <ul id="catch-draft-items"></ul>
+            <p id="catch-draft-summary"></p>
+          </div>
         </div>
 
         <form method="post" action="/admin/catch/publish" id="catch-publish-form">
