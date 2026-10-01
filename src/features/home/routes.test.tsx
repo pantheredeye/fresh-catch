@@ -5,6 +5,8 @@ import type { Bindings } from "@/types";
 import app from "../../index";
 import { createMarket, cancelMarket } from "@/features/markets/queries";
 import { publishCatchUpdate } from "@/features/catch/queries";
+import { noteEchoesName } from "./components";
+import { fishKind } from "./fish-art";
 import type { MarketInput } from "@/features/markets/validation";
 
 beforeAll(async () => {
@@ -81,6 +83,36 @@ describe("GET / — fish board", () => {
     expect(html).toContain("Request Mullet");
     expect(html).not.toContain("Request Flounder"); // sold-out row is a non-link
     expect(html).toContain("Sold out");
+    expect(html).toContain("/requests/new?type=question&amp;species=Flounder");
+    expect(html).toContain("Ask about next week");
+  });
+
+  it("drops notes that echo the name; keeps real detail", async () => {
+    await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+    await publishCatchUpdate({
+      recordedBy: "admin@example.com",
+      rawTranscript: "x",
+      formattedContent: JSON.stringify({
+        headline: "h",
+        items: [
+          { name: "Redfish", note: "Fresh redfish!" },
+          { name: "Mullet", note: "Skinned, 2 lb average." },
+        ],
+        summary: "s",
+      }),
+    });
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).not.toContain("Fresh redfish");
+    expect(html).toContain("Skinned, 2 lb average.");
+  });
+
+  it("noteEchoesName / fishKind helpers", () => {
+    expect(noteEchoesName("Flounder", "Fresh flounders today")).toBe(true);
+    expect(noteEchoesName("Flounder", "")).toBe(true);
+    expect(noteEchoesName("Flounder", "Whole, gutted")).toBe(false);
+    expect(fishKind("Sea Bass")).toBe("bass");
+    expect(fishKind("Crawfish")).toBe("crawfish");
+    expect(fishKind("Pompano")).toBe("fish");
   });
 
   it("shows a plain notice when there's no fresh catch update at all", async () => {

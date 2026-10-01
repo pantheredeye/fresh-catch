@@ -36,7 +36,7 @@ export class CatchPipelineError extends Error {
 }
 
 const SYSTEM_PROMPT =
-  'You are a seafood market assistant. Given a description of today\'s catch, output ONLY valid JSON (no markdown, no explanation) with this exact shape: { "headline": "short catchy headline", "items": [{ "name": "Fish Name", "note": "Colorful description preserving the speaker\'s personality", "priceCents": 1500 }], "summary": "One-sentence summary" }. Capitalize all fish names (e.g. "Mahi Mahi", "Red Snapper"). Use proper sentence casing for notes, headline, and summary. Preserve the speaker\'s colorful descriptions and personality in the notes. Only include "priceCents" on an item if a price was actually said for it (e.g. "only $15 a pound" becomes 1500); omit the field entirely if no price was mentioned — do not guess or invent one.';
+  'You are a seafood market assistant. Given a description of today\'s catch, output ONLY valid JSON (no markdown, no explanation) with this exact shape: { "headline": "short catchy headline", "items": [{ "name": "Fish Name", "note": "Optional detail", "priceCents": 1500 }], "summary": "One-sentence summary" }. Capitalize all fish names (e.g. "Mahi Mahi", "Red Snapper"). Use proper sentence casing for notes, headline, and summary. The note is optional: include size, cut, origin or prep ONLY if the speaker actually said it, in their words; otherwise use an empty string. Never restate or echo the fish name in the note (no "Fresh redfish"). Only include "priceCents" on an item if a price was actually said for it (e.g. "only $15 a pound" becomes 1500); omit the field entirely if no price was mentioned — do not guess or invent one.';
 
 function validateCatchContent(obj: unknown): CatchContent {
   if (

@@ -117,29 +117,49 @@ const ARROW_ICON = (
   </svg>
 );
 
+const FILLER = new Set(["fresh", "local", "today", "daily", "caught", "catch", "and", "the", "of", "a"]);
+
+const words = (text: string) => text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+
+/** True when a note adds nothing beyond the fish name ("Fresh redfish!") — drop it rather than show fake detail. */
+export function noteEchoesName(name: string, note: string): boolean {
+  const trimmed = note.trim();
+  if (!trimmed) return true;
+  const nameWords = new Set(words(name).flatMap((w) => [w, w.replace(/e?s$/, "")]));
+  return words(trimmed).every((w) => FILLER.has(w) || nameWords.has(w) || nameWords.has(w.replace(/e?s$/, "")));
+}
+
 const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = ({ item, position }) => {
   const rowClass = ["fish", position === "first" ? "first" : "", position === "last" ? "last" : "", item.soldOut ? "out" : ""]
     .filter(Boolean)
     .join(" ");
+  const askHref = `/requests/new?type=question&species=${encodeURIComponent(item.name)}`;
 
   const body = (
     <>
+      <FishArt name={item.name} />
       <div class="fbody">
         <h3>{item.name}</h3>
-        <p>{item.note}</p>
-        {!item.soldOut ? (
+        {noteEchoesName(item.name, item.note) ? null : <p>{item.note}</p>}
+        {item.soldOut ? (
+          <a class="req" href={askHref}>
+            Ask about next week {ARROW_ICON}
+          </a>
+        ) : (
           <span class="req">
             {requestLabel(item)} {ARROW_ICON}
           </span>
-        ) : null}
+        )}
       </div>
       <div class="fside">
         {item.soldOut ? (
-          <span class="price">Sold out</span>
+          <>
+            {item.priceCents !== undefined ? <s class="price">{formatPrice(item.priceCents)}</s> : null}
+            <span class="tag">Sold out</span>
+          </>
         ) : item.priceCents !== undefined ? (
           <span class="price">{formatPrice(item.priceCents)}</span>
         ) : null}
-        <FishArt name={item.name} />
       </div>
     </>
   );
