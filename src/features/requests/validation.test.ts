@@ -9,7 +9,7 @@ function fishFields(overrides: Record<string, string> = {}) {
     notes: "",
     contactName: "Jamie",
     contactEmail: "",
-    contactPhone: "",
+    contactPhone: "901-555-0100",
     ...overrides,
   };
 }
@@ -20,13 +20,13 @@ function questionFields(overrides: Record<string, string> = {}) {
     notes: "Do you have salmon this week?",
     contactName: "Jamie",
     contactEmail: "",
-    contactPhone: "",
+    contactPhone: "901-555-0100",
     ...overrides,
   };
 }
 
 describe("parseRequestForm", () => {
-  it("accepts a minimal fish request (no contact info required)", () => {
+  it("accepts a minimal fish request (phone only)", () => {
     const result = parseRequestForm(fishFields());
     expect(result.success).toBe(true);
     if (result.success) {
@@ -37,9 +37,20 @@ describe("parseRequestForm", () => {
         notes: null,
         contactName: "Jamie",
         contactEmail: null,
-        contactPhone: null,
+        contactPhone: "901-555-0100",
       });
     }
+  });
+
+  it("requires at least one of email/phone", () => {
+    const result = parseRequestForm(fishFields({ contactPhone: "" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.contactEmail).toBeTruthy();
+  });
+
+  it("uses speciesOther when species is the Other sentinel", () => {
+    const result = parseRequestForm(fishFields({ species: "__other", speciesOther: " Wahoo " }));
+    expect(result.success && result.data.species).toBe("Wahoo");
   });
 
   it("requires species for a fish request", () => {

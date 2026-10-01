@@ -6,6 +6,7 @@ import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
+import { listRequestableSpecies } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
@@ -21,7 +22,7 @@ import {
   listRequestsForViewer,
 } from "./queries";
 import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
-import { parseMessageForm, parseRequestForm } from "./validation";
+import { OTHER_SPECIES, parseMessageForm, parseRequestForm } from "./validation";
 import {
   MessageForm,
   RequestConfirmation,
@@ -62,7 +63,7 @@ function formString(value: unknown): string | undefined {
 export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues {
   return {
     requestType: formString(raw.requestType),
-    species: formString(raw.species),
+    species: raw.species === OTHER_SPECIES ? formString(raw.speciesOther) : formString(raw.species),
     quantity: formString(raw.quantity),
     notes: formString(raw.notes),
     contactName: formString(raw.contactName),
@@ -79,7 +80,7 @@ export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues
 requestRoutes.get("/requests/new", async (c) => {
   const type = c.req.query("type") === "question" ? "question" : "fish";
   const species = c.req.query("species");
-  const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
+  const [csrfToken, vendor, speciesOptions] = await Promise.all([csrfTokenFor(c), getVendor(), listRequestableSpecies()]);
   const values: RequestFormValues = {
     requestType: type,
     species: species ?? undefined,
@@ -91,7 +92,7 @@ requestRoutes.get("/requests/new", async (c) => {
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <h1>New request</h1>
-        <RequestForm action="/requests" csrfToken={csrfToken} values={values} />
+        <RequestForm action="/requests" csrfToken={csrfToken} values={values} speciesOptions={speciesOptions} />
       </Page>
       <Footer vendor={vendor} session={c.var.session} />
     </Document>,
@@ -106,14 +107,24 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
   const result = parseRequestForm(body);
 
   if (!result.success) {
-    const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
+    const [csrfToken, vendor, speciesOptions] = await Promise.all([
+      csrfTokenFor(c),
+      getVendor(),
+      listRequestableSpecies(),
+    ]);
     return c.html(
       <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
         <BrandBar vendor={vendor} />
         <Page>
           <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
           <h1>New request</h1>
-          <RequestForm action="/requests" csrfToken={csrfToken} values={rawToFormValues(body)} errors={result.errors} />
+          <RequestForm
+            action="/requests"
+            csrfToken={csrfToken}
+            values={rawToFormValues(body)}
+            errors={result.errors}
+            speciesOptions={speciesOptions}
+          />
         </Page>
         <Footer vendor={vendor} session={c.var.session} />
       </Document>,

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import type { CatchUpdate } from "@/lib/db";
-import type { CatchContent } from "./pipeline";
+import { parseCatchContent, type CatchContent } from "./pipeline";
 
 /** Powers the "currently live" preview on `GET /admin/catch` and the customer landing page (#58). */
 export function getLiveCatchUpdate(): Promise<CatchUpdate | null> {
@@ -33,4 +33,12 @@ export async function publishCatchUpdate(data: PublishCatchData): Promise<CatchU
 /** Rewrites a live row's content — the "Prices & availability" correction path (#71), no new row/publish cycle. */
 export function updateCatchContent(id: string, content: CatchContent): Promise<CatchUpdate> {
   return db.catchUpdate.update({ where: { id }, data: { formattedContent: JSON.stringify(content) } });
+}
+
+/** Species names a customer can request right now — this week's live, not-sold-out items (empty when no fresh catch). */
+export async function listRequestableSpecies(now = new Date()): Promise<string[]> {
+  const live = await getLiveCatchUpdate();
+  if (!live || !isCatchUpdateFresh(live, now)) return [];
+  const content = parseCatchContent(live.formattedContent);
+  return content ? content.items.filter((item) => !item.soldOut).map((item) => item.name) : [];
 }
