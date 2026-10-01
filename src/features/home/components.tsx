@@ -277,3 +277,19 @@ export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ ve
     </>
   );
 };
+
+/** Desktop-only (≥1024) Call/Text card in the sticky right column — replaces the mobile ActionBar; hidden below via CSS. */
+export const CallCard: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
+  if (!vendor?.phone) return null;
+  const name = vendorDisplayName(vendor);
+  return (
+    <div class="card call-card">
+      <h2 class="hd hd-sm">Ask {name} to hold one</h2>
+      <p class="muted">{priced ? "Call or text." : "Call/text for price."}</p>
+      <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
+      <Button variant="secondary" href={smsHref(vendor.phone)}>
+        Text {formatPhoneDisplay(vendor.phone)}
+      </Button>
+    </div>
+  );
+};

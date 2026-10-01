@@ -33,7 +33,7 @@ import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
 import { ActionBar } from "@/ui/action-bar";
-import { ClosingBand, FishBoard, Hero, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
+import { CallCard, ClosingBand, FishBoard, Hero, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
 import { marketAddressLine } from "@/features/markets/display";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -161,12 +161,17 @@ homeRoutes.get("/", async (c) => {
           />
         </Band>
         <SavedBand pins={savedPins} />
-        <Band tone="sand">
-          <FishBoard content={catchContent} weekOf={weekOf} vendor={vendor} />
-        </Band>
-        <Band tone="paper">
-          <RouteBand rows={routeRows} vendor={vendor} />
-        </Band>
+        <div class="home-split">
+          <Band tone="sand" class="home-fish">
+            <FishBoard content={catchContent} weekOf={weekOf} vendor={vendor} />
+          </Band>
+          <Band tone="paper" class="home-route">
+            <div class="home-route-inner">
+              <RouteBand rows={routeRows} vendor={vendor} />
+              <CallCard vendor={vendor} priced={hasPrices(catchContent)} />
+            </div>
+          </Band>
+        </div>
         <Band tone="deep">
           <ClosingBand vendor={vendor} priced={hasPrices(catchContent)} />
         </Band>

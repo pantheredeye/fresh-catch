@@ -1383,3 +1383,40 @@ footer a {
     grid-column: 1 / -1;
   }
 }
+
+/* Desktop home (#87) — fish board + route/call column share one row of full-bleed
+   bands. Same DOM as mobile; the grid only engages at ≥1024px. */
+.call-card {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .home-split {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: stretch;
+  }
+  .home-fish > .wrap {
+    max-width: 48rem;
+    margin-left: auto;
+    padding-right: 48px;
+  }
+  .home-route > .wrap {
+    max-width: 34rem;
+    margin-right: auto;
+    padding-left: 48px;
+  }
+  .home-route-inner {
+    position: sticky;
+    top: var(--space-lg);
+  }
+  .call-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+  }
+  .action-bar {
+    display: none;
+  }
+}
