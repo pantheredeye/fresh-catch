@@ -69,4 +69,6 @@ generated/
 
 # Claude Code agent worktrees
 .claude/worktrees/
+# Pre-PR review gate marker (.claude/hooks/pre-pr-review-gate.sh)
+.pr-review-ok
 scripts/cutover/export/
