@@ -39,10 +39,8 @@ const PricesForm: FC<{ content: CatchContent; csrfToken: string; errorText?: str
         {errorText}
       </p>
     ) : null}
+    <p class="muted">Price per lb. Tick any fish that's sold out.</p>
     <div class="price-grid">
-      <span class="field-label">Fish</span>
-      <span class="field-label">Price per lb</span>
-      <span class="field-label">Sold out</span>
       {content.items.map((item, i) => (
         <>
           <span class="price-name">{item.name}</span>
@@ -56,7 +54,6 @@ const PricesForm: FC<{ content: CatchContent; csrfToken: string; errorText?: str
               aria-label={`${item.name} — price per lb ($)`}
               value={item.priceCents !== undefined ? (item.priceCents / 100).toFixed(2) : ""}
             />
-            <span aria-hidden="true">/ lb</span>
           </span>
           <label class="price-sold" for={`soldOut_${i}`}>
             <input type="checkbox" id={`soldOut_${i}`} name={`soldOut_${i}`} checked={item.soldOut === true} />
