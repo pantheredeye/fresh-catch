@@ -233,6 +233,16 @@ a {
   gap: 4px;
 }
 
+.stack-section {
+  gap: var(--space-xl);
+}
+
+@media (min-width: 700px) {
+  .stack-section {
+    gap: 48px;
+  }
+}
+
 ul.stack,
 ol.stack {
   margin: 0;
@@ -1345,7 +1355,7 @@ footer a {
   }
 }
 
-/* Catch prices (#86): one row per fish — name | $ [__] / lb | sold-out. */
+/* Catch prices (#86): one row per fish — name | $ [__] | sold-out. */
 .price-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -1366,7 +1376,7 @@ footer a {
 }
 
 .price-input .field-input {
-  width: 6.5rem;
+  width: 5rem;
 }
 
 .price-sold input {
@@ -1376,11 +1386,7 @@ footer a {
 
 @media (max-width: 519px) {
   .price-grid {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .price-grid > .field-label:nth-child(3),
-  .price-grid > .price-sold {
-    grid-column: 1 / -1;
+    column-gap: var(--space-sm);
   }
 }
 

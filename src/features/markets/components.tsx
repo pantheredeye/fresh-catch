@@ -19,6 +19,7 @@ import { Fieldset } from "@/ui/fieldset";
 import { Disclosure } from "@/ui/disclosure";
 import { ErrorSummary } from "@/ui/error-summary";
 import { splitExpiresAt, splitHours } from "./validation";
+import { formatSchedule } from "./display";
 
 const UNSET_OPTION = { value: "", label: "—" };
 
@@ -280,9 +281,10 @@ export const MarketRow: FC<{ market: Market; status: "active" | "inactive" | "li
   status,
 }) => (
   <div class="market-row">
-    <span>
-      <strong>{market.name}</strong> — {market.schedule}
-    </span>
+    <div class="stack stack-tight">
+      <strong>{market.name}</strong>
+      <span class="market-schedule">{formatSchedule(market.schedule)}</span>
+    </div>
     <span class="cluster">
       {status === "past" && market.type === "popup" ? (
         <span class="badge badge-past">{market.cancelledAt ? "Cancelled" : "Ended"}</span>

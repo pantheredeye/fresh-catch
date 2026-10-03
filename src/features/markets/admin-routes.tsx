@@ -87,42 +87,44 @@ marketsAdminRoutes.get("/admin/markets", async (c) => {
             {notice}
           </p>
         ) : null}
-        <SplitControl
-          items={[
-            { href: "/admin/markets/new?type=regular", label: "New market", ariaLabel: "New market" },
-            { href: "/admin/markets/new?type=popup", label: "New popup", ariaLabel: "New popup" },
-          ]}
-        />
+        <div class="stack stack-section">
+          <SplitControl
+            items={[
+              { href: "/admin/markets/new?type=regular", label: "New market", ariaLabel: "New market" },
+              { href: "/admin/markets/new?type=popup", label: "New popup", ariaLabel: "New popup" },
+            ]}
+          />
 
-        <section class="stack">
-          <SectionHeading title="Regular markets" level={2} size="sm" />
-          <div class="stack">
-            {regular.length === 0 ? <p>No active markets yet.</p> : null}
-            {regular.map((market) => (
-              <MarketRow market={market} status="active" />
-            ))}
-          </div>
-        </section>
+          <section class="stack">
+            <SectionHeading title="Regular markets" level={2} size="sm" />
+            <div class="stack">
+              {regular.length === 0 ? <p>No active markets yet.</p> : null}
+              {regular.map((market) => (
+                <MarketRow market={market} status="active" />
+              ))}
+            </div>
+          </section>
 
-        <section class="stack">
-          <SectionHeading title="Live popups" level={2} size="sm" />
-          <div class="stack">
-            {popups.length === 0 ? <p>No live popups.</p> : null}
-            {popups.map((market) => (
-              <MarketRow market={market} status="live" />
-            ))}
-          </div>
-        </section>
+          <section class="stack">
+            <SectionHeading title="Live popups" level={2} size="sm" />
+            <div class="stack">
+              {popups.length === 0 ? <p>No live popups.</p> : null}
+              {popups.map((market) => (
+                <MarketRow market={market} status="live" />
+              ))}
+            </div>
+          </section>
 
-        <section class="stack">
-          <SectionHeading title="Past popups" level={2} size="sm" />
-          <div class="stack">
-            {past.length === 0 ? <p>No past popups.</p> : null}
-            {past.map((market) => (
-              <MarketRow market={market} status="past" />
-            ))}
-          </div>
-        </section>
+          <section class="stack">
+            <SectionHeading title="Past popups" level={2} size="sm" />
+            <div class="stack">
+              {past.length === 0 ? <p>No past popups.</p> : null}
+              {past.map((market) => (
+                <MarketRow market={market} status="past" />
+              ))}
+            </div>
+          </section>
+        </div>
       </Page>
     </Document>,
   );
