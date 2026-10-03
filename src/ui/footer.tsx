@@ -1,11 +1,10 @@
 import type { FC } from "hono/jsx";
 import type { Vendor } from "@/lib/db";
 import type { SessionPayload } from "@/features/auth/session";
-import { formatPhoneDisplay, vendorDisplayName } from "@/lib/format";
 import { Button } from "@/ui/button";
 
 /**
- * Footer — vendor line + login/"My requests"/Admin. Shared across every
+ * Footer — © Digital Glue line + login/"My requests"/Admin. Shared across every
  * customer-facing page, per handoff §3's "login lives in the footer"
  * content rule. `note` carries page-specific copy.
  */
@@ -17,8 +16,7 @@ export const Footer: FC<{ vendor: Vendor | null; session: SessionPayload | null;
   <footer>
     <div class="wrap stack-tight">
       <p>
-        {vendorDisplayName(vendor)}
-        {vendor?.phone ? `, ${formatPhoneDisplay(vendor.phone)}` : ""}.
+        © {new Date().getFullYear()} <a href="https://www.digitalglue.dev">Digital Glue</a>
       </p>
       {note ? <p>{note}</p> : null}
       <p class="cluster">

@@ -84,7 +84,8 @@ describe("GET / — fish board", () => {
     expect(html).not.toContain("Request Flounder"); // sold-out row is a non-link
     expect(html).toContain("Sold out");
     expect(html).toContain("/requests/new?type=question&amp;species=Flounder");
-    expect(html).toContain("Ask about next week");
+    expect(html).toContain('Ask about <span class="nowrap">it<svg');
+    expect(html).not.toContain("next week");
   });
 
   it("drops notes that echo the name; keeps real detail", async () => {
@@ -154,6 +155,27 @@ describe("GET / — public page polish (#82)", () => {
     const html = await (await app.request("/", {}, env)).text();
     expect(html).not.toContain("per pound");
     expect(html).toContain("Call/text for price.");
+  });
+
+  it("no phone: no 'Call' copy, request button in closing band", async () => {
+    await publish([{ name: "Mullet", note: "Fresh." }]);
+    const vendor = await db.vendor.findFirst();
+    await db.vendor.update({ where: { id: vendor!.id }, data: { phone: null } });
+    try {
+      const html = await (await app.request("/", {}, env)).text();
+      expect(html).not.toContain("Call/text");
+      expect(html).not.toContain("Call or text");
+      expect(html).toContain("Ask for a price.");
+      expect(html).toMatch(/<a href="\/requests\/new"[^>]*>Ask for a price<\/a>/);
+    } finally {
+      await db.vendor.update({ where: { id: vendor!.id }, data: { phone: vendor!.phone } });
+    }
+  });
+
+  it("footer: © year + Digital Glue link, no trailing period", async () => {
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).toContain(`© ${new Date().getFullYear()} <a href="https://www.digitalglue.dev">Digital Glue</a>`);
+    expect(html).not.toContain("Digital Glue</a>.");
   });
 
   it("shows 'per pound' when at least one item is priced", async () => {
@@ -295,6 +317,23 @@ describe("GET / — route + saved band", () => {
     expect(html).toContain(livePopup.name);
     expect(html).not.toContain(pastPopup.name);
     expect(html).toContain('href="/markets/past"');
+    expect(html).toContain(`href="/markets/${active.id}"`);
+    expect(html).toContain("Our markets");
+    expect(html).toContain(">Popups<");
+  });
+
+  it("hides the Popups section when no popup is live", async () => {
+    await db.market.updateMany({ where: { type: "popup" }, data: { expiresAt: new Date(Date.now() - 60_000) } });
+    const html = await (await app.request("/", {}, env)).text();
+    expect(html).not.toContain(">Popups<");
+  });
+
+  it("sparse market row: no empty hrs2, no Directions", async () => {
+    const m = await addMarket({ name: `Sparse ${crypto.randomUUID()}`, schedule: "", address: null });
+    const html = await (await app.request("/", {}, env)).text();
+    const row = html.slice(html.indexOf(m.name) - 200).split("</div>")[0];
+    expect(row).not.toContain("hrs2");
+    expect(row).not.toContain("Directions");
   });
 
   it("renders a hidden saved-band pin, keyed by market id, for a market with a computable occurrence", async () => {

@@ -79,6 +79,7 @@ describe("Tideline palette contrast (docs/redesign/fresh-catch-handoff.md §3)",
       "deep",
       "sea",
       "muted",
+      "muted-soft",
       "coral",
       "coral-fill",
       "line",
@@ -120,6 +121,7 @@ describe("Tideline palette contrast (docs/redesign/fresh-catch-handoff.md §3)",
     ["coral", "shallow"],
     ["coral", "sand"],
     ["muted", "shallow"], // .badge-past (also badge-fulfilled)
+    ["muted-soft", "sand"], // .fish.out h3 + struck price (sold-out row)
   ];
 
   it.each(largeTextPairs)("%s on %s meets the 4.5:1 large-text/graphic floor", (fg, bg) => {
