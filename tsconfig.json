@@ -8,6 +8,7 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext", "ES2022"],
     /* Specify what JSX code is generated. */
     "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
 
     /* Specify what module code is generated. */
     "module": "es2022",
@@ -16,8 +17,8 @@
     /* Specify type package names to be included without being referenced in a source file. */
     "types": [
       "./worker-configuration.d.ts",
-      "./types/rw.d.ts",
       "./types/vite.d.ts",
+      "vite/client",
       "@cloudflare/vitest-pool-workers/types"
     ],
     "paths": {

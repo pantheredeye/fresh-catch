@@ -1,104 +1,53 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "digitalglue-market",
-  "main": "src/worker.tsx",
+  "name": "fresh-catch-v2",
+  "main": "src/index.ts",
   "compatibility_date": "2025-08-21",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "directory": "./public"
   },
   "observability": {
-    "enabled": true
-  },
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "SESSION_DURABLE_OBJECT",
-        "class_name": "SessionDurableObject"
-      },
-      {
-        "name": "CHAT_DURABLE_OBJECT",
-        "class_name": "ChatDurableObject"
-      },
-      {
-        "name": "RATE_LIMIT_DURABLE_OBJECT",
-        "class_name": "RateLimitDurableObject"
-      },
-      {
-        "name": "MCP_DURABLE_OBJECT",
-        "class_name": "McpDurableObject"
-      },
-      {
-        "name": "SIGNAL_DURABLE_OBJECT",
-        "class_name": "SignalDurableObject"
-      },
-      {
-        "name": "INBOX_DURABLE_OBJECT",
-        "class_name": "InboxDurableObject"
-      }
-    ]
-  },
-  "vars": {
-    "WEBAUTHN_APP_NAME": "digitalglue-market",
-    "WEBAUTHN_RP_ID": "market.digitalglue.dev",
-    "ADMIN_EMAIL": "barrett@digitalglue.dev",
-    "APP_URL": "https://market.digitalglue.dev",
-    "NODE_ENV": "production"
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "SessionDurableObject"
-      ]
-    },
-    {
-      "tag": "v2",
-      "new_classes": [
-        "ChatDurableObject"
-      ]
-    },
-    {
-      "tag": "v3",
-      "new_classes": [
-        "RateLimitDurableObject"
-      ]
-    },
-    {
-      "tag": "v4",
-      "new_sqlite_classes": [
-        "McpDurableObject"
-      ]
-    },
-    {
-      "tag": "v5",
-      "new_sqlite_classes": [
-        "SignalDurableObject"
-      ]
-    },
-    {
-      "tag": "v6",
-      "new_classes": [
-        "InboxDurableObject"
-      ]
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1
     }
-  ],
-  "ai": {
-    "binding": "AI"
+  },
+  // Production values — this file is deployed as-is (see docs/CUTOVER.md).
+  // Override locally via .dev.vars (see .env.example), not by editing these.
+  "vars": {
+    "ADMIN_EMAILS": "barrett@digitalglue.dev", // Evan's email pending — append it (comma-separated) + redeploy when known
+    "APP_URL": "https://market.digitalglue.dev"
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "digitalglue-market",
-      "database_id": "71d2e8c4-b9a8-48ea-9fc5-550a9206ea61"
+      "database_name": "fresh-catch-v2",
+      "database_id": "96307b95-87b4-40eb-93c1-64b10c3244e7"
     }
   ],
+  // Local-dev convenience only: `vite dev`/`wrangler dev` proxy this binding to
+  // the real remote AI service instead of local emulation. Deployed Workers
+  // always call the live binding regardless of this flag — harmless on deploy.
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
+  // G6 cutover (2026-09-06): custom domain now declared here — deploy attaches
+  // it to fresh-catch-v2, taking it over from v1 (digitalglue-market). Rollback:
+  // remove this block, redeploy v1 (its config re-seizes the domain).
   "routes": [
     {
       "pattern": "market.digitalglue.dev",
       "custom_domain": true
     }
   ]
+  // Custom domain (G6) is deliberately NOT declared here as a `routes` block —
+  // committing one would make *any* `wrangler deploy` seize market.digitalglue.dev
+  // away from the still-live v1 worker before G5/G6 are ready for that. It's
+  // attached manually via the dashboard at G6 instead — see docs/CUTOVER.md.
 }

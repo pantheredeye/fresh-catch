@@ -1,0 +1,5 @@
+# Font filenames never change (public/fonts/OFL.txt) — safe to cache forever.
+# style.css and /js/* are cache-busted via a build-time ?v= query instead
+# (src/lib/assets.ts), so they're deliberately not covered here.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
