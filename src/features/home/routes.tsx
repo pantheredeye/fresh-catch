@@ -98,8 +98,9 @@ function buildSavedPins(markets: Market[], now: Date, tz: string): SavedPin[] {
   const pins: SavedPin[] = [];
   for (const market of markets) {
     const occurrence = nextOccurrence(market, now, tz);
-    if (!occurrence) continue;
-    pins.push({ marketId: market.id, name: market.name, description: describeOccurrence(occurrence, now, tz) });
+    const description = occurrence ? describeOccurrence(occurrence, now, tz) : market.schedule?.trim();
+    if (!description) continue;
+    pins.push({ marketId: market.id, name: market.name, description });
   }
   return pins;
 }

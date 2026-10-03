@@ -117,6 +117,20 @@ const ARROW_ICON = (
   </svg>
 );
 
+/** Splits a label so its last word + the arrow can't wrap apart. */
+const WithArrow: FC<{ label: string }> = ({ label }) => {
+  const i = label.lastIndexOf(" ");
+  return (
+    <span>
+      {i === -1 ? null : `${label.slice(0, i)} `}
+      <span class="nowrap">
+        {label.slice(i + 1)}
+        {ARROW_ICON}
+      </span>
+    </span>
+  );
+};
+
 const FILLER = new Set(["fresh", "local", "today", "daily", "caught", "catch", "and", "the", "of", "a"]);
 
 const words = (text: string) => text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
@@ -140,14 +154,14 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
       <FishArt name={item.name} />
       <div class="fbody">
         <h3>{item.name}</h3>
-        {noteEchoesName(item.name, item.note) ? null : <p>{item.note}</p>}
+        {item.soldOut || noteEchoesName(item.name, item.note) ? null : <p>{item.note}</p>}
         {item.soldOut ? (
           <a class="req" href={askHref}>
-            Ask about next week {ARROW_ICON}
+            <WithArrow label="Ask about it" />
           </a>
         ) : (
           <span class="req">
-            {requestLabel(item)} {ARROW_ICON}
+            <WithArrow label={requestLabel(item)} />
           </span>
         )}
       </div>
@@ -214,7 +228,7 @@ export type RouteRow = {
 
 /** One stop on the week's route (item 6) — today's row gets `.now` + a tag, per handoff §3's split-control amendment. */
 const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendor }) => {
-  const { market, isPopup, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
+  const { market, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
   const name = vendorDisplayName(vendor);
   const hasAddress = Boolean(market.address);
   const hasPhone = Boolean(vendor?.phone);
@@ -223,10 +237,9 @@ const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendo
       {isToday && todayTag ? <span class="tag">{todayTag}</span> : null}
       {dayLabel ? <p class="dy">{dayLabel}</p> : null}
       <h3>
-        {market.name}
-        {isPopup ? " (popup)" : ""}
+        <a href={`/markets/${market.id}`}>{market.name}</a>
       </h3>
-      {hoursLabel ? <p class="hrs2">{hoursLabel}</p> : <p class="hrs2">{market.schedule}</p>}
+      {hoursLabel || market.schedule?.trim() ? <p class="hrs2">{hoursLabel || market.schedule}</p> : null}
       {addressLabel ? <p class="addr2">{addressLabel}</p> : null}
       {hasAddress && hasPhone ? (
         <SplitControl
@@ -246,16 +259,37 @@ const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendo
   );
 };
 
-export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ rows, vendor }) => (
-  <>
-    <SectionHeading title="The week's route" meta={`${rows.length} stop${rows.length === 1 ? "" : "s"}`} />
-    <p class="stamp">The same days all year.</p>
-    {rows.length === 0 ? <p class="muted">No markets posted yet.</p> : rows.map((row) => <RouteRowView row={row} vendor={vendor} />)}
-    <p>
-      <a href="/markets/past">Past popups →</a>
-    </p>
-  </>
-);
+export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ rows, vendor }) => {
+  const popups = rows.filter((row) => row.isPopup);
+  const markets = rows.filter((row) => !row.isPopup);
+  return (
+    <>
+      {popups.length > 0 ? (
+        <>
+          <SectionHeading title="Popups" meta={`${popups.length} live`} />
+          {popups.map((row) => (
+            <RouteRowView row={row} vendor={vendor} />
+          ))}
+          <p>
+            <a href="/markets/past">Past popups →</a>
+          </p>
+        </>
+      ) : null}
+      <SectionHeading title="Our markets" meta={`${markets.length} stop${markets.length === 1 ? "" : "s"}`} />
+      {markets.length === 0 ? (
+        <p class="muted">No markets posted yet.</p>
+      ) : (
+        markets.map((row) => <RouteRowView row={row} vendor={vendor} />)
+      )}
+    </>
+  );
+};
+
+/** Request fallback copy shared by ClosingBand and CallCard — phone set → call/text, else a request button. */
+function holdCopy(hasPhone: boolean, priced: boolean, name: string): string {
+  if (hasPhone) return `${priced ? "Call or text." : "Call/text for price."} ${name} will touch base on availability and pickup.`;
+  return `${priced ? "Send a request." : "Ask for a price."} ${name} will touch base on availability and pickup.`;
+}
 
 /** Closing band (item 7, deep) — coral-fill primary on dark ground via the existing .band-deep override. */
 export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
@@ -263,9 +297,7 @@ export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ ve
   return (
     <>
       <h2>Ask {name} to hold one</h2>
-      <p>
-        {priced ? "Call or text." : "Call/text for price."} {name} will touch base on availability and pickup.
-      </p>
+      <p>{holdCopy(Boolean(vendor?.phone), priced, name)}</p>
       {vendor?.phone ? (
         <>
           <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
@@ -273,15 +305,25 @@ export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ ve
             Text {formatPhoneDisplay(vendor.phone)}
           </Button>
         </>
-      ) : null}
+      ) : (
+        <Button href="/requests/new">Ask for a price</Button>
+      )}
     </>
   );
 };
 
 /** Desktop-only (≥1024) Call/Text card in the sticky right column — replaces the mobile ActionBar; hidden below via CSS. */
 export const CallCard: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
-  if (!vendor?.phone) return null;
   const name = vendorDisplayName(vendor);
+  if (!vendor?.phone) {
+    return (
+      <div class="card call-card">
+        <h2 class="hd hd-sm">Ask {name} to hold one</h2>
+        <p class="muted">{holdCopy(false, priced, name)}</p>
+        <Button href="/requests/new">Ask for a price</Button>
+      </div>
+    );
+  }
   return (
     <div class="card call-card">
       <h2 class="hd hd-sm">Ask {name} to hold one</h2>
