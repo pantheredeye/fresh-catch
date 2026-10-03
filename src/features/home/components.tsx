@@ -228,7 +228,7 @@ export type RouteRow = {
 
 /** One stop on the week's route (item 6) — today's row gets `.now` + a tag, per handoff §3's split-control amendment. */
 const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendor }) => {
-  const { market, isPopup, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
+  const { market, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
   const name = vendorDisplayName(vendor);
   const hasAddress = Boolean(market.address);
   const hasPhone = Boolean(vendor?.phone);
