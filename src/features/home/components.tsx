@@ -2,6 +2,7 @@ import type { FC } from "hono/jsx";
 import type { Market, Vendor } from "@/lib/db";
 import type { CatchContent, CatchItem } from "@/features/catch/pipeline";
 import { WEEKDAY_NAMES, formatPrice, mapsHref, smsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
+import { formatSchedule } from "@/features/markets/display";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
 import { SplitControl } from "@/ui/split-control";
@@ -43,7 +44,7 @@ export const Hero: FC<HeroData & { vendor: Vendor | null }> = ({
       {hoursLine ? (
         <p class="hero-hrs">{hoursLine}</p>
       ) : scheduleFallback ? (
-        <p class="hero-hrs">{market.schedule}</p>
+        <p class="hero-hrs">{formatSchedule(market.schedule)}</p>
       ) : null}
       {addressLine ? <p class="hero-addr">{addressLine}</p> : null}
       {then ? (
@@ -239,7 +240,7 @@ const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendo
       <h3>
         <a href={`/markets/${market.id}`}>{market.name}</a>
       </h3>
-      {hoursLabel || market.schedule?.trim() ? <p class="hrs2">{hoursLabel || market.schedule}</p> : null}
+      {hoursLabel || market.schedule?.trim() ? <p class="hrs2">{hoursLabel || formatSchedule(market.schedule)}</p> : null}
       {addressLabel ? <p class="addr2">{addressLabel}</p> : null}
       {hasAddress && hasPhone ? (
         <SplitControl
