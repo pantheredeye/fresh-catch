@@ -69,6 +69,14 @@ function contrast(a: string, b: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+// An author `display` (.pin, .stack, …) overrides the UA `[hidden]` rule, so
+// the attr silently stops hiding. Global !important rule prevents that (#96).
+describe("hidden attr", () => {
+  it("always wins over author display rules", () => {
+    expect(styleCss).toMatch(/(^|\n)\[hidden\]\s*\{[^}]*display:\s*none\s*!important/);
+  });
+});
+
 describe("Tideline palette contrast (docs/redesign/fresh-catch-handoff.md §3)", () => {
   it("parsed every expected palette token from public/style.css", () => {
     for (const name of [

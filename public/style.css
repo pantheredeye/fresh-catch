@@ -128,6 +128,12 @@
   box-sizing: border-box;
 }
 
+/* `hidden` must win over any author `display` (.pin, .stack, …) — the one
+   deliberate !important. See #96. */
+[hidden] {
+  display: none !important;
+}
+
 html {
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
@@ -982,10 +988,6 @@ ol.stack {
 .saved {
   padding: var(--space-lg) 0;
   border-bottom: 3px solid var(--color-border-light);
-}
-
-.saved[hidden] {
-  display: none;
 }
 
 .pin {
