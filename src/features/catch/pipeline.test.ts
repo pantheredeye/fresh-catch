@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CatchPipelineError, runCatchPipeline } from "./pipeline";
+import { StructuredPipelineError } from "@/lib/ai/structure";
+import { runCatchPipeline } from "./pipeline";
 
 function fakeAi(response: string): Ai {
   return { run: async () => ({ response }) } as unknown as Ai;
@@ -39,10 +40,10 @@ describe("runCatchPipeline — text input", () => {
   });
 
   it("rejects blank text", async () => {
-    await expect(runCatchPipeline(undefined, { kind: "text", text: "   " })).rejects.toThrow(CatchPipelineError);
+    await expect(runCatchPipeline(undefined, { kind: "text", text: "   " })).rejects.toThrow(StructuredPipelineError);
   });
 
-  it("throws a 500 CatchPipelineError when the AI response can't be parsed", async () => {
+  it("throws a 500 StructuredPipelineError when the AI response can't be parsed", async () => {
     await expect(runCatchPipeline(fakeAi("not json"), { kind: "text", text: "x" })).rejects.toMatchObject({
       status: 500,
     });
