@@ -64,6 +64,7 @@ and apply with `pnpm run migrate:dev`.
 - `src/types.ts` — `Bindings` type (`c.env`)
 - `src/lib/env.ts` — required-secret checks
 - `src/lib/db.ts` — Prisma client, lazily instantiated per isolate with the D1 adapter
+- `src/lib/ai/structure.ts` — `runStructured<T>`: text/audio → LLM → validated JSON. Features supply prompt + validator + optional fallback
 - `prisma/schema.prisma` — data model; `migrations/` holds the generated SQL, applied via `wrangler d1 migrations`
 - `src/ui/document.tsx` — hono/jsx HTML shell
 - `wrangler.jsonc` — Cloudflare config. Worker name is `fresh-catch-v2` (new
@@ -145,6 +146,10 @@ hairline/right-aligned-meta device), `SplitControl` (exactly two 60px halves
   live from `public/style.css` via the `ASSETS` binding (needs
   `wrangler.jsonc`'s `assets.directory` set even though the Vite plugin
   resolves its own directory for real dev/build/deploy).
+
+**AI guardrails, enforced by `src/lib/ai/guardrails.test.ts`:**
+- `src/lib/**` never imports from `@/features/` — pass feature specifics in as options.
+- `ai.run(` lives only under `src/lib/ai/` — call `runStructured` from `@/lib/ai/structure`.
 
 ## Removed in the rebuild — do not reintroduce
 

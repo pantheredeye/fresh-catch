@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { csrfProtect, requireAdmin } from "@/features/auth/middleware";
-import { CatchPipelineError, parseCatchContent, runCatchPipeline, type CatchItem, type CatchPipelineInput } from "./pipeline";
+import { StructuredPipelineError } from "@/lib/ai/structure";
+import { parseCatchContent, runCatchPipeline, type CatchItem, type CatchPipelineInput } from "./pipeline";
 import { parsePricesForm, parsePublishForm } from "./validation";
 import { getLiveCatchUpdate, publishCatchUpdate, updateCatchContent } from "./queries";
 import { CatchPage } from "./components";
@@ -36,14 +37,14 @@ catchAdminRoutes.post("/admin/catch/record", async (c) => {
       input = { kind: "text", text: body.text ?? "" };
     } else {
       const audio = await c.req.arrayBuffer();
-      if (audio.byteLength === 0) throw new CatchPipelineError("No audio data", { status: 400 });
+      if (audio.byteLength === 0) throw new StructuredPipelineError("No audio data", { status: 400 });
       input = { kind: "audio", audio };
     }
 
     const draft = await runCatchPipeline(c.env.AI, input);
     return c.json(draft);
   } catch (error) {
-    if (error instanceof CatchPipelineError) {
+    if (error instanceof StructuredPipelineError) {
       return c.json({ error: error.message, rawTranscript: error.rawTranscript }, error.status as 400 | 500 | 501);
     }
     console.error("catch record failed:", error);
