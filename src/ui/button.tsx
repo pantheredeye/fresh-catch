@@ -8,6 +8,11 @@ type ButtonProps = PropsWithChildren<{
   /** Rare inline usage (e.g. a button gallery) — default is a full-width 58px block, per §3. */
   inline?: boolean;
   id?: string;
+  /** Submitted name/value pair — lets one form carry secondary no-JS actions (e.g. the order builder's add/remove row). */
+  name?: string;
+  value?: string;
+  /** Skip native validation for secondary submits that just re-render the form. */
+  formNoValidate?: boolean;
   /** Extra class(es), appended after the variant classes. */
   class?: string;
   ariaLabel?: string;
@@ -32,6 +37,9 @@ export const Button: FC<ButtonProps> = ({
   href,
   inline,
   id,
+  name,
+  value,
+  formNoValidate,
   class: extraClass,
   ariaLabel,
   ariaPressed,
@@ -56,7 +64,7 @@ export const Button: FC<ButtonProps> = ({
     );
   }
   return (
-    <button type={type} disabled={disabled} {...shared}>
+    <button type={type} disabled={disabled} name={name} value={value} formnovalidate={formNoValidate} {...shared}>
       {children}
     </button>
   );

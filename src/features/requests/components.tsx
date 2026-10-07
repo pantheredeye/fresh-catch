@@ -2,82 +2,162 @@ import type { FC } from "hono/jsx";
 import type { FishRequest, RequestMessage } from "@/lib/db";
 import type { InboxEntry } from "./queries";
 import type { RequestStatus } from "./validation";
+import type { RequestableCatchItem } from "@/features/catch/queries";
 import { needsReply } from "./queries";
+import { formatPrice } from "@/lib/format";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { ErrorSummary } from "@/ui/error-summary";
 import { CardHeader } from "@/ui/card-header";
-import { OTHER_SPECIES, REQUEST_STATUSES } from "./validation";
+import { MAX_REQUEST_ITEMS, OTHER_SPECIES, REQUEST_STATUSES, itemFieldId } from "./validation";
+
+export type RequestItemFormValues = {
+  /** The species select/input value as posted — may be the `OTHER_SPECIES` sentinel. */
+  species?: string;
+  speciesOther?: string;
+  quantity?: string;
+  notes?: string;
+};
 
 export type RequestFormValues = {
   requestType?: string;
-  species?: string;
-  quantity?: string;
+  items?: RequestItemFormValues[];
   notes?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
 };
 
-function asOptional(value: string | null | undefined): string | undefined {
-  return value ?? undefined;
-}
-
-export function requestToFormValues(request: FishRequest): RequestFormValues {
-  return {
-    requestType: request.requestType,
-    species: asOptional(request.species),
-    quantity: asOptional(request.quantity),
-    notes: asOptional(request.notes),
-    contactName: request.contactName,
-    contactEmail: asOptional(request.contactEmail),
-    contactPhone: asOptional(request.contactPhone),
-  };
+/** The display name a row resolves to, or undefined for an untouched/unnamed row. */
+function rowSpeciesName(item: RequestItemFormValues): string | undefined {
+  const species = item.species?.trim();
+  if (species === OTHER_SPECIES) return item.speciesOther?.trim() || undefined;
+  return species || undefined;
 }
 
 /** Active-voice submit label, same verb the confirmation echoes (handoff §3: "Request bass" → "Requested"). */
 function submitLabel(values: RequestFormValues): string {
   if (values.requestType === "question") return "Send question";
-  if (values.species) return `Request ${values.species}`;
+  const named = (values.items ?? []).map(rowSpeciesName).filter((name): name is string => !!name);
+  if (named.length > 1) return `Request ${named.length} fish`;
+  if (named.length === 1) return `Request ${named[0]}`;
   return "Request fish";
 }
 
-/** Species select of live catch items + "Other" (reveals a free-text input via CSS `:has()`, zero JS). Prefill selects the match. */
-const SpeciesPicker: FC<{ options: string[]; species?: string; errors: Record<string, string> }> = ({
-  options,
-  species,
-  errors,
-}) => {
-  const match = species ? options.find((o) => o.toLowerCase() === species.trim().toLowerCase()) : undefined;
+/**
+ * Species select of live catch items + "Other" (reveals a free-text input via
+ * a per-row CSS `:has()`, zero JS). A price-tagged catch item shows its price
+ * in the option label — the only no-JS way to keep it next to the selection;
+ * untagged items show none (issue 103: never invented). Prefill selects the match.
+ */
+const ItemSpeciesPicker: FC<{
+  index: number;
+  item: RequestItemFormValues;
+  catchItems: RequestableCatchItem[];
+  errors: Record<string, string>;
+  autofocus?: boolean;
+}> = ({ index, item, catchItems, errors, autofocus }) => {
+  const species = item.species;
+  const match =
+    species && species !== OTHER_SPECIES
+      ? catchItems.find((o) => o.name.toLowerCase() === species.trim().toLowerCase())
+      : undefined;
   const isOther = species === OTHER_SPECIES || (!!species && !match);
-  const selected = match ?? (isOther ? OTHER_SPECIES : "");
+  const selected = match?.name ?? (isOther ? OTHER_SPECIES : "");
+  const otherValue = species === OTHER_SPECIES ? item.speciesOther : isOther ? species : undefined;
+  const anyPriced = catchItems.some((o) => o.priceCents !== undefined);
   return (
     <>
       <Select
-        id="species"
-        name="species"
+        id={itemFieldId(index, "species")}
+        name={`items[${index}].species`}
         label="Species"
         value={selected}
+        autofocus={autofocus}
         options={[
           { value: "", label: "Choose a fish" },
-          ...options.map((o) => ({ value: o, label: o })),
+          ...catchItems.map((o) => ({
+            value: o.name,
+            label: o.priceCents !== undefined ? `${o.name} — ${formatPrice(o.priceCents)}` : o.name,
+          })),
           { value: OTHER_SPECIES, label: "Other" },
         ]}
-        errorText={errors.species}
+        helperText={anyPriced ? "Prices shown are this week's listed prices." : undefined}
+        errorText={errors[itemFieldId(index, "species")]}
       />
       <div class="other-only">
         <Input
-          id="speciesOther"
-          name="speciesOther"
+          id={itemFieldId(index, "speciesOther")}
+          name={`items[${index}].speciesOther`}
           label="Which fish?"
-          value={species && species !== OTHER_SPECIES && !match ? species : undefined}
+          value={otherValue}
+          helperText="Not on this week's list — 2 Fishes Seafood will confirm availability and price."
+          errorText={errors[itemFieldId(index, "speciesOther")]}
         />
       </div>
     </>
   );
 };
+
+/** One fish of the order (issue 103). `catchItems` undefined = free-text species (admin walk-up, or no fresh catch this week). */
+const ItemRow: FC<{
+  index: number;
+  item: RequestItemFormValues;
+  catchItems?: RequestableCatchItem[];
+  removable: boolean;
+  errors: Record<string, string>;
+  autofocus?: boolean;
+}> = ({ index, item, catchItems, removable, errors, autofocus }) => (
+  <fieldset class="item-row">
+    <legend>Fish {index + 1}</legend>
+    <div class="stack">
+      {catchItems ? (
+        <ItemSpeciesPicker index={index} item={item} catchItems={catchItems} errors={errors} autofocus={autofocus} />
+      ) : (
+        <Input
+          id={itemFieldId(index, "species")}
+          name={`items[${index}].species`}
+          label="Species"
+          value={item.species}
+          autofocus={autofocus}
+          helperText="What fish are you looking for?"
+          errorText={errors[itemFieldId(index, "species")]}
+        />
+      )}
+      <Input
+        id={itemFieldId(index, "quantity")}
+        name={`items[${index}].quantity`}
+        label="Quantity"
+        value={item.quantity}
+        helperText='e.g. "2 lbs" or "a whole fish"'
+        errorText={errors[itemFieldId(index, "quantity")]}
+      />
+      <Input
+        id={itemFieldId(index, "notes")}
+        name={`items[${index}].notes`}
+        label="Note"
+        value={item.notes}
+        helperText="Prep or size for this fish — optional."
+        errorText={errors[itemFieldId(index, "notes")]}
+      />
+      {removable ? (
+        <Button
+          type="submit"
+          variant="ghost"
+          inline
+          name="action"
+          value={`remove-${index}`}
+          formNoValidate
+          ariaLabel={`Remove fish ${index + 1}`}
+        >
+          Remove
+        </Button>
+      ) : null}
+    </div>
+  </fieldset>
+);
 
 /**
  * One form for both request types (plan addendum #2) — a radio toggle plus a
@@ -92,11 +172,14 @@ export const RequestForm: FC<{
   csrfToken: string;
   values?: RequestFormValues;
   errors?: Record<string, string>;
-  /** Customer form: this week's live species for the select. Omit for the admin walk-up form (free-text species, radio toggle). */
-  speciesOptions?: string[];
-}> = ({ action, csrfToken, values = {}, errors = {}, speciesOptions }) => {
+  /** Customer form: this week's live catch for the selects + the add/remove row builder. Omit for the admin walk-up form (free-text species, single row). */
+  catchItems?: RequestableCatchItem[];
+  /** Row whose species field grabs focus — the no-JS "Add another fish" round trip lands you on the new row. */
+  autofocusItem?: number;
+}> = ({ action, csrfToken, values = {}, errors = {}, catchItems, autofocusItem }) => {
   const isQuestion = values.requestType === "question";
-  const customer = speciesOptions !== undefined;
+  const customer = catchItems !== undefined;
+  const items = values.items?.length ? values.items : [{}];
   return (
     <form method="post" action={action} class="request-form stack">
       <input type="hidden" name="csrfToken" value={csrfToken} />
@@ -129,26 +212,21 @@ export const RequestForm: FC<{
         </fieldset>
       )}
       <div class="fish-only stack">
-        {customer && speciesOptions.length > 0 ? (
-          <SpeciesPicker options={speciesOptions} species={values.species} errors={errors} />
-        ) : (
-          <Input
-            id="species"
-            name="species"
-            label="Species"
-            value={values.species}
-            helperText="What fish are you looking for?"
-            errorText={errors.species}
+        {items.map((item, index) => (
+          <ItemRow
+            index={index}
+            item={item}
+            catchItems={customer && catchItems.length > 0 ? catchItems : undefined}
+            removable={customer && items.length > 1}
+            errors={errors}
+            autofocus={autofocusItem === index}
           />
-        )}
-        <Input
-          id="quantity"
-          name="quantity"
-          label="Quantity"
-          value={values.quantity}
-          helperText='e.g. "2 lbs" or "a whole fish"'
-          errorText={errors.quantity}
-        />
+        ))}
+        {customer && items.length < MAX_REQUEST_ITEMS ? (
+          <Button type="submit" variant="secondary" name="action" value="add-row" formNoValidate>
+            Add another fish
+          </Button>
+        ) : null}
       </div>
       <Textarea
         id="notes"
@@ -192,9 +270,13 @@ export const RequestForm: FC<{
 };
 
 /** Post-submit confirmation (handoff §3: same verb all the way through — "Request bass" → "Requested"). */
-export const RequestConfirmation: FC<{ requestType: string }> = ({ requestType }) => (
+export const RequestConfirmation: FC<{ requestType: string; hasCustomItems?: boolean }> = ({
+  requestType,
+  hasCustomItems,
+}) => (
   <p class="notice notice-success" role="status">
     {requestType === "question" ? "Sent." : "Requested."} 2 Fishes Seafood will reply here.
+    {hasCustomItems ? " Some of your fish aren't on this week's list — availability and price will be confirmed." : null}
   </p>
 );
 
