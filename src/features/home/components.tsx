@@ -1,11 +1,10 @@
 import type { FC } from "hono/jsx";
 import type { Market, Vendor } from "@/lib/db";
 import type { CatchContent, CatchItem } from "@/features/catch/pipeline";
-import { WEEKDAY_NAMES, formatPrice, mapsHref, smsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
+import { formatPrice, mapsHref, smsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
 import { formatSchedule } from "@/features/markets/display";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
-import { SplitControl } from "@/ui/split-control";
 import { FishArt } from "./fish-art";
 
 export type HeroData = {
@@ -14,49 +13,26 @@ export type HeroData = {
   scheduleFallback: boolean;
   dateLine: string | null;
   hoursLine: string | null;
-  addressLine: string | null;
-  then: { weekday: number; market: { name: string } } | null;
 };
 
-/** Hero (item 3, shallow band) — the one big answer: where, when, how to get there. */
-export const Hero: FC<HeroData & { vendor: Vendor | null }> = ({
-  market,
-  scheduleFallback,
-  dateLine,
-  hoursLine,
-  addressLine,
-  then,
-  vendor,
-}) => {
+/** Hero (item 3, shallow band) — name + day/time only; address and directions live in the route list below. */
+export const Hero: FC<HeroData> = ({ market, scheduleFallback, dateLine, hoursLine }) => {
   if (!market) {
     return (
       <div class="stack">
-        <h1 class="h-display">No markets posted yet</h1>
+        <h1 class="hero-name">No markets posted yet</h1>
         <p class="muted">Check back soon.</p>
       </div>
     );
   }
-  const name = vendorDisplayName(vendor);
   return (
     <div class="stack">
       {dateLine ? <p class="hero-date">{dateLine}</p> : null}
-      <h1 class="h-display">{market.name}</h1>
+      <h1 class="hero-name">{market.name}</h1>
       {hoursLine ? (
-        <p class="hero-hrs">{hoursLine}</p>
+        <p class="hero-when">{hoursLine}</p>
       ) : scheduleFallback ? (
-        <p class="hero-hrs">{formatSchedule(market.schedule)}</p>
-      ) : null}
-      {addressLine ? <p class="hero-addr">{addressLine}</p> : null}
-      {then ? (
-        <p class="hero-then">
-          Then {WEEKDAY_NAMES[then.weekday]}, {then.market.name}.
-        </p>
-      ) : null}
-      {market.address ? <Button href={mapsHref(market.address)}>Directions to {market.name}</Button> : null}
-      {vendor?.phone ? (
-        <Button variant="secondary" href={telHref(vendor.phone)}>
-          Call {name}, {formatPhoneDisplay(vendor.phone)}
-        </Button>
+        <p class="hero-when">{formatSchedule(market.schedule)}</p>
       ) : null}
     </div>
   );
@@ -132,18 +108,6 @@ const WithArrow: FC<{ label: string }> = ({ label }) => {
   );
 };
 
-const FILLER = new Set(["fresh", "local", "today", "daily", "caught", "catch", "and", "the", "of", "a"]);
-
-const words = (text: string) => text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
-
-/** True when a note adds nothing beyond the fish name ("Fresh redfish!") — drop it rather than show fake detail. */
-export function noteEchoesName(name: string, note: string): boolean {
-  const trimmed = note.trim();
-  if (!trimmed) return true;
-  const nameWords = new Set(words(name).flatMap((w) => [w, w.replace(/e?s$/, "")]));
-  return words(trimmed).every((w) => FILLER.has(w) || nameWords.has(w) || nameWords.has(w.replace(/e?s$/, "")));
-}
-
 const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = ({ item, position }) => {
   const rowClass = ["fish", position === "first" ? "first" : "", position === "last" ? "last" : "", item.soldOut ? "out" : ""]
     .filter(Boolean)
@@ -158,7 +122,6 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
           {item.name}
           {item.soldOut ? <span class="tag tag-muted">Sold out</span> : null}
         </h3>
-        {item.soldOut || noteEchoesName(item.name, item.note) ? null : <p>{item.note}</p>}
         {item.soldOut ? (
           <a class="req" href={askHref}>
             <WithArrow label="Ask about it" />
@@ -197,16 +160,12 @@ export function hasPrices(content: CatchContent | null): boolean {
 }
 
 /** Fish board (item 5, sand band) — the weekly list, or a plain notice when nothing's posted. */
-export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null; vendor: Vendor | null }> = ({
-  content,
-  weekOf,
-  vendor,
-}) => (
+export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null }> = ({ content, weekOf }) => (
   <>
     <SectionHeading title="On ice this week" meta={hasPrices(content) ? "per pound" : undefined} />
     {content && content.items.length > 0 ? (
       <>
-        <p class="stamp">{weekOf}. {vendorDisplayName(vendor)} sets the list each Monday.</p>
+        <p class="stamp">{weekOf}. The list is set each Monday.</p>
         <div class="stack-tight">
           {content.items.map((item, index) => (
             <FishRow item={item} position={index === 0 ? "first" : index === content.items.length - 1 ? "last" : "middle"} />
@@ -237,23 +196,19 @@ const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendo
   const hasPhone = Boolean(vendor?.phone);
   return (
     <div class={isToday ? "mk now" : "mk"}>
-      {isToday && todayTag ? <span class="tag">{todayTag}</span> : null}
+      {todayTag ? <span class="tag">{todayTag}</span> : null}
       {dayLabel ? <p class="dy">{dayLabel}</p> : null}
       <h3>
         <a href={`/markets/${market.id}`}>{market.name}</a>
       </h3>
       {hoursLabel || market.schedule?.trim() ? <p class="hrs2">{hoursLabel || formatSchedule(market.schedule)}</p> : null}
       {addressLabel ? <p class="addr2">{addressLabel}</p> : null}
-      {hasAddress && hasPhone ? (
-        <SplitControl
-          items={[
-            { href: mapsHref(market.address!), label: "Directions", ariaLabel: `Directions to ${market.name}` },
-            { href: telHref(vendor!.phone!), label: `Call ${name}`, ariaLabel: `Call ${name} about ${market.name}` },
-          ]}
-        />
-      ) : hasAddress ? (
-        <Button href={mapsHref(market.address!)}>Directions to {market.name}</Button>
-      ) : hasPhone ? (
+      {hasAddress ? (
+        <a class="mk-dir" href={mapsHref(market.address!)} aria-label={`Directions to ${market.name}`}>
+          Directions →
+        </a>
+      ) : null}
+      {hasPhone ? (
         <Button variant="secondary" href={telHref(vendor!.phone!)}>
           Call {name} about {market.name}
         </Button>
@@ -289,47 +244,43 @@ export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ row
 };
 
 /** Request fallback copy shared by ClosingBand and CallCard — phone set → call/text, else a request button. */
-function holdCopy(hasPhone: boolean, priced: boolean, name: string): string {
-  if (hasPhone) return `${priced ? "Call or text." : "Call/text for price."} ${name} will touch base on availability and pickup.`;
-  return `${priced ? "Send a request." : "Ask for a price."} ${name} will touch base on availability and pickup.`;
+function holdCopy(hasPhone: boolean, priced: boolean): string {
+  const lead = hasPhone ? (priced ? "Call or text." : "Call/text for price.") : priced ? "Send a request." : "Ask for a price.";
+  return `${lead} We'll touch base on availability and pickup.`;
 }
 
-/** Closing band (item 7, deep) — coral-fill primary on dark ground via the existing .band-deep override. */
-export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
-  const name = vendorDisplayName(vendor);
-  return (
-    <>
-      <h2>Ask {name} to hold one</h2>
-      <p>{holdCopy(Boolean(vendor?.phone), priced, name)}</p>
-      {vendor?.phone ? (
-        <>
-          <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
-          <Button variant="secondary" href={smsHref(vendor.phone)}>
-            Text {formatPhoneDisplay(vendor.phone)}
-          </Button>
-        </>
-      ) : (
-        <Button href="/requests/new">Ask for a price</Button>
-      )}
-    </>
-  );
-};
+/** Closing band (item 7, deep) — mobile-only CTA; desktop shows the CallCard instead. */
+export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => (
+  <>
+    <h2>Want one held?</h2>
+    <p>{holdCopy(Boolean(vendor?.phone), priced)}</p>
+    {vendor?.phone ? (
+      <>
+        <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
+        <Button variant="secondary" href={smsHref(vendor.phone)}>
+          Text {formatPhoneDisplay(vendor.phone)}
+        </Button>
+      </>
+    ) : (
+      <Button href="/requests/new">Request a hold</Button>
+    )}
+  </>
+);
 
-/** Desktop-only (≥1024) Call/Text card in the sticky right column — replaces the mobile ActionBar; hidden below via CSS. */
+/** Desktop-only (≥1024) CTA card in the sticky right column — replaces the mobile ActionBar and closing band; hidden below via CSS. */
 export const CallCard: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
-  const name = vendorDisplayName(vendor);
   if (!vendor?.phone) {
     return (
       <div class="card call-card">
-        <h2 class="hd hd-sm">Ask {name} to hold one</h2>
-        <p class="muted">{holdCopy(false, priced, name)}</p>
-        <Button href="/requests/new">Ask for a price</Button>
+        <h2 class="hd hd-sm">Want one held?</h2>
+        <p class="muted">{holdCopy(false, priced)}</p>
+        <Button href="/requests/new">Request a hold</Button>
       </div>
     );
   }
   return (
     <div class="card call-card">
-      <h2 class="hd hd-sm">Ask {name} to hold one</h2>
+      <h2 class="hd hd-sm">Want one held?</h2>
       <p class="muted">{priced ? "Call or text." : "Call/text for price."}</p>
       <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
       <Button variant="secondary" href={smsHref(vendor.phone)}>

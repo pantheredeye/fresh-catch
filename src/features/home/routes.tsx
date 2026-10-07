@@ -12,7 +12,6 @@ import {
   describeOccurrence,
   describeTodayStatus,
   isSameLocalDate,
-  nextDifferentMarketByDay,
   nextOccurrence,
   resolveToday,
   type StatusMarket,
@@ -51,12 +50,18 @@ function heroHoursLine(market: Market, tz: string): string | null {
     return `Until ${formatClockTime(local.hour * 60 + local.minute)}`;
   }
   if (hasValidHours(market)) {
-    return formatHoursRange(market.openMinutes, market.closeMinutes);
+    return `${WEEKDAY_NAMES[market.dayOfWeek]}, ${formatHoursRange(market.openMinutes, market.closeMinutes)}`;
   }
   return null;
 }
 
-function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Date, tz: string): RouteRow[] {
+function buildRouteRows(
+  regularMarkets: Market[],
+  livePopups: Market[],
+  now: Date,
+  tz: string,
+  heroMarketId: string | undefined,
+): RouteRow[] {
   const local = localParts(now, tz);
   const todayWeekday = local.weekday;
 
@@ -87,7 +92,13 @@ function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Dat
           : null,
       addressLabel: marketAddressLine(market),
       isToday,
-      todayTag: isToday ? (occurrence?.state === "open-now" ? "Here today" : "Here later today") : null,
+      todayTag: isToday
+        ? occurrence?.state === "open-now"
+          ? "Here today"
+          : "Here later today"
+        : market.id === heroMarketId
+          ? "Next stop"
+          : null,
     };
   });
 
@@ -134,9 +145,7 @@ homeRoutes.get("/", async (c) => {
       ? `No market today. Next stop, ${WEEKDAY_NAMES[localParts(status.next.opensAt, tz).weekday]}:`
       : formatFullDate(now, tz);
 
-  const then = heroMarket && !scheduleFallback ? nextDifferentMarketByDay(allMarkets, heroMarket.id, now, tz) : null;
-
-  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz);
+  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz, heroMarket?.id);
   const savedPins = buildSavedPins([...livePopups, ...regularMarkets], now, tz);
 
   return c.html(
@@ -157,15 +166,12 @@ homeRoutes.get("/", async (c) => {
             scheduleFallback={scheduleFallback}
             dateLine={dateLine}
             hoursLine={heroMarket ? heroHoursLine(heroMarket, tz) : null}
-            addressLine={heroMarket ? marketAddressLine(heroMarket) : null}
-            then={then}
-            vendor={vendor}
           />
         </Band>
         <SavedBand pins={savedPins} />
         <div class="home-split">
           <Band tone="sand" class="home-fish">
-            <FishBoard content={catchContent} weekOf={weekOf} vendor={vendor} />
+            <FishBoard content={catchContent} weekOf={weekOf} />
           </Band>
           <Band tone="paper" class="home-route">
             <div class="home-route-inner">

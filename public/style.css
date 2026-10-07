@@ -985,19 +985,16 @@ ol.stack {
   max-width: 26rem;
 }
 
-.hero-then {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-meta);
-  margin-top: var(--space-xs);
+.hero-name {
+  font-size: clamp(28px, 6vw, 32px);
+  line-height: var(--line-height-tight);
 }
 
-.hero-then::before {
-  content: "";
-  display: block;
-  width: 52px;
-  height: 3px;
-  background: var(--color-action-primary);
-  margin-bottom: var(--space-sm);
+.hero-when {
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .saved {
@@ -1200,6 +1197,15 @@ a.fish:active .req {
 
 .mk h3 a {
   color: inherit;
+  text-decoration: none;
+}
+
+.mk-dir {
+  display: inline-flex;
+  align-items: center;
+  min-height: 58px;
+  font-weight: 800;
+  color: var(--color-action-primary);
 }
 
 .mk .hrs2 {
@@ -1217,19 +1223,6 @@ a.fish:active .req {
 
 .mk.now .dy {
   display: none;
-}
-
-.mk.now .split {
-  background: var(--color-action-primary);
-}
-
-.mk.now .split a {
-  color: var(--color-text-inverse);
-}
-
-.mk.now .split a + a {
-  border-left-color: rgba(255, 255, 255, 0.45);
-  border-top-color: rgba(255, 255, 255, 0.45);
 }
 
 .mk.now {
