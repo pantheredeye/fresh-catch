@@ -104,6 +104,14 @@ describe("parseRequestForm", () => {
     if (!result.success) expect(result.errors["items-0-speciesOther"]).toBe("Enter the fish name");
   });
 
+  it("does not flag an Other row whose typed name matches the live list", () => {
+    const result = parseRequestForm(
+      fishFields({ "items[0].species": "__other", "items[0].speciesOther": "halibut" }),
+      { liveSpecies: ["Halibut"] },
+    );
+    expect(result.success && result.data.items[0].isCustom).toBe(false);
+  });
+
   it("flags a species missing from liveSpecies as custom (sold out between load and submit)", () => {
     const live = { liveSpecies: ["Halibut", "Grouper"] };
     const onList = parseRequestForm(fishFields({ "items[0].species": "halibut" }), live);

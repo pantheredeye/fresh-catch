@@ -6,7 +6,7 @@ import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
-import { listRequestableCatchItems } from "@/features/catch/queries";
+import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
@@ -103,9 +103,15 @@ async function renderBuilderPage(
   values: RequestFormValues,
   errors: Record<string, string>,
   status: 200 | 400,
-  autofocusItem?: number,
+  options: { autofocusItem?: number; catchItems?: RequestableCatchItem[] } = {},
 ) {
-  const [csrfToken, vendor, catchItems] = await Promise.all([csrfTokenFor(c), getVendor(), listRequestableCatchItems()]);
+  const { autofocusItem } = options;
+  const [csrfToken, vendor, catchItems] = await Promise.all([
+    csrfTokenFor(c),
+    getVendor(),
+    // The submit path already fetched the live catch for isCustom — reuse it.
+    options.catchItems ?? listRequestableCatchItems(),
+  ]);
   return c.html(
     <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
       <BrandBar vendor={vendor} />
@@ -147,11 +153,14 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
   const body = await c.req.parseBody();
 
   // Add/remove-row round trips only re-render the form — handled before the
-  // rate limiter so growing an order never burns requestCreate budget (issue 103).
+  // requestCreate limiter so growing an order never burns submit budget
+  // (issue 103), but on their own loose bucket so the render isn't unmetered.
   const action = builderAction(body);
   if (action) {
+    const rl = await checkRateLimit(clientIp(c.req.raw), "builderAction", c.var.deviceToken);
+    if (!rl.allowed) return c.text("Too many requests. Try again later.", 429);
     const { values, autofocusItem } = applyBuilderAction(rawToFormValues(body), action);
-    return renderBuilderPage(c, values, {}, 200, autofocusItem);
+    return renderBuilderPage(c, values, {}, 200, { autofocusItem });
   }
 
   const rl = await checkRateLimit(clientIp(c.req.raw), "requestCreate", c.var.deviceToken);
@@ -161,7 +170,7 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
   const result = parseRequestForm(body, { liveSpecies: liveItems.map((item) => item.name) });
 
   if (!result.success) {
-    return renderBuilderPage(c, rawToFormValues(body), result.errors, 400);
+    return renderBuilderPage(c, rawToFormValues(body), result.errors, 400, { catchItems: liveItems });
   }
 
   const request = await createRequest(result.data, {

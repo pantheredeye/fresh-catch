@@ -150,15 +150,18 @@ function parseItems(raw: Record<string, unknown>, liveSpecies: string[] | undefi
     if (notes.length > FIELD_LIMITS.itemNotes) {
       errors[itemFieldId(index, "notes")] = `Must be ${FIELD_LIMITS.itemNotes} characters or less`;
     }
+    // On-list wins even via the "Other" sentinel — typing a live species under
+    // "Other" is still this week's fish, not a custom request.
     const onList = !!liveSpecies?.some((live) => live.toLowerCase() === species.toLowerCase());
-    const isCustom = isOther || (!!liveSpecies?.length && !onList);
+    const isCustom = (isOther || !!liveSpecies?.length) && !onList;
     items.push({ species, quantity: quantity || null, notes: notes || null, isCustom });
   }
   if (items.length === 0 && Object.keys(errors).length === 0) {
     errors[itemFieldId(0, "species")] = "Add at least one fish";
   }
   if (items.length > MAX_REQUEST_ITEMS) {
-    errors[itemFieldId(0, "species")] = `Up to ${MAX_REQUEST_ITEMS} fish per request`;
+    // ??= so a real row-0 error isn't clobbered by the count error.
+    errors[itemFieldId(0, "species")] ??= `Up to ${MAX_REQUEST_ITEMS} fish per request`;
   }
   return { items, errors };
 }

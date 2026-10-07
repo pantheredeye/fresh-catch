@@ -183,6 +183,13 @@ export const RequestForm: FC<{
   return (
     <form method="post" action={action} class="request-form stack">
       <input type="hidden" name="csrfToken" value={csrfToken} />
+      {/* Enter-key implicit submission clicks the FIRST submit button in tree
+          order — without this hidden default, that'd be "Add another fish" or
+          a row's "Remove" (both formnovalidate), turning Enter into a row
+          edit or even data loss instead of a submit. */}
+      <button type="submit" hidden aria-hidden="true" tabindex={-1}>
+        Submit
+      </button>
       <ErrorSummary items={Object.entries(errors).map(([id, message]) => ({ id, message }))} />
       {customer ? (
         <fieldset class="segmented">

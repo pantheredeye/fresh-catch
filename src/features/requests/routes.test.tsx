@@ -85,6 +85,9 @@ describe("customer form (#85)", () => {
     expect(html).toContain('class="segmented"');
     expect(html).toContain("submit-question");
     expect(html).toContain("Request Flounder");
+    // Enter-key implicit submission must hit this hidden default, not the
+    // builder's add/remove submits that come first otherwise.
+    expect(html).toContain('<button type="submit" hidden');
   });
 
   it("accepts Other + free-text species", async () => {
@@ -181,6 +184,16 @@ describe("order builder (issue 103)", () => {
     // A real submit still goes through — the add taps didn't count.
     const createRes = await createRequestAs(cookie, csrfToken, fishFields());
     expect(createRes.status).toBe(302);
+  });
+
+  it("caps builder round trips on their own loose bucket", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const fields = fishFields({ action: "add-row" });
+    let last: Response | undefined;
+    for (let i = 0; i < 31; i++) {
+      last = await createRequestAs(cookie, csrfToken, fields);
+    }
+    expect(last?.status).toBe(429);
   });
 
   it("remove-row drops exactly the targeted row", async () => {
