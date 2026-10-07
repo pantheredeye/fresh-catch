@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { OrderWithPayments } from "@/features/orders/queries";
 import { MAX_REQUEST_ITEMS } from "./validation";
-import type { RequestInput, RequestStatus } from "./validation";
+import type { ItemResolutionInput, RequestInput, RequestStatus } from "./validation";
 
 export type MessageSender = "customer" | "vendor";
 
@@ -83,6 +83,25 @@ export function getRequest(id: string): Promise<FishRequest | null> {
 /** The thread's items in display order — for callers holding a bare FishRequest (emails, order snapshots). */
 export function listRequestItems(requestId: string): Promise<RequestItem[]> {
   return db.requestItem.findMany({ where: { requestId }, orderBy: { position: "asc" } });
+}
+
+/**
+ * Writes Evan's per-item resolution (#106). `requestId` in the where clause
+ * is the backstop against a crafted POST carrying another thread's item ids —
+ * rows that don't belong simply match nothing.
+ */
+export async function updateItemResolutions(requestId: string, resolutions: ItemResolutionInput[]): Promise<void> {
+  for (const resolution of resolutions) {
+    await db.requestItem.updateMany({
+      where: { id: resolution.id, requestId },
+      data: {
+        status: resolution.status,
+        priceCents: resolution.priceCents,
+        marketRate: resolution.marketRate,
+        vendorNote: resolution.vendorNote,
+      },
+    });
+  }
 }
 
 export type RequestWithMessages = FishRequest & {

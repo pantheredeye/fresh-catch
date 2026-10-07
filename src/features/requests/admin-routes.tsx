@@ -14,14 +14,24 @@ import {
   getRequest,
   getRequestWithMessages,
   listInbox,
+  listRequestItems,
   setRequestStatus,
+  updateItemResolutions,
   type InboxFilter,
 } from "./queries";
 import { notifyCustomerOfVendorReply } from "./notifications";
-import { parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
+import {
+  parseItemResolutionForm,
+  parseMessageForm,
+  parseRequestForm,
+  parseStatusUpdate,
+  rawResolutionRows,
+} from "./validation";
+import { confirmPrefill, estimateMessageBody, quoteMessageBody } from "./estimate";
 import {
   AdminReplyForm,
   InboxRow,
+  ItemResolutionForm,
   RequestForm,
   RequestHeaderCard,
   StatusForm,
@@ -30,7 +40,7 @@ import {
   type RequestFormValues,
 } from "./components";
 import { applyBuilderAction, builderAction, rawToFormValues } from "./routes";
-import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard, formatCents } from "@/features/orders/components";
+import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard } from "@/features/orders/components";
 import { confirmOrderForRequest, recordPayment } from "@/features/orders/queries";
 import { parseConfirmOrderForm, parseMarkPaidForm } from "@/features/orders/validation";
 import { resolveStripeConfig } from "@/features/payments/config";
@@ -176,12 +186,24 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
   const stripeConfig = request.order && !request.order.paidAt ? await resolveStripeConfig(c.env) : null;
   const dueNow = stripeConfig ? checkoutAmountFor(request.order!, stripeConfig.platformFeeBps) : null;
 
+  // Per-item resolution (issue 106): editable until an order freezes the snapshot.
+  const resolvable = request.requestType === "fish" && request.items.length > 0 && !request.order;
+  const prefill = resolvable ? confirmPrefill(request.items) : {};
+
   return c.html(
     <AdminThreadPage request={request}>
+      {resolvable ? (
+        <ItemResolutionForm action={`/admin/requests/${request.id}/items`} csrfToken={csrfToken} items={request.items} />
+      ) : null}
       {request.order ? (
         <OrderSummaryCard order={request.order} />
       ) : (
-        <ConfirmOrderForm action={`/admin/requests/${request.id}/confirm-order`} csrfToken={csrfToken} />
+        <ConfirmOrderForm
+          action={`/admin/requests/${request.id}/confirm-order`}
+          csrfToken={csrfToken}
+          priceDollars={prefill.priceDollars}
+          priceHelperText={prefill.priceHelperText}
+        />
       )}
       {dueNow ? (
         <RequestPaymentForm
@@ -203,6 +225,50 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
       <StatusForm action={`/admin/requests/${request.id}/status`} csrfToken={csrfToken} currentStatus={request.status} />
     </AdminThreadPage>,
   );
+});
+
+/**
+ * Issue issue 106: Evan's per-item resolution — status, optional price or
+ * market-rate flag, customer-visible note. Evan often can't price a line
+ * before the run (he aggregates orders, calls the coast sellers, then
+ * quotes), so everything is saveable half-done. `action=save-estimate` also
+ * posts the running estimate into the thread — the pre-confirmation quote.
+ * Once an order exists its item snapshot is frozen, so resolution closes.
+ */
+requestsAdminRoutes.post("/admin/requests/:id/items", csrfProtect(), async (c) => {
+  const request = await getRequestWithMessages(c.req.param("id"));
+  if (!request) return c.text("Not found", 404);
+  if (request.order) return c.text("Order already confirmed — items are frozen in the order snapshot", 400);
+  if (request.items.length === 0) return c.text("No items to resolve", 400);
+
+  const body = await c.req.parseBody();
+  const result = parseItemResolutionForm(body, request.items.map((item) => item.id));
+
+  if (!result.success) {
+    return c.html(
+      <AdminThreadPage request={request}>
+        <ItemResolutionForm
+          action={`/admin/requests/${request.id}/items`}
+          csrfToken={c.var.session!.csrfToken}
+          items={request.items}
+          errors={result.errors}
+          drafts={rawResolutionRows(body).map(({ row }) => row)}
+        />
+        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      </AdminThreadPage>,
+      400,
+    );
+  }
+
+  await updateItemResolutions(request.id, result.data);
+
+  if (body.action === "save-estimate") {
+    const items = await listRequestItems(request.id);
+    await appendMessage(request.id, "vendor", estimateMessageBody(items));
+    runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
+  }
+
+  return c.redirect(`/admin/requests/${request.id}`);
 });
 
 /** Issue #65: price (dollars → cents) + optional deposit → linked Order, request confirmed, quote posted as a vendor message. */
@@ -230,10 +296,12 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
   }
 
   const order = await confirmOrderForRequest(request, result.data);
-  const quoteBody =
-    `Quoted ${formatCents(order.price!)} for this order.` +
-    (order.depositAmount != null ? ` Deposit of ${formatCents(order.depositAmount)} requested.` : "");
-  await appendMessage(request.id, "vendor", quoteBody);
+  // issue 106: once any line is resolved, the quote lists the per-item resolution — unavailable lines included.
+  await appendMessage(
+    request.id,
+    "vendor",
+    quoteMessageBody({ price: order.price!, depositAmount: order.depositAmount }, request.items),
+  );
   runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
 
   return c.redirect(`/admin/requests/${request.id}`);

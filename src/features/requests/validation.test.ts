@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { FIELD_LIMITS, MAX_REQUEST_ITEMS, parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
+import {
+  FIELD_LIMITS,
+  MAX_REQUEST_ITEMS,
+  parseItemResolutionForm,
+  parseMessageForm,
+  parseRequestForm,
+  parseStatusUpdate,
+  resolutionFieldId,
+} from "./validation";
 
 function fishFields(overrides: Record<string, string> = {}) {
   return {
@@ -187,5 +195,84 @@ describe("parseStatusUpdate", () => {
 
   it("rejects an unknown status", () => {
     expect(parseStatusUpdate({ status: "paid" }).success).toBe(false);
+  });
+});
+
+describe("parseItemResolutionForm (#106)", () => {
+  const ids = ["item-a", "item-b"];
+
+  function rows(overrides: Record<string, string> = {}) {
+    return {
+      "items[0].id": "item-a",
+      "items[0].status": "available",
+      "items[0].price": "24.50",
+      "items[0].vendorNote": "",
+      "items[1].id": "item-b",
+      "items[1].status": "unavailable",
+      "items[1].price": "",
+      "items[1].vendorNote": "none this week",
+      ...overrides,
+    };
+  }
+
+  it("parses statuses, optional prices, and notes", () => {
+    const result = parseItemResolutionForm(rows(), ids);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data).toEqual([
+      { id: "item-a", status: "available", priceCents: 2450, marketRate: false, vendorNote: null },
+      { id: "item-b", status: "unavailable", priceCents: null, marketRate: false, vendorNote: "none this week" },
+    ]);
+  });
+
+  it("reads the market-rate checkbox ('on' when ticked, absent otherwise)", () => {
+    const result = parseItemResolutionForm(rows({ "items[0].marketRate": "on", "items[0].price": "" }), ids);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data[0]).toMatchObject({ priceCents: null, marketRate: true });
+    expect(result.data[1].marketRate).toBe(false);
+  });
+
+  it("rejects a non-numeric or non-positive price on the right row", () => {
+    const bad = parseItemResolutionForm(rows({ "items[1].price": "abc" }), ids);
+    expect(bad.success).toBe(false);
+    if (bad.success) return;
+    expect(bad.errors[resolutionFieldId(1, "price")]).toContain("number");
+
+    const zero = parseItemResolutionForm(rows({ "items[0].price": "0" }), ids);
+    expect(zero.success).toBe(false);
+    if (zero.success) return;
+    expect(zero.errors[resolutionFieldId(0, "price")]).toContain("greater than 0");
+
+    // Finite but absurd — would blow the Int column, not a 500.
+    const huge = parseItemResolutionForm(rows({ "items[0].price": "1e17" }), ids);
+    expect(huge.success).toBe(false);
+  });
+
+  it("rejects an id that doesn't belong to the request", () => {
+    const result = parseItemResolutionForm(rows({ "items[0].id": "someone-elses" }), ids);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a duplicated id", () => {
+    const result = parseItemResolutionForm(rows({ "items[1].id": "item-a" }), ids);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown status", () => {
+    const result = parseItemResolutionForm(rows({ "items[0].status": "sold" }), ids);
+    expect(result.success).toBe(false);
+  });
+
+  it("caps the vendor note length", () => {
+    const result = parseItemResolutionForm(
+      rows({ "items[0].vendorNote": "x".repeat(FIELD_LIMITS.vendorNote + 1) }),
+      ids,
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty submission", () => {
+    expect(parseItemResolutionForm({}, ids).success).toBe(false);
   });
 });

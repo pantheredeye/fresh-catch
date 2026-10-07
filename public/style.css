@@ -733,6 +733,35 @@ ol.stack {
   color: var(--color-badge-warning-text);
 }
 
+/* Per-item vendor resolution (#106) — same pairings as the request status badges. */
+.badge-item-available {
+  background: var(--color-status-success-fill);
+  color: var(--color-badge-success-text);
+}
+
+.badge-item-substituted {
+  background: var(--color-status-warning-fill);
+  color: var(--color-badge-warning-text);
+}
+
+.badge-item-unavailable {
+  background: var(--color-status-error-fill);
+  color: var(--color-badge-error-text);
+}
+
+/* A labelled checkbox row (#106's market-rate flag) — 58px touch target, 28px box. */
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 58px;
+}
+
+.check-field input {
+  width: 28px;
+  height: 28px;
+}
+
 /* Post-checkout return banners (#60). */
 .notice {
   margin: 0;
