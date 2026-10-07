@@ -149,15 +149,17 @@ function clockMinutes(hour: string, minute: string | undefined, period: string):
 /**
  * Light check on free-text schedules ("Sat 8-2am"): true only when the first
  * `H[:MM][am|pm] - H[:MM][am|pm]` range has an am/pm on the end and closes at
- * or before it opens. The start inherits the end's suffix when it has none.
- * Ranges with no suffix on the end ("10-6", "10am-2") are ambiguous — pass.
+ * or before it opens. An unsuffixed start passes if either am or pm works
+ * ("10-2pm" = 10am; "8-2am" fails both). Ranges with no suffix on the end
+ * ("10-6", "10am-2") are ambiguous — pass.
  */
 export function scheduleCloseBeforeOpen(schedule: string): boolean {
   const match = SCHEDULE_RANGE.exec(schedule);
   if (!match) return false;
   const [, h1, m1, p1, h2, m2, p2] = match;
   if (!p2) return false;
-  const open = clockMinutes(h1, m1, p1 ?? p2);
+  // am is always the earlier reading, so it's the most lenient for an unsuffixed start.
+  const open = clockMinutes(h1, m1, p1 ?? "am");
   const close = clockMinutes(h2, m2, p2);
   return open !== null && close !== null && close <= open;
 }

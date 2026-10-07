@@ -200,8 +200,10 @@ describe("free-text schedule am/pm check", () => {
   it("passes unsuffixed and well-formed ranges", () => {
     expect(parseMarketForm(regularForm({ schedule: "Sat 10-6" })).success).toBe(true);
     expect(parseMarketForm(regularForm({ schedule: "Sat 8am-2pm" })).success).toBe(true);
-    // start inherits the end suffix: 8pm-2pm
-    expect(parseMarketForm(regularForm({ schedule: "Sat 8-2pm" })).success).toBe(false);
+    // unsuffixed start reads as am when that makes sense: 10am-2pm, 11am-1pm
+    expect(parseMarketForm(regularForm({ schedule: "Sat 10-2pm" })).success).toBe(true);
+    expect(parseMarketForm(regularForm({ schedule: "Sat 11-1pm" })).success).toBe(true);
+    expect(parseMarketForm(regularForm({ schedule: "Sat 8pm-2pm" })).success).toBe(false);
   });
 });
 
