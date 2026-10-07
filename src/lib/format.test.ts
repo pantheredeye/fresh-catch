@@ -56,19 +56,31 @@ describe("formatRelativeHours", () => {
 });
 
 describe("formatWeekOf", () => {
-  it("labels the Sunday starting the week", () => {
-    // Wednesday, September 10 2026 -> week starts Sunday September 6.
-    expect(formatWeekOf(new Date("2026-09-10T18:00:00Z"), "America/Chicago")).toBe("Week of September 6");
+  it("labels the Monday starting the week", () => {
+    // Wednesday, September 9 2026 -> Monday September 7.
+    expect(formatWeekOf(new Date("2026-09-09T18:00:00Z"), "America/Chicago")).toBe("Week of September 7");
   });
 
-  it("wraps across a month boundary (Sat -> Sun)", () => {
-    // Saturday Aug 1 2026 belongs to the week starting Sunday July 26.
-    expect(formatWeekOf(new Date("2026-08-01T18:00:00Z"), "America/Chicago")).toBe("Week of July 26");
+  it("maps a Monday to itself", () => {
+    expect(formatWeekOf(new Date("2026-09-07T18:00:00Z"), "America/Chicago")).toBe("Week of September 7");
+  });
+
+  it("maps a Sunday to the prior Monday", () => {
+    expect(formatWeekOf(new Date("2026-09-13T18:00:00Z"), "America/Chicago")).toBe("Week of September 7");
+  });
+
+  it("uses the local day at a TZ edge (Monday 00:30 UTC is still Sunday in Chicago)", () => {
+    expect(formatWeekOf(new Date("2026-09-14T00:30:00Z"), "America/Chicago")).toBe("Week of September 7");
+  });
+
+  it("wraps across a month boundary", () => {
+    // Saturday Aug 1 2026 -> Monday July 27.
+    expect(formatWeekOf(new Date("2026-08-01T18:00:00Z"), "America/Chicago")).toBe("Week of July 27");
   });
 
   it("wraps across a year boundary", () => {
-    // Friday Jan 1 2027 belongs to the week starting Sunday Dec 27 2026.
-    expect(formatWeekOf(new Date("2027-01-01T18:00:00Z"), "America/Chicago")).toBe("Week of December 27");
+    // Friday Jan 1 2027 -> Monday Dec 28 2026.
+    expect(formatWeekOf(new Date("2027-01-01T18:00:00Z"), "America/Chicago")).toBe("Week of December 28");
   });
 });
 

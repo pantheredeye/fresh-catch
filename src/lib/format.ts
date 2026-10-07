@@ -91,12 +91,12 @@ export function formatRelativeHours(minutes: number): string {
   return hours === 1 ? "in 1 hour" : `in ${hours} hours`;
 }
 
-/** "Week of September 8" — the Sunday starting the week `date` falls in, local to `tz`. */
+/** "Week of September 7" — the Monday of the week `date` falls in (Sunday belongs to the prior Monday), local to `tz`. */
 export function formatWeekOf(date: Date, tz: string): string {
   const { year, month, day, weekday } = localParts(date, tz);
-  const sunday = new Date(Date.UTC(year, month - 1, day));
-  sunday.setUTCDate(sunday.getUTCDate() - weekday);
-  return `Week of ${MONTH_NAMES[sunday.getUTCMonth()]} ${sunday.getUTCDate()}`;
+  const monday = new Date(Date.UTC(year, month - 1, day));
+  monday.setUTCDate(monday.getUTCDate() - ((weekday + 6) % 7));
+  return `Week of ${MONTH_NAMES[monday.getUTCMonth()]} ${monday.getUTCDate()}`;
 }
 
 /** "Friday, September 11" — the landing hero's date line. */

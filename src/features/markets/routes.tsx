@@ -12,7 +12,7 @@ import { describeOccurrence, nextOccurrence } from "@/features/markets/status";
 import { WEEKDAY_NAMES, formatHoursRange } from "@/lib/format";
 import { getMarket, listPastPopups } from "./queries";
 import { MarketDetail, type MarketDetailStatus } from "./components";
-import { formatSchedule, marketAddressLine } from "./display";
+import { formatSchedule, hasValidHours, marketAddressLine } from "./display";
 
 export const marketRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -66,7 +66,7 @@ marketRoutes.get("/markets/:id", async (c) => {
 
   const dayLabel = market.type === "regular" && market.dayOfWeek !== null ? WEEKDAY_NAMES[market.dayOfWeek] : null;
   const hoursLine =
-    market.dayOfWeek !== null && market.openMinutes !== null && market.closeMinutes !== null
+    hasValidHours(market)
       ? formatHoursRange(market.openMinutes, market.closeMinutes)
       : formatSchedule(market.schedule);
   const status: MarketDetailStatus = occurrence

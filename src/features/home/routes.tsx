@@ -34,7 +34,7 @@ import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
 import { ActionBar } from "@/ui/action-bar";
 import { CallCard, ClosingBand, FishBoard, Hero, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
-import { marketAddressLine } from "@/features/markets/display";
+import { hasValidHours, marketAddressLine } from "@/features/markets/display";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -50,7 +50,7 @@ function heroHoursLine(market: Market, tz: string): string | null {
     const local = localParts(market.expiresAt, tz);
     return `Until ${formatClockTime(local.hour * 60 + local.minute)}`;
   }
-  if (market.dayOfWeek !== null && market.openMinutes !== null && market.closeMinutes !== null) {
+  if (hasValidHours(market)) {
     return formatHoursRange(market.openMinutes, market.closeMinutes);
   }
   return null;
@@ -82,7 +82,7 @@ function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Dat
       isPopup: false,
       dayLabel: market.dayOfWeek !== null ? WEEKDAY_NAMES[market.dayOfWeek] : null,
       hoursLabel:
-        market.openMinutes !== null && market.closeMinutes !== null
+        hasValidHours(market)
           ? formatHoursRange(market.openMinutes, market.closeMinutes)
           : null,
       addressLabel: marketAddressLine(market),
@@ -116,7 +116,7 @@ homeRoutes.get("/", async (c) => {
   ]);
   const tz = vendor?.timezone ?? "America/Chicago";
   const catchContent = live && isCatchUpdateFresh(live) ? parseCatchContent(live.formattedContent) : null;
-  const weekOf = live && isCatchUpdateFresh(live) ? formatWeekOf(live.createdAt, tz) : null;
+  const weekOf = live && isCatchUpdateFresh(live) ? formatWeekOf(now, tz) : null;
 
   const allMarkets: StatusMarket[] = [...livePopups, ...regularMarkets];
   const status = resolveToday(allMarkets, now, tz);

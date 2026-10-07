@@ -191,6 +191,20 @@ describe("parseMarketForm", () => {
   });
 });
 
+describe("free-text schedule am/pm check", () => {
+  it("rejects close before open", () => {
+    const result = parseMarketForm(regularForm({ schedule: "Sat 8-2am" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.schedule).toMatch(/earlier than opening/);
+  });
+  it("passes unsuffixed and well-formed ranges", () => {
+    expect(parseMarketForm(regularForm({ schedule: "Sat 10-6" })).success).toBe(true);
+    expect(parseMarketForm(regularForm({ schedule: "Sat 8am-2pm" })).success).toBe(true);
+    // start inherits the end suffix: 8pm-2pm
+    expect(parseMarketForm(regularForm({ schedule: "Sat 8-2pm" })).success).toBe(false);
+  });
+});
+
 describe("splitHours", () => {
   it("round-trips minutes", () => {
     expect(splitHours({ dayOfWeek: 3, openMinutes: 555, closeMinutes: 1065 })).toEqual({

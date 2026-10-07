@@ -137,6 +137,31 @@ function parseHours(raw: HoursFields): HoursResult {
   return { success: true, data: { dayOfWeek, openMinutes, closeMinutes } };
 }
 
+const SCHEDULE_RANGE = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*[-–—]\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i;
+
+function clockMinutes(hour: string, minute: string | undefined, period: string): number | null {
+  const h = Number(hour);
+  const m = minute ? Number(minute) : 0;
+  if (h < 1 || h > 12 || m > 59) return null;
+  return (h % 12) * 60 + m + (period.toLowerCase() === "pm" ? 12 * 60 : 0);
+}
+
+/**
+ * Light check on free-text schedules ("Sat 8-2am"): true only when the first
+ * `H[:MM][am|pm] - H[:MM][am|pm]` range has an am/pm on the end and closes at
+ * or before it opens. The start inherits the end's suffix when it has none.
+ * Ranges with no suffix on the end ("10-6", "10am-2") are ambiguous — pass.
+ */
+export function scheduleCloseBeforeOpen(schedule: string): boolean {
+  const match = SCHEDULE_RANGE.exec(schedule);
+  if (!match) return false;
+  const [, h1, m1, p1, h2, m2, p2] = match;
+  if (!p2) return false;
+  const open = clockMinutes(h1, m1, p1 ?? p2);
+  const close = clockMinutes(h2, m2, p2);
+  return open !== null && close !== null && close <= open;
+}
+
 /** Inverse of `parseHours`, for prefilling the edit form. */
 export function splitHours(market: { dayOfWeek: number | null; openMinutes: number | null; closeMinutes: number | null }): HoursFields {
   if (market.dayOfWeek === null || market.openMinutes === null || market.closeMinutes === null) {
@@ -214,6 +239,10 @@ export function parseMarketForm(raw: Record<string, unknown>, options: ParseOpti
     const hours = parseHours(parsed);
     if (hours.success) hoursData = hours.data;
     else errors[hours.field] = hours.error;
+  }
+
+  if (!errors.schedule && scheduleCloseBeforeOpen(parsed.schedule)) {
+    errors.schedule = "Closing time looks earlier than opening — check am/pm";
   }
 
   if (Object.keys(errors).length > 0) return { success: false, errors };
