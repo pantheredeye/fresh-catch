@@ -13,6 +13,8 @@ type ButtonProps = PropsWithChildren<{
   value?: string;
   /** Skip native validation for secondary submits that just re-render the form. */
   formNoValidate?: boolean;
+  /** Rendered but inert/invisible — for buttons a JS island shows later (e.g. the order builder's at-cap "Add another fish"). */
+  hidden?: boolean;
   /** Extra class(es), appended after the variant classes. */
   class?: string;
   ariaLabel?: string;
@@ -40,6 +42,7 @@ export const Button: FC<ButtonProps> = ({
   name,
   value,
   formNoValidate,
+  hidden,
   class: extraClass,
   ariaLabel,
   ariaPressed,
@@ -52,6 +55,7 @@ export const Button: FC<ButtonProps> = ({
   const shared = {
     id,
     class: className,
+    hidden,
     "aria-label": ariaLabel,
     "aria-pressed": ariaPressed === undefined ? undefined : String(ariaPressed),
     ...dataAttrs(data),

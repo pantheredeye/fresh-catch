@@ -219,7 +219,9 @@ describe("order builder (issue 103)", () => {
     const html = await res.text();
     expect(html).toContain('name="items[7].species"');
     expect(html).not.toContain('name="items[8].species"');
-    expect(html).not.toContain("Add another fish");
+    // Still rendered (the island un-hides it after a client-side remove) but
+    // hidden — invisible and inert for the no-JS flow.
+    expect(html).toMatch(/<button type="submit" name="action" value="add-row" formnovalidate="" [^>]*hidden=""/);
   });
 
   it("re-renders every row on a 400", async () => {
@@ -274,6 +276,51 @@ describe("order builder (issue 103)", () => {
     } finally {
       await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
     }
+  });
+});
+
+/**
+ * The island itself (public/js/order-builder.js) runs in the browser, not the
+ * Workers runtime — these pin the server-rendered contract it hangs off:
+ * rows container + data-max-items, a blank-row <template> to clone, the
+ * hidden-at-the-edges add/remove buttons it toggles, and the script tag.
+ */
+describe("builder island (issue 104)", () => {
+  it("ships the rows container, blank-row template, and cache-busted script", async () => {
+    const html = await (await newVisitorRequest("/requests/new")).text();
+    expect(html).toContain('<div class="stack" id="builder-rows" data-max-items="8">');
+    expect(html).toContain('<template id="builder-row-template">');
+    expect(html).toContain('<script type="module" src="/js/order-builder.js?v=');
+    // The template row carries a visible Remove button (plus labeled fields)
+    // so cloned rows arrive complete — the island renumbers value/ids/legend.
+    const template = html.slice(html.indexOf('<template id="builder-row-template">'));
+    expect(template).toMatch(/<button type="submit" name="action" value="remove-0" formnovalidate="" (?![^>]*hidden)/);
+    expect(template).toContain('<legend>Fish 1</legend>');
+  });
+
+  it("renders the sole row's Remove hidden and a below-cap Add visible", async () => {
+    const html = await (await newVisitorRequest("/requests/new")).text();
+    expect(html).toMatch(/<button type="submit" name="action" value="remove-0" formnovalidate="" [^>]*hidden=""/);
+    expect(html).toMatch(/<button type="submit" name="action" value="add-row" formnovalidate="" (?![^>]*hidden)[^>]*>Add another fish/);
+  });
+
+  it("keeps multi-row Remove buttons visible", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ action: "add-row" }));
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toMatch(/value="remove-0" formnovalidate="" (?![^>]*hidden)[^>]*aria-label="Remove fish 1"/);
+    expect(html).toMatch(/value="remove-1" formnovalidate="" (?![^>]*hidden)[^>]*aria-label="Remove fish 2"/);
+  });
+
+  it("leaves the admin walk-up form island-free", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    const res = await app.request("/admin/requests/new", { headers: { Cookie: cookie } }, env);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).not.toContain("order-builder.js");
+    expect(html).not.toContain("builder-row-template");
+    expect(html).not.toContain('value="remove-0"');
   });
 });
 
