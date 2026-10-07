@@ -63,12 +63,16 @@ function formString(value: unknown): string | undefined {
 export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues {
   return {
     requestType: formString(raw.requestType),
-    items: rawItemRows(raw).map(({ row }) => ({
-      species: row.species || undefined,
-      speciesOther: row.speciesOther || undefined,
-      quantity: row.quantity || undefined,
-      notes: row.notes || undefined,
-    })),
+    // Cap what a re-render reflects — a crafted POST with thousands of
+    // items[N].* fields must not echo a fieldset per row.
+    items: rawItemRows(raw)
+      .slice(0, MAX_REQUEST_ITEMS)
+      .map(({ row }) => ({
+        species: row.species || undefined,
+        speciesOther: row.speciesOther || undefined,
+        quantity: row.quantity || undefined,
+        notes: row.notes || undefined,
+      })),
     notes: formString(raw.notes),
     contactName: formString(raw.contactName),
     contactEmail: formString(raw.contactEmail),
@@ -78,14 +82,14 @@ export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues
 
 type BuilderAction = { kind: "add" } | { kind: "remove"; index: number };
 
-/** The builder's no-JS "Add another fish" / per-row "Remove" submit buttons (issue 103). */
-function builderAction(raw: Record<string, unknown>): BuilderAction | null {
+/** The builder's no-JS "Add another fish" / per-row "Remove" submit buttons (issue 103). Shared with the admin walk-up form (issue 105). */
+export function builderAction(raw: Record<string, unknown>): BuilderAction | null {
   if (raw.action === "add-row") return { kind: "add" };
   const match = typeof raw.action === "string" ? raw.action.match(/^remove-(\d+)$/) : null;
   return match ? { kind: "remove", index: Number(match[1]) } : null;
 }
 
-function applyBuilderAction(
+export function applyBuilderAction(
   values: RequestFormValues,
   action: BuilderAction,
 ): { values: RequestFormValues; autofocusItem?: number } {

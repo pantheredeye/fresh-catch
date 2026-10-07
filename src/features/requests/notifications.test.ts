@@ -38,6 +38,27 @@ describe("notifyVendorOfNewRequest / notifyVendorOfCustomerReply", () => {
     expect(message.html).toContain(`${bindings.APP_URL}/admin/requests/${request.id}`);
   });
 
+  it("lists every item one per line, escaped, with a +N subject (issue 105)", async () => {
+    const request = await createRequest(
+      fishInput({
+        items: [
+          { species: "Halibut", quantity: "2 lbs", notes: null, isCustom: false },
+          { species: "King <Salmon>", quantity: "1 whole", notes: "filleted", isCustom: false },
+          { species: "Wahoo", quantity: null, notes: null, isCustom: true },
+        ],
+      }),
+      { deviceToken: "d5", userId: null },
+    );
+    await notifyVendorOfNewRequest(bindings, request);
+
+    const [, message] = sendEmailMock.mock.calls[0];
+    expect(message.subject).toBe("New request: Halibut +2");
+    expect(message.html).toContain("Halibut — 2 lbs");
+    expect(message.html).toContain("King &lt;Salmon&gt; — 1 whole (filleted)");
+    expect(message.html).toContain("Wahoo · not on list");
+    expect(message.html).not.toContain("<Salmon>");
+  });
+
   it("prefers Vendor.notificationEmail over the ADMIN_EMAILS fallback", async () => {
     await db.vendor.create({ data: { id: "evan", name: "Evan", notificationEmail: "evan@example.com" } });
     const request = await createRequest(fishInput(), { deviceToken: "d2", userId: null });

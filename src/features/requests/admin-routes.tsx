@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { FC, PropsWithChildren } from "hono/jsx";
 import type { Bindings, Variables } from "@/types";
+import type { FishRequest, RequestItem } from "@/lib/db";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
 import { SectionHeading } from "@/ui/section-heading";
@@ -12,14 +14,33 @@ import {
   getRequest,
   getRequestWithMessages,
   listInbox,
+  listRequestItems,
   setRequestStatus,
+  updateItemResolutions,
   type InboxFilter,
 } from "./queries";
 import { notifyCustomerOfVendorReply } from "./notifications";
-import { parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
-import { AdminReplyForm, InboxRow, RequestForm, RequestHeaderCard, StatusForm, Thread, requestTitle } from "./components";
-import { rawToFormValues } from "./routes";
-import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard, formatCents } from "@/features/orders/components";
+import {
+  parseItemResolutionForm,
+  parseMessageForm,
+  parseRequestForm,
+  parseStatusUpdate,
+  rawResolutionRows,
+} from "./validation";
+import { confirmPrefill, estimateMessageBody, quoteMessageBody } from "./estimate";
+import {
+  AdminReplyForm,
+  InboxRow,
+  ItemResolutionForm,
+  RequestForm,
+  RequestHeaderCard,
+  StatusForm,
+  Thread,
+  requestTitle,
+  type RequestFormValues,
+} from "./components";
+import { applyBuilderAction, builderAction, rawToFormValues } from "./routes";
+import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard } from "@/features/orders/components";
 import { confirmOrderForRequest, recordPayment } from "@/features/orders/queries";
 import { parseConfirmOrderForm, parseMarkPaidForm } from "@/features/orders/validation";
 import { resolveStripeConfig } from "@/features/payments/config";
@@ -42,6 +63,42 @@ const FILTER_LABEL: Record<InboxFilter, string> = {
   all: "All",
   archive: "Archive",
 };
+
+/** Shared chrome for the admin thread view and its inline-error re-renders (issue 105): Document/Page/back link/header card. */
+const AdminThreadPage: FC<PropsWithChildren<{ request: FishRequest & { items?: RequestItem[] } }>> = ({
+  request,
+  children,
+}) => (
+  <Document title={`${requestTitle(request)} — Admin`}>
+    <Page>
+      <BackLink href="/admin/requests">Requests</BackLink>
+      <RequestHeaderCard request={request} />
+      {children}
+    </Page>
+  </Document>
+);
+
+/** The walk-up form page (#64), shared by GET /new, the builder's add/remove round trips, and the 400 re-render. */
+const NewRequestPage: FC<{
+  csrfToken: string;
+  values?: RequestFormValues;
+  errors?: Record<string, string>;
+  autofocusItem?: number;
+}> = ({ csrfToken, values, errors, autofocusItem }) => (
+  <Document title="New request — Admin">
+    <Page>
+      <BackLink href="/admin/requests">Requests</BackLink>
+      <SectionHeading title="New request" level={1} />
+      <RequestForm
+        action="/admin/requests"
+        csrfToken={csrfToken}
+        values={values}
+        errors={errors}
+        autofocusItem={autofocusItem}
+      />
+    </Page>
+  </Document>
+);
 
 requestsAdminRoutes.get("/admin/requests", async (c) => {
   const filter = inboxFilterFrom(c.req.query("status"));
@@ -80,16 +137,7 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
  * ordering gotcha as `/requests/new` in routes.tsx.
  */
 requestsAdminRoutes.get("/admin/requests/new", async (c) => {
-  const csrfToken = c.var.session!.csrfToken;
-  return c.html(
-    <Document title="New request — Admin">
-      <Page>
-        <BackLink href="/admin/requests">Requests</BackLink>
-        <SectionHeading title="New request" level={1} />
-        <RequestForm action="/admin/requests" csrfToken={csrfToken} />
-      </Page>
-    </Document>,
-  );
+  return c.html(<NewRequestPage csrfToken={c.var.session!.csrfToken} />);
 });
 
 /**
@@ -102,22 +150,20 @@ requestsAdminRoutes.get("/admin/requests/new", async (c) => {
  */
 requestsAdminRoutes.post("/admin/requests", csrfProtect(), async (c) => {
   const body = await c.req.parseBody();
+
+  // Same no-JS add/remove-row round trips as the customer builder (issue 105) —
+  // admin-authed, so no rate-limit bucket needed.
+  const action = builderAction(body);
+  if (action) {
+    const { values, autofocusItem } = applyBuilderAction(rawToFormValues(body), action);
+    return c.html(<NewRequestPage csrfToken={c.var.session!.csrfToken} values={values} autofocusItem={autofocusItem} />);
+  }
+
   const result = parseRequestForm(body);
 
   if (!result.success) {
     return c.html(
-      <Document title="New request — Admin">
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <SectionHeading title="New request" level={1} />
-          <RequestForm
-            action="/admin/requests"
-            csrfToken={c.var.session!.csrfToken}
-            values={rawToFormValues(body)}
-            errors={result.errors}
-          />
-        </Page>
-      </Document>,
+      <NewRequestPage csrfToken={c.var.session!.csrfToken} values={rawToFormValues(body)} errors={result.errors} />,
       400,
     );
   }
@@ -140,37 +186,89 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
   const stripeConfig = request.order && !request.order.paidAt ? await resolveStripeConfig(c.env) : null;
   const dueNow = stripeConfig ? checkoutAmountFor(request.order!, stripeConfig.platformFeeBps) : null;
 
+  // Per-item resolution (issue 106): editable until an order freezes the snapshot.
+  const resolvable = request.requestType === "fish" && request.items.length > 0 && !request.order;
+  const prefill = resolvable ? confirmPrefill(request.items) : {};
+
   return c.html(
-    <Document title={`${requestTitle(request)} — Admin`}>
-      <Page>
-        <BackLink href="/admin/requests">Requests</BackLink>
-        <RequestHeaderCard request={request} />
-        {request.order ? (
-          <OrderSummaryCard order={request.order} />
-        ) : (
-          <ConfirmOrderForm action={`/admin/requests/${request.id}/confirm-order`} csrfToken={csrfToken} />
-        )}
-        {dueNow ? (
-          <RequestPaymentForm
-            action={`/admin/requests/${request.id}/request-payment`}
-            csrfToken={csrfToken}
-            amountCents={dueNow.chargeCents}
-            isDeposit={dueNow.isDeposit}
-          />
-        ) : null}
-        {request.order && !request.order.paidAt ? (
-          <MarkPaidForm action={`/admin/requests/${request.id}/mark-paid`} csrfToken={csrfToken} />
-        ) : null}
-        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        <AdminReplyForm
-          action={`/admin/requests/${request.id}/messages`}
+    <AdminThreadPage request={request}>
+      {resolvable ? (
+        <ItemResolutionForm action={`/admin/requests/${request.id}/items`} csrfToken={csrfToken} items={request.items} />
+      ) : null}
+      {request.order ? (
+        <OrderSummaryCard order={request.order} />
+      ) : (
+        <ConfirmOrderForm
+          action={`/admin/requests/${request.id}/confirm-order`}
           csrfToken={csrfToken}
-          currentStatus={request.status}
+          priceDollars={prefill.priceDollars}
+          priceHelperText={prefill.priceHelperText}
         />
-        <StatusForm action={`/admin/requests/${request.id}/status`} csrfToken={csrfToken} currentStatus={request.status} />
-      </Page>
-    </Document>,
+      )}
+      {dueNow ? (
+        <RequestPaymentForm
+          action={`/admin/requests/${request.id}/request-payment`}
+          csrfToken={csrfToken}
+          amountCents={dueNow.chargeCents}
+          isDeposit={dueNow.isDeposit}
+        />
+      ) : null}
+      {request.order && !request.order.paidAt ? (
+        <MarkPaidForm action={`/admin/requests/${request.id}/mark-paid`} csrfToken={csrfToken} />
+      ) : null}
+      <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      <AdminReplyForm
+        action={`/admin/requests/${request.id}/messages`}
+        csrfToken={csrfToken}
+        currentStatus={request.status}
+      />
+      <StatusForm action={`/admin/requests/${request.id}/status`} csrfToken={csrfToken} currentStatus={request.status} />
+    </AdminThreadPage>,
   );
+});
+
+/**
+ * Issue issue 106: Evan's per-item resolution — status, optional price or
+ * market-rate flag, customer-visible note. Evan often can't price a line
+ * before the run (he aggregates orders, calls the coast sellers, then
+ * quotes), so everything is saveable half-done. `action=save-estimate` also
+ * posts the running estimate into the thread — the pre-confirmation quote.
+ * Once an order exists its item snapshot is frozen, so resolution closes.
+ */
+requestsAdminRoutes.post("/admin/requests/:id/items", csrfProtect(), async (c) => {
+  const request = await getRequestWithMessages(c.req.param("id"));
+  if (!request) return c.text("Not found", 404);
+  if (request.order) return c.text("Order already confirmed — items are frozen in the order snapshot", 400);
+  if (request.items.length === 0) return c.text("No items to resolve", 400);
+
+  const body = await c.req.parseBody();
+  const result = parseItemResolutionForm(body, request.items.map((item) => item.id));
+
+  if (!result.success) {
+    return c.html(
+      <AdminThreadPage request={request}>
+        <ItemResolutionForm
+          action={`/admin/requests/${request.id}/items`}
+          csrfToken={c.var.session!.csrfToken}
+          items={request.items}
+          errors={result.errors}
+          drafts={rawResolutionRows(body).map(({ row }) => row)}
+        />
+        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      </AdminThreadPage>,
+      400,
+    );
+  }
+
+  await updateItemResolutions(request.id, result.data);
+
+  if (body.action === "save-estimate") {
+    const items = await listRequestItems(request.id);
+    await appendMessage(request.id, "vendor", estimateMessageBody(items));
+    runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
+  }
+
+  return c.redirect(`/admin/requests/${request.id}`);
 });
 
 /** Issue #65: price (dollars → cents) + optional deposit → linked Order, request confirmed, quote posted as a vendor message. */
@@ -185,27 +283,25 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
 
   if (!result.success) {
     return c.html(
-      <Document title={`${requestTitle(request)} — Admin`}>
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <RequestHeaderCard request={request} />
-          <ConfirmOrderForm
-            action={`/admin/requests/${request.id}/confirm-order`}
-            csrfToken={c.var.session!.csrfToken}
-            errors={result.errors}
-          />
-          <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        </Page>
-      </Document>,
+      <AdminThreadPage request={request}>
+        <ConfirmOrderForm
+          action={`/admin/requests/${request.id}/confirm-order`}
+          csrfToken={c.var.session!.csrfToken}
+          errors={result.errors}
+        />
+        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      </AdminThreadPage>,
       400,
     );
   }
 
   const order = await confirmOrderForRequest(request, result.data);
-  const quoteBody =
-    `Quoted ${formatCents(order.price!)} for this order.` +
-    (order.depositAmount != null ? ` Deposit of ${formatCents(order.depositAmount)} requested.` : "");
-  await appendMessage(request.id, "vendor", quoteBody);
+  // issue 106: once any line is resolved, the quote lists the per-item resolution — unavailable lines included.
+  await appendMessage(
+    request.id,
+    "vendor",
+    quoteMessageBody({ price: order.price!, depositAmount: order.depositAmount }, request.items),
+  );
   runInBackground(c, notifyCustomerOfVendorReply(c.env, request));
 
   return c.redirect(`/admin/requests/${request.id}`);
@@ -253,19 +349,15 @@ requestsAdminRoutes.post("/admin/requests/:id/mark-paid", csrfProtect(), async (
 
   if (!result.success) {
     return c.html(
-      <Document title={`${requestTitle(request)} — Admin`}>
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <RequestHeaderCard request={request} />
-          <OrderSummaryCard order={request.order} />
-          <MarkPaidForm
-            action={`/admin/requests/${request.id}/mark-paid`}
-            csrfToken={c.var.session!.csrfToken}
-            errors={result.errors}
-          />
-          <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        </Page>
-      </Document>,
+      <AdminThreadPage request={request}>
+        <OrderSummaryCard order={request.order} />
+        <MarkPaidForm
+          action={`/admin/requests/${request.id}/mark-paid`}
+          csrfToken={c.var.session!.csrfToken}
+          errors={result.errors}
+        />
+        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      </AdminThreadPage>,
       400,
     );
   }
@@ -284,19 +376,15 @@ requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c
   if (!result.success) {
     const withMessages = await getRequestWithMessages(request.id);
     return c.html(
-      <Document title={`${requestTitle(request)} — Admin`}>
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <RequestHeaderCard request={request} />
-          <Thread messages={withMessages?.messages ?? []} viewer="admin" customerName={request.contactName} />
-          <AdminReplyForm
-            action={`/admin/requests/${request.id}/messages`}
-            csrfToken={c.var.session!.csrfToken}
-            currentStatus={request.status}
-            errorText={result.errors.body}
-          />
-        </Page>
-      </Document>,
+      <AdminThreadPage request={withMessages ?? request}>
+        <Thread messages={withMessages?.messages ?? []} viewer="admin" customerName={request.contactName} />
+        <AdminReplyForm
+          action={`/admin/requests/${request.id}/messages`}
+          csrfToken={c.var.session!.csrfToken}
+          currentStatus={request.status}
+          errorText={result.errors.body}
+        />
+      </AdminThreadPage>,
       400,
     );
   }

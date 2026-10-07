@@ -1,9 +1,10 @@
 import type { FC } from "hono/jsx";
-import type { FishRequest, RequestMessage } from "@/lib/db";
+import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { InboxEntry } from "./queries";
-import type { RequestStatus } from "./validation";
+import type { ItemStatus, RequestStatus } from "./validation";
 import type { RequestableCatchItem } from "@/features/catch/queries";
-import { needsReply } from "./queries";
+import { needsReply, requestItemLine } from "./queries";
+import { itemPriceText } from "./estimate";
 import { formatPrice } from "@/lib/format";
 import { assetUrl } from "@/lib/assets";
 import { Input } from "@/ui/input";
@@ -12,7 +13,15 @@ import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { ErrorSummary } from "@/ui/error-summary";
 import { CardHeader } from "@/ui/card-header";
-import { MAX_REQUEST_ITEMS, OTHER_SPECIES, REQUEST_STATUSES, itemFieldId } from "./validation";
+import {
+  ITEM_STATUSES,
+  MAX_REQUEST_ITEMS,
+  OTHER_SPECIES,
+  REQUEST_STATUSES,
+  itemFieldId,
+  resolutionFieldId,
+  type RawResolutionRow,
+} from "./validation";
 
 export type RequestItemFormValues = {
   /** The species select/input value as posted — may be the `OTHER_SPECIES` sentinel. */
@@ -176,7 +185,7 @@ export const RequestForm: FC<{
   csrfToken: string;
   values?: RequestFormValues;
   errors?: Record<string, string>;
-  /** Customer form: this week's live catch for the selects + the add/remove row builder. Omit for the admin walk-up form (free-text species, single row). */
+  /** Customer form: this week's live catch for the species selects. Omit for the admin walk-up form — free-text species, same add/remove row builder. */
   catchItems?: RequestableCatchItem[];
   /** Row whose species field grabs focus — the no-JS "Add another fish" round trip lands you on the new row. */
   autofocusItem?: number;
@@ -230,23 +239,23 @@ export const RequestForm: FC<{
               index={index}
               item={item}
               catchItems={rowCatchItems}
-              removable={customer}
-              removeHidden={items.length === 1}
+              removable={customer || items.length > 1}
+              removeHidden={customer && items.length === 1}
               errors={errors}
               autofocus={autofocusItem === index}
             />
           ))}
         </div>
-        {customer ? (
-          // Rendered even at the 8-fish cap (hidden) so the island can bring
-          // it back after a client-side remove without inventing markup.
+        {customer || items.length < MAX_REQUEST_ITEMS ? (
+          // Customer: rendered even at the 8-fish cap (hidden) so the island can
+          // bring it back after a client-side remove without inventing markup.
           <Button
             type="submit"
             variant="secondary"
             name="action"
             value="add-row"
             formNoValidate
-            hidden={items.length >= MAX_REQUEST_ITEMS}
+            hidden={customer && items.length >= MAX_REQUEST_ITEMS}
           >
             Add another fish
           </Button>
@@ -328,17 +337,78 @@ export function requestTitle(request: FishRequest): string {
   return request.requestType === "question" ? "Question" : (request.species ?? "Request");
 }
 
-export const RequestHeaderCard: FC<{ request: FishRequest }> = ({ request }) => (
-  <div class="card stack">
-    <CardHeader level={1} title={requestTitle(request)} meta={<RequestStatusBadge status={request.status} />} />
-    {request.quantity ? <p class="muted">{request.quantity}</p> : null}
-    <p class="muted">
-      From {request.contactName}
-      {request.contactEmail ? ` · ${request.contactEmail}` : ""}
-      {request.contactPhone ? ` · ${request.contactPhone}` : ""}
-    </p>
-  </div>
-);
+/** "Halibut +2" — the headline species plus the other-item count (issue 105: email subjects, compact rows). */
+export function requestTitleWithCount(request: FishRequest): string {
+  const title = requestTitle(request);
+  return request.requestType === "fish" && request.itemCount > 1 ? `${title} +${request.itemCount - 1}` : title;
+}
+
+const ITEM_STATUS_LABEL: Record<ItemStatus, string> = {
+  requested: "Pending",
+  available: "Available",
+  substituted: "Substituted",
+  unavailable: "Unavailable",
+};
+
+/** Per-item resolution badge (issue 106) — nothing for the unresolved default. */
+export const ItemStatusBadge: FC<{ status: string }> = ({ status }) =>
+  status === "requested" ? null : (
+    <span class={`badge badge-item-${status}`}>{ITEM_STATUS_LABEL[status as ItemStatus] ?? status}</span>
+  );
+
+/**
+ * One item's resolution so far (issue 106), shown to both sides: status badge,
+ * price/market-rate once Evan has touched the line, and his note. Untouched
+ * lines render nothing extra — no "price TBD" noise before resolution starts.
+ */
+const ItemResolutionMeta: FC<{ item: RequestItem }> = ({ item }) => {
+  const priced = item.priceCents != null || item.marketRate;
+  return (
+    <>
+      {" "}
+      <ItemStatusBadge status={item.status} />
+      {priced && itemPriceText(item) ? <span class="muted"> · {itemPriceText(item)}</span> : null}
+      {item.vendorNote ? <span class="muted"> — {item.vendorNote}</span> : null}
+    </>
+  );
+};
+
+/**
+ * Header card with the full item list (issue 105) when the caller fetched items;
+ * falls back to the denormalized headline quantity for bare-FishRequest
+ * callers (inline-error re-renders that didn't need the join).
+ */
+export const RequestHeaderCard: FC<{ request: FishRequest & { items?: RequestItem[] } }> = ({ request }) => {
+  const items = request.items ?? [];
+  return (
+    <div class="card stack">
+      <CardHeader level={1} title={requestTitle(request)} meta={<RequestStatusBadge status={request.status} />} />
+      {items.length > 0 ? (
+        <ul class="stack stack-tight">
+          {items.map((item) => (
+            <li>
+              {requestItemLine(item)}
+              {item.isCustom ? (
+                <>
+                  {" "}
+                  <span class="badge badge-custom">Not on list</span>
+                </>
+              ) : null}
+              <ItemResolutionMeta item={item} />
+            </li>
+          ))}
+        </ul>
+      ) : request.quantity ? (
+        <p class="muted">{request.quantity}</p>
+      ) : null}
+      <p class="muted">
+        From {request.contactName}
+        {request.contactEmail ? ` · ${request.contactEmail}` : ""}
+        {request.contactPhone ? ` · ${request.contactPhone}` : ""}
+      </p>
+    </div>
+  );
+};
 
 function formatMessageTime(date: Date): string {
   const iso = date.toISOString();
@@ -412,11 +482,90 @@ export const StatusForm: FC<{ action: string; csrfToken: string; currentStatus: 
   </form>
 );
 
+const ITEM_STATUS_OPTIONS = ITEM_STATUSES.map((status) => ({ value: status, label: ITEM_STATUS_LABEL[status] }));
+
+/**
+ * The admin per-item resolution form (issue 106): status, optional price, a
+ * market-rate flag, and a customer-visible note per line. Two submits share
+ * the save — "Save & send estimate" also posts the running estimate into the
+ * thread, for the days Evan quotes before confirming the order.
+ */
+export const ItemResolutionForm: FC<{
+  action: string;
+  csrfToken: string;
+  items: RequestItem[];
+  errors?: Record<string, string>;
+  /** The 400 re-render's as-submitted rows, aligned with `items` by index — echo what was typed, don't revert to what's stored. */
+  drafts?: RawResolutionRow[];
+}> = ({ action, csrfToken, items, errors = {}, drafts }) => (
+  <form method="post" action={action} class="stack">
+    <input type="hidden" name="csrfToken" value={csrfToken} />
+    <ErrorSummary items={Object.entries(errors).map(([id, message]) => ({ id, message }))} />
+    {items.map((item, index) => {
+      const draft = drafts?.[index];
+      return (
+        <fieldset class="item-row">
+          <legend>{requestItemLine(item)}</legend>
+          <div class="stack">
+            <input type="hidden" name={`items[${index}].id`} value={item.id} />
+            <Select
+              id={resolutionFieldId(index, "status")}
+              name={`items[${index}].status`}
+              label="Status"
+              value={draft ? draft.status : item.status}
+              options={ITEM_STATUS_OPTIONS}
+              errorText={errors[resolutionFieldId(index, "status")]}
+            />
+            <Input
+              id={resolutionFieldId(index, "price")}
+              name={`items[${index}].price`}
+              label="Price"
+              inputMode="decimal"
+              value={draft ? draft.price : item.priceCents != null ? (item.priceCents / 100).toFixed(2) : undefined}
+              helperText="Dollars — leave blank until you can quote it"
+              errorText={errors[resolutionFieldId(index, "price")]}
+            />
+            <label class="check-field" for={`resolve-${index}-marketRate`}>
+              <input
+                type="checkbox"
+                id={`resolve-${index}-marketRate`}
+                name={`items[${index}].marketRate`}
+                checked={draft ? draft.marketRate === "on" : item.marketRate}
+              />
+              Market rate
+            </label>
+            <Input
+              id={resolutionFieldId(index, "vendorNote")}
+              name={`items[${index}].vendorNote`}
+              label="Note to customer"
+              value={draft ? draft.vendorNote : item.vendorNote ?? undefined}
+              helperText="Shown on their request — substitutions, sizing, caveats."
+              errorText={errors[resolutionFieldId(index, "vendorNote")]}
+            />
+          </div>
+        </fieldset>
+      );
+    })}
+    <Button type="submit" name="action" value="save">
+      Save items
+    </Button>
+    <Button type="submit" variant="secondary" name="action" value="save-estimate">
+      Save &amp; send estimate
+    </Button>
+  </form>
+);
+
+/** "+2 more" replaces the headline quantity on multi-item rows — the count matters more than item 0's amount. */
+function rowMeta(request: FishRequest): string | null {
+  if (request.requestType === "fish" && request.itemCount > 1) return `+${request.itemCount - 1} more`;
+  return request.quantity;
+}
+
 export const RequestListRow: FC<{ request: FishRequest }> = ({ request }) => (
   <a href={`/requests/${request.id}`} class="inbox-row">
     <span class="stack stack-tight">
       <strong>{requestTitle(request)}</strong>
-      {request.quantity ? <span class="muted">{request.quantity}</span> : null}
+      {rowMeta(request) ? <span class="muted">{rowMeta(request)}</span> : null}
     </span>
     <RequestStatusBadge status={request.status} />
   </a>
@@ -428,7 +577,7 @@ export const InboxRow: FC<{ entry: InboxEntry }> = ({ entry }) => (
       <strong>{requestTitle(entry)}</strong>
       <span class="muted">
         {entry.contactName}
-        {entry.quantity ? ` · ${entry.quantity}` : ""}
+        {rowMeta(entry) ? ` · ${rowMeta(entry)}` : ""}
       </span>
     </span>
     <span class="cluster">

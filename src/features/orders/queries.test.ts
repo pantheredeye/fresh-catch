@@ -32,11 +32,39 @@ describe("confirmOrderForRequest", () => {
     expect(order.price).toBe(4500);
     expect(order.totalDue).toBe(4500);
     expect(order.status).toBe("confirmed");
-    expect(JSON.parse(order.items)).toMatchObject({ species: request.species, quantity: "2 lbs" });
+    expect(JSON.parse(order.items)).toMatchObject({
+      version: 2,
+      items: [{ species: request.species, quantity: "2 lbs", priceCents: null, marketRate: false }],
+      orderNotes: null,
+    });
 
     const updated = await getRequestWithMessages(request.id);
     expect(updated?.quotedPriceCents).toBe(4500);
     expect(updated?.status).toBe("confirmed");
+  });
+
+  it("snapshots every item plus order notes in the v2 shape (issue 105)", async () => {
+    const request = await createRequest(
+      fishInput({
+        items: [
+          { species: "Halibut", quantity: "2 lbs", notes: "bled", isCustom: false },
+          { species: "Wahoo", quantity: null, notes: null, isCustom: true },
+        ],
+        notes: "Saturday pickup",
+      }),
+      { deviceToken: crypto.randomUUID(), userId: null },
+    );
+
+    const order = await confirmOrderForRequest(request, { priceCents: 9000, depositCents: null, adminNotes: null });
+
+    expect(JSON.parse(order.items)).toMatchObject({
+      version: 2,
+      items: [
+        { species: "Halibut", quantity: "2 lbs", notes: "bled", isCustom: false },
+        { species: "Wahoo", quantity: null, isCustom: true },
+      ],
+      orderNotes: "Saturday pickup",
+    });
   });
 
   it("allocates increasing order numbers across requests", async () => {

@@ -1,17 +1,10 @@
 import { db } from "@/lib/db";
-import type { FishRequest, Order, Payment } from "@/lib/db";
+import type { FishRequest, Order, Payment, RequestItem } from "@/lib/db";
+import { listRequestItems } from "@/features/requests/queries";
+import { snapshotOrderItems } from "./items";
 import type { PaymentMethod } from "./validation";
 
 export type OrderWithPayments = Order & { payments: Payment[] };
-
-function itemsSnapshot(request: FishRequest): string {
-  return JSON.stringify({
-    requestType: request.requestType,
-    species: request.species,
-    quantity: request.quantity,
-    notes: request.notes,
-  });
-}
 
 async function nextOrderNumber(): Promise<number> {
   const last = await db.order.findFirst({ orderBy: { orderNumber: "desc" } });
@@ -27,10 +20,10 @@ async function nextOrderNumber(): Promise<number> {
  * other admin reply.
  */
 export async function confirmOrderForRequest(
-  request: FishRequest,
+  request: FishRequest & { items?: RequestItem[] },
   data: { priceCents: number; depositCents: number | null; adminNotes: string | null },
 ): Promise<Order> {
-  const items = itemsSnapshot(request);
+  const items = snapshotOrderItems(request, request.items ?? (await listRequestItems(request.id)));
   const createWith = (orderNumber: number) =>
     db.order.create({
       data: {

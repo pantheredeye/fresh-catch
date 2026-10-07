@@ -2,21 +2,22 @@ import { db } from "@/lib/db";
 import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { OrderWithPayments } from "@/features/orders/queries";
 import { MAX_REQUEST_ITEMS } from "./validation";
-import type { RequestInput, RequestStatus } from "./validation";
+import type { ItemResolutionInput, RequestInput, RequestStatus } from "./validation";
 
 export type MessageSender = "customer" | "vendor";
 
 export type InboxEntry = FishRequest & { messages: RequestMessage[] };
 
+/** "Halibut — 2 lb (bled)" — the one-line item rendering shared by opening messages, header cards, and emails. */
+export function requestItemLine(item: { species: string; quantity: string | null; notes: string | null }): string {
+  const headline = item.quantity ? `${item.species} — ${item.quantity}` : item.species;
+  return item.notes ? `${headline} (${item.notes})` : headline;
+}
+
 /** One line per item ("Halibut — 2 lb"), then the order-level notes paragraph. */
 function openingMessageBody(data: RequestInput): string {
   if (data.requestType === "question") return data.notes ?? "";
-  const lines = data.items
-    .map((item) => {
-      const headline = item.quantity ? `${item.species} — ${item.quantity}` : item.species;
-      return item.notes ? `${headline} (${item.notes})` : headline;
-    })
-    .join("\n");
+  const lines = data.items.map(requestItemLine).join("\n");
   return data.notes ? `${lines}\n\n${data.notes}` : lines;
 }
 
@@ -77,6 +78,30 @@ export async function createRequest(
 
 export function getRequest(id: string): Promise<FishRequest | null> {
   return db.fishRequest.findUnique({ where: { id } });
+}
+
+/** The thread's items in display order — for callers holding a bare FishRequest (emails, order snapshots). */
+export function listRequestItems(requestId: string): Promise<RequestItem[]> {
+  return db.requestItem.findMany({ where: { requestId }, orderBy: { position: "asc" } });
+}
+
+/**
+ * Writes Evan's per-item resolution (#106). `requestId` in the where clause
+ * is the backstop against a crafted POST carrying another thread's item ids —
+ * rows that don't belong simply match nothing.
+ */
+export async function updateItemResolutions(requestId: string, resolutions: ItemResolutionInput[]): Promise<void> {
+  for (const resolution of resolutions) {
+    await db.requestItem.updateMany({
+      where: { id: resolution.id, requestId },
+      data: {
+        status: resolution.status,
+        priceCents: resolution.priceCents,
+        marketRate: resolution.marketRate,
+        vendorNote: resolution.vendorNote,
+      },
+    });
+  }
 }
 
 export type RequestWithMessages = FishRequest & {
