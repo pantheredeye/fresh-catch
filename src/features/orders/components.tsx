@@ -73,11 +73,14 @@ export const OrderSummaryCard: FC<{ order: OrderWithPayments }> = ({ order }) =>
   );
 };
 
-export const ConfirmOrderForm: FC<{ action: string; csrfToken: string; errors?: Record<string, string> }> = ({
-  action,
-  csrfToken,
-  errors = {},
-}) => (
+/** `priceDollars`/`priceHelperText` pre-fill from the per-item resolution (issue 106) — a suggestion, always editable; `Order.price` stays the field of record. */
+export const ConfirmOrderForm: FC<{
+  action: string;
+  csrfToken: string;
+  errors?: Record<string, string>;
+  priceDollars?: string;
+  priceHelperText?: string;
+}> = ({ action, csrfToken, errors = {}, priceDollars, priceHelperText }) => (
   <form method="post" action={action} class="stack">
     <input type="hidden" name="csrfToken" value={csrfToken} />
     <Input
@@ -85,7 +88,8 @@ export const ConfirmOrderForm: FC<{ action: string; csrfToken: string; errors?: 
       name="price"
       label="Price"
       inputMode="decimal"
-      helperText="Dollars, e.g. 45.00"
+      value={priceDollars}
+      helperText={priceHelperText ?? "Dollars, e.g. 45.00"}
       errorText={errors.price}
     />
     <Input

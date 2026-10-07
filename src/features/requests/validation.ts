@@ -9,6 +9,7 @@ export const FIELD_LIMITS = {
   contactEmail: 254,
   contactPhone: 40,
   messageBody: 2000,
+  vendorNote: 300,
 } as const;
 
 /** Sentinel `species` value for the "Other" option of the customer form's species select. */
@@ -232,6 +233,100 @@ export function parseMessageForm(raw: Record<string, unknown>): MessageFormResul
     return { success: false, errors: flattenErrors(result.error) };
   }
   return { success: true, data: result.data };
+}
+
+/**
+ * Per-item vendor resolution (#106). `requested` is the unresolved default;
+ * the other three are Evan's answer per line. Pricing is orthogonal: any
+ * status may carry a price, a market-rate flag, or neither (price TBD).
+ */
+export const ITEM_STATUSES = ["requested", "available", "substituted", "unavailable"] as const;
+export type ItemStatus = (typeof ITEM_STATUSES)[number];
+
+export type ItemResolutionInput = {
+  id: string;
+  status: ItemStatus;
+  priceCents: number | null;
+  marketRate: boolean;
+  vendorNote: string | null;
+};
+
+export type ItemResolutionResult =
+  | { success: true; data: ItemResolutionInput[] }
+  | { success: false; errors: Record<string, string> };
+
+/** Error keys double as the resolution form's field element ids (distinct from `itemFieldId` — different form, same page family). */
+export function resolutionFieldId(index: number, field: "status" | "price" | "vendorNote"): string {
+  return `resolve-${index}-${field}`;
+}
+
+const RESOLUTION_KEY_RE = /^items\[(\d+)\]\.(id|status|price|marketRate|vendorNote)$/;
+
+type RawResolutionRow = { id: string; status: string; price: string; marketRate: string; vendorNote: string };
+
+/**
+ * Parses the admin item-resolution form (#106). `validIds` is the request's
+ * own item ids — a posted row must match one (stale forms and crafted POSTs
+ * both land here). Price is optional dollars → cents; blank stays null
+ * (market-rate/TBD until Evan quotes).
+ */
+export function parseItemResolutionForm(
+  raw: Record<string, unknown>,
+  validIds: string[],
+): ItemResolutionResult {
+  const byIndex = new Map<number, RawResolutionRow>();
+  for (const [key, value] of Object.entries(raw)) {
+    const match = key.match(RESOLUTION_KEY_RE);
+    if (!match || typeof value !== "string") continue;
+    const index = Number(match[1]);
+    const row = byIndex.get(index) ?? { id: "", status: "", price: "", marketRate: "", vendorNote: "" };
+    row[match[2] as keyof RawResolutionRow] = value;
+    byIndex.set(index, row);
+  }
+
+  const errors: Record<string, string> = {};
+  const data: ItemResolutionInput[] = [];
+  const seen = new Set<string>();
+  for (const [index, row] of [...byIndex.entries()].sort(([a], [b]) => a - b)) {
+    if (!validIds.includes(row.id) || seen.has(row.id)) {
+      errors[resolutionFieldId(index, "status")] = "This item is no longer on the request — reload and try again";
+      continue;
+    }
+    seen.add(row.id);
+    if (!(ITEM_STATUSES as readonly string[]).includes(row.status)) {
+      errors[resolutionFieldId(index, "status")] = "Choose a status";
+      continue;
+    }
+    const price = row.price.trim();
+    let priceCents: number | null = null;
+    if (price !== "") {
+      const cents = Math.round(Number(price) * 100);
+      if (Number.isNaN(cents)) {
+        errors[resolutionFieldId(index, "price")] = "Price must be a number";
+      } else if (cents <= 0) {
+        errors[resolutionFieldId(index, "price")] = "Price must be greater than 0";
+      } else {
+        priceCents = cents;
+      }
+    }
+    const vendorNote = row.vendorNote.trim();
+    if (vendorNote.length > FIELD_LIMITS.vendorNote) {
+      errors[resolutionFieldId(index, "vendorNote")] = `Must be ${FIELD_LIMITS.vendorNote} characters or less`;
+    }
+    data.push({
+      id: row.id,
+      status: row.status as ItemStatus,
+      priceCents,
+      marketRate: row.marketRate === "on",
+      vendorNote: vendorNote || null,
+    });
+  }
+
+  if (data.length === 0 && Object.keys(errors).length === 0) {
+    errors[resolutionFieldId(0, "status")] = "Nothing to update";
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return { success: true, data };
 }
 
 /** R7: the vocabulary stops here — payment state lives on the (later) linked Order, never a fifth status. */

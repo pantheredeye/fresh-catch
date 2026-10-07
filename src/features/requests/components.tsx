@@ -1,9 +1,10 @@
 import type { FC } from "hono/jsx";
 import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { InboxEntry } from "./queries";
-import type { RequestStatus } from "./validation";
+import type { ItemStatus, RequestStatus } from "./validation";
 import type { RequestableCatchItem } from "@/features/catch/queries";
 import { needsReply, requestItemLine } from "./queries";
+import { itemPriceText } from "./estimate";
 import { formatPrice } from "@/lib/format";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
@@ -11,7 +12,7 @@ import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { ErrorSummary } from "@/ui/error-summary";
 import { CardHeader } from "@/ui/card-header";
-import { MAX_REQUEST_ITEMS, OTHER_SPECIES, REQUEST_STATUSES, itemFieldId } from "./validation";
+import { ITEM_STATUSES, MAX_REQUEST_ITEMS, OTHER_SPECIES, REQUEST_STATUSES, itemFieldId, resolutionFieldId } from "./validation";
 
 export type RequestItemFormValues = {
   /** The species select/input value as posted — may be the `OTHER_SPECIES` sentinel. */
@@ -308,6 +309,36 @@ export function requestTitleWithCount(request: FishRequest): string {
   return request.requestType === "fish" && request.itemCount > 1 ? `${title} +${request.itemCount - 1}` : title;
 }
 
+const ITEM_STATUS_LABEL: Record<ItemStatus, string> = {
+  requested: "Pending",
+  available: "Available",
+  substituted: "Substituted",
+  unavailable: "Unavailable",
+};
+
+/** Per-item resolution badge (issue 106) — nothing for the unresolved default. */
+export const ItemStatusBadge: FC<{ status: string }> = ({ status }) =>
+  status === "requested" ? null : (
+    <span class={`badge badge-item-${status}`}>{ITEM_STATUS_LABEL[status as ItemStatus] ?? status}</span>
+  );
+
+/**
+ * One item's resolution so far (issue 106), shown to both sides: status badge,
+ * price/market-rate once Evan has touched the line, and his note. Untouched
+ * lines render nothing extra — no "price TBD" noise before resolution starts.
+ */
+const ItemResolutionMeta: FC<{ item: RequestItem }> = ({ item }) => {
+  const priced = item.priceCents != null || item.marketRate;
+  return (
+    <>
+      {" "}
+      <ItemStatusBadge status={item.status} />
+      {priced && itemPriceText(item) ? <span class="muted"> · {itemPriceText(item)}</span> : null}
+      {item.vendorNote ? <span class="muted"> — {item.vendorNote}</span> : null}
+    </>
+  );
+};
+
 /**
  * Header card with the full item list (issue 105) when the caller fetched items;
  * falls back to the denormalized headline quantity for bare-FishRequest
@@ -329,6 +360,7 @@ export const RequestHeaderCard: FC<{ request: FishRequest & { items?: RequestIte
                   <span class="badge badge-custom">Not on list</span>
                 </>
               ) : null}
+              <ItemResolutionMeta item={item} />
             </li>
           ))}
         </ul>
@@ -412,6 +444,74 @@ export const StatusForm: FC<{ action: string; csrfToken: string; currentStatus: 
     <Select id="status-only" name="status" label="Set status" value={currentStatus} options={STATUS_OPTIONS} />
     <Button type="submit" variant="secondary" inline>
       Update
+    </Button>
+  </form>
+);
+
+const ITEM_STATUS_OPTIONS = ITEM_STATUSES.map((status) => ({ value: status, label: ITEM_STATUS_LABEL[status] }));
+
+/**
+ * The admin per-item resolution form (issue 106): status, optional price, a
+ * market-rate flag, and a customer-visible note per line. Two submits share
+ * the save — "Save & send estimate" also posts the running estimate into the
+ * thread, for the days Evan quotes before confirming the order.
+ */
+export const ItemResolutionForm: FC<{
+  action: string;
+  csrfToken: string;
+  items: RequestItem[];
+  errors?: Record<string, string>;
+}> = ({ action, csrfToken, items, errors = {} }) => (
+  <form method="post" action={action} class="stack">
+    <input type="hidden" name="csrfToken" value={csrfToken} />
+    <ErrorSummary items={Object.entries(errors).map(([id, message]) => ({ id, message }))} />
+    {items.map((item, index) => (
+      <fieldset class="item-row">
+        <legend>{requestItemLine(item)}</legend>
+        <div class="stack">
+          <input type="hidden" name={`items[${index}].id`} value={item.id} />
+          <Select
+            id={resolutionFieldId(index, "status")}
+            name={`items[${index}].status`}
+            label="Status"
+            value={item.status}
+            options={ITEM_STATUS_OPTIONS}
+            errorText={errors[resolutionFieldId(index, "status")]}
+          />
+          <Input
+            id={resolutionFieldId(index, "price")}
+            name={`items[${index}].price`}
+            label="Price"
+            inputMode="decimal"
+            value={item.priceCents != null ? (item.priceCents / 100).toFixed(2) : undefined}
+            helperText="Dollars — leave blank until you can quote it"
+            errorText={errors[resolutionFieldId(index, "price")]}
+          />
+          <label class="check-field" for={`resolve-${index}-marketRate`}>
+            <input
+              type="checkbox"
+              id={`resolve-${index}-marketRate`}
+              name={`items[${index}].marketRate`}
+              checked={item.marketRate}
+            />
+            Market rate
+          </label>
+          <Input
+            id={resolutionFieldId(index, "vendorNote")}
+            name={`items[${index}].vendorNote`}
+            label="Note to customer"
+            value={item.vendorNote ?? undefined}
+            helperText="Shown on their request — substitutions, sizing, caveats."
+            errorText={errors[resolutionFieldId(index, "vendorNote")]}
+          />
+        </div>
+      </fieldset>
+    ))}
+    <Button type="submit" name="action" value="save">
+      Save items
+    </Button>
+    <Button type="submit" variant="secondary" name="action" value="save-estimate">
+      Save &amp; send estimate
     </Button>
   </form>
 );
