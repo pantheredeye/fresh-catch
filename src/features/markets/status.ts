@@ -27,7 +27,9 @@ export type TodayStatus = {
 };
 
 function hasStructuredHours(market: StatusMarket): market is StructuredMarket {
-  return market.dayOfWeek !== null && market.openMinutes !== null && market.closeMinutes !== null;
+  return (
+    market.dayOfWeek !== null && market.openMinutes !== null && market.closeMinutes !== null && market.closeMinutes > market.openMinutes
+  );
 }
 
 function isLivePopup(market: StatusMarket, now: Date): market is LivePopup {

@@ -12,7 +12,6 @@ import {
   describeOccurrence,
   describeTodayStatus,
   isSameLocalDate,
-  nextDifferentMarketByDay,
   nextOccurrence,
   resolveToday,
   type StatusMarket,
@@ -34,7 +33,7 @@ import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
 import { ActionBar } from "@/ui/action-bar";
 import { CallCard, ClosingBand, FishBoard, Hero, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
-import { marketAddressLine } from "@/features/markets/display";
+import { hasValidHours, marketAddressLine } from "@/features/markets/display";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -50,13 +49,19 @@ function heroHoursLine(market: Market, tz: string): string | null {
     const local = localParts(market.expiresAt, tz);
     return `Until ${formatClockTime(local.hour * 60 + local.minute)}`;
   }
-  if (market.dayOfWeek !== null && market.openMinutes !== null && market.closeMinutes !== null) {
-    return formatHoursRange(market.openMinutes, market.closeMinutes);
+  if (hasValidHours(market)) {
+    return `${WEEKDAY_NAMES[market.dayOfWeek]}, ${formatHoursRange(market.openMinutes, market.closeMinutes)}`;
   }
   return null;
 }
 
-function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Date, tz: string): RouteRow[] {
+function buildRouteRows(
+  regularMarkets: Market[],
+  livePopups: Market[],
+  now: Date,
+  tz: string,
+  heroMarketId: string | undefined,
+): RouteRow[] {
   const local = localParts(now, tz);
   const todayWeekday = local.weekday;
 
@@ -82,12 +87,18 @@ function buildRouteRows(regularMarkets: Market[], livePopups: Market[], now: Dat
       isPopup: false,
       dayLabel: market.dayOfWeek !== null ? WEEKDAY_NAMES[market.dayOfWeek] : null,
       hoursLabel:
-        market.openMinutes !== null && market.closeMinutes !== null
+        hasValidHours(market)
           ? formatHoursRange(market.openMinutes, market.closeMinutes)
           : null,
       addressLabel: marketAddressLine(market),
       isToday,
-      todayTag: isToday ? (occurrence?.state === "open-now" ? "Here today" : "Here later today") : null,
+      todayTag: isToday
+        ? occurrence?.state === "open-now"
+          ? "Here today"
+          : "Here later today"
+        : market.id === heroMarketId
+          ? "Next stop"
+          : null,
     };
   });
 
@@ -116,7 +127,7 @@ homeRoutes.get("/", async (c) => {
   ]);
   const tz = vendor?.timezone ?? "America/Chicago";
   const catchContent = live && isCatchUpdateFresh(live) ? parseCatchContent(live.formattedContent) : null;
-  const weekOf = live && isCatchUpdateFresh(live) ? formatWeekOf(live.createdAt, tz) : null;
+  const weekOf = live && isCatchUpdateFresh(live) ? formatWeekOf(now, tz) : null;
 
   const allMarkets: StatusMarket[] = [...livePopups, ...regularMarkets];
   const status = resolveToday(allMarkets, now, tz);
@@ -134,37 +145,33 @@ homeRoutes.get("/", async (c) => {
       ? `No market today. Next stop, ${WEEKDAY_NAMES[localParts(status.next.opensAt, tz).weekday]}:`
       : formatFullDate(now, tz);
 
-  const then = heroMarket && !scheduleFallback ? nextDifferentMarketByDay(allMarkets, heroMarket.id, now, tz) : null;
-
-  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz);
+  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz, heroMarket?.id);
   const savedPins = buildSavedPins([...livePopups, ...regularMarkets], now, tz);
 
   return c.html(
     <Document deviceToken={c.var.deviceToken}>
       <Page bleed>
-        <BrandBar vendor={vendor} />
+        <BrandBar vendor={vendor} container />
         {!scheduleFallback ? (
           <StatusStrip
             open={status.kind === "open"}
             label={STATUS_LABEL[status.kind]}
             message={describeTodayStatus(status, now, tz)}
+            container
           />
         ) : null}
-        <Band tone="shallow">
+        <Band tone="shallow" container>
           <Hero
             market={heroMarket}
             scheduleFallback={scheduleFallback}
             dateLine={dateLine}
             hoursLine={heroMarket ? heroHoursLine(heroMarket, tz) : null}
-            addressLine={heroMarket ? marketAddressLine(heroMarket) : null}
-            then={then}
-            vendor={vendor}
           />
         </Band>
         <SavedBand pins={savedPins} />
         <div class="home-split">
           <Band tone="sand" class="home-fish">
-            <FishBoard content={catchContent} weekOf={weekOf} vendor={vendor} />
+            <FishBoard content={catchContent} weekOf={weekOf} />
           </Band>
           <Band tone="paper" class="home-route">
             <div class="home-route-inner">
@@ -173,10 +180,10 @@ homeRoutes.get("/", async (c) => {
             </div>
           </Band>
         </div>
-        <Band tone="deep">
+        <Band tone="deep" class="home-closing" container>
           <ClosingBand vendor={vendor} priced={hasPrices(catchContent)} />
         </Band>
-        <Footer vendor={vendor} session={session} />
+        <Footer vendor={vendor} session={session} container />
         {vendor?.phone ? (
           <ActionBar
             items={[

@@ -6,9 +6,14 @@ import type { FC } from "hono/jsx";
  * alone. Shared between the landing hero (today's featured market) and the
  * market detail page (one specific market).
  */
-export const StatusStrip: FC<{ open: boolean; label: string; message: string }> = ({ open, label, message }) => (
+export const StatusStrip: FC<{ open: boolean; label: string; message: string; container?: boolean }> = ({
+  open,
+  label,
+  message,
+  container,
+}) => (
   <div class={open ? "strip" : "strip shut"}>
-    <div class="wrap">
+    <div class={container ? "container" : "wrap"}>
       <span class="dot" aria-hidden="true"></span>
       <b>{label}</b>
       <span>{message}</span>
