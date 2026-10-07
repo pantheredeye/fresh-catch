@@ -63,12 +63,16 @@ function formString(value: unknown): string | undefined {
 export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues {
   return {
     requestType: formString(raw.requestType),
-    items: rawItemRows(raw).map(({ row }) => ({
-      species: row.species || undefined,
-      speciesOther: row.speciesOther || undefined,
-      quantity: row.quantity || undefined,
-      notes: row.notes || undefined,
-    })),
+    // Cap what a re-render reflects — a crafted POST with thousands of
+    // items[N].* fields must not echo a fieldset per row.
+    items: rawItemRows(raw)
+      .slice(0, MAX_REQUEST_ITEMS)
+      .map(({ row }) => ({
+        species: row.species || undefined,
+        speciesOther: row.speciesOther || undefined,
+        quantity: row.quantity || undefined,
+        notes: row.notes || undefined,
+      })),
     notes: formString(raw.notes),
     contactName: formString(raw.contactName),
     contactEmail: formString(raw.contactEmail),
