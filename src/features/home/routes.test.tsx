@@ -7,6 +7,7 @@ import { createMarket, cancelMarket } from "@/features/markets/queries";
 import { publishCatchUpdate } from "@/features/catch/queries";
 import { fishKind } from "./fish-art";
 import type { MarketInput } from "@/features/markets/validation";
+import { localParts } from "@/lib/format";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
@@ -231,18 +232,30 @@ describe("GET / — market status states (handoff §4)", () => {
   });
 
   it("opens-later: strip says 'Opens later today' for a market not open yet", async () => {
-    const { weekday, minutesOfDay } = nowUtcParts();
-    const openMinutes = Math.min(1439, minutesOfDay + 30);
-    const market = await addMarket({
-      name: `LaterMarket ${crypto.randomUUID()}`,
-      dayOfWeek: weekday,
-      openMinutes,
-      closeMinutes: Math.min(1439, openMinutes + 60),
-    });
+    // Near UTC midnight there's no room left in the day for a "later today"
+    // window — clamping to 1439 collapses close <= open, the market loses its
+    // structured hours, and the page falls back to schedule-only (no strip).
+    // Pin the vendor to the fixed-offset zone whose local time is mid-day so
+    // the window always fits, whatever the wall clock says.
+    const offsetHours = new Date().getUTCHours() - 12; // Etc/GMT+N means UTC-N
+    const tz = offsetHours === 0 ? "UTC" : offsetHours > 0 ? `Etc/GMT+${offsetHours}` : `Etc/GMT-${-offsetHours}`;
+    await db.vendor.update({ where: { id: "test-vendor" }, data: { timezone: tz } });
+    try {
+      const local = localParts(new Date(), tz);
+      const openMinutes = local.hour * 60 + local.minute + 30;
+      const market = await addMarket({
+        name: `LaterMarket ${crypto.randomUUID()}`,
+        dayOfWeek: local.weekday,
+        openMinutes,
+        closeMinutes: openMinutes + 60,
+      });
 
-    const html = await (await app.request("/", {}, env)).text();
-    expect(html).toContain("Opens later today");
-    expect(html).toContain(`<h1 class="hero-name">${market.name}</h1>`);
+      const html = await (await app.request("/", {}, env)).text();
+      expect(html).toContain("Opens later today");
+      expect(html).toContain(`<h1 class="hero-name">${market.name}</h1>`);
+    } finally {
+      await db.vendor.update({ where: { id: "test-vendor" }, data: { timezone: "UTC" } });
+    }
   });
 
   it("closed-today: strip says 'Closed today' and the hero falls forward to the next stop", async () => {
