@@ -13,8 +13,7 @@ beforeAll(async () => {
 function fishInput(overrides: Partial<RequestInput> = {}): RequestInput {
   return {
     requestType: "fish",
-    species: `Salmon ${crypto.randomUUID()}`,
-    quantity: "2 lbs",
+    items: [{ species: `Salmon ${crypto.randomUUID()}`, quantity: "2 lbs", notes: null, isCustom: false }],
     notes: null,
     contactName: "Jamie",
     contactEmail: null,

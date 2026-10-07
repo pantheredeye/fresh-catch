@@ -112,16 +112,44 @@ model FishRequest {
   status           String    @default("open") // open | confirmed | fulfilled | declined
   lastMessageAt    DateTime?
   quotedPriceCents Int? // set when an admin confirms an order on the thread (#65)
+  itemCount        Int       @default(1) // denormalized items.length (0 for questions) — "+N more" labels without a join (#102)
   createdAt        DateTime  @default(now())
 
   user     User?            @relation(fields: [userId], references: [id])
   messages RequestMessage[]
   order    Order?
+  items    RequestItem[]
 
   @@index([status])
   @@index([createdAt])
   @@index([deviceToken])
   @@index([status, lastMessageAt])
+}
+
+// One line of a multi-fish order request (#102, epic #101). FishRequest keeps
+// `species`/`quantity` as a denormalized headline (= the position-0 item) so
+// requestTitle/inbox rows/email subjects work without a join. Max 8 items per
+// request, enforced in createRequest (MAX_REQUEST_ITEMS).
+model RequestItem {
+  id        String  @id @default(uuid())
+  requestId String
+  position  Int // 0-based display order; item 0 is the headline
+  species   String
+  quantity  String? // free-text ("2 lb", "whole") — locked decision, no unit select
+  notes     String?
+  isCustom  Boolean @default(false) // not on the live catch list at submit — "Evan will confirm"
+
+  // Vendor resolution, filled when Evan replies (#106). priceCents stays
+  // null for market-rate/unlisted/untagged fish until he quotes an estimate —
+  // order totals must tolerate partial/unknown pricing.
+  status     String  @default("requested") // requested | available | substituted | unavailable
+  priceCents Int?
+  marketRate Boolean @default(false) // priced at market rate — no fixed quote
+  vendorNote String?
+
+  request FishRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
 }
 
 model RequestMessage {

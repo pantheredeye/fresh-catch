@@ -13,6 +13,9 @@ export const FIELD_LIMITS = {
 /** Sentinel `species` value for the "Other" option of the customer form's species select. */
 export const OTHER_SPECIES = "__other";
 
+/** Locked decision (epic #101): a request holds at most 8 fish. */
+export const MAX_REQUEST_ITEMS = 8;
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function requiredText(field: keyof typeof FIELD_LIMITS, label: string) {
@@ -62,10 +65,21 @@ const questionRequestSchema = z.object({
 
 export const requestFormSchema = z.discriminatedUnion("requestType", [fishRequestSchema, questionRequestSchema]);
 
+/**
+ * One line of an order request (#102). `priceCents`/`status`/`vendorNote` are
+ * vendor-side and never come from the customer form, so they're absent here.
+ */
+export type RequestItemInput = {
+  species: string;
+  quantity: string | null;
+  notes: string | null;
+  isCustom: boolean; // not on the live catch list at submit — "Evan will confirm"
+};
+
 export type RequestInput = {
   requestType: "fish" | "question";
-  species: string | null;
-  quantity: string | null;
+  /** 1..MAX_REQUEST_ITEMS for fish; empty for question. Item 0 is the headline. */
+  items: RequestItemInput[];
   notes: string | null;
   contactName: string;
   contactEmail: string | null;
@@ -104,8 +118,7 @@ export function parseRequestForm(raw: Record<string, unknown>): RequestFormResul
       success: true,
       data: {
         requestType: "question",
-        species: null,
-        quantity: null,
+        items: [],
         notes: parsed.notes,
         contactName: parsed.contactName,
         contactEmail: parsed.contactEmail,
@@ -118,8 +131,16 @@ export function parseRequestForm(raw: Record<string, unknown>): RequestFormResul
     success: true,
     data: {
       requestType: "fish",
-      species: parsed.species,
-      quantity: parsed.quantity,
+      // Single-item form for now; the multi-row builder (#103) adds items[i].*
+      // parsing. "Other" free-text is the one custom signal the form has today.
+      items: [
+        {
+          species: parsed.species,
+          quantity: parsed.quantity,
+          notes: null,
+          isCustom: raw.species === OTHER_SPECIES,
+        },
+      ],
       notes: parsed.notes,
       contactName: parsed.contactName,
       contactEmail: parsed.contactEmail,

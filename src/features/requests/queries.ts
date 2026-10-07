@@ -1,39 +1,55 @@
 import { db } from "@/lib/db";
-import type { FishRequest, RequestMessage } from "@/lib/db";
+import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { OrderWithPayments } from "@/features/orders/queries";
+import { MAX_REQUEST_ITEMS } from "./validation";
 import type { RequestInput, RequestStatus } from "./validation";
 
 export type MessageSender = "customer" | "vendor";
 
 export type InboxEntry = FishRequest & { messages: RequestMessage[] };
 
+/** One line per item ("Halibut — 2 lb"), then the order-level notes paragraph. */
 function openingMessageBody(data: RequestInput): string {
   if (data.requestType === "question") return data.notes ?? "";
-  const headline = data.quantity ? `${data.species} — ${data.quantity}` : `${data.species}`;
-  return data.notes ? `${headline}\n\n${data.notes}` : headline;
+  const lines = data.items
+    .map((item) => {
+      const headline = item.quantity ? `${item.species} — ${item.quantity}` : item.species;
+      return item.notes ? `${headline} (${item.notes})` : headline;
+    })
+    .join("\n");
+  return data.notes ? `${lines}\n\n${data.notes}` : lines;
 }
 
 export type RequestOrigin = "customer" | "vendor";
 
 /**
- * Creates the request and its opening message in one call — a thread never
- * starts empty. `origin: "vendor"` is #64's second entry point (Evan's
- * "New request" button): no device token, opening message is `sender:
- * "vendor"`, and it's born `status: "confirmed"` instead of the default
- * `"open"`.
+ * Creates the request, its items, and its opening message in one call — a
+ * thread never starts empty. `species`/`quantity` on FishRequest are the
+ * denormalized headline (= item 0) and `itemCount` = items.length, so inbox
+ * rows/titles/emails need no join (#102). `origin: "vendor"` is #64's second
+ * entry point (Evan's "New request" button): no device token, opening message
+ * is `sender: "vendor"`, and it's born `status: "confirmed"` instead of the
+ * default `"open"`.
  */
 export async function createRequest(
   data: RequestInput,
   identity: { deviceToken: string | null; userId: string | null },
   options: { origin?: RequestOrigin; status?: RequestStatus } = {},
 ): Promise<FishRequest> {
+  const { items, ...fields } = data;
+  if (data.requestType === "fish" && (items.length === 0 || items.length > MAX_REQUEST_ITEMS)) {
+    throw new Error(`A fish request needs 1–${MAX_REQUEST_ITEMS} items, got ${items.length}`);
+  }
   const origin = options.origin ?? "customer";
   const status = options.status ?? "open";
   const sender: MessageSender = origin === "vendor" ? "vendor" : "customer";
   const now = new Date();
   const request = await db.fishRequest.create({
     data: {
-      ...data,
+      ...fields,
+      species: items[0]?.species ?? null,
+      quantity: items[0]?.quantity ?? null,
+      itemCount: items.length,
       deviceToken: identity.deviceToken,
       userId: identity.userId,
       origin,
@@ -41,6 +57,18 @@ export async function createRequest(
       lastMessageAt: now,
     },
   });
+  if (items.length > 0) {
+    await db.requestItem.createMany({
+      data: items.map((item, position) => ({
+        requestId: request.id,
+        position,
+        species: item.species,
+        quantity: item.quantity,
+        notes: item.notes,
+        isCustom: item.isCustom,
+      })),
+    });
+  }
   await db.requestMessage.create({
     data: { requestId: request.id, sender, body: openingMessageBody(data), createdAt: now },
   });
@@ -51,13 +79,18 @@ export function getRequest(id: string): Promise<FishRequest | null> {
   return db.fishRequest.findUnique({ where: { id } });
 }
 
-export type RequestWithMessages = FishRequest & { messages: RequestMessage[]; order: OrderWithPayments | null };
+export type RequestWithMessages = FishRequest & {
+  items: RequestItem[];
+  messages: RequestMessage[];
+  order: OrderWithPayments | null;
+};
 
 /** Order summary card (#65) needs the linked order + its payment ledger alongside the thread. */
 export function getRequestWithMessages(id: string): Promise<RequestWithMessages | null> {
   return db.fishRequest.findUnique({
     where: { id },
     include: {
+      items: { orderBy: { position: "asc" } },
       messages: { orderBy: { createdAt: "asc" } },
       order: { include: { payments: { orderBy: { createdAt: "desc" } } } },
     },

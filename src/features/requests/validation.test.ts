@@ -32,8 +32,7 @@ describe("parseRequestForm", () => {
     if (result.success) {
       expect(result.data).toEqual({
         requestType: "fish",
-        species: "Halibut",
-        quantity: "2 lbs",
+        items: [{ species: "Halibut", quantity: "2 lbs", notes: null, isCustom: false }],
         notes: null,
         contactName: "Jamie",
         contactEmail: null,
@@ -48,9 +47,10 @@ describe("parseRequestForm", () => {
     if (!result.success) expect(result.errors.contactEmail).toBeTruthy();
   });
 
-  it("uses speciesOther when species is the Other sentinel", () => {
+  it("uses speciesOther when species is the Other sentinel, flagged isCustom", () => {
     const result = parseRequestForm(fishFields({ species: "__other", speciesOther: " Wahoo " }));
-    expect(result.success && result.data.species).toBe("Wahoo");
+    expect(result.success && result.data.items[0].species).toBe("Wahoo");
+    expect(result.success && result.data.items[0].isCustom).toBe(true);
   });
 
   it("requires species for a fish request", () => {
@@ -59,13 +59,12 @@ describe("parseRequestForm", () => {
     if (!result.success) expect(result.errors.species).toBeTruthy();
   });
 
-  it("accepts a question request and nulls out species/quantity", () => {
+  it("accepts a question request with no items", () => {
     const result = parseRequestForm(questionFields({ species: "ignored", quantity: "ignored" }));
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.requestType).toBe("question");
-      expect(result.data.species).toBeNull();
-      expect(result.data.quantity).toBeNull();
+      expect(result.data.items).toEqual([]);
       expect(result.data.notes).toBe("Do you have salmon this week?");
     }
   });
