@@ -23,8 +23,7 @@ const formHeaders = { "Content-Type": "application/x-www-form-urlencoded" };
 function fishInput(overrides: Partial<RequestInput> = {}): RequestInput {
   return {
     requestType: "fish",
-    species: `Salmon ${crypto.randomUUID()}`,
-    quantity: null,
+    items: [{ species: `Salmon ${crypto.randomUUID()}`, quantity: null, notes: null, isCustom: false }],
     notes: null,
     contactName: "Jamie",
     contactEmail: null,

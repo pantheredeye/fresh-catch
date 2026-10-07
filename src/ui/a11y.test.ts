@@ -91,8 +91,7 @@ describe("a11y floors across every GET HTML route", () => {
     const request = await createRequest(
       {
         requestType: "fish",
-        species: "Halibut",
-        quantity: "2 lbs",
+        items: [{ species: "Halibut", quantity: "2 lbs", notes: null, isCustom: false }],
         notes: null,
         contactName: "A11y Tester",
         contactEmail: null,

@@ -14,11 +14,10 @@ beforeEach(async () => {
   sendEmailMock.mockClear();
 });
 
-function fishInput(overrides: Partial<Parameters<typeof createRequest>[0]> = {}) {
+function fishInput(overrides: Partial<Parameters<typeof createRequest>[0]> = {}): Parameters<typeof createRequest>[0] {
   return {
     requestType: "fish" as const,
-    species: "Halibut",
-    quantity: "2 lbs",
+    items: [{ species: "Halibut", quantity: "2 lbs", notes: null, isCustom: false }],
     notes: null,
     contactName: "Jamie",
     contactEmail: "jamie@example.com",

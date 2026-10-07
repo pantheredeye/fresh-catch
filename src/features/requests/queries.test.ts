@@ -2,7 +2,8 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { db, setupDb } from "@/lib/db";
 import type { Bindings } from "@/types";
-import type { RequestInput } from "./validation";
+import { MAX_REQUEST_ITEMS } from "./validation";
+import type { RequestInput, RequestItemInput } from "./validation";
 import {
   appendMessage,
   canViewRequest,
@@ -24,16 +25,20 @@ async function createUser(): Promise<string> {
   return user.id;
 }
 
-function fishInput(overrides: Partial<RequestInput> = {}): RequestInput {
+function item(species: string, overrides: Partial<RequestItemInput> = {}): RequestItemInput {
+  return { species, quantity: "2 lbs", notes: null, isCustom: false, ...overrides };
+}
+
+function fishInput(overrides: Partial<RequestInput> & { species?: string } = {}): RequestInput {
+  const { species, ...rest } = overrides;
   return {
     requestType: "fish",
-    species: "Halibut",
-    quantity: "2 lbs",
+    items: [item(species ?? "Halibut")],
     notes: null,
     contactName: "Jamie",
     contactEmail: null,
     contactPhone: null,
-    ...overrides,
+    ...rest,
   };
 }
 
@@ -49,14 +54,117 @@ describe("createRequest", () => {
     expect(withMessages?.messages[0].body).toContain("Halibut");
   });
 
-  it("nulls species/quantity for a question request", async () => {
+  it("nulls species/quantity and writes no items for a question request", async () => {
     const deviceToken = crypto.randomUUID();
     const request = await createRequest(
-      fishInput({ requestType: "question", species: null, quantity: null, notes: "Any salmon this week?" }),
+      fishInput({ requestType: "question", items: [], notes: "Any salmon this week?" }),
       { deviceToken, userId: null },
     );
     expect(request.species).toBeNull();
     expect(request.quantity).toBeNull();
+    expect(request.itemCount).toBe(0);
+    expect(await db.requestItem.count({ where: { requestId: request.id } })).toBe(0);
+  });
+
+  it("writes one RequestItem per item, in position order, with the first as headline", async () => {
+    const deviceToken = crypto.randomUUID();
+    const request = await createRequest(
+      fishInput({
+        items: [
+          item("Halibut", { quantity: "2 lb" }),
+          item("Grouper", { quantity: null, notes: "fillet please" }),
+          item("Wahoo", { isCustom: true }),
+        ],
+        notes: "Pickup Saturday",
+      }),
+      { deviceToken, userId: null },
+    );
+
+    expect(request.species).toBe("Halibut");
+    expect(request.quantity).toBe("2 lb");
+    expect(request.itemCount).toBe(3);
+
+    const withItems = await getRequestWithMessages(request.id);
+    expect(withItems?.items.map((i) => [i.position, i.species])).toEqual([
+      [0, "Halibut"],
+      [1, "Grouper"],
+      [2, "Wahoo"],
+    ]);
+    expect(withItems?.items[1].notes).toBe("fillet please");
+    expect(withItems?.items[2].isCustom).toBe(true);
+    // Vendor-side fields start unset: no price until Evan replies with an estimate.
+    expect(withItems?.items.every((i) => i.status === "requested" && i.priceCents === null && !i.marketRate)).toBe(true);
+  });
+
+  it("lists every item in the opening message", async () => {
+    const deviceToken = crypto.randomUUID();
+    const request = await createRequest(
+      fishInput({
+        items: [item("Halibut", { quantity: "2 lb" }), item("Grouper", { quantity: null, notes: "fillet please" })],
+        notes: "Pickup Saturday",
+      }),
+      { deviceToken, userId: null },
+    );
+    const withMessages = await getRequestWithMessages(request.id);
+    expect(withMessages?.messages[0].body).toBe("Halibut — 2 lb\nGrouper (fillet please)\n\nPickup Saturday");
+  });
+
+  it("rejects a fish request with zero items or more than the max", async () => {
+    const identity = { deviceToken: crypto.randomUUID(), userId: null };
+    await expect(createRequest(fishInput({ items: [] }), identity)).rejects.toThrow(/items/);
+    const tooMany = Array.from({ length: MAX_REQUEST_ITEMS + 1 }, (_, i) => item(`Fish ${i}`));
+    await expect(createRequest(fishInput({ items: tooMany }), identity)).rejects.toThrow(/items/);
+  });
+
+  it("deletes items with their request (cascade)", async () => {
+    const deviceToken = crypto.randomUUID();
+    const request = await createRequest(fishInput({ items: [item("Halibut"), item("Grouper")] }), {
+      deviceToken,
+      userId: null,
+    });
+    await db.requestMessage.deleteMany({ where: { requestId: request.id } });
+    await db.fishRequest.delete({ where: { id: request.id } });
+    expect(await db.requestItem.count({ where: { requestId: request.id } })).toBe(0);
+  });
+});
+
+describe("migration 0007 backfill", () => {
+  it("creates a position-0 item for a legacy fish request without rows", async () => {
+    // Legacy-shaped row: headline columns set, no RequestItem rows — what the
+    // pre-#102 schema held. itemCount keeps the column default (1), matching
+    // what existing fish rows have after the migration.
+    const legacy = await db.fishRequest.create({
+      data: { contactName: "Jamie", requestType: "fish", species: "Snapper", quantity: "1 whole" },
+    });
+
+    // Mirrors the backfill statement in migrations/0007_request_items.sql —
+    // its NOT EXISTS guard makes it a no-op for requests that already have items.
+    await db.$executeRaw`
+      INSERT INTO "RequestItem" ("id", "requestId", "position", "species", "quantity")
+      SELECT lower(hex(randomblob(16))), "id", 0, "species", "quantity"
+      FROM "FishRequest"
+      WHERE "requestType" = 'fish' AND "species" IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM "RequestItem" ri WHERE ri."requestId" = "FishRequest"."id")`;
+
+    const items = await db.requestItem.findMany({ where: { requestId: legacy.id } });
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      position: 0,
+      species: "Snapper",
+      quantity: "1 whole",
+      isCustom: false,
+      status: "requested",
+      priceCents: null,
+    });
+
+    // Running it again stays a no-op.
+    await db.$executeRaw`
+      INSERT INTO "RequestItem" ("id", "requestId", "position", "species", "quantity")
+      SELECT lower(hex(randomblob(16))), "id", 0, "species", "quantity"
+      FROM "FishRequest"
+      WHERE "requestType" = 'fish' AND "species" IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM "RequestItem" ri WHERE ri."requestId" = "FishRequest"."id")`;
+    expect(await db.requestItem.count({ where: { requestId: legacy.id } })).toBe(1);
   });
 });
 
