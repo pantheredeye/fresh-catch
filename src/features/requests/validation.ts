@@ -14,7 +14,7 @@ export const FIELD_LIMITS = {
 /** Sentinel `species` value for the "Other" option of the customer form's species select. */
 export const OTHER_SPECIES = "__other";
 
-/** Locked decision (epic #101): a request holds at most 8 fish. */
+/** Locked decision (epic 101): a request holds at most 8 fish. */
 export const MAX_REQUEST_ITEMS = 8;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

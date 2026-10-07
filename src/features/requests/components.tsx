@@ -1,9 +1,9 @@
 import type { FC } from "hono/jsx";
-import type { FishRequest, RequestMessage } from "@/lib/db";
+import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { InboxEntry } from "./queries";
 import type { RequestStatus } from "./validation";
 import type { RequestableCatchItem } from "@/features/catch/queries";
-import { needsReply } from "./queries";
+import { needsReply, requestItemLine } from "./queries";
 import { formatPrice } from "@/lib/format";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
@@ -172,7 +172,7 @@ export const RequestForm: FC<{
   csrfToken: string;
   values?: RequestFormValues;
   errors?: Record<string, string>;
-  /** Customer form: this week's live catch for the selects + the add/remove row builder. Omit for the admin walk-up form (free-text species, single row). */
+  /** Customer form: this week's live catch for the species selects. Omit for the admin walk-up form — free-text species, same add/remove row builder. */
   catchItems?: RequestableCatchItem[];
   /** Row whose species field grabs focus — the no-JS "Add another fish" round trip lands you on the new row. */
   autofocusItem?: number;
@@ -224,12 +224,12 @@ export const RequestForm: FC<{
             index={index}
             item={item}
             catchItems={customer && catchItems.length > 0 ? catchItems : undefined}
-            removable={customer && items.length > 1}
+            removable={items.length > 1}
             errors={errors}
             autofocus={autofocusItem === index}
           />
         ))}
-        {customer && items.length < MAX_REQUEST_ITEMS ? (
+        {items.length < MAX_REQUEST_ITEMS ? (
           <Button type="submit" variant="secondary" name="action" value="add-row" formNoValidate>
             Add another fish
           </Button>
@@ -302,17 +302,47 @@ export function requestTitle(request: FishRequest): string {
   return request.requestType === "question" ? "Question" : (request.species ?? "Request");
 }
 
-export const RequestHeaderCard: FC<{ request: FishRequest }> = ({ request }) => (
-  <div class="card stack">
-    <CardHeader level={1} title={requestTitle(request)} meta={<RequestStatusBadge status={request.status} />} />
-    {request.quantity ? <p class="muted">{request.quantity}</p> : null}
-    <p class="muted">
-      From {request.contactName}
-      {request.contactEmail ? ` · ${request.contactEmail}` : ""}
-      {request.contactPhone ? ` · ${request.contactPhone}` : ""}
-    </p>
-  </div>
-);
+/** "Halibut +2" — the headline species plus the other-item count (issue 105: email subjects, compact rows). */
+export function requestTitleWithCount(request: FishRequest): string {
+  const title = requestTitle(request);
+  return request.requestType === "fish" && request.itemCount > 1 ? `${title} +${request.itemCount - 1}` : title;
+}
+
+/**
+ * Header card with the full item list (issue 105) when the caller fetched items;
+ * falls back to the denormalized headline quantity for bare-FishRequest
+ * callers (inline-error re-renders that didn't need the join).
+ */
+export const RequestHeaderCard: FC<{ request: FishRequest & { items?: RequestItem[] } }> = ({ request }) => {
+  const items = request.items ?? [];
+  return (
+    <div class="card stack">
+      <CardHeader level={1} title={requestTitle(request)} meta={<RequestStatusBadge status={request.status} />} />
+      {items.length > 0 ? (
+        <ul class="stack stack-tight">
+          {items.map((item) => (
+            <li>
+              {requestItemLine(item)}
+              {item.isCustom ? (
+                <>
+                  {" "}
+                  <span class="badge badge-custom">Not on list</span>
+                </>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : request.quantity ? (
+        <p class="muted">{request.quantity}</p>
+      ) : null}
+      <p class="muted">
+        From {request.contactName}
+        {request.contactEmail ? ` · ${request.contactEmail}` : ""}
+        {request.contactPhone ? ` · ${request.contactPhone}` : ""}
+      </p>
+    </div>
+  );
+};
 
 function formatMessageTime(date: Date): string {
   const iso = date.toISOString();
@@ -386,11 +416,17 @@ export const StatusForm: FC<{ action: string; csrfToken: string; currentStatus: 
   </form>
 );
 
+/** "+2 more" replaces the headline quantity on multi-item rows — the count matters more than item 0's amount. */
+function rowMeta(request: FishRequest): string | null {
+  if (request.requestType === "fish" && request.itemCount > 1) return `+${request.itemCount - 1} more`;
+  return request.quantity;
+}
+
 export const RequestListRow: FC<{ request: FishRequest }> = ({ request }) => (
   <a href={`/requests/${request.id}`} class="inbox-row">
     <span class="stack stack-tight">
       <strong>{requestTitle(request)}</strong>
-      {request.quantity ? <span class="muted">{request.quantity}</span> : null}
+      {rowMeta(request) ? <span class="muted">{rowMeta(request)}</span> : null}
     </span>
     <RequestStatusBadge status={request.status} />
   </a>
@@ -402,7 +438,7 @@ export const InboxRow: FC<{ entry: InboxEntry }> = ({ entry }) => (
       <strong>{requestTitle(entry)}</strong>
       <span class="muted">
         {entry.contactName}
-        {entry.quantity ? ` · ${entry.quantity}` : ""}
+        {rowMeta(entry) ? ` · ${rowMeta(entry)}` : ""}
       </span>
     </span>
     <span class="cluster">
