@@ -12,7 +12,15 @@ import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { ErrorSummary } from "@/ui/error-summary";
 import { CardHeader } from "@/ui/card-header";
-import { ITEM_STATUSES, MAX_REQUEST_ITEMS, OTHER_SPECIES, REQUEST_STATUSES, itemFieldId, resolutionFieldId } from "./validation";
+import {
+  ITEM_STATUSES,
+  MAX_REQUEST_ITEMS,
+  OTHER_SPECIES,
+  REQUEST_STATUSES,
+  itemFieldId,
+  resolutionFieldId,
+  type RawResolutionRow,
+} from "./validation";
 
 export type RequestItemFormValues = {
   /** The species select/input value as posted — may be the `OTHER_SPECIES` sentinel. */
@@ -461,52 +469,57 @@ export const ItemResolutionForm: FC<{
   csrfToken: string;
   items: RequestItem[];
   errors?: Record<string, string>;
-}> = ({ action, csrfToken, items, errors = {} }) => (
+  /** The 400 re-render's as-submitted rows, aligned with `items` by index — echo what was typed, don't revert to what's stored. */
+  drafts?: RawResolutionRow[];
+}> = ({ action, csrfToken, items, errors = {}, drafts }) => (
   <form method="post" action={action} class="stack">
     <input type="hidden" name="csrfToken" value={csrfToken} />
     <ErrorSummary items={Object.entries(errors).map(([id, message]) => ({ id, message }))} />
-    {items.map((item, index) => (
-      <fieldset class="item-row">
-        <legend>{requestItemLine(item)}</legend>
-        <div class="stack">
-          <input type="hidden" name={`items[${index}].id`} value={item.id} />
-          <Select
-            id={resolutionFieldId(index, "status")}
-            name={`items[${index}].status`}
-            label="Status"
-            value={item.status}
-            options={ITEM_STATUS_OPTIONS}
-            errorText={errors[resolutionFieldId(index, "status")]}
-          />
-          <Input
-            id={resolutionFieldId(index, "price")}
-            name={`items[${index}].price`}
-            label="Price"
-            inputMode="decimal"
-            value={item.priceCents != null ? (item.priceCents / 100).toFixed(2) : undefined}
-            helperText="Dollars — leave blank until you can quote it"
-            errorText={errors[resolutionFieldId(index, "price")]}
-          />
-          <label class="check-field" for={`resolve-${index}-marketRate`}>
-            <input
-              type="checkbox"
-              id={`resolve-${index}-marketRate`}
-              name={`items[${index}].marketRate`}
-              checked={item.marketRate}
+    {items.map((item, index) => {
+      const draft = drafts?.[index];
+      return (
+        <fieldset class="item-row">
+          <legend>{requestItemLine(item)}</legend>
+          <div class="stack">
+            <input type="hidden" name={`items[${index}].id`} value={item.id} />
+            <Select
+              id={resolutionFieldId(index, "status")}
+              name={`items[${index}].status`}
+              label="Status"
+              value={draft ? draft.status : item.status}
+              options={ITEM_STATUS_OPTIONS}
+              errorText={errors[resolutionFieldId(index, "status")]}
             />
-            Market rate
-          </label>
-          <Input
-            id={resolutionFieldId(index, "vendorNote")}
-            name={`items[${index}].vendorNote`}
-            label="Note to customer"
-            value={item.vendorNote ?? undefined}
-            helperText="Shown on their request — substitutions, sizing, caveats."
-            errorText={errors[resolutionFieldId(index, "vendorNote")]}
-          />
-        </div>
-      </fieldset>
-    ))}
+            <Input
+              id={resolutionFieldId(index, "price")}
+              name={`items[${index}].price`}
+              label="Price"
+              inputMode="decimal"
+              value={draft ? draft.price : item.priceCents != null ? (item.priceCents / 100).toFixed(2) : undefined}
+              helperText="Dollars — leave blank until you can quote it"
+              errorText={errors[resolutionFieldId(index, "price")]}
+            />
+            <label class="check-field" for={`resolve-${index}-marketRate`}>
+              <input
+                type="checkbox"
+                id={`resolve-${index}-marketRate`}
+                name={`items[${index}].marketRate`}
+                checked={draft ? draft.marketRate === "on" : item.marketRate}
+              />
+              Market rate
+            </label>
+            <Input
+              id={resolutionFieldId(index, "vendorNote")}
+              name={`items[${index}].vendorNote`}
+              label="Note to customer"
+              value={draft ? draft.vendorNote : item.vendorNote ?? undefined}
+              helperText="Shown on their request — substitutions, sizing, caveats."
+              errorText={errors[resolutionFieldId(index, "vendorNote")]}
+            />
+          </div>
+        </fieldset>
+      );
+    })}
     <Button type="submit" name="action" value="save">
       Save items
     </Button>

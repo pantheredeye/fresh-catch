@@ -20,7 +20,13 @@ import {
   type InboxFilter,
 } from "./queries";
 import { notifyCustomerOfVendorReply } from "./notifications";
-import { parseItemResolutionForm, parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
+import {
+  parseItemResolutionForm,
+  parseMessageForm,
+  parseRequestForm,
+  parseStatusUpdate,
+  rawResolutionRows,
+} from "./validation";
 import { confirmPrefill, estimateMessageBody, quoteMessageBody } from "./estimate";
 import {
   AdminReplyForm,
@@ -246,6 +252,7 @@ requestsAdminRoutes.post("/admin/requests/:id/items", csrfProtect(), async (c) =
           csrfToken={c.var.session!.csrfToken}
           items={request.items}
           errors={result.errors}
+          drafts={rawResolutionRows(body).map(({ row }) => row)}
         />
         <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
       </AdminThreadPage>,

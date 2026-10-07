@@ -262,7 +262,21 @@ export function resolutionFieldId(index: number, field: "status" | "price" | "ve
 
 const RESOLUTION_KEY_RE = /^items\[(\d+)\]\.(id|status|price|marketRate|vendorNote)$/;
 
-type RawResolutionRow = { id: string; status: string; price: string; marketRate: string; vendorNote: string };
+export type RawResolutionRow = { id: string; status: string; price: string; marketRate: string; vendorNote: string };
+
+/** Groups a resolution POST's flat `items[i].field` keys into index-ordered rows — shared by the parser and the 400 re-render (which echoes what was typed, not what's stored). */
+export function rawResolutionRows(raw: Record<string, unknown>): Array<{ index: number; row: RawResolutionRow }> {
+  const byIndex = new Map<number, RawResolutionRow>();
+  for (const [key, value] of Object.entries(raw)) {
+    const match = key.match(RESOLUTION_KEY_RE);
+    if (!match || typeof value !== "string") continue;
+    const index = Number(match[1]);
+    const row = byIndex.get(index) ?? { id: "", status: "", price: "", marketRate: "", vendorNote: "" };
+    row[match[2] as keyof RawResolutionRow] = value;
+    byIndex.set(index, row);
+  }
+  return [...byIndex.entries()].sort(([a], [b]) => a - b).map(([index, row]) => ({ index, row }));
+}
 
 /**
  * Parses the admin item-resolution form (#106). `validIds` is the request's
@@ -274,20 +288,10 @@ export function parseItemResolutionForm(
   raw: Record<string, unknown>,
   validIds: string[],
 ): ItemResolutionResult {
-  const byIndex = new Map<number, RawResolutionRow>();
-  for (const [key, value] of Object.entries(raw)) {
-    const match = key.match(RESOLUTION_KEY_RE);
-    if (!match || typeof value !== "string") continue;
-    const index = Number(match[1]);
-    const row = byIndex.get(index) ?? { id: "", status: "", price: "", marketRate: "", vendorNote: "" };
-    row[match[2] as keyof RawResolutionRow] = value;
-    byIndex.set(index, row);
-  }
-
   const errors: Record<string, string> = {};
   const data: ItemResolutionInput[] = [];
   const seen = new Set<string>();
-  for (const [index, row] of [...byIndex.entries()].sort(([a], [b]) => a - b)) {
+  for (const { index, row } of rawResolutionRows(raw)) {
     if (!validIds.includes(row.id) || seen.has(row.id)) {
       errors[resolutionFieldId(index, "status")] = "This item is no longer on the request — reload and try again";
       continue;
@@ -301,7 +305,8 @@ export function parseItemResolutionForm(
     let priceCents: number | null = null;
     if (price !== "") {
       const cents = Math.round(Number(price) * 100);
-      if (Number.isNaN(cents)) {
+      // isSafeInteger rejects NaN, Infinity, and absurd magnitudes that would blow the Int column.
+      if (!Number.isSafeInteger(cents)) {
         errors[resolutionFieldId(index, "price")] = "Price must be a number";
       } else if (cents <= 0) {
         errors[resolutionFieldId(index, "price")] = "Price must be greater than 0";

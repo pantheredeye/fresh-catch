@@ -673,10 +673,14 @@ describe("issue 106 per-item vendor resolution + estimates", () => {
     const res = await post(
       `/admin/requests/${request.id}/items`,
       cookie,
-      resolutionFields(items, csrfToken, { "items[0].price": "abc" }),
+      resolutionFields(items, csrfToken, { "items[0].price": "abc", "items[1].vendorNote": "unsaved draft note" }),
     );
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("Price must be a number");
+    const html = await res.text();
+    expect(html).toContain("Price must be a number");
+    // The re-render echoes what was typed — the other row's unsaved edits survive.
+    expect(html).toContain('value="abc"');
+    expect(html).toContain("unsaved draft note");
   });
 
   it("400s resolution once an order has frozen the snapshot", async () => {

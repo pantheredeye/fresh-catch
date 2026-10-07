@@ -243,6 +243,10 @@ describe("parseItemResolutionForm (#106)", () => {
     expect(zero.success).toBe(false);
     if (zero.success) return;
     expect(zero.errors[resolutionFieldId(0, "price")]).toContain("greater than 0");
+
+    // Finite but absurd — would blow the Int column, not a 500.
+    const huge = parseItemResolutionForm(rows({ "items[0].price": "1e17" }), ids);
+    expect(huge.success).toBe(false);
   });
 
   it("rejects an id that doesn't belong to the request", () => {
