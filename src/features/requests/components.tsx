@@ -5,6 +5,7 @@ import type { RequestStatus } from "./validation";
 import type { RequestableCatchItem } from "@/features/catch/queries";
 import { needsReply } from "./queries";
 import { formatPrice } from "@/lib/format";
+import { assetUrl } from "@/lib/assets";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Select } from "@/ui/select";
@@ -107,9 +108,11 @@ const ItemRow: FC<{
   item: RequestItemFormValues;
   catchItems?: RequestableCatchItem[];
   removable: boolean;
+  /** Sole-row Remove ships `hidden`, not absent — the island (issue 104) un-hides it once a second row exists, with no markup to invent. */
+  removeHidden?: boolean;
   errors: Record<string, string>;
   autofocus?: boolean;
-}> = ({ index, item, catchItems, removable, errors, autofocus }) => (
+}> = ({ index, item, catchItems, removable, removeHidden, errors, autofocus }) => (
   <fieldset class="item-row">
     <legend>Fish {index + 1}</legend>
     <div class="stack">
@@ -150,6 +153,7 @@ const ItemRow: FC<{
           name="action"
           value={`remove-${index}`}
           formNoValidate
+          hidden={removeHidden}
           ariaLabel={`Remove fish ${index + 1}`}
         >
           Remove
@@ -180,6 +184,7 @@ export const RequestForm: FC<{
   const isQuestion = values.requestType === "question";
   const customer = catchItems !== undefined;
   const items = values.items?.length ? values.items : [{}];
+  const rowCatchItems = customer && catchItems.length > 0 ? catchItems : undefined;
   return (
     <form method="post" action={action} class="request-form stack">
       <input type="hidden" name="csrfToken" value={csrfToken} />
@@ -219,20 +224,40 @@ export const RequestForm: FC<{
         </fieldset>
       )}
       <div class="fish-only stack">
-        {items.map((item, index) => (
-          <ItemRow
-            index={index}
-            item={item}
-            catchItems={customer && catchItems.length > 0 ? catchItems : undefined}
-            removable={customer && items.length > 1}
-            errors={errors}
-            autofocus={autofocusItem === index}
-          />
-        ))}
-        {customer && items.length < MAX_REQUEST_ITEMS ? (
-          <Button type="submit" variant="secondary" name="action" value="add-row" formNoValidate>
+        <div class="stack" id="builder-rows" data-max-items={String(MAX_REQUEST_ITEMS)}>
+          {items.map((item, index) => (
+            <ItemRow
+              index={index}
+              item={item}
+              catchItems={rowCatchItems}
+              removable={customer}
+              removeHidden={items.length === 1}
+              errors={errors}
+              autofocus={autofocusItem === index}
+            />
+          ))}
+        </div>
+        {customer ? (
+          // Rendered even at the 8-fish cap (hidden) so the island can bring
+          // it back after a client-side remove without inventing markup.
+          <Button
+            type="submit"
+            variant="secondary"
+            name="action"
+            value="add-row"
+            formNoValidate
+            hidden={items.length >= MAX_REQUEST_ITEMS}
+          >
             Add another fish
           </Button>
+        ) : null}
+        {customer ? (
+          // Inert blank row the island clones for client-side "Add another
+          // fish" — ids inside duplicate row 0's but never join the document;
+          // the island renumbers on clone.
+          <template id="builder-row-template">
+            <ItemRow index={0} item={{}} catchItems={rowCatchItems} removable errors={{}} />
+          </template>
         ) : null}
       </div>
       <Textarea
@@ -272,6 +297,7 @@ export const RequestForm: FC<{
         <span class="submit-fish">{submitLabel({ ...values, requestType: "fish" })}</span>
         <span class="submit-question">Send question</span>
       </Button>
+      {customer ? <script type="module" src={assetUrl("/js/order-builder.js")}></script> : null}
     </form>
   );
 };
