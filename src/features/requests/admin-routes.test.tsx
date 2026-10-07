@@ -230,6 +230,60 @@ describe("#64 vendor-initiated requests", () => {
     expect(await strangerRes.text()).toContain(species);
   });
 
+  it("grows and submits a multi-fish walk-up via the no-JS row builder (issue 105)", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const a = `Halibut ${crypto.randomUUID()}`;
+    const b = `Wahoo ${crypto.randomUUID()}`;
+
+    // "Add another fish" round-trips the form with a second row, no request created.
+    const addRes = await post("/admin/requests", cookie, {
+      requestType: "fish",
+      "items[0].species": a,
+      action: "add-row",
+      csrfToken,
+    });
+    expect(addRes.status).toBe(200);
+    const addHtml = await addRes.text();
+    expect(addHtml).toContain("Fish 2");
+    expect(addHtml).toContain(a);
+
+    const res = await post("/admin/requests", cookie, {
+      requestType: "fish",
+      "items[0].species": a,
+      "items[0].quantity": "2 lbs",
+      "items[1].species": b,
+      contactName: "Walk-up",
+      contactPhone: "555-0101",
+      csrfToken,
+    });
+    expect(res.status).toBe(302);
+    const id = res.headers.get("location")!.split("/").pop();
+
+    // Header card lists every item; inbox collapses to "+1 more".
+    const threadHtml = await (await app.request(`/admin/requests/${id}`, { headers: { Cookie: cookie } }, env)).text();
+    expect(threadHtml).toContain(`${a} — 2 lbs`);
+    expect(threadHtml).toContain(b);
+
+    const inboxHtml = await (await app.request("/admin/requests", { headers: { Cookie: cookie } }, env)).text();
+    expect(inboxHtml).toContain("+1 more");
+  });
+
+  it("shows a Not on list badge for custom items in the header card (issue 105)", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    const request = await createRequest(
+      fishInput({
+        items: [
+          { species: `Salmon ${crypto.randomUUID()}`, quantity: null, notes: null, isCustom: false },
+          { species: `Opah ${crypto.randomUUID()}`, quantity: "1 whole", notes: null, isCustom: true },
+        ],
+      }),
+      { deviceToken: crypto.randomUUID(), userId: null },
+    );
+
+    const html = await (await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain("Not on list");
+  });
+
   it("400s an invalid vendor-initiated submission with the error rendered inline", async () => {
     const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
     const res = await app.request(
@@ -287,6 +341,27 @@ describe("#65 confirm order + mark paid in person", () => {
 
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     expect(sendEmailMock.mock.calls[0][1].to).toBe("buyer@example.com");
+  });
+
+  it("lists the order's items on the summary card with TBD pricing until quoted per item (issue 105)", async () => {
+    const { cookie, csrfToken } = await mintAdminSession(env as unknown as Bindings);
+    const a = `Halibut ${crypto.randomUUID()}`;
+    const b = `Wahoo ${crypto.randomUUID()}`;
+    const request = await createRequest(
+      fishInput({
+        items: [
+          { species: a, quantity: "2 lbs", notes: null, isCustom: false },
+          { species: b, quantity: null, notes: null, isCustom: true },
+        ],
+      }),
+      { deviceToken: crypto.randomUUID(), userId: null },
+    );
+
+    await post(`/admin/requests/${request.id}/confirm-order`, cookie, { price: "90", csrfToken });
+
+    const html = await (await app.request(`/admin/requests/${request.id}`, { headers: { Cookie: cookie } }, env)).text();
+    expect(html).toContain(`${a} — 2 lbs · Price TBD`);
+    expect(html).toContain(`${b} · Price TBD`);
   });
 
   it("400s a non-numeric price with the error rendered inline", async () => {

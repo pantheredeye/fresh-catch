@@ -5,6 +5,7 @@ import { Select } from "@/ui/select";
 import { Button } from "@/ui/button";
 import { CardHeader } from "@/ui/card-header";
 import type { OrderWithPayments } from "./queries";
+import { parseOrderItems, type OrderItemSnapshot } from "./items";
 import { PAYMENT_METHODS } from "./validation";
 
 export function formatCents(cents: number): string {
@@ -19,8 +20,15 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   stripe: "Card",
 };
 
+/** Per-item price, tolerant of partial/unknown pricing (epic 101): a quote, "Market rate", or "Price TBD". */
+function itemPriceLabel(item: OrderItemSnapshot): string {
+  if (item.priceCents != null) return formatCents(item.priceCents);
+  return item.marketRate ? "Market rate" : "Price TBD";
+}
+
 export const OrderSummaryCard: FC<{ order: OrderWithPayments }> = ({ order }) => {
   const remaining = order.totalDue != null ? Math.max(order.totalDue - order.amountPaid, 0) : null;
+  const snapshot = parseOrderItems(order.items);
   return (
     <div class="card stack">
       <CardHeader
@@ -31,6 +39,19 @@ export const OrderSummaryCard: FC<{ order: OrderWithPayments }> = ({ order }) =>
           </span>
         }
       />
+      {snapshot && snapshot.items.length > 0 ? (
+        <ul class="stack stack-tight">
+          {snapshot.items.map((item) => (
+            <li>
+              {item.species}
+              {item.quantity ? ` — ${item.quantity}` : ""}
+              {item.notes ? ` (${item.notes})` : ""}
+              {` · ${itemPriceLabel(item)}`}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {snapshot?.orderNotes ? <p class="muted">{snapshot.orderNotes}</p> : null}
       {order.price != null ? <p class="muted">Price: {formatCents(order.price)}</p> : null}
       {order.depositAmount != null ? <p class="muted">Deposit: {formatCents(order.depositAmount)}</p> : null}
       <p class="muted">

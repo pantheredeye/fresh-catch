@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { FC, PropsWithChildren } from "hono/jsx";
 import type { Bindings, Variables } from "@/types";
+import type { FishRequest, RequestItem } from "@/lib/db";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
 import { SectionHeading } from "@/ui/section-heading";
@@ -17,8 +19,17 @@ import {
 } from "./queries";
 import { notifyCustomerOfVendorReply } from "./notifications";
 import { parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
-import { AdminReplyForm, InboxRow, RequestForm, RequestHeaderCard, StatusForm, Thread, requestTitle } from "./components";
-import { rawToFormValues } from "./routes";
+import {
+  AdminReplyForm,
+  InboxRow,
+  RequestForm,
+  RequestHeaderCard,
+  StatusForm,
+  Thread,
+  requestTitle,
+  type RequestFormValues,
+} from "./components";
+import { applyBuilderAction, builderAction, rawToFormValues } from "./routes";
 import { ConfirmOrderForm, MarkPaidForm, OrderSummaryCard, formatCents } from "@/features/orders/components";
 import { confirmOrderForRequest, recordPayment } from "@/features/orders/queries";
 import { parseConfirmOrderForm, parseMarkPaidForm } from "@/features/orders/validation";
@@ -42,6 +53,42 @@ const FILTER_LABEL: Record<InboxFilter, string> = {
   all: "All",
   archive: "Archive",
 };
+
+/** Shared chrome for the admin thread view and its inline-error re-renders (issue 105): Document/Page/back link/header card. */
+const AdminThreadPage: FC<PropsWithChildren<{ request: FishRequest & { items?: RequestItem[] } }>> = ({
+  request,
+  children,
+}) => (
+  <Document title={`${requestTitle(request)} — Admin`}>
+    <Page>
+      <BackLink href="/admin/requests">Requests</BackLink>
+      <RequestHeaderCard request={request} />
+      {children}
+    </Page>
+  </Document>
+);
+
+/** The walk-up form page (#64), shared by GET /new, the builder's add/remove round trips, and the 400 re-render. */
+const NewRequestPage: FC<{
+  csrfToken: string;
+  values?: RequestFormValues;
+  errors?: Record<string, string>;
+  autofocusItem?: number;
+}> = ({ csrfToken, values, errors, autofocusItem }) => (
+  <Document title="New request — Admin">
+    <Page>
+      <BackLink href="/admin/requests">Requests</BackLink>
+      <SectionHeading title="New request" level={1} />
+      <RequestForm
+        action="/admin/requests"
+        csrfToken={csrfToken}
+        values={values}
+        errors={errors}
+        autofocusItem={autofocusItem}
+      />
+    </Page>
+  </Document>
+);
 
 requestsAdminRoutes.get("/admin/requests", async (c) => {
   const filter = inboxFilterFrom(c.req.query("status"));
@@ -80,16 +127,7 @@ requestsAdminRoutes.get("/admin/requests", async (c) => {
  * ordering gotcha as `/requests/new` in routes.tsx.
  */
 requestsAdminRoutes.get("/admin/requests/new", async (c) => {
-  const csrfToken = c.var.session!.csrfToken;
-  return c.html(
-    <Document title="New request — Admin">
-      <Page>
-        <BackLink href="/admin/requests">Requests</BackLink>
-        <SectionHeading title="New request" level={1} />
-        <RequestForm action="/admin/requests" csrfToken={csrfToken} />
-      </Page>
-    </Document>,
-  );
+  return c.html(<NewRequestPage csrfToken={c.var.session!.csrfToken} />);
 });
 
 /**
@@ -102,22 +140,20 @@ requestsAdminRoutes.get("/admin/requests/new", async (c) => {
  */
 requestsAdminRoutes.post("/admin/requests", csrfProtect(), async (c) => {
   const body = await c.req.parseBody();
+
+  // Same no-JS add/remove-row round trips as the customer builder (issue 105) —
+  // admin-authed, so no rate-limit bucket needed.
+  const action = builderAction(body);
+  if (action) {
+    const { values, autofocusItem } = applyBuilderAction(rawToFormValues(body), action);
+    return c.html(<NewRequestPage csrfToken={c.var.session!.csrfToken} values={values} autofocusItem={autofocusItem} />);
+  }
+
   const result = parseRequestForm(body);
 
   if (!result.success) {
     return c.html(
-      <Document title="New request — Admin">
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <SectionHeading title="New request" level={1} />
-          <RequestForm
-            action="/admin/requests"
-            csrfToken={c.var.session!.csrfToken}
-            values={rawToFormValues(body)}
-            errors={result.errors}
-          />
-        </Page>
-      </Document>,
+      <NewRequestPage csrfToken={c.var.session!.csrfToken} values={rawToFormValues(body)} errors={result.errors} />,
       400,
     );
   }
@@ -141,35 +177,31 @@ requestsAdminRoutes.get("/admin/requests/:id", async (c) => {
   const dueNow = stripeConfig ? checkoutAmountFor(request.order!, stripeConfig.platformFeeBps) : null;
 
   return c.html(
-    <Document title={`${requestTitle(request)} — Admin`}>
-      <Page>
-        <BackLink href="/admin/requests">Requests</BackLink>
-        <RequestHeaderCard request={request} />
-        {request.order ? (
-          <OrderSummaryCard order={request.order} />
-        ) : (
-          <ConfirmOrderForm action={`/admin/requests/${request.id}/confirm-order`} csrfToken={csrfToken} />
-        )}
-        {dueNow ? (
-          <RequestPaymentForm
-            action={`/admin/requests/${request.id}/request-payment`}
-            csrfToken={csrfToken}
-            amountCents={dueNow.chargeCents}
-            isDeposit={dueNow.isDeposit}
-          />
-        ) : null}
-        {request.order && !request.order.paidAt ? (
-          <MarkPaidForm action={`/admin/requests/${request.id}/mark-paid`} csrfToken={csrfToken} />
-        ) : null}
-        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        <AdminReplyForm
-          action={`/admin/requests/${request.id}/messages`}
+    <AdminThreadPage request={request}>
+      {request.order ? (
+        <OrderSummaryCard order={request.order} />
+      ) : (
+        <ConfirmOrderForm action={`/admin/requests/${request.id}/confirm-order`} csrfToken={csrfToken} />
+      )}
+      {dueNow ? (
+        <RequestPaymentForm
+          action={`/admin/requests/${request.id}/request-payment`}
           csrfToken={csrfToken}
-          currentStatus={request.status}
+          amountCents={dueNow.chargeCents}
+          isDeposit={dueNow.isDeposit}
         />
-        <StatusForm action={`/admin/requests/${request.id}/status`} csrfToken={csrfToken} currentStatus={request.status} />
-      </Page>
-    </Document>,
+      ) : null}
+      {request.order && !request.order.paidAt ? (
+        <MarkPaidForm action={`/admin/requests/${request.id}/mark-paid`} csrfToken={csrfToken} />
+      ) : null}
+      <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      <AdminReplyForm
+        action={`/admin/requests/${request.id}/messages`}
+        csrfToken={csrfToken}
+        currentStatus={request.status}
+      />
+      <StatusForm action={`/admin/requests/${request.id}/status`} csrfToken={csrfToken} currentStatus={request.status} />
+    </AdminThreadPage>,
   );
 });
 
@@ -185,18 +217,14 @@ requestsAdminRoutes.post("/admin/requests/:id/confirm-order", csrfProtect(), asy
 
   if (!result.success) {
     return c.html(
-      <Document title={`${requestTitle(request)} — Admin`}>
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <RequestHeaderCard request={request} />
-          <ConfirmOrderForm
-            action={`/admin/requests/${request.id}/confirm-order`}
-            csrfToken={c.var.session!.csrfToken}
-            errors={result.errors}
-          />
-          <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        </Page>
-      </Document>,
+      <AdminThreadPage request={request}>
+        <ConfirmOrderForm
+          action={`/admin/requests/${request.id}/confirm-order`}
+          csrfToken={c.var.session!.csrfToken}
+          errors={result.errors}
+        />
+        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      </AdminThreadPage>,
       400,
     );
   }
@@ -253,19 +281,15 @@ requestsAdminRoutes.post("/admin/requests/:id/mark-paid", csrfProtect(), async (
 
   if (!result.success) {
     return c.html(
-      <Document title={`${requestTitle(request)} — Admin`}>
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <RequestHeaderCard request={request} />
-          <OrderSummaryCard order={request.order} />
-          <MarkPaidForm
-            action={`/admin/requests/${request.id}/mark-paid`}
-            csrfToken={c.var.session!.csrfToken}
-            errors={result.errors}
-          />
-          <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
-        </Page>
-      </Document>,
+      <AdminThreadPage request={request}>
+        <OrderSummaryCard order={request.order} />
+        <MarkPaidForm
+          action={`/admin/requests/${request.id}/mark-paid`}
+          csrfToken={c.var.session!.csrfToken}
+          errors={result.errors}
+        />
+        <Thread messages={request.messages} viewer="admin" customerName={request.contactName} />
+      </AdminThreadPage>,
       400,
     );
   }
@@ -284,19 +308,15 @@ requestsAdminRoutes.post("/admin/requests/:id/messages", csrfProtect(), async (c
   if (!result.success) {
     const withMessages = await getRequestWithMessages(request.id);
     return c.html(
-      <Document title={`${requestTitle(request)} — Admin`}>
-        <Page>
-          <BackLink href="/admin/requests">Requests</BackLink>
-          <RequestHeaderCard request={request} />
-          <Thread messages={withMessages?.messages ?? []} viewer="admin" customerName={request.contactName} />
-          <AdminReplyForm
-            action={`/admin/requests/${request.id}/messages`}
-            csrfToken={c.var.session!.csrfToken}
-            currentStatus={request.status}
-            errorText={result.errors.body}
-          />
-        </Page>
-      </Document>,
+      <AdminThreadPage request={withMessages ?? request}>
+        <Thread messages={withMessages?.messages ?? []} viewer="admin" customerName={request.contactName} />
+        <AdminReplyForm
+          action={`/admin/requests/${request.id}/messages`}
+          csrfToken={c.var.session!.csrfToken}
+          currentStatus={request.status}
+          errorText={result.errors.body}
+        />
+      </AdminThreadPage>,
       400,
     );
   }

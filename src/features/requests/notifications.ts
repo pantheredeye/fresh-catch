@@ -2,7 +2,8 @@ import type { Bindings } from "@/types";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { db } from "@/lib/db";
 import type { FishRequest } from "@/lib/db";
-import { requestTitle } from "./components";
+import { requestTitleWithCount } from "./components";
+import { listRequestItems, requestItemLine } from "./queries";
 
 function firstAdminEmail(env: Bindings): string | undefined {
   return env.ADMIN_EMAILS.split(",")
@@ -34,8 +35,15 @@ function alertHtml(heading: string, body: string, linkHref: string, linkText: st
 </html>`;
 }
 
-function requestSummary(request: FishRequest): string {
-  return request.quantity ? `${requestTitle(request)} — ${request.quantity}` : requestTitle(request);
+/** One item per line (issue 105) — `alertHtml` escapes the lot and renders pre-wrap, so newlines survive. */
+async function requestSummary(request: FishRequest): Promise<string> {
+  if (request.requestType === "fish") {
+    const items = await listRequestItems(request.id);
+    if (items.length > 0) {
+      return items.map((item) => `${requestItemLine(item)}${item.isCustom ? " · not on list" : ""}`).join("\n");
+    }
+  }
+  return request.quantity ? `${requestTitleWithCount(request)} — ${request.quantity}` : requestTitleWithCount(request);
 }
 
 /** Evan alert: a customer opened a new request. Skips silently if no recipient is configured. */
@@ -45,8 +53,8 @@ export async function notifyVendorOfNewRequest(env: Bindings, request: FishReque
   const url = `${env.APP_URL}/admin/requests/${request.id}`;
   await sendEmail(env, {
     to,
-    subject: `New request: ${requestTitle(request)}`,
-    html: alertHtml(`New request from ${request.contactName}`, requestSummary(request), url, "View request"),
+    subject: `New request: ${requestTitleWithCount(request)}`,
+    html: alertHtml(`New request from ${request.contactName}`, await requestSummary(request), url, "View request"),
   });
 }
 
@@ -57,8 +65,8 @@ export async function notifyVendorOfCustomerReply(env: Bindings, request: FishRe
   const url = `${env.APP_URL}/admin/requests/${request.id}`;
   await sendEmail(env, {
     to,
-    subject: `New reply: ${requestTitle(request)}`,
-    html: alertHtml(`${request.contactName} replied`, requestSummary(request), url, "View request"),
+    subject: `New reply: ${requestTitleWithCount(request)}`,
+    html: alertHtml(`${request.contactName} replied`, await requestSummary(request), url, "View request"),
   });
 }
 
@@ -68,7 +76,7 @@ export async function notifyCustomerOfVendorReply(env: Bindings, request: FishRe
   const url = `${env.APP_URL}/requests/${request.id}`;
   await sendEmail(env, {
     to: request.contactEmail,
-    subject: `2 Fishes Seafood replied: ${requestTitle(request)}`,
-    html: alertHtml("2 Fishes Seafood replied to your request", requestSummary(request), url, "View your request"),
+    subject: `2 Fishes Seafood replied: ${requestTitleWithCount(request)}`,
+    html: alertHtml("2 Fishes Seafood replied to your request", await requestSummary(request), url, "View your request"),
   });
 }
