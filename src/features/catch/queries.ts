@@ -35,10 +35,19 @@ export function updateCatchContent(id: string, content: CatchContent): Promise<C
   return db.catchUpdate.update({ where: { id }, data: { formattedContent: JSON.stringify(content) } });
 }
 
-/** Species names a customer can request right now — this week's live, not-sold-out items (empty when no fresh catch). */
-export async function listRequestableSpecies(now = new Date()): Promise<string[]> {
+export interface RequestableCatchItem {
+  name: string;
+  /** Only when the live catch item carries a price tag — never invented (#103: prices optional). */
+  priceCents?: number;
+}
+
+/** What a customer can request right now — this week's live, not-sold-out items (empty when no fresh catch). */
+export async function listRequestableCatchItems(now = new Date()): Promise<RequestableCatchItem[]> {
   const live = await getLiveCatchUpdate();
   if (!live || !isCatchUpdateFresh(live, now)) return [];
   const content = parseCatchContent(live.formattedContent);
-  return content ? content.items.filter((item) => !item.soldOut).map((item) => item.name) : [];
+  if (!content) return [];
+  return content.items
+    .filter((item) => !item.soldOut)
+    .map((item) => (item.priceCents !== undefined ? { name: item.name, priceCents: item.priceCents } : { name: item.name }));
 }

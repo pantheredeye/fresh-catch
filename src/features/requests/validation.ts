@@ -4,16 +4,18 @@ export const FIELD_LIMITS = {
   species: 200,
   quantity: 100,
   notes: 1000,
+  itemNotes: 300,
   contactName: 200,
   contactEmail: 254,
   contactPhone: 40,
   messageBody: 2000,
+  vendorNote: 300,
 } as const;
 
 /** Sentinel `species` value for the "Other" option of the customer form's species select. */
 export const OTHER_SPECIES = "__other";
 
-/** Locked decision (epic #101): a request holds at most 8 fish. */
+/** Locked decision (epic 101): a request holds at most 8 fish. */
 export const MAX_REQUEST_ITEMS = 8;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,10 +50,9 @@ const sharedFields = {
   contactPhone: optionalText("contactPhone"),
 };
 
+/** Fish items live in `items[i].*` fields (parsed by hand below); zod only covers the shared order-level fields. */
 const fishRequestSchema = z.object({
   requestType: z.literal("fish"),
-  species: requiredText("species", "Species"),
-  quantity: optionalText("quantity"),
   notes: optionalText("notes"),
   ...sharedFields,
 });
@@ -62,8 +63,6 @@ const questionRequestSchema = z.object({
   notes: requiredText("notes", "Question"),
   ...sharedFields,
 });
-
-export const requestFormSchema = z.discriminatedUnion("requestType", [fishRequestSchema, questionRequestSchema]);
 
 /**
  * One line of an order request (#102). `priceCents`/`status`/`vendorNote` are
@@ -99,21 +98,91 @@ function flattenErrors(error: z.ZodError): Record<string, string> {
   return errors;
 }
 
-/** Parses a raw `c.req.parseBody()` submission into a `FishRequest` create, or field-keyed errors. */
-export function parseRequestForm(raw: Record<string, unknown>): RequestFormResult {
-  // The customer form's species <select> posts OTHER_SPECIES plus a free-text `speciesOther`.
-  const input =
-    raw.species === OTHER_SPECIES ? { ...raw, species: typeof raw.speciesOther === "string" ? raw.speciesOther : "" } : raw;
-  const result = requestFormSchema.safeParse(input);
-  if (!result.success) {
-    return { success: false, errors: flattenErrors(result.error) };
+/** Error keys double as field element ids, so `ErrorSummary` anchors land on the right row's input. */
+export function itemFieldId(index: number, field: "species" | "speciesOther" | "quantity" | "notes"): string {
+  return `items-${index}-${field}`;
+}
+
+type RawItemRow = { species: string; speciesOther: string; quantity: string; notes: string };
+
+const ITEM_KEY_RE = /^items\[(\d+)\]\.(species|speciesOther|quantity|notes)$/;
+
+/** Groups a `parseBody()`'s flat `items[i].field` keys into index-ordered rows. The form always renders contiguous indexes, so row order == array order. */
+export function rawItemRows(raw: Record<string, unknown>): Array<{ index: number; row: RawItemRow }> {
+  const byIndex = new Map<number, RawItemRow>();
+  for (const [key, value] of Object.entries(raw)) {
+    const match = key.match(ITEM_KEY_RE);
+    if (!match || typeof value !== "string") continue;
+    const index = Number(match[1]);
+    const row = byIndex.get(index) ?? { species: "", speciesOther: "", quantity: "", notes: "" };
+    row[match[2] as keyof RawItemRow] = value;
+    byIndex.set(index, row);
+  }
+  return [...byIndex.entries()].sort(([a], [b]) => a - b).map(([index, row]) => ({ index, row }));
+}
+
+/**
+ * `liveSpecies` = this week's requestable list: a typed/selected species not
+ * on it is `isCustom` even without the "Other" sentinel (it can sell out
+ * between page load and submit). With no live list at all, nothing is flagged
+ * — there's no list to be "not on".
+ */
+function parseItems(raw: Record<string, unknown>, liveSpecies: string[] | undefined) {
+  const errors: Record<string, string> = {};
+  const items: RequestItemInput[] = [];
+  for (const { index, row } of rawItemRows(raw)) {
+    const isOther = row.species === OTHER_SPECIES;
+    const species = (isOther ? row.speciesOther : row.species).trim();
+    const quantity = row.quantity.trim();
+    const notes = row.notes.trim();
+    // A fully blank row is an abandoned "Add another fish" tap — dropped silently.
+    if (!species && !quantity && !notes) continue;
+    const speciesField = itemFieldId(index, isOther ? "speciesOther" : "species");
+    if (!species) {
+      errors[speciesField] = isOther ? "Enter the fish name" : "Species is required";
+      continue;
+    }
+    if (species.length > FIELD_LIMITS.species) {
+      errors[speciesField] = `Species must be ${FIELD_LIMITS.species} characters or less`;
+    }
+    if (quantity.length > FIELD_LIMITS.quantity) {
+      errors[itemFieldId(index, "quantity")] = `Must be ${FIELD_LIMITS.quantity} characters or less`;
+    }
+    if (notes.length > FIELD_LIMITS.itemNotes) {
+      errors[itemFieldId(index, "notes")] = `Must be ${FIELD_LIMITS.itemNotes} characters or less`;
+    }
+    // On-list wins even via the "Other" sentinel — typing a live species under
+    // "Other" is still this week's fish, not a custom request.
+    const onList = !!liveSpecies?.some((live) => live.toLowerCase() === species.toLowerCase());
+    const isCustom = (isOther || !!liveSpecies?.length) && !onList;
+    items.push({ species, quantity: quantity || null, notes: notes || null, isCustom });
+  }
+  if (items.length === 0 && Object.keys(errors).length === 0) {
+    errors[itemFieldId(0, "species")] = "Add at least one fish";
+  }
+  if (items.length > MAX_REQUEST_ITEMS) {
+    // ??= so a real row-0 error isn't clobbered by the count error.
+    errors[itemFieldId(0, "species")] ??= `Up to ${MAX_REQUEST_ITEMS} fish per request`;
+  }
+  return { items, errors };
+}
+
+/** Parses a raw `c.req.parseBody()` submission into a `FishRequest` create, or field-id-keyed errors. */
+export function parseRequestForm(
+  raw: Record<string, unknown>,
+  options: { liveSpecies?: string[] } = {},
+): RequestFormResult {
+  if (raw.requestType !== "fish" && raw.requestType !== "question") {
+    return { success: false, errors: { requestType: "Choose a request type" } };
   }
 
-  const parsed = result.data;
-  if (!parsed.contactEmail && !parsed.contactPhone) {
-    return { success: false, errors: { contactEmail: "Add an email or phone so we can reach you" } };
-  }
-  if (parsed.requestType === "question") {
+  if (raw.requestType === "question") {
+    const result = questionRequestSchema.safeParse(raw);
+    if (!result.success) return { success: false, errors: flattenErrors(result.error) };
+    const parsed = result.data;
+    if (!parsed.contactEmail && !parsed.contactPhone) {
+      return { success: false, errors: { contactEmail: "Add an email or phone so we can reach you" } };
+    }
     return {
       success: true,
       data: {
@@ -127,20 +196,23 @@ export function parseRequestForm(raw: Record<string, unknown>): RequestFormResul
     };
   }
 
+  // Fish: collect shared-field and per-row errors together so one 400 shows everything.
+  const shared = fishRequestSchema.safeParse(raw);
+  const { items, errors: itemErrors } = parseItems(raw, options.liveSpecies);
+  const errors = { ...(shared.success ? {} : flattenErrors(shared.error)), ...itemErrors };
+  if (Object.keys(errors).length > 0 || !shared.success) {
+    return { success: false, errors };
+  }
+
+  const parsed = shared.data;
+  if (!parsed.contactEmail && !parsed.contactPhone) {
+    return { success: false, errors: { contactEmail: "Add an email or phone so we can reach you" } };
+  }
   return {
     success: true,
     data: {
       requestType: "fish",
-      // Single-item form for now; the multi-row builder (#103) adds items[i].*
-      // parsing. "Other" free-text is the one custom signal the form has today.
-      items: [
-        {
-          species: parsed.species,
-          quantity: parsed.quantity,
-          notes: null,
-          isCustom: raw.species === OTHER_SPECIES,
-        },
-      ],
+      items,
       notes: parsed.notes,
       contactName: parsed.contactName,
       contactEmail: parsed.contactEmail,
@@ -161,6 +233,105 @@ export function parseMessageForm(raw: Record<string, unknown>): MessageFormResul
     return { success: false, errors: flattenErrors(result.error) };
   }
   return { success: true, data: result.data };
+}
+
+/**
+ * Per-item vendor resolution (#106). `requested` is the unresolved default;
+ * the other three are Evan's answer per line. Pricing is orthogonal: any
+ * status may carry a price, a market-rate flag, or neither (price TBD).
+ */
+export const ITEM_STATUSES = ["requested", "available", "substituted", "unavailable"] as const;
+export type ItemStatus = (typeof ITEM_STATUSES)[number];
+
+export type ItemResolutionInput = {
+  id: string;
+  status: ItemStatus;
+  priceCents: number | null;
+  marketRate: boolean;
+  vendorNote: string | null;
+};
+
+export type ItemResolutionResult =
+  | { success: true; data: ItemResolutionInput[] }
+  | { success: false; errors: Record<string, string> };
+
+/** Error keys double as the resolution form's field element ids (distinct from `itemFieldId` — different form, same page family). */
+export function resolutionFieldId(index: number, field: "status" | "price" | "vendorNote"): string {
+  return `resolve-${index}-${field}`;
+}
+
+const RESOLUTION_KEY_RE = /^items\[(\d+)\]\.(id|status|price|marketRate|vendorNote)$/;
+
+export type RawResolutionRow = { id: string; status: string; price: string; marketRate: string; vendorNote: string };
+
+/** Groups a resolution POST's flat `items[i].field` keys into index-ordered rows — shared by the parser and the 400 re-render (which echoes what was typed, not what's stored). */
+export function rawResolutionRows(raw: Record<string, unknown>): Array<{ index: number; row: RawResolutionRow }> {
+  const byIndex = new Map<number, RawResolutionRow>();
+  for (const [key, value] of Object.entries(raw)) {
+    const match = key.match(RESOLUTION_KEY_RE);
+    if (!match || typeof value !== "string") continue;
+    const index = Number(match[1]);
+    const row = byIndex.get(index) ?? { id: "", status: "", price: "", marketRate: "", vendorNote: "" };
+    row[match[2] as keyof RawResolutionRow] = value;
+    byIndex.set(index, row);
+  }
+  return [...byIndex.entries()].sort(([a], [b]) => a - b).map(([index, row]) => ({ index, row }));
+}
+
+/**
+ * Parses the admin item-resolution form (#106). `validIds` is the request's
+ * own item ids — a posted row must match one (stale forms and crafted POSTs
+ * both land here). Price is optional dollars → cents; blank stays null
+ * (market-rate/TBD until Evan quotes).
+ */
+export function parseItemResolutionForm(
+  raw: Record<string, unknown>,
+  validIds: string[],
+): ItemResolutionResult {
+  const errors: Record<string, string> = {};
+  const data: ItemResolutionInput[] = [];
+  const seen = new Set<string>();
+  for (const { index, row } of rawResolutionRows(raw)) {
+    if (!validIds.includes(row.id) || seen.has(row.id)) {
+      errors[resolutionFieldId(index, "status")] = "This item is no longer on the request — reload and try again";
+      continue;
+    }
+    seen.add(row.id);
+    if (!(ITEM_STATUSES as readonly string[]).includes(row.status)) {
+      errors[resolutionFieldId(index, "status")] = "Choose a status";
+      continue;
+    }
+    const price = row.price.trim();
+    let priceCents: number | null = null;
+    if (price !== "") {
+      const cents = Math.round(Number(price) * 100);
+      // isSafeInteger rejects NaN, Infinity, and absurd magnitudes that would blow the Int column.
+      if (!Number.isSafeInteger(cents)) {
+        errors[resolutionFieldId(index, "price")] = "Price must be a number";
+      } else if (cents <= 0) {
+        errors[resolutionFieldId(index, "price")] = "Price must be greater than 0";
+      } else {
+        priceCents = cents;
+      }
+    }
+    const vendorNote = row.vendorNote.trim();
+    if (vendorNote.length > FIELD_LIMITS.vendorNote) {
+      errors[resolutionFieldId(index, "vendorNote")] = `Must be ${FIELD_LIMITS.vendorNote} characters or less`;
+    }
+    data.push({
+      id: row.id,
+      status: row.status as ItemStatus,
+      priceCents,
+      marketRate: row.marketRate === "on",
+      vendorNote: vendorNote || null,
+    });
+  }
+
+  if (data.length === 0 && Object.keys(errors).length === 0) {
+    errors[resolutionFieldId(0, "status")] = "Nothing to update";
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return { success: true, data };
 }
 
 /** R7: the vocabulary stops here — payment state lives on the (later) linked Order, never a fifth status. */

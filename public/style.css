@@ -629,12 +629,25 @@ ol.stack {
   outline-offset: 3px;
 }
 
-/* "Other" species reveals a free-text field; submit label follows the type. */
+/* Order builder (#103): one fieldset per fish, bordered so rows scan apart without shadows. */
+.item-row {
+  margin: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.item-row legend {
+  padding: 0 var(--space-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+/* "Other" species reveals a free-text field — scoped per row so one row's
+   "Other" doesn't open every row's; submit label follows the type. */
 .other-only {
   display: none;
 }
 
-.request-form:has(#species option[value="__other"]:checked) .other-only {
+.item-row:has(.field-select option[value="__other"]:checked) .other-only {
   display: block;
 }
 
@@ -712,6 +725,41 @@ ol.stack {
 .badge-declined {
   background: var(--color-status-error-fill);
   color: var(--color-badge-error-text);
+}
+
+/* "Not on list" item flag (#105) — same warning pairing as badge-open. */
+.badge-custom {
+  background: var(--color-status-warning-fill);
+  color: var(--color-badge-warning-text);
+}
+
+/* Per-item vendor resolution (#106) — same pairings as the request status badges. */
+.badge-item-available {
+  background: var(--color-status-success-fill);
+  color: var(--color-badge-success-text);
+}
+
+.badge-item-substituted {
+  background: var(--color-status-warning-fill);
+  color: var(--color-badge-warning-text);
+}
+
+.badge-item-unavailable {
+  background: var(--color-status-error-fill);
+  color: var(--color-badge-error-text);
+}
+
+/* A labelled checkbox row (#106's market-rate flag) — 58px touch target, 28px box. */
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 58px;
+}
+
+.check-field input {
+  width: 28px;
+  height: 28px;
 }
 
 /* Post-checkout return banners (#60). */

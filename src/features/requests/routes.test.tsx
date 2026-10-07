@@ -1,8 +1,9 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { setupDb } from "@/lib/db";
+import { setupDb, db } from "@/lib/db";
 import type { Bindings } from "@/types";
 import { mintAdminSession } from "@/features/auth/test-helpers";
+import { publishCatchUpdate } from "@/features/catch/queries";
 import * as emailLib from "@/lib/email";
 import app from "../../index";
 
@@ -52,8 +53,8 @@ async function visitAsNewDevice(path = "/requests/new") {
 function fishFields(overrides: Record<string, string> = {}) {
   return {
     requestType: "fish",
-    species: `Halibut ${crypto.randomUUID()}`,
-    quantity: "2 lbs",
+    "items[0].species": `Halibut ${crypto.randomUUID()}`,
+    "items[0].quantity": "2 lbs",
     notes: "",
     contactName: "Jamie",
     contactEmail: "jamie@example.com",
@@ -84,11 +85,14 @@ describe("customer form (#85)", () => {
     expect(html).toContain('class="segmented"');
     expect(html).toContain("submit-question");
     expect(html).toContain("Request Flounder");
+    // Enter-key implicit submission must hit this hidden default, not the
+    // builder's add/remove submits that come first otherwise.
+    expect(html).toContain('<button type="submit" hidden');
   });
 
   it("accepts Other + free-text species", async () => {
     const { cookie, csrfToken } = await visitAsNewDevice();
-    const res = await createRequestAs(cookie, csrfToken, fishFields({ species: "__other", speciesOther: "Wahoo" }));
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ "items[0].species": "__other", "items[0].speciesOther": "Wahoo" }));
     expect(res.status).toBe(302);
   });
 
@@ -128,7 +132,7 @@ describe("POST /requests", () => {
 
   it("400s a missing species with the error rendered inline", async () => {
     const { cookie, csrfToken } = await visitAsNewDevice();
-    const res = await createRequestAs(cookie, csrfToken, fishFields({ species: "" }));
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ "items[0].species": "" }));
     expect(res.status).toBe(400);
     expect(await res.text()).toContain("Species is required");
   });
@@ -143,6 +147,183 @@ describe("POST /requests", () => {
   });
 });
 
+describe("order builder (issue 103)", () => {
+  it("creates one request from multiple rows and lists each fish in the thread", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const a = `Halibut ${crypto.randomUUID()}`;
+    const b = `Grouper ${crypto.randomUUID()}`;
+    const res = await createRequestAs(
+      cookie,
+      csrfToken,
+      fishFields({ "items[0].species": a, "items[1].species": b, "items[1].quantity": "1 whole", "items[1].notes": "filleted" }),
+    );
+    expect(res.status).toBe(302);
+
+    const threadHtml = await (
+      await app.request(locationPath(res.headers.get("location")!), { headers: { Cookie: cookie } }, env)
+    ).text();
+    expect(threadHtml).toContain(a);
+    expect(threadHtml).toContain(b);
+  });
+
+  it("add-row re-renders an extra row, keeps typed values, and never burns the rate limit", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const fields = fishFields({ action: "add-row" });
+
+    // 6 round trips — one more than the requestCreate limit of 5.
+    let html = "";
+    for (let i = 0; i < 6; i++) {
+      const res = await createRequestAs(cookie, csrfToken, fields);
+      expect(res.status).toBe(200);
+      html = await res.text();
+    }
+    expect(html).toContain('name="items[1].species"');
+    expect(html).toContain(fields["items[0].species"]);
+    expect(html).not.toContain("error-summary");
+
+    // A real submit still goes through — the add taps didn't count.
+    const createRes = await createRequestAs(cookie, csrfToken, fishFields());
+    expect(createRes.status).toBe(302);
+  });
+
+  it("caps builder round trips on their own loose bucket", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const fields = fishFields({ action: "add-row" });
+    let last: Response | undefined;
+    for (let i = 0; i < 31; i++) {
+      last = await createRequestAs(cookie, csrfToken, fields);
+    }
+    expect(last?.status).toBe(429);
+  });
+
+  it("remove-row drops exactly the targeted row", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const keep = `Snapper ${crypto.randomUUID()}`;
+    const res = await createRequestAs(
+      cookie,
+      csrfToken,
+      fishFields({ "items[1].species": keep, action: "remove-0" }),
+    );
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain(keep);
+    expect(html).not.toContain('name="items[1].species"');
+  });
+
+  it("stops adding rows at the 8-fish cap", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const overrides: Record<string, string> = { action: "add-row" };
+    for (let i = 1; i < 8; i++) overrides[`items[${i}].species`] = `Fish ${i}`;
+    const res = await createRequestAs(cookie, csrfToken, fishFields(overrides));
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('name="items[7].species"');
+    expect(html).not.toContain('name="items[8].species"');
+    // Still rendered (the island un-hides it after a client-side remove) but
+    // hidden — invisible and inert for the no-JS flow.
+    expect(html).toMatch(/<button type="submit" name="action" value="add-row" formnovalidate="" [^>]*hidden=""/);
+  });
+
+  it("re-renders every row on a 400", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const a = `Halibut ${crypto.randomUUID()}`;
+    const b = `Grouper ${crypto.randomUUID()}`;
+    const res = await createRequestAs(
+      cookie,
+      csrfToken,
+      fishFields({ "items[0].species": a, "items[1].species": b, contactEmail: "", contactPhone: "" }),
+    );
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(html).toContain(a);
+    expect(html).toContain(b);
+    expect(html).toContain("Add an email or phone");
+  });
+
+  it("flags custom (Other) items on the post-submit confirmation", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(
+      cookie,
+      csrfToken,
+      fishFields({ "items[0].species": "__other", "items[0].speciesOther": "Wahoo" }),
+    );
+    expect(res.status).toBe(302);
+    const html = await (
+      await app.request(res.headers.get("location")!, { headers: { Cookie: cookie } }, env)
+    ).text();
+    expect(html).toContain("availability and price will be confirmed");
+  });
+
+  it("shows a price in the species option only when the catch item is tagged", async () => {
+    await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+    await publishCatchUpdate({
+      recordedBy: null,
+      rawTranscript: "t",
+      formattedContent: JSON.stringify({
+        headline: "h",
+        items: [
+          { name: "Halibut", note: "", priceCents: 1500 },
+          { name: "Grouper", note: "" },
+        ],
+        summary: "s",
+      }),
+    });
+    try {
+      const html = await (await newVisitorRequest("/requests/new")).text();
+      expect(html).toContain("Halibut — $15");
+      expect(html).toContain(">Grouper</option>");
+      expect(html).not.toContain("Grouper — $");
+    } finally {
+      await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+    }
+  });
+});
+
+/**
+ * The island itself (public/js/order-builder.js) runs in the browser, not the
+ * Workers runtime — these pin the server-rendered contract it hangs off:
+ * rows container + data-max-items, a blank-row <template> to clone, the
+ * hidden-at-the-edges add/remove buttons it toggles, and the script tag.
+ */
+describe("builder island (issue 104)", () => {
+  it("ships the rows container, blank-row template, and cache-busted script", async () => {
+    const html = await (await newVisitorRequest("/requests/new")).text();
+    expect(html).toContain('<div class="stack" id="builder-rows" data-max-items="8">');
+    expect(html).toContain('<template id="builder-row-template">');
+    expect(html).toContain('<script type="module" src="/js/order-builder.js?v=');
+    // The template row carries a visible Remove button (plus labeled fields)
+    // so cloned rows arrive complete — the island renumbers value/ids/legend.
+    const template = html.slice(html.indexOf('<template id="builder-row-template">'));
+    expect(template).toMatch(/<button type="submit" name="action" value="remove-0" formnovalidate="" (?![^>]*hidden)/);
+    expect(template).toContain('<legend>Fish 1</legend>');
+  });
+
+  it("renders the sole row's Remove hidden and a below-cap Add visible", async () => {
+    const html = await (await newVisitorRequest("/requests/new")).text();
+    expect(html).toMatch(/<button type="submit" name="action" value="remove-0" formnovalidate="" [^>]*hidden=""/);
+    expect(html).toMatch(/<button type="submit" name="action" value="add-row" formnovalidate="" (?![^>]*hidden)[^>]*>Add another fish/);
+  });
+
+  it("keeps multi-row Remove buttons visible", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ action: "add-row" }));
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toMatch(/value="remove-0" formnovalidate="" (?![^>]*hidden)[^>]*aria-label="Remove fish 1"/);
+    expect(html).toMatch(/value="remove-1" formnovalidate="" (?![^>]*hidden)[^>]*aria-label="Remove fish 2"/);
+  });
+
+  it("leaves the admin walk-up form island-free", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    const res = await app.request("/admin/requests/new", { headers: { Cookie: cookie } }, env);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).not.toContain("order-builder.js");
+    expect(html).not.toContain("builder-row-template");
+    expect(html).not.toContain('value="remove-0"');
+  });
+});
+
 describe("GET /requests/:id", () => {
   it("is readable with the creating device's cookie", async () => {
     const { cookie, csrfToken } = await visitAsNewDevice();
@@ -152,7 +333,7 @@ describe("GET /requests/:id", () => {
 
     const res = await app.request(location, { headers: { Cookie: cookie } }, env);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain(fields.species);
+    expect(await res.text()).toContain(fields["items[0].species"]);
   });
 
   it("404s for a different device's cookie", async () => {
@@ -175,7 +356,7 @@ describe("GET /requests/:id", () => {
     const { cookie } = await mintAdminSession(env as unknown as Bindings);
     const res = await app.request(location, { headers: { Cookie: cookie } }, env);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain(fields.species);
+    expect(await res.text()).toContain(fields["items[0].species"]);
   });
 
   it("404s an unknown id", async () => {
@@ -226,7 +407,7 @@ describe("GET /requests", () => {
 
     const res = await app.request("/requests", { headers: { Cookie: cookie } }, env);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain(fields.species);
+    expect(await res.text()).toContain(fields["items[0].species"]);
   });
 });
 
@@ -272,7 +453,7 @@ describe("R3: claim on login", () => {
       { headers: { Cookie: `${session}; ${freshDeviceCookie}` } },
       env,
     );
-    expect(await res.text()).toContain(fields.species);
+    expect(await res.text()).toContain(fields["items[0].species"]);
 
     const threadRes = await app.request(location, { headers: { Cookie: `${session}; ${freshDeviceCookie}` } }, env);
     expect(threadRes.status).toBe(200);
@@ -294,7 +475,7 @@ describe("#64 email alerts", () => {
 
     expect(res.status).toBe(302);
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
-    expect(sendEmailMock.mock.calls[0][1].subject).toContain(fields.species);
+    expect(sendEmailMock.mock.calls[0][1].subject).toContain(fields["items[0].species"]);
   });
 
   it("alerts the vendor on a customer reply", async () => {

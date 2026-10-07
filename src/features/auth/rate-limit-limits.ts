@@ -24,6 +24,11 @@ export const ENDPOINT_LIMITS = {
   // Identity is the device token, not an email (#59) — same tight+loose shape.
   requestCreate: { maxRequests: 5, windowMs: FIFTEEN_MIN }, // per DEVICE
   requestCreateIp: { maxRequests: 60, windowMs: FIFTEEN_MIN }, // per-IP ceiling
+  // No-JS add/remove-row round trips (issue 103): deliberately NOT counted
+  // against requestCreate (growing an 8-fish order takes many taps), but
+  // still capped loosely — each render costs 3 D1 reads.
+  builderAction: { maxRequests: 30, windowMs: FIFTEEN_MIN }, // per DEVICE
+  builderActionIp: { maxRequests: 300, windowMs: FIFTEEN_MIN }, // per-IP ceiling
   messageCreate: { maxRequests: 20, windowMs: FIFTEEN_MIN }, // per DEVICE
   messageCreateIp: { maxRequests: 200, windowMs: FIFTEEN_MIN }, // per-IP ceiling
 } as const satisfies Record<string, Limit>;
