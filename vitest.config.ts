@@ -31,6 +31,10 @@ export default defineConfig({
       miniflare: {
         bindings: {
           NODE_ENV: "test",
+          // Never let a live key from .dev.vars/.env reach tests — sends are
+          // skipped (sendEmail returns false). test-setup.ts also blocks
+          // api.resend.com at the fetch layer as a second guard.
+          RESEND_API_KEY: "",
           SESSION_SECRET: "test-session-secret-deterministic-for-ci",
           TEST_MIGRATIONS: migrations,
         },
