@@ -6,7 +6,7 @@ import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
-import { listRequestableSpecies } from "@/features/catch/queries";
+import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
@@ -22,7 +22,7 @@ import {
   listRequestsForViewer,
 } from "./queries";
 import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
-import { OTHER_SPECIES, parseMessageForm, parseRequestForm } from "./validation";
+import { MAX_REQUEST_ITEMS, parseMessageForm, parseRequestForm, rawItemRows } from "./validation";
 import {
   MessageForm,
   RequestConfirmation,
@@ -63,13 +63,74 @@ function formString(value: unknown): string | undefined {
 export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues {
   return {
     requestType: formString(raw.requestType),
-    species: raw.species === OTHER_SPECIES ? formString(raw.speciesOther) : formString(raw.species),
-    quantity: formString(raw.quantity),
+    items: rawItemRows(raw).map(({ row }) => ({
+      species: row.species || undefined,
+      speciesOther: row.speciesOther || undefined,
+      quantity: row.quantity || undefined,
+      notes: row.notes || undefined,
+    })),
     notes: formString(raw.notes),
     contactName: formString(raw.contactName),
     contactEmail: formString(raw.contactEmail),
     contactPhone: formString(raw.contactPhone),
   };
+}
+
+type BuilderAction = { kind: "add" } | { kind: "remove"; index: number };
+
+/** The builder's no-JS "Add another fish" / per-row "Remove" submit buttons (issue 103). */
+function builderAction(raw: Record<string, unknown>): BuilderAction | null {
+  if (raw.action === "add-row") return { kind: "add" };
+  const match = typeof raw.action === "string" ? raw.action.match(/^remove-(\d+)$/) : null;
+  return match ? { kind: "remove", index: Number(match[1]) } : null;
+}
+
+function applyBuilderAction(
+  values: RequestFormValues,
+  action: BuilderAction,
+): { values: RequestFormValues; autofocusItem?: number } {
+  const items = values.items?.length ? [...values.items] : [{}];
+  if (action.kind === "add") {
+    if (items.length < MAX_REQUEST_ITEMS) items.push({});
+    return { values: { ...values, items }, autofocusItem: items.length - 1 };
+  }
+  if (items.length > 1 && action.index >= 0 && action.index < items.length) items.splice(action.index, 1);
+  return { values: { ...values, items } };
+}
+
+async function renderBuilderPage(
+  c: AppContext,
+  values: RequestFormValues,
+  errors: Record<string, string>,
+  status: 200 | 400,
+  options: { autofocusItem?: number; catchItems?: RequestableCatchItem[] } = {},
+) {
+  const { autofocusItem } = options;
+  const [csrfToken, vendor, catchItems] = await Promise.all([
+    csrfTokenFor(c),
+    getVendor(),
+    // The submit path already fetched the live catch for isCustom — reuse it.
+    options.catchItems ?? listRequestableCatchItems(),
+  ]);
+  return c.html(
+    <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
+      <BrandBar vendor={vendor} />
+      <Page>
+        <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
+        <h1>New request</h1>
+        <RequestForm
+          action="/requests"
+          csrfToken={csrfToken}
+          values={values}
+          errors={errors}
+          catchItems={catchItems}
+          autofocusItem={autofocusItem}
+        />
+      </Page>
+      <Footer vendor={vendor} session={c.var.session} />
+    </Document>,
+    status,
+  );
 }
 
 /**
@@ -80,56 +141,36 @@ export function rawToFormValues(raw: Record<string, unknown>): RequestFormValues
 requestRoutes.get("/requests/new", async (c) => {
   const type = c.req.query("type") === "question" ? "question" : "fish";
   const species = c.req.query("species");
-  const [csrfToken, vendor, speciesOptions] = await Promise.all([csrfTokenFor(c), getVendor(), listRequestableSpecies()]);
   const values: RequestFormValues = {
     requestType: type,
-    species: species ?? undefined,
+    items: [{ species: species ?? undefined }],
     contactEmail: c.var.session?.email,
   };
-  return c.html(
-    <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
-      <Page>
-        <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
-        <h1>New request</h1>
-        <RequestForm action="/requests" csrfToken={csrfToken} values={values} speciesOptions={speciesOptions} />
-      </Page>
-      <Footer vendor={vendor} session={c.var.session} />
-    </Document>,
-  );
+  return renderBuilderPage(c, values, {}, 200);
 });
 
 requestRoutes.post("/requests", csrfProtect(), async (c) => {
+  const body = await c.req.parseBody();
+
+  // Add/remove-row round trips only re-render the form — handled before the
+  // requestCreate limiter so growing an order never burns submit budget
+  // (issue 103), but on their own loose bucket so the render isn't unmetered.
+  const action = builderAction(body);
+  if (action) {
+    const rl = await checkRateLimit(clientIp(c.req.raw), "builderAction", c.var.deviceToken);
+    if (!rl.allowed) return c.text("Too many requests. Try again later.", 429);
+    const { values, autofocusItem } = applyBuilderAction(rawToFormValues(body), action);
+    return renderBuilderPage(c, values, {}, 200, { autofocusItem });
+  }
+
   const rl = await checkRateLimit(clientIp(c.req.raw), "requestCreate", c.var.deviceToken);
   if (!rl.allowed) return c.text("Too many requests. Try again later.", 429);
 
-  const body = await c.req.parseBody();
-  const result = parseRequestForm(body);
+  const liveItems = await listRequestableCatchItems();
+  const result = parseRequestForm(body, { liveSpecies: liveItems.map((item) => item.name) });
 
   if (!result.success) {
-    const [csrfToken, vendor, speciesOptions] = await Promise.all([
-      csrfTokenFor(c),
-      getVendor(),
-      listRequestableSpecies(),
-    ]);
-    return c.html(
-      <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
-        <BrandBar vendor={vendor} />
-        <Page>
-          <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
-          <h1>New request</h1>
-          <RequestForm
-            action="/requests"
-            csrfToken={csrfToken}
-            values={rawToFormValues(body)}
-            errors={result.errors}
-            speciesOptions={speciesOptions}
-          />
-        </Page>
-        <Footer vendor={vendor} session={c.var.session} />
-      </Document>,
-      400,
-    );
+    return renderBuilderPage(c, rawToFormValues(body), result.errors, 400, { catchItems: liveItems });
   }
 
   const request = await createRequest(result.data, {
@@ -183,7 +224,12 @@ requestRoutes.get("/requests/:id", async (c) => {
       <BrandBar vendor={vendor} />
       <Page>
         <BackLink href="/requests">My requests</BackLink>
-        {created ? <RequestConfirmation requestType={request.requestType} /> : null}
+        {created ? (
+          <RequestConfirmation
+            requestType={request.requestType}
+            hasCustomItems={request.items.some((item) => item.isCustom)}
+          />
+        ) : null}
         {checkout === "success" || checkout === "cancel" ? <CheckoutNotice outcome={checkout} /> : null}
         <RequestHeaderCard request={request} />
         {request.order ? <OrderSummaryCard order={request.order} /> : null}

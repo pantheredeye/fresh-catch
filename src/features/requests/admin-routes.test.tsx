@@ -196,8 +196,8 @@ describe("#64 vendor-initiated requests", () => {
         method: "POST",
         body: new URLSearchParams({
           requestType: "fish",
-          species,
-          quantity: "1 whole",
+          "items[0].species": species,
+          "items[0].quantity": "1 whole",
           notes: "",
           contactName: "Walk-up",
           contactEmail: "walkup@example.com",
@@ -238,7 +238,7 @@ describe("#64 vendor-initiated requests", () => {
         method: "POST",
         body: new URLSearchParams({
           requestType: "fish",
-          species: "",
+          "items[0].species": "",
           contactName: "Walk-up",
           csrfToken,
         }),
@@ -247,7 +247,7 @@ describe("#64 vendor-initiated requests", () => {
       env,
     );
     expect(res.status).toBe(400);
-    expect(await res.text()).toContain("Species is required");
+    expect(await res.text()).toContain("Add at least one fish");
   });
 });
 

@@ -629,12 +629,25 @@ ol.stack {
   outline-offset: 3px;
 }
 
-/* "Other" species reveals a free-text field; submit label follows the type. */
+/* Order builder (#103): one fieldset per fish, bordered so rows scan apart without shadows. */
+.item-row {
+  margin: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.item-row legend {
+  padding: 0 var(--space-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+/* "Other" species reveals a free-text field — scoped per row so one row's
+   "Other" doesn't open every row's; submit label follows the type. */
 .other-only {
   display: none;
 }
 
-.request-form:has(#species option[value="__other"]:checked) .other-only {
+.item-row:has(.field-select option[value="__other"]:checked) .other-only {
   display: block;
 }
 

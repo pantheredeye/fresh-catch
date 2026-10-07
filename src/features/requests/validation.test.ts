@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { FIELD_LIMITS, parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
+import { FIELD_LIMITS, MAX_REQUEST_ITEMS, parseMessageForm, parseRequestForm, parseStatusUpdate } from "./validation";
 
 function fishFields(overrides: Record<string, string> = {}) {
   return {
     requestType: "fish",
-    species: "Halibut",
-    quantity: "2 lbs",
+    "items[0].species": "Halibut",
+    "items[0].quantity": "2 lbs",
     notes: "",
     contactName: "Jamie",
     contactEmail: "",
@@ -41,6 +41,51 @@ describe("parseRequestForm", () => {
     }
   });
 
+  it("parses multiple rows in index order, with per-item notes", () => {
+    const result = parseRequestForm(
+      fishFields({
+        "items[1].species": "Grouper",
+        "items[1].quantity": "",
+        "items[1].notes": "filleted",
+        "items[2].species": "Snapper",
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.items).toEqual([
+        { species: "Halibut", quantity: "2 lbs", notes: null, isCustom: false },
+        { species: "Grouper", quantity: null, notes: "filleted", isCustom: false },
+        { species: "Snapper", quantity: null, notes: null, isCustom: false },
+      ]);
+    }
+  });
+
+  it("silently drops a fully blank row (abandoned Add tap)", () => {
+    const result = parseRequestForm(fishFields({ "items[1].species": "", "items[1].quantity": "", "items[1].notes": "" }));
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.items).toHaveLength(1);
+  });
+
+  it("errors a row with a quantity but no species", () => {
+    const result = parseRequestForm(fishFields({ "items[1].species": "", "items[1].quantity": "1 whole" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors["items-1-species"]).toBe("Species is required");
+  });
+
+  it("requires at least one non-blank row", () => {
+    const result = parseRequestForm(fishFields({ "items[0].species": "", "items[0].quantity": "" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors["items-0-species"]).toBe("Add at least one fish");
+  });
+
+  it(`rejects more than ${MAX_REQUEST_ITEMS} rows`, () => {
+    const overrides: Record<string, string> = {};
+    for (let i = 1; i <= MAX_REQUEST_ITEMS; i++) overrides[`items[${i}].species`] = `Fish ${i}`;
+    const result = parseRequestForm(fishFields(overrides));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors["items-0-species"]).toContain(`${MAX_REQUEST_ITEMS}`);
+  });
+
   it("requires at least one of email/phone", () => {
     const result = parseRequestForm(fishFields({ contactPhone: "" }));
     expect(result.success).toBe(false);
@@ -48,19 +93,41 @@ describe("parseRequestForm", () => {
   });
 
   it("uses speciesOther when species is the Other sentinel, flagged isCustom", () => {
-    const result = parseRequestForm(fishFields({ species: "__other", speciesOther: " Wahoo " }));
+    const result = parseRequestForm(fishFields({ "items[0].species": "__other", "items[0].speciesOther": " Wahoo " }));
     expect(result.success && result.data.items[0].species).toBe("Wahoo");
     expect(result.success && result.data.items[0].isCustom).toBe(true);
   });
 
-  it("requires species for a fish request", () => {
-    const result = parseRequestForm(fishFields({ species: "" }));
+  it("errors an Other row with no name", () => {
+    const result = parseRequestForm(fishFields({ "items[0].species": "__other", "items[0].speciesOther": "" }));
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.errors.species).toBeTruthy();
+    if (!result.success) expect(result.errors["items-0-speciesOther"]).toBe("Enter the fish name");
+  });
+
+  it("does not flag an Other row whose typed name matches the live list", () => {
+    const result = parseRequestForm(
+      fishFields({ "items[0].species": "__other", "items[0].speciesOther": "halibut" }),
+      { liveSpecies: ["Halibut"] },
+    );
+    expect(result.success && result.data.items[0].isCustom).toBe(false);
+  });
+
+  it("flags a species missing from liveSpecies as custom (sold out between load and submit)", () => {
+    const live = { liveSpecies: ["Halibut", "Grouper"] };
+    const onList = parseRequestForm(fishFields({ "items[0].species": "halibut" }), live);
+    expect(onList.success && onList.data.items[0].isCustom).toBe(false);
+
+    const offList = parseRequestForm(fishFields({ "items[0].species": "Mullet" }), live);
+    expect(offList.success && offList.data.items[0].isCustom).toBe(true);
+  });
+
+  it("flags nothing when there is no live list at all", () => {
+    const result = parseRequestForm(fishFields({ "items[0].species": "Mullet" }), { liveSpecies: [] });
+    expect(result.success && result.data.items[0].isCustom).toBe(false);
   });
 
   it("accepts a question request with no items", () => {
-    const result = parseRequestForm(questionFields({ species: "ignored", quantity: "ignored" }));
+    const result = parseRequestForm(questionFields({ "items[0].species": "ignored", "items[0].quantity": "ignored" }));
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.requestType).toBe("question");
@@ -91,8 +158,9 @@ describe("parseRequestForm", () => {
   });
 
   it("enforces each field limit", () => {
-    expect(parseRequestForm(fishFields({ species: "x".repeat(FIELD_LIMITS.species + 1) })).success).toBe(false);
-    expect(parseRequestForm(fishFields({ quantity: "x".repeat(FIELD_LIMITS.quantity + 1) })).success).toBe(false);
+    expect(parseRequestForm(fishFields({ "items[0].species": "x".repeat(FIELD_LIMITS.species + 1) })).success).toBe(false);
+    expect(parseRequestForm(fishFields({ "items[0].quantity": "x".repeat(FIELD_LIMITS.quantity + 1) })).success).toBe(false);
+    expect(parseRequestForm(fishFields({ "items[0].notes": "x".repeat(FIELD_LIMITS.itemNotes + 1) })).success).toBe(false);
     expect(parseRequestForm(fishFields({ notes: "x".repeat(FIELD_LIMITS.notes + 1) })).success).toBe(false);
     expect(parseRequestForm(fishFields({ contactName: "x".repeat(FIELD_LIMITS.contactName + 1) })).success).toBe(false);
     expect(parseRequestForm(fishFields({ contactPhone: "x".repeat(FIELD_LIMITS.contactPhone + 1) })).success).toBe(false);
