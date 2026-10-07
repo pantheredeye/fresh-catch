@@ -142,15 +142,16 @@ homeRoutes.get("/", async (c) => {
   return c.html(
     <Document deviceToken={c.var.deviceToken}>
       <Page bleed>
-        <BrandBar vendor={vendor} />
+        <BrandBar vendor={vendor} container />
         {!scheduleFallback ? (
           <StatusStrip
             open={status.kind === "open"}
             label={STATUS_LABEL[status.kind]}
             message={describeTodayStatus(status, now, tz)}
+            container
           />
         ) : null}
-        <Band tone="shallow">
+        <Band tone="shallow" container>
           <Hero
             market={heroMarket}
             scheduleFallback={scheduleFallback}
@@ -173,10 +174,10 @@ homeRoutes.get("/", async (c) => {
             </div>
           </Band>
         </div>
-        <Band tone="deep">
+        <Band tone="deep" class="home-closing" container>
           <ClosingBand vendor={vendor} priced={hasPrices(catchContent)} />
         </Band>
-        <Footer vendor={vendor} session={session} />
+        <Footer vendor={vendor} session={session} container />
         {vendor?.phone ? (
           <ActionBar
             items={[

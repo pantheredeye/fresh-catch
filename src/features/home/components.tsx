@@ -154,7 +154,10 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
     <>
       <FishArt name={item.name} />
       <div class="fbody">
-        <h3>{item.name}</h3>
+        <h3>
+          {item.name}
+          {item.soldOut ? <span class="tag tag-muted">Sold out</span> : null}
+        </h3>
         {item.soldOut || noteEchoesName(item.name, item.note) ? null : <p>{item.note}</p>}
         {item.soldOut ? (
           <a class="req" href={askHref}>
@@ -170,7 +173,6 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
         {item.soldOut ? (
           <>
             {item.priceCents !== undefined ? <s class="price">{formatPrice(item.priceCents)}</s> : null}
-            <span class="tag">Sold out</span>
           </>
         ) : item.priceCents !== undefined ? (
           <span class="price">{formatPrice(item.priceCents)}</span>

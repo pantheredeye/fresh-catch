@@ -114,8 +114,8 @@ describe("Tideline palette contrast (docs/redesign/fresh-catch-handoff.md §3)",
     ["on-sea-muted", "sea"],
     ["on-deep-muted", "deep"],
     // #75 audit — pairs already rendered pre-#75 but not previously pinned:
-    ["deep", "shallow"], // .notice-info text on its background
-    ["paper", "muted"], // .strip.shut (closed status strip)
+    ["deep", "shallow"], // .notice-info text on its background; also .btn-primary on dark bands
+    ["paper", "muted"], // .strip.shut (closed status strip); also .tag-muted "Sold out"
     ["coral", "paper"], // .field-error text on a paper form/card surface
   ];
 

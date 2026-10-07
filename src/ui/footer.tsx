@@ -8,13 +8,14 @@ import { Button } from "@/ui/button";
  * customer-facing page, per handoff §3's "login lives in the footer"
  * content rule. `note` carries page-specific copy.
  */
-export const Footer: FC<{ vendor: Vendor | null; session: SessionPayload | null; note?: string }> = ({
-  vendor,
-  session,
-  note,
-}) => (
+export const Footer: FC<{
+  vendor: Vendor | null;
+  session: SessionPayload | null;
+  note?: string;
+  container?: boolean;
+}> = ({ vendor, session, note, container }) => (
   <footer>
-    <div class="wrap stack-tight">
+    <div class={container ? "container stack-tight" : "wrap stack-tight"}>
       <p>
         © {new Date().getFullYear()} <a href="https://www.digitalglue.dev">Digital Glue</a>
       </p>
