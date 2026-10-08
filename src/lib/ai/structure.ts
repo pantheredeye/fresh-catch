@@ -30,7 +30,7 @@ export interface StructureOptions<T> {
 }
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const DEFAULT_MAX_TOKENS = 1024;
+const DEFAULT_MAX_TOKENS = 2048;
 const WHISPER_MODEL = "@cf/openai/whisper-tiny-en";
 
 async function transcribeAudio(ai: Ai, audio: ArrayBuffer): Promise<string> {
@@ -71,7 +71,7 @@ async function callModel(ai: Ai, transcript: string, options: StructureOptions<u
       : JSON.stringify(result.response ?? result);
 }
 
-/** Handles a bare JSON object or one wrapped in a markdown code fence. */
+/** Handles a bare JSON object, one wrapped in a markdown code fence, or one surrounded by prose. */
 function parseStructuredJson<T>(raw: string, validate: (obj: unknown) => T): T {
   try {
     return validate(JSON.parse(raw));
@@ -81,7 +81,15 @@ function parseStructuredJson<T>(raw: string, validate: (obj: unknown) => T): T {
   const stripped = raw
     .replace(/^```(?:json)?\s*\n?/m, "")
     .replace(/\n?```\s*$/m, "");
-  return validate(JSON.parse(stripped));
+  try {
+    return validate(JSON.parse(stripped));
+  } catch {
+    // fall through to the outermost-braces variant ("Here is the JSON: {…}")
+  }
+  const first = raw.indexOf("{");
+  const last = raw.lastIndexOf("}");
+  if (first === -1 || last <= first) throw new Error("No JSON object in response");
+  return validate(JSON.parse(raw.slice(first, last + 1)));
 }
 
 /**
@@ -115,7 +123,9 @@ export async function runStructured<T>(
   const raw = await callModel(ai, transcript, options);
   try {
     return { data: parseStructuredJson(raw, options.validate), rawTranscript: transcript };
-  } catch {
+  } catch (error) {
+    // Workers Logs is the only place to see what the model actually said when a live submission fails.
+    console.error("AI response failed to parse/validate:", error, "— raw output:", raw.slice(0, 2000));
     throw new StructuredPipelineError("Failed to parse AI response into expected shape", {
       rawTranscript: transcript,
     });

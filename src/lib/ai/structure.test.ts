@@ -43,7 +43,7 @@ describe("runStructured — text", () => {
     const { ai, calls } = recordingAi(() => ({ response: JSON_N }));
     await runStructured(ai, text("hi"), opts);
     expect(calls[0][0]).toBe("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
-    expect(calls[0][1].max_tokens).toBe(1024);
+    expect(calls[0][1].max_tokens).toBe(2048);
     expect(calls[0][1].messages[0]).toEqual({ role: "system", content: "SYS" });
   });
 
@@ -62,6 +62,12 @@ describe("runStructured — text", () => {
 
   it("parses fenced JSON", async () => {
     for (const resp of ["```json\n" + JSON_N + "\n```", "```\n" + JSON_N + "\n```"]) {
+      expect((await runStructured(fake({ response: resp }), text("x"), opts)).data).toEqual({ n: 1 });
+    }
+  });
+
+  it("parses JSON surrounded by prose", async () => {
+    for (const resp of ["Here is the JSON: " + JSON_N, "Sure!\n" + JSON_N + "\nLet me know if you need anything else."]) {
       expect((await runStructured(fake({ response: resp }), text("x"), opts)).data).toEqual({ n: 1 });
     }
   });

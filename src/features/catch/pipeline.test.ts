@@ -118,7 +118,7 @@ describe("runCatchPipeline — characterization", () => {
     expect(calls).toHaveLength(1);
     const [model, input] = calls[0] as [string, { messages: { role: string; content: string }[]; max_tokens: number }];
     expect(model).toBe(LLAMA);
-    expect(input.max_tokens).toBe(1024);
+    expect(input.max_tokens).toBe(2048);
     expect(input.messages).toHaveLength(2);
     expect(input.messages[0].role).toBe("system");
     expect(input.messages[0].content.startsWith("You are a seafood market assistant.")).toBe(true);
