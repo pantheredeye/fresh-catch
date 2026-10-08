@@ -335,7 +335,7 @@ describe("GET / — route + saved band", () => {
     expect(html).toContain(">Popups<");
   });
 
-  it("tags the hero market's row 'Next stop' when it isn't today", async () => {
+  it("tags the hero banner 'Next stop' when the hero market isn't today; its route row carries no tag", async () => {
     const { weekday } = nowUtcParts();
     const market = await addMarket({
       name: `NextStop ${crypto.randomUUID()}`,
@@ -344,8 +344,10 @@ describe("GET / — route + saved band", () => {
       closeMinutes: 18 * 60,
     });
     const html = await (await app.request("/", {}, env)).text();
+    const hero = html.slice(0, html.indexOf(`<h1 class="hero-name">${market.name}</h1>`));
+    expect(hero.slice(-300)).toContain('<span class="tag">Next stop</span>');
     const row = html.slice(html.indexOf('<div class="mk', html.lastIndexOf(`href="/markets/${market.id}"`) - 400));
-    expect(row.slice(0, 400)).toContain("Next stop");
+    expect(row.slice(0, 400)).not.toContain("Next stop");
   });
 
   it("hides the Popups section when no popup is live", async () => {

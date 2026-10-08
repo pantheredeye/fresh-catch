@@ -60,7 +60,6 @@ function buildRouteRows(
   livePopups: Market[],
   now: Date,
   tz: string,
-  heroMarketId: string | undefined,
 ): RouteRow[] {
   const local = localParts(now, tz);
   const todayWeekday = local.weekday;
@@ -96,9 +95,7 @@ function buildRouteRows(
         ? occurrence?.state === "open-now"
           ? "Here today"
           : "Here later today"
-        : market.id === heroMarketId
-          ? "Next stop"
-          : null,
+        : null,
     };
   });
 
@@ -145,7 +142,15 @@ homeRoutes.get("/", async (c) => {
       ? `No market today. Next stop, ${WEEKDAY_NAMES[localParts(status.next.opensAt, tz).weekday]}:`
       : formatFullDate(now, tz);
 
-  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz, heroMarket?.id);
+  const heroTag = !heroMarket
+    ? null
+    : status.kind === "open"
+      ? "Here today"
+      : status.kind === "opens-later"
+        ? "Here later today"
+        : "Next stop";
+
+  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz);
   const savedPins = buildSavedPins([...livePopups, ...regularMarkets], now, tz);
 
   return c.html(
@@ -164,6 +169,7 @@ homeRoutes.get("/", async (c) => {
           <Hero
             market={heroMarket}
             scheduleFallback={scheduleFallback}
+            tag={heroTag}
             dateLine={dateLine}
             hoursLine={heroMarket ? heroHoursLine(heroMarket, tz) : null}
           />

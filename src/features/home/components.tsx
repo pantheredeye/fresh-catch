@@ -11,12 +11,14 @@ export type HeroData = {
   market: Market | null;
   /** True when no market anywhere has structured hours — `market` is just the first active regular market, shown via its free-text `schedule`. */
   scheduleFallback: boolean;
+  /** "Next stop" / "Here today" — the orange tag lives up here on the banner, not on the route list below. */
+  tag: string | null;
   dateLine: string | null;
   hoursLine: string | null;
 };
 
 /** Hero (item 3, shallow band) — name + day/time only; address and directions live in the route list below. */
-export const Hero: FC<HeroData> = ({ market, scheduleFallback, dateLine, hoursLine }) => {
+export const Hero: FC<HeroData> = ({ market, scheduleFallback, tag, dateLine, hoursLine }) => {
   if (!market) {
     return (
       <div class="stack">
@@ -28,6 +30,7 @@ export const Hero: FC<HeroData> = ({ market, scheduleFallback, dateLine, hoursLi
   return (
     <div class="stack">
       {dateLine ? <p class="hero-date">{dateLine}</p> : null}
+      {tag ? <span class="tag">{tag}</span> : null}
       <h1 class="hero-name">{market.name}</h1>
       {hoursLine ? (
         <p class="hero-when">{hoursLine}</p>
