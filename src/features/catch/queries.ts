@@ -7,17 +7,6 @@ export function getLiveCatchUpdate(): Promise<CatchUpdate | null> {
   return db.catchUpdate.findFirst({ where: { status: "live" }, orderBy: { createdAt: "desc" } });
 }
 
-const CATCH_STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * #58's 7-day staleness cutoff: a "live" row can sit unpublished for weeks if
- * Evan forgets to record a new one, so the landing page treats an old catch
- * as "no current catch" rather than showing week-old stock as fresh.
- */
-export function isCatchUpdateFresh(catchUpdate: Pick<CatchUpdate, "createdAt">, now = new Date()): boolean {
-  return now.getTime() - catchUpdate.createdAt.getTime() < CATCH_STALE_AFTER_MS;
-}
-
 export interface PublishCatchData {
   recordedBy: string | null;
   rawTranscript: string;
@@ -41,10 +30,10 @@ export interface RequestableCatchItem {
   priceCents?: number;
 }
 
-/** What a customer can request right now — this week's live, not-sold-out items (empty when no fresh catch). */
-export async function listRequestableCatchItems(now = new Date()): Promise<RequestableCatchItem[]> {
+/** What a customer can request right now — the live, not-sold-out items (empty when no live catch). */
+export async function listRequestableCatchItems(): Promise<RequestableCatchItem[]> {
   const live = await getLiveCatchUpdate();
-  if (!live || !isCatchUpdateFresh(live, now)) return [];
+  if (!live) return [];
   const content = parseCatchContent(live.formattedContent);
   if (!content) return [];
   return content.items
