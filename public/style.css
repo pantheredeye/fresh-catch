@@ -641,6 +641,34 @@ ol.stack {
   font-weight: var(--font-weight-bold);
 }
 
+/* Folded fish rows (#116): a completed row collapses to its summary line via
+   native <details> — zero-JS expand/collapse, the island only decides when to
+   fold and keeps the text live. The fieldset stays the bordered card; the
+   summary is the tap target inside it (58px floor). */
+.item-details {
+  margin: 0;
+}
+
+.item-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 58px;
+  cursor: pointer;
+}
+
+.item-summary-text {
+  flex: 1;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Flex display drops the native ::marker triangle, so the Edit/Hide hint pair
+   signals the state instead — one visible per state. */
+.item-details:not([open]) > .item-summary .item-summary-open,
+.item-details[open] > .item-summary .item-summary-closed {
+  display: none;
+}
+
 /* "Other" species reveals a free-text field — scoped per row so one row's
    "Other" doesn't open every row's; submit label follows the type. */
 .other-only {

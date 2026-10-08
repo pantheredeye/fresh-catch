@@ -47,6 +47,14 @@ function rowSpeciesName(item: RequestItemFormValues): string | undefined {
   return species || undefined;
 }
 
+/** "Flounder — 2 lbs" (or bare species) for a row's folded summary line (issue 116); undefined until a species is named. Mirrored by the island's summaryText. */
+function rowSummaryText(item: RequestItemFormValues): string | undefined {
+  const name = rowSpeciesName(item);
+  if (!name) return undefined;
+  const quantity = item.quantity?.trim();
+  return quantity ? `${name} — ${quantity}` : name;
+}
+
 /** Active-voice submit label, same verb the confirmation echoes (handoff §3: "Request bass" → "Requested"). */
 function submitLabel(values: RequestFormValues): string {
   if (values.requestType === "question") return "Send question";
@@ -119,56 +127,74 @@ const ItemRow: FC<{
   removable: boolean;
   /** Sole-row Remove ships `hidden`, not absent — the island (issue 104) un-hides it once a second row exists, with no markup to invent. */
   removeHidden?: boolean;
+  /** Expanded (issue 116). Completed rows fold to their summary line; `open` keeps the row's fields visible — the sole row, a row with errors, the just-added row. */
+  open?: boolean;
   errors: Record<string, string>;
   autofocus?: boolean;
-}> = ({ index, item, catchItems, removable, removeHidden, errors, autofocus }) => (
+}> = ({ index, item, catchItems, removable, removeHidden, open, errors, autofocus }) => (
   <fieldset class="item-row">
     <legend>Fish {index + 1}</legend>
-    <div class="stack">
-      {catchItems ? (
-        <ItemSpeciesPicker index={index} item={item} catchItems={catchItems} errors={errors} autofocus={autofocus} />
-      ) : (
+    {/* Native <details>, not the Disclosure primitive — the fieldset is already
+        the card, and the island needs the summary spans to keep the text live.
+        Zero JS to expand/collapse; folded fields still post with the form. */}
+    <details class="item-details" open={open}>
+      <summary class="item-summary">
+        <span class="item-summary-text">{rowSummaryText(item) ?? "Fish details"}</span>
+        {/* Hints are the open/closed indicator (flex display drops the native
+            marker) — aria-hidden since summary itself announces the state. */}
+        <span class="muted item-summary-closed" aria-hidden="true">
+          Edit
+        </span>
+        <span class="muted item-summary-open" aria-hidden="true">
+          Hide
+        </span>
+      </summary>
+      <div class="stack">
+        {catchItems ? (
+          <ItemSpeciesPicker index={index} item={item} catchItems={catchItems} errors={errors} autofocus={autofocus} />
+        ) : (
+          <Input
+            id={itemFieldId(index, "species")}
+            name={`items[${index}].species`}
+            label="Species"
+            value={item.species}
+            autofocus={autofocus}
+            helperText="What fish are you looking for?"
+            errorText={errors[itemFieldId(index, "species")]}
+          />
+        )}
         <Input
-          id={itemFieldId(index, "species")}
-          name={`items[${index}].species`}
-          label="Species"
-          value={item.species}
-          autofocus={autofocus}
-          helperText="What fish are you looking for?"
-          errorText={errors[itemFieldId(index, "species")]}
+          id={itemFieldId(index, "quantity")}
+          name={`items[${index}].quantity`}
+          label="Quantity"
+          value={item.quantity}
+          helperText='e.g. "2 lbs" or "a whole fish"'
+          errorText={errors[itemFieldId(index, "quantity")]}
         />
-      )}
-      <Input
-        id={itemFieldId(index, "quantity")}
-        name={`items[${index}].quantity`}
-        label="Quantity"
-        value={item.quantity}
-        helperText='e.g. "2 lbs" or "a whole fish"'
-        errorText={errors[itemFieldId(index, "quantity")]}
-      />
-      <Input
-        id={itemFieldId(index, "notes")}
-        name={`items[${index}].notes`}
-        label="Note"
-        value={item.notes}
-        helperText="Prep or size for this fish — optional."
-        errorText={errors[itemFieldId(index, "notes")]}
-      />
-      {removable ? (
-        <Button
-          type="submit"
-          variant="ghost"
-          inline
-          name="action"
-          value={`remove-${index}`}
-          formNoValidate
-          hidden={removeHidden}
-          ariaLabel={`Remove fish ${index + 1}`}
-        >
-          Remove
-        </Button>
-      ) : null}
-    </div>
+        <Input
+          id={itemFieldId(index, "notes")}
+          name={`items[${index}].notes`}
+          label="Note"
+          value={item.notes}
+          helperText="Prep or size for this fish — optional."
+          errorText={errors[itemFieldId(index, "notes")]}
+        />
+        {removable ? (
+          <Button
+            type="submit"
+            variant="ghost"
+            inline
+            name="action"
+            value={`remove-${index}`}
+            formNoValidate
+            hidden={removeHidden}
+            ariaLabel={`Remove fish ${index + 1}`}
+          >
+            Remove
+          </Button>
+        ) : null}
+      </div>
+    </details>
   </fieldset>
 );
 
@@ -194,6 +220,14 @@ export const RequestForm: FC<{
   const customer = catchItems !== undefined;
   const items = values.items?.length ? values.items : [{}];
   const rowCatchItems = customer && catchItems.length > 0 ? catchItems : undefined;
+  // issue 116: an error anchor must never land inside a folded row.
+  const rowHasError = (index: number) =>
+    (["species", "speciesOther", "quantity", "notes"] as const).some((field) => errors[itemFieldId(index, field)]);
+  // Fold completed rows so a long order stays scannable — but keep open the
+  // sole row, an unnamed row (nothing to summarize), an erroring row, and the
+  // row a no-JS "Add another fish" round trip just focused.
+  const rowOpen = (item: RequestItemFormValues, index: number) =>
+    items.length === 1 || !rowSummaryText(item) || rowHasError(index) || autofocusItem === index;
   return (
     <form method="post" action={action} class="request-form stack">
       <input type="hidden" name="csrfToken" value={csrfToken} />
@@ -241,6 +275,7 @@ export const RequestForm: FC<{
               catchItems={rowCatchItems}
               removable={customer || items.length > 1}
               removeHidden={customer && items.length === 1}
+              open={rowOpen(item, index)}
               errors={errors}
               autofocus={autofocusItem === index}
             />
@@ -265,7 +300,7 @@ export const RequestForm: FC<{
           // fish" — ids inside duplicate row 0's but never join the document;
           // the island renumbers on clone.
           <template id="builder-row-template">
-            <ItemRow index={0} item={{}} catchItems={rowCatchItems} removable errors={{}} />
+            <ItemRow index={0} item={{}} catchItems={rowCatchItems} removable open errors={{}} />
           </template>
         ) : null}
       </div>

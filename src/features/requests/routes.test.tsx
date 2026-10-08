@@ -90,6 +90,27 @@ describe("customer form (#85)", () => {
     expect(html).toContain('<button type="submit" hidden');
   });
 
+  it("offers the current-catch select (+ Other) whenever a fresh catch exists, free text only without one (issue 116)", async () => {
+    // No live catch this week → free-text species is the deliberate fallback.
+    let html = await (await newVisitorRequest("/requests/new")).text();
+    expect(html).not.toContain('<select class="field-select" id="items-0-species"');
+    expect(html).toContain("What fish are you looking for?");
+
+    await publishCatchUpdate({
+      recordedBy: null,
+      rawTranscript: "t",
+      formattedContent: JSON.stringify({ headline: "h", items: [{ name: "Flounder", note: "" }], summary: "s" }),
+    });
+    try {
+      html = await (await newVisitorRequest("/requests/new")).text();
+      expect(html).toContain('<select class="field-select" id="items-0-species"');
+      expect(html).toContain(">Choose a fish</option>");
+      expect(html).toContain('value="__other">Other</option>');
+    } finally {
+      await db.catchUpdate.updateMany({ where: { status: "live" }, data: { status: "archived" } });
+    }
+  });
+
   it("accepts Other + free-text species", async () => {
     const { cookie, csrfToken } = await visitAsNewDevice();
     const res = await createRequestAs(cookie, csrfToken, fishFields({ "items[0].species": "__other", "items[0].speciesOther": "Wahoo" }));
@@ -144,6 +165,48 @@ describe("POST /requests", () => {
       last = await createRequestAs(cookie, csrfToken, fishFields());
     }
     expect(last?.status).toBe(429);
+  });
+});
+
+/** The live rows only — the blank-row <template> also holds a details, so folded/open assertions must stop before it. */
+function builderHtml(html: string): string {
+  const start = html.indexOf('id="builder-rows"');
+  const end = html.indexOf("<template");
+  return html.slice(start, end === -1 ? undefined : end);
+}
+
+describe("folded fish rows (issue 116)", () => {
+  it("renders the sole row expanded", async () => {
+    const html = await (await newVisitorRequest("/requests/new")).text();
+    expect(builderHtml(html)).toContain('<details class="item-details" open="">');
+  });
+
+  it("folds the completed row to its summary line after a no-JS add, keeps the new row open", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const fields = fishFields({ action: "add-row" });
+    const res = await createRequestAs(cookie, csrfToken, fields);
+    expect(res.status).toBe(200);
+    const html = builderHtml(await res.text());
+    expect(html.match(/<details class="item-details"( open="")?>/g)).toEqual([
+      '<details class="item-details">',
+      '<details class="item-details" open="">',
+    ]);
+    // "Halibut … — 2 lbs" summary on the folded row; focus lands on the new row.
+    expect(html).toContain(`${fields["items[0].species"]} — 2 lbs`);
+    expect(html).toMatch(/id="items-1-species"[^>]*autofocus/);
+  });
+
+  it("expands the offending row on a 400, keeps completed rows folded", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    // Row 1 has a quantity but no species → "Species is required" on row 1 only.
+    const res = await createRequestAs(cookie, csrfToken, fishFields({ "items[1].quantity": "1 lb" }));
+    expect(res.status).toBe(400);
+    const full = await res.text();
+    expect(full).toContain("Species is required");
+    expect(builderHtml(full).match(/<details class="item-details"( open="")?>/g)).toEqual([
+      '<details class="item-details">',
+      '<details class="item-details" open="">',
+    ]);
   });
 });
 
@@ -296,6 +359,8 @@ describe("builder island (issue 104)", () => {
     const template = html.slice(html.indexOf('<template id="builder-row-template">'));
     expect(template).toMatch(/<button type="submit" name="action" value="remove-0" formnovalidate="" (?![^>]*hidden)/);
     expect(template).toContain('<legend>Fish 1</legend>');
+    // Cloned rows arrive expanded — the island folds rows only when the user moves on (issue 116).
+    expect(template).toContain('<details class="item-details" open="">');
   });
 
   it("renders the sole row's Remove hidden and a below-cap Add visible", async () => {
