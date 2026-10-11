@@ -347,11 +347,8 @@ export const MarketDetail: FC<{
             />
           ) : hasAddress ? (
             <Button href={mapsHref(market.address!)}>Directions to {market.name}</Button>
-          ) : hasPhone ? (
-            <Button variant="secondary" href={telHref(vendor!.phone!)}>
-              Call {name} about {market.name}
-            </Button>
           ) : null}
+          <a href={`/ask?market=${encodeURIComponent(market.id)}`}>Have a question? Ask {name} →</a>
         </div>
       </Band>
       <Band tone="paper">
@@ -368,7 +365,7 @@ export const MarketDetail: FC<{
           <FavoriteToggle marketId={market.id} />
         </div>
       </Band>
-      <Footer vendor={vendor} session={session} />
+      <Footer />
       <script type="module" src={assetUrl("/js/favorites.js")}></script>
     </Page>
   );

@@ -1,45 +1,11 @@
 import type { FC } from "hono/jsx";
 import type { Market, Vendor } from "@/lib/db";
 import type { CatchContent, CatchItem } from "@/features/catch/pipeline";
-import { formatPrice, mapsHref, smsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
+import { formatPrice, mapsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
 import { formatSchedule } from "@/features/markets/display";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
 import { FishArt } from "./fish-art";
-
-export type HeroData = {
-  market: Market | null;
-  /** True when no market anywhere has structured hours — `market` is just the first active regular market, shown via its free-text `schedule`. */
-  scheduleFallback: boolean;
-  /** "Next stop" / "Here today" — the orange tag lives up here on the banner, not on the route list below. */
-  tag: string | null;
-  dateLine: string | null;
-  hoursLine: string | null;
-};
-
-/** Hero (item 3, shallow band) — name + day/time only; address and directions live in the route list below. */
-export const Hero: FC<HeroData> = ({ market, scheduleFallback, tag, dateLine, hoursLine }) => {
-  if (!market) {
-    return (
-      <div class="stack">
-        <h1 class="hero-name">No markets posted yet</h1>
-        <p class="muted">Check back soon.</p>
-      </div>
-    );
-  }
-  return (
-    <div class="stack">
-      {dateLine ? <p class="hero-date">{dateLine}</p> : null}
-      {tag ? <span class="tag">{tag}</span> : null}
-      <h1 class="hero-name">{market.name}</h1>
-      {hoursLine ? (
-        <p class="hero-when">{hoursLine}</p>
-      ) : scheduleFallback ? (
-        <p class="hero-when">{formatSchedule(market.schedule)}</p>
-      ) : null}
-    </div>
-  );
-};
 
 const PIN_ICON = (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -111,11 +77,11 @@ const WithArrow: FC<{ label: string }> = ({ label }) => {
   );
 };
 
-const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = ({ item, position }) => {
+const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last"; askName: string }> = ({ item, position, askName }) => {
   const rowClass = ["fish", position === "first" ? "first" : "", position === "last" ? "last" : "", item.soldOut ? "out" : ""]
     .filter(Boolean)
     .join(" ");
-  const askHref = `/requests/new?type=question&species=${encodeURIComponent(item.name)}`;
+  const askHref = `/ask?species=${encodeURIComponent(item.name)}`;
 
   const body = (
     <>
@@ -127,7 +93,7 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
         </h3>
         {item.soldOut ? (
           <a class="req" href={askHref}>
-            <WithArrow label="Ask about it" />
+            <WithArrow label={`Have a question? Ask ${askName}`} />
           </a>
         ) : (
           <span class="req">
@@ -151,7 +117,7 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
     return <div class={rowClass}>{body}</div>;
   }
   return (
-    <a class={rowClass} href={`/requests/new?species=${encodeURIComponent(item.name)}`} aria-label={requestLabel(item)}>
+    <a class={rowClass} href={`/order?species=${encodeURIComponent(item.name)}`} aria-label={requestLabel(item)}>
       {body}
     </a>
   );
@@ -163,15 +129,19 @@ export function hasPrices(content: CatchContent | null): boolean {
 }
 
 /** Fish board (item 5, sand band) — the weekly list, or a plain notice when nothing's posted. */
-export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null }> = ({ content, weekOf }) => (
+export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null; vendor: Vendor | null }> = ({ content, weekOf, vendor }) => (
   <>
-    <SectionHeading title="On ice this week" meta={hasPrices(content) ? "per pound" : undefined} />
+    <SectionHeading level={1} title="On ice this week" meta={hasPrices(content) ? "per pound" : undefined} />
     {content && content.items.length > 0 ? (
       <>
         <p class="stamp">{weekOf}. The list is set each Monday.</p>
         <div class="stack-tight">
           {content.items.map((item, index) => (
-            <FishRow item={item} position={index === 0 ? "first" : index === content.items.length - 1 ? "last" : "middle"} />
+            <FishRow
+              item={item}
+              position={index === 0 ? "first" : index === content.items.length - 1 ? "last" : "middle"}
+              askName={vendorDisplayName(vendor)}
+            />
           ))}
         </div>
       </>
@@ -191,12 +161,10 @@ export type RouteRow = {
   todayTag: string | null;
 };
 
-/** One stop on the week's route (item 6) — today's row gets `.now` + a tag, per handoff §3's split-control amendment. */
-const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendor }) => {
+/** One stop on the week's route (item 6) — today's row (or, when nothing's on today, the next stop the status strip links to) gets `.now` + a tag, per handoff §3's split-control amendment. */
+const RouteRowView: FC<{ row: RouteRow }> = ({ row }) => {
   const { market, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
-  const name = vendorDisplayName(vendor);
   const hasAddress = Boolean(market.address);
-  const hasPhone = Boolean(vendor?.phone);
   return (
     <div class={isToday ? "mk now" : "mk"}>
       {todayTag ? <span class="tag">{todayTag}</span> : null}
@@ -211,16 +179,11 @@ const RouteRowView: FC<{ row: RouteRow; vendor: Vendor | null }> = ({ row, vendo
           Directions →
         </a>
       ) : null}
-      {hasPhone ? (
-        <Button variant="secondary" href={telHref(vendor!.phone!)}>
-          Call {name} about {market.name}
-        </Button>
-      ) : null}
     </div>
   );
 };
 
-export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ rows, vendor }) => {
+export const RouteBand: FC<{ rows: RouteRow[] }> = ({ rows }) => {
   const popups = rows.filter((row) => row.isPopup);
   const markets = rows.filter((row) => !row.isPopup);
   return (
@@ -229,7 +192,7 @@ export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ row
         <>
           <SectionHeading title="Popups" meta={`${popups.length} live`} />
           {popups.map((row) => (
-            <RouteRowView row={row} vendor={vendor} />
+            <RouteRowView row={row} />
           ))}
           <p>
             <a href="/markets/past">Past popups →</a>
@@ -240,55 +203,31 @@ export const RouteBand: FC<{ rows: RouteRow[]; vendor: Vendor | null }> = ({ row
       {markets.length === 0 ? (
         <p class="muted">No markets posted yet.</p>
       ) : (
-        markets.map((row) => <RouteRowView row={row} vendor={vendor} />)
+        markets.map((row) => <RouteRowView row={row} />)
       )}
     </>
   );
 };
 
-/** Request fallback copy shared by ClosingBand and CallCard — phone set → call/text, else a request button. */
+/** Request fallback copy — phone set → call/text for price, else a plain request. */
 function holdCopy(hasPhone: boolean, priced: boolean): string {
   const lead = hasPhone ? (priced ? "Call or text." : "Call/text for price.") : priced ? "Send a request." : "Ask for a price.";
   return `${lead} We'll touch base on availability and pickup.`;
 }
 
-/** Closing band (item 7, deep) — mobile-only CTA; desktop shows the CallCard instead. */
+/** Closing band (item 7, deep) — the one Request CTA at every width; Ask is a quiet text link, never a Button peer. */
 export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => (
   <>
     <h2>Want one held?</h2>
     <p>{holdCopy(Boolean(vendor?.phone), priced)}</p>
+    <Button href="/order">Request fish</Button>
     {vendor?.phone ? (
-      <>
-        <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
-        <Button variant="secondary" href={smsHref(vendor.phone)}>
-          Text {formatPhoneDisplay(vendor.phone)}
-        </Button>
-      </>
-    ) : (
-      <Button href="/requests/new">Request a hold</Button>
-    )}
+      <Button variant="secondary" href={telHref(vendor.phone)}>
+        Call {formatPhoneDisplay(vendor.phone)}
+      </Button>
+    ) : null}
+    <p>
+      <a href="/ask">Have a question? Ask {vendorDisplayName(vendor)} →</a>
+    </p>
   </>
 );
-
-/** Desktop-only (≥1024) CTA card in the sticky right column — replaces the mobile ActionBar and closing band; hidden below via CSS. */
-export const CallCard: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendor, priced }) => {
-  if (!vendor?.phone) {
-    return (
-      <div class="card call-card">
-        <h2 class="hd hd-sm">Want one held?</h2>
-        <p class="muted">{holdCopy(false, priced)}</p>
-        <Button href="/requests/new">Request a hold</Button>
-      </div>
-    );
-  }
-  return (
-    <div class="card call-card">
-      <h2 class="hd hd-sm">Want one held?</h2>
-      <p class="muted">{priced ? "Call or text." : "Call/text for price."}</p>
-      <Button href={telHref(vendor.phone)}>Call {formatPhoneDisplay(vendor.phone)}</Button>
-      <Button variant="secondary" href={smsHref(vendor.phone)}>
-        Text {formatPhoneDisplay(vendor.phone)}
-      </Button>
-    </div>
-  );
-};

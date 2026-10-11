@@ -570,65 +570,6 @@ ol.stack {
   display: none;
 }
 
-/* Customer request form: two-option segmented control (radio-backed, zero JS). */
-.segmented {
-  margin: 0 0 var(--space-md);
-  padding: 0;
-  border: none;
-}
-
-.segmented legend {
-  padding: 0;
-  margin-bottom: var(--space-xs);
-}
-
-.segmented-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 3px solid var(--color-action-primary-fill);
-}
-
-.segmented label {
-  position: relative;
-  display: flex;
-  cursor: pointer;
-}
-
-.segmented label + label {
-  border-left: 3px solid var(--color-action-primary-fill);
-}
-
-.segmented input {
-  position: absolute;
-  opacity: 0;
-  inset: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-.segmented label span {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 60px;
-  padding: var(--space-xs) var(--space-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-action-primary);
-  line-height: 1.25;
-}
-
-.segmented input:checked + span {
-  background: var(--color-action-primary-fill);
-  color: var(--color-text-inverse);
-}
-
-.segmented label:has(input:focus-visible) {
-  outline: 4px solid var(--color-focus-ring);
-  outline-offset: 3px;
-}
-
 /* Order builder (#103): one fieldset per fish, bordered so rows scan apart without shadows. */
 .item-row {
   margin: 0;
@@ -978,6 +919,10 @@ ol.stack {
   flex-wrap: wrap;
 }
 
+.bar-nav {
+  display: contents;
+}
+
 .brand {
   font-family: var(--font-display);
   font-size: 26px;
@@ -991,13 +936,33 @@ ol.stack {
   font-size: 18px;
   display: inline-flex;
   align-items: center;
-  min-height: 46px;
+  min-height: 58px;
   padding: 4px 2px;
   text-decoration: none;
 }
 
 .bar a:hover {
   text-decoration: underline;
+}
+
+/* <700px: row 1 = wordmark + My requests, row 2 = phone. */
+.bar a[href^="tel:"] {
+  order: 3;
+  flex-basis: 100%;
+}
+
+/* ≥700px: one row — wordmark left; phone · My requests grouped right (not spread by space-between). */
+@media (min-width: 700px) {
+  .bar .brand {
+    margin-right: auto;
+  }
+  .bar a[href^="tel:"] {
+    order: 0;
+    flex-basis: auto;
+  }
+  .bar-nav a[href="/requests"] {
+    order: 1;
+  }
 }
 
 .strip {
@@ -1037,6 +1002,21 @@ ol.stack {
   background: var(--palette-muted);
 }
 
+a.strip-link {
+  display: block;
+  text-decoration: none;
+}
+
+.strip-link .container,
+.strip-link .wrap {
+  min-height: 58px;
+}
+
+.strip-link .strip-arrow {
+  color: var(--palette-paper);
+  font-weight: 800;
+}
+
 .strip.shut .dot {
   background: var(--palette-paper);
   border-radius: 0;
@@ -1059,18 +1039,6 @@ ol.stack {
 .hero-addr {
   color: var(--color-text-secondary);
   max-width: 26rem;
-}
-
-.hero-name {
-  font-size: clamp(28px, 6vw, 32px);
-  line-height: var(--line-height-tight);
-}
-
-.hero-when {
-  font-family: var(--font-body);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary);
 }
 
 .saved {
@@ -1490,12 +1458,8 @@ footer .btn-ghost {
   }
 }
 
-/* Desktop home (#87) — fish board + route/call column share one row of full-bleed
+/* Desktop home (#87) — fish board + route column share one row of full-bleed
    bands. Same DOM as mobile; the grid only engages at ≥1024px. */
-.call-card {
-  display: none;
-}
-
 @media (min-width: 1024px) {
   .home-split {
     display: grid;
@@ -1529,18 +1493,9 @@ footer .btn-ghost {
     padding-left: 48px;
     padding-right: 20px;
   }
-  .home-closing {
-    display: none;
-  }
   .home-route-inner {
     position: sticky;
     top: var(--space-lg);
-  }
-  .call-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-top: var(--space-lg);
   }
   .action-bar {
     display: none;

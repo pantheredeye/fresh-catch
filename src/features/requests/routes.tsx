@@ -6,8 +6,10 @@ import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
+import { Button } from "@/ui/button";
 import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
+import { getMarket } from "@/features/markets/queries";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
 import { csrfProtect } from "@/features/auth/middleware";
@@ -116,12 +118,21 @@ async function renderBuilderPage(
     // The submit path already fetched the live catch for isCustom — reuse it.
     options.catchItems ?? listRequestableCatchItems(),
   ]);
+  const isQuestion = values.requestType === "question";
+  const heading = isQuestion ? "Ask a question" : "Request an order";
   return c.html(
-    <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
+    <Document title={`${heading} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
       <BrandBar vendor={vendor} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
-        <h1>New request</h1>
+        <h1>{heading}</h1>
+        <p class="muted">
+          {isQuestion ? (
+            <>Want fish instead? <a href="/order">Request an order</a></>
+          ) : (
+            <>Just have a question? <a href="/ask">Ask us</a></>
+          )}
+        </p>
         <RequestForm
           action="/requests"
           csrfToken={csrfToken}
@@ -131,26 +142,41 @@ async function renderBuilderPage(
           autofocusItem={autofocusItem}
         />
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
     status,
   );
 }
 
-/**
- * Registered before `/requests/:id` below — Hono matches routes in
- * registration order, and this static path would otherwise be swallowed as
- * `id: "new"` (same gotcha `/markets/past` documents).
- */
-requestRoutes.get("/requests/new", async (c) => {
-  const type = c.req.query("type") === "question" ? "question" : "fish";
+requestRoutes.get("/order", async (c) => {
   const species = c.req.query("species");
   const values: RequestFormValues = {
-    requestType: type,
+    requestType: "fish",
     items: [{ species: species ?? undefined }],
     contactEmail: c.var.session?.email,
   };
   return renderBuilderPage(c, values, {}, 200);
+});
+
+requestRoutes.get("/ask", async (c) => {
+  const species = c.req.query("species");
+  const marketId = c.req.query("market");
+  const market = !species && marketId ? await getMarket(marketId) : null;
+  const subject = species ?? market?.name;
+  const values: RequestFormValues = {
+    requestType: "question",
+    // Pre-seeded from a fish row's or market page's "Ask" link so the question has its subject.
+    notes: subject ? `About ${subject}: ` : undefined,
+    contactEmail: c.var.session?.email,
+  };
+  return renderBuilderPage(c, values, {}, 200);
+});
+
+/** Legacy URL (bookmarks, old emails) — forwards to the split pages. */
+requestRoutes.get("/requests/new", (c) => {
+  const species = c.req.query("species");
+  const query = species ? `?species=${encodeURIComponent(species)}` : "";
+  return c.redirect(`${c.req.query("type") === "question" ? "/ask" : "/order"}${query}`, 301);
 });
 
 requestRoutes.post("/requests", csrfProtect(), async (c) => {
@@ -186,6 +212,7 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
 });
 
 requestRoutes.get("/requests", async (c) => {
+  const session = c.var.session;
   const [requests, vendor] = await Promise.all([
     listRequestsForViewer({
       deviceToken: c.var.deviceToken,
@@ -205,8 +232,26 @@ requestRoutes.get("/requests", async (c) => {
             <RequestListRow request={request} />
           ))}
         </div>
+        <div class="stack-tight">
+          {session ? (
+            <>
+              <p class="muted">Signed in as {session.email}</p>
+              {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
+              <form method="post" action="/logout">
+                <input type="hidden" name="csrfToken" value={session.csrfToken} />
+                <Button type="submit" variant="secondary">
+                  Log out
+                </Button>
+              </form>
+            </>
+          ) : (
+            <p class="muted">
+              See these on another device? <a href="/login">Log in</a>
+            </p>
+          )}
+        </div>
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
   );
 });
@@ -240,7 +285,7 @@ requestRoutes.get("/requests/:id", async (c) => {
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
         <MessageForm action={`/requests/${request.id}/messages`} csrfToken={csrfToken} />
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
   );
 });
@@ -274,7 +319,7 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
             errorText={result.errors.body}
           />
         </Page>
-        <Footer vendor={vendor} session={c.var.session} />
+        <Footer />
       </Document>,
       400,
     );

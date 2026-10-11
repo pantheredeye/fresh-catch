@@ -42,7 +42,7 @@ function extractCsrfToken(html: string): string {
   return match[1];
 }
 
-async function visitAsNewDevice(path = "/requests/new") {
+async function visitAsNewDevice(path = "/order") {
   const res = await newVisitorRequest(path);
   const cookie = extractDeviceCookie(res);
   const html = await res.text();
@@ -71,19 +71,47 @@ async function createRequestAs(cookie: string, csrfToken: string, fields: Record
   );
 }
 
-describe("GET /requests/new", () => {
+describe("GET /order, /ask", () => {
   it("is reachable without auth and sets a device cookie", async () => {
-    const res = await newVisitorRequest("/requests/new");
+    const res = await newVisitorRequest("/order");
     expect(res.status).toBe(200);
     expect(res.headers.get("set-cookie")).toContain("device=");
+  });
+
+  it("/ask renders the question form only: no fish rows, hidden question type, species-seeded notes", async () => {
+    const res = await newVisitorRequest("/ask?species=Flounder");
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("<h1>Ask a question</h1>");
+    expect(html).toContain('name="requestType" value="question"');
+    expect(html).toContain("Send question");
+    expect(html).toContain("About Flounder: ");
+    expect(html).not.toContain("builder-rows");
+    expect(html).not.toContain("order-builder.js");
+    expect(html).toContain('href="/order"');
+  });
+
+  it("/order has no question toggle and cross-links to /ask", async () => {
+    const html = await (await newVisitorRequest("/order")).text();
+    expect(html).toContain("<h1>Request an order</h1>");
+    expect(html).toContain('name="requestType" value="fish"');
+    expect(html).not.toContain("type-question");
+    expect(html).toContain('href="/ask"');
+  });
+
+  it("/requests/new redirects to the split pages", async () => {
+    const app = (await import("@/index")).default;
+    let res = await app.request("/requests/new?species=Flounder", { redirect: "manual" }, env);
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("/order?species=Flounder");
+    res = await app.request("/requests/new?type=question", { redirect: "manual" }, env);
+    expect(res.headers.get("location")).toBe("/ask");
   });
 });
 
 describe("customer form (#85)", () => {
-  it("renders the segmented control, an Other-reveal and the swapped submit labels", async () => {
-    const html = await (await newVisitorRequest("/requests/new?species=Flounder")).text();
-    expect(html).toContain('class="segmented"');
-    expect(html).toContain("submit-question");
+  it("renders the order form with an Other-reveal and the species submit label", async () => {
+    const html = await (await newVisitorRequest("/order?species=Flounder")).text();
     expect(html).toContain("Request Flounder");
     // Enter-key implicit submission must hit this hidden default, not the
     // builder's add/remove submits that come first otherwise.
@@ -92,7 +120,7 @@ describe("customer form (#85)", () => {
 
   it("offers the current-catch select (+ Other) whenever a fresh catch exists, free text only without one (issue 116)", async () => {
     // No live catch this week → free-text species is the deliberate fallback.
-    let html = await (await newVisitorRequest("/requests/new")).text();
+    let html = await (await newVisitorRequest("/order")).text();
     expect(html).not.toContain('<select class="field-select" id="items-0-species"');
     expect(html).toContain("What fish are you looking for?");
 
@@ -102,7 +130,7 @@ describe("customer form (#85)", () => {
       formattedContent: JSON.stringify({ headline: "h", items: [{ name: "Flounder", note: "" }], summary: "s" }),
     });
     try {
-      html = await (await newVisitorRequest("/requests/new")).text();
+      html = await (await newVisitorRequest("/order")).text();
       expect(html).toContain('<select class="field-select" id="items-0-species"');
       expect(html).toContain(">Choose a fish</option>");
       expect(html).toContain('value="__other">Other</option>');
@@ -177,7 +205,7 @@ function builderHtml(html: string): string {
 
 describe("folded fish rows (issue 116)", () => {
   it("renders the sole row expanded", async () => {
-    const html = await (await newVisitorRequest("/requests/new")).text();
+    const html = await (await newVisitorRequest("/order")).text();
     expect(builderHtml(html)).toContain('<details class="item-details" open="">');
   });
 
@@ -332,7 +360,7 @@ describe("order builder (issue 103)", () => {
       }),
     });
     try {
-      const html = await (await newVisitorRequest("/requests/new")).text();
+      const html = await (await newVisitorRequest("/order")).text();
       expect(html).toContain("Halibut — $15");
       expect(html).toContain(">Grouper</option>");
       expect(html).not.toContain("Grouper — $");
@@ -350,7 +378,7 @@ describe("order builder (issue 103)", () => {
  */
 describe("builder island (issue 104)", () => {
   it("ships the rows container, blank-row template, and cache-busted script", async () => {
-    const html = await (await newVisitorRequest("/requests/new")).text();
+    const html = await (await newVisitorRequest("/order")).text();
     expect(html).toContain('<div class="stack" id="builder-rows" data-max-items="8">');
     expect(html).toContain('<template id="builder-row-template">');
     expect(html).toContain('<script type="module" src="/js/order-builder.js?v=');
@@ -364,7 +392,7 @@ describe("builder island (issue 104)", () => {
   });
 
   it("renders the sole row's Remove hidden and a below-cap Add visible", async () => {
-    const html = await (await newVisitorRequest("/requests/new")).text();
+    const html = await (await newVisitorRequest("/order")).text();
     expect(html).toMatch(/<button type="submit" name="action" value="remove-0" formnovalidate="" [^>]*hidden=""/);
     expect(html).toMatch(/<button type="submit" name="action" value="add-row" formnovalidate="" (?![^>]*hidden)[^>]*>Add another fish/);
   });
