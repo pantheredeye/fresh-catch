@@ -9,6 +9,7 @@ import { BackLink } from "@/ui/back-link";
 import { Button } from "@/ui/button";
 import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
+import { getMarket } from "@/features/markets/queries";
 import { requireSecret } from "@/lib/env";
 import { runInBackground } from "@/lib/background";
 import { csrfProtect } from "@/features/auth/middleware";
@@ -159,10 +160,13 @@ requestRoutes.get("/order", async (c) => {
 
 requestRoutes.get("/ask", async (c) => {
   const species = c.req.query("species");
+  const marketId = c.req.query("market");
+  const market = !species && marketId ? await getMarket(marketId) : null;
+  const subject = species ?? market?.name;
   const values: RequestFormValues = {
     requestType: "question",
-    // Pre-seeded from a fish row's "Ask" link so the question has its subject.
-    notes: species ? `About ${species}: ` : undefined,
+    // Pre-seeded from a fish row's or market page's "Ask" link so the question has its subject.
+    notes: subject ? `About ${subject}: ` : undefined,
     contactEmail: c.var.session?.email,
   };
   return renderBuilderPage(c, values, {}, 200);

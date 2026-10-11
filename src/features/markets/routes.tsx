@@ -9,7 +9,7 @@ import { BackLink } from "@/ui/back-link";
 import { SectionHeading } from "@/ui/section-heading";
 import { getVendor } from "@/features/vendor/queries";
 import { describeOccurrence, nextOccurrence } from "@/features/markets/status";
-import { WEEKDAY_NAMES, formatHoursRange } from "@/lib/format";
+import { WEEKDAY_NAMES, formatHoursRange, vendorDisplayName } from "@/lib/format";
 import { getMarket, listPastPopups } from "./queries";
 import { MarketDetail, type MarketDetailStatus } from "./components";
 import { formatSchedule, hasValidHours, marketAddressLine } from "./display";
@@ -46,7 +46,7 @@ marketRoutes.get("/markets/past", async (c) => {
           </div>
         )}
         <p>
-          <a href="/ask">Ask about a market</a>
+          <a href="/ask">Have a question? Ask {vendorDisplayName(vendor)} →</a>
         </p>
       </Page>
       <Footer />

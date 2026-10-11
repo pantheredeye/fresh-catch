@@ -995,6 +995,21 @@ ol.stack {
   background: var(--palette-muted);
 }
 
+a.strip-link {
+  display: block;
+  text-decoration: none;
+}
+
+.strip-link .container,
+.strip-link .wrap {
+  min-height: 58px;
+}
+
+.strip-link .strip-arrow {
+  color: var(--palette-paper);
+  font-weight: 800;
+}
+
 .strip.shut .dot {
   background: var(--palette-paper);
   border-radius: 0;
@@ -1017,18 +1032,6 @@ ol.stack {
 .hero-addr {
   color: var(--color-text-secondary);
   max-width: 26rem;
-}
-
-.hero-name {
-  font-size: clamp(28px, 6vw, 32px);
-  line-height: var(--line-height-tight);
-}
-
-.hero-when {
-  font-family: var(--font-body);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary);
 }
 
 .saved {
@@ -1448,12 +1451,8 @@ footer .btn-ghost {
   }
 }
 
-/* Desktop home (#87) — fish board + route/call column share one row of full-bleed
+/* Desktop home (#87) — fish board + route column share one row of full-bleed
    bands. Same DOM as mobile; the grid only engages at ≥1024px. */
-.call-card {
-  display: none;
-}
-
 @media (min-width: 1024px) {
   .home-split {
     display: grid;
@@ -1487,18 +1486,9 @@ footer .btn-ghost {
     padding-left: 48px;
     padding-right: 20px;
   }
-  .home-closing {
-    display: none;
-  }
   .home-route-inner {
     position: sticky;
     top: var(--space-lg);
-  }
-  .call-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-top: var(--space-lg);
   }
   .action-bar {
     display: none;

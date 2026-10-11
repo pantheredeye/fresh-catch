@@ -10,7 +10,6 @@ import { listActiveMarkets, listLivePopups } from "@/features/markets/queries";
 import { getVendor } from "@/features/vendor/queries";
 import {
   describeOccurrence,
-  describeTodayStatus,
   isSameLocalDate,
   nextOccurrence,
   resolveToday,
@@ -20,7 +19,6 @@ import {
 import {
   WEEKDAY_NAMES,
   formatClockTime,
-  formatFullDate,
   formatHoursRange,
   formatWeekOf,
   localParts,
@@ -32,25 +30,68 @@ import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { StatusStrip } from "@/ui/status-strip";
 import { ActionBar } from "@/ui/action-bar";
-import { CallCard, ClosingBand, FishBoard, Hero, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
-import { hasValidHours, marketAddressLine } from "@/features/markets/display";
+import { ClosingBand, FishBoard, hasPrices, RouteBand, SavedBand, type RouteRow, type SavedPin } from "./components";
+import { formatSchedule, hasValidHours, marketAddressLine } from "@/features/markets/display";
 
 export const homeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-const STATUS_LABEL: Record<TodayStatus["kind"], string> = {
-  open: "Open now",
-  "opens-later": "Opens later today",
-  "closed-today": "Closed today",
-};
+type StripData = { open: boolean; label: string; message: string; href: string; dot: boolean };
 
-function heroHoursLine(market: Market, tz: string): string | null {
-  if (market.type === "popup") {
-    if (!market.expiresAt) return null;
-    const local = localParts(market.expiresAt, tz);
-    return `Until ${formatClockTime(local.hour * 60 + local.minute)}`;
+/** Day + hours for the strip's closed copy: "Fri 10–6" (clock minutes → compact range). */
+function compactHours(market: Market): string {
+  const day = WEEKDAY_NAMES[market.dayOfWeek!].slice(0, 3);
+  const clock = (m: number) => formatClockTime(m).replace(/(:00)?(am|pm)$/, "");
+  return `${day} ${clock(market.openMinutes!)}–${clock(market.closeMinutes!)}`;
+}
+
+/**
+ * The status strip doubles as the "next stop" line (replaces the old hero band).
+ * Popups win over regulars via `resolveToday`; with no structured hours
+ * anywhere, falls back to the first regular market's free-text schedule.
+ */
+function buildStrip(status: TodayStatus, fallback: Market | null, now: Date, tz: string): StripData | null {
+  if ((status.kind === "open" || status.kind === "opens-later") && status.market) {
+    const market = status.market as Market;
+    const occurrence = nextOccurrence(market, now, tz);
+    const href = `/markets/${market.id}`;
+    if (status.kind === "open") {
+      const until = occurrence ? localParts(occurrence.closesAt, tz) : null;
+      return {
+        open: true,
+        label: "Open now",
+        message: until ? `${market.name} until ${formatClockTime(until.hour * 60 + until.minute)}` : market.name,
+        href,
+        dot: true,
+      };
+    }
+    const opens = occurrence ? localParts(occurrence.opensAt, tz) : null;
+    return {
+      open: false,
+      label: opens ? `Opens ${formatClockTime(opens.hour * 60 + opens.minute)}` : "Opens later today",
+      message: market.name,
+      href,
+      dot: true,
+    };
   }
-  if (hasValidHours(market)) {
-    return `${WEEKDAY_NAMES[market.dayOfWeek]}, ${formatHoursRange(market.openMinutes, market.closeMinutes)}`;
+  if (status.next) {
+    const market = status.next.market as Market;
+    return {
+      open: false,
+      label: "Closed today",
+      message: `Next: ${market.name}, ${hasValidHours(market) ? compactHours(market) : WEEKDAY_NAMES[localParts(status.next.opensAt, tz).weekday]}`,
+      href: `/markets/${market.id}`,
+      dot: true,
+    };
+  }
+  if (fallback) {
+    const schedule = formatSchedule(fallback.schedule);
+    return {
+      open: false,
+      label: "Next stop",
+      message: schedule ? `${fallback.name}, ${schedule}` : fallback.name,
+      href: `/markets/${fallback.id}`,
+      dot: false,
+    };
   }
   return null;
 }
@@ -60,6 +101,7 @@ function buildRouteRows(
   livePopups: Market[],
   now: Date,
   tz: string,
+  nextStopId: string | null,
 ): RouteRow[] {
   const local = localParts(now, tz);
   const todayWeekday = local.weekday;
@@ -81,6 +123,7 @@ function buildRouteRows(
     const occurrence = nextOccurrence(market, now, tz);
     const occursToday = occurrence === null || isSameLocalDate(localParts(occurrence.opensAt, tz), local);
     const isToday = market.dayOfWeek === todayWeekday && occursToday;
+    const isNext = !isToday && market.id === nextStopId;
     return {
       market,
       isPopup: false,
@@ -90,12 +133,14 @@ function buildRouteRows(
           ? formatHoursRange(market.openMinutes, market.closeMinutes)
           : null,
       addressLabel: marketAddressLine(market),
-      isToday,
+      isToday: isToday || isNext,
       todayTag: isToday
         ? occurrence?.state === "open-now"
           ? "Here today"
           : "Here later today"
-        : null,
+        : isNext
+          ? "Next"
+          : null,
     };
   });
 
@@ -129,60 +174,27 @@ homeRoutes.get("/", async (c) => {
   const allMarkets: StatusMarket[] = [...livePopups, ...regularMarkets];
   const status = resolveToday(allMarkets, now, tz);
 
-  let heroMarket: Market | null = (status.market as Market | null) ?? (status.next?.market as Market | null) ?? null;
-  let scheduleFallback = false;
-  if (!heroMarket && regularMarkets.length > 0) {
-    heroMarket = regularMarkets[0];
-    scheduleFallback = true;
-  }
+  const fallbackMarket = status.market || status.next ? null : (regularMarkets[0] ?? null);
+  const strip = buildStrip(status, fallbackMarket, now, tz);
+  // "Next" only when nothing's on today — mirrors the strip's "Closed today · Next: …" / schedule-only line.
+  const nextStopId = status.kind === "closed-today" ? ((status.next?.market.id ?? fallbackMarket?.id) ?? null) : null;
 
-  const dateLine = scheduleFallback
-    ? null
-    : status.kind === "closed-today" && status.next
-      ? `No market today. Next stop, ${WEEKDAY_NAMES[localParts(status.next.opensAt, tz).weekday]}:`
-      : formatFullDate(now, tz);
-
-  const heroTag = !heroMarket
-    ? null
-    : status.kind === "open"
-      ? "Here today"
-      : status.kind === "opens-later"
-        ? "Here later today"
-        : "Next stop";
-
-  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz);
+  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz, nextStopId);
   const savedPins = buildSavedPins([...livePopups, ...regularMarkets], now, tz);
 
   return c.html(
     <Document deviceToken={c.var.deviceToken}>
       <Page bleed>
         <BrandBar vendor={vendor} container />
-        {!scheduleFallback ? (
-          <StatusStrip
-            open={status.kind === "open"}
-            label={STATUS_LABEL[status.kind]}
-            message={describeTodayStatus(status, now, tz)}
-            container
-          />
-        ) : null}
-        <Band tone="shallow" container>
-          <Hero
-            market={heroMarket}
-            scheduleFallback={scheduleFallback}
-            tag={heroTag}
-            dateLine={dateLine}
-            hoursLine={heroMarket ? heroHoursLine(heroMarket, tz) : null}
-          />
-        </Band>
+        {strip ? <StatusStrip {...strip} container /> : null}
         <SavedBand pins={savedPins} />
         <div class="home-split">
           <Band tone="sand" class="home-fish">
-            <FishBoard content={catchContent} weekOf={weekOf} />
+            <FishBoard content={catchContent} weekOf={weekOf} vendor={vendor} />
           </Band>
           <Band tone="paper" class="home-route">
             <div class="home-route-inner">
-              <RouteBand rows={routeRows} vendor={vendor} />
-              <CallCard vendor={vendor} priced={hasPrices(catchContent)} />
+              <RouteBand rows={routeRows} />
             </div>
           </Band>
         </div>
@@ -195,7 +207,7 @@ homeRoutes.get("/", async (c) => {
             items={[
               { href: telHref(vendor.phone), label: "Call" },
               { href: smsHref(vendor.phone), label: "Text" },
-              { href: "/order", label: "Request" },
+              { href: "/order", label: "Order" },
             ]}
           />
         ) : null}
