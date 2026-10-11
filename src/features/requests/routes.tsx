@@ -246,7 +246,7 @@ requestRoutes.get("/requests", async (c) => {
             </>
           ) : (
             <p class="muted">
-              See these on another device? <a href="/login">Log in</a>
+              Your requests are saved to this browser. <a href="/login">Log in</a> to see them on any device.
             </p>
           )}
         </div>

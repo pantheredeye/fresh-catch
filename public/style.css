@@ -1214,8 +1214,9 @@ a.fish:active .req {
 }
 
 .mk {
+  position: relative; /* anchors the stretched name link (.mk h3 a::after) and .mk-go */
   border-top: 2px solid var(--color-border-light);
-  padding: var(--space-md) 0 22px;
+  padding: var(--space-md) 34px 22px 0; /* right gutter keeps text clear of .mk-go */
 }
 
 .mk:first-of-type {
@@ -1242,6 +1243,49 @@ a.fish:active .req {
 .mk h3 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* The name link is the card's tap target — stretched over the whole row. */
+.mk h3 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* Right-edge arrow — the visible "this card opens details" affordance. */
+.mk-go {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-action-primary);
+  pointer-events: none;
+}
+
+.mk-go svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.mk h3 a:active {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+}
+
+/* Directions + Save sit above the stretched name link. */
+.mk-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.mk-foot .mk-dir,
+.mk-foot .favorite-toggle {
+  position: relative;
+  z-index: 1;
 }
 
 .mk-dir {
@@ -1273,7 +1317,12 @@ a.fish:active .req {
   background: var(--color-surface-secondary);
   border: 3px solid var(--color-action-primary);
   padding: var(--space-md);
+  padding-right: 34px; /* same .mk-go gutter as plain rows */
   margin: 0 calc(var(--space-md) * -1);
+}
+
+.mk.now .mk-go {
+  right: 8px;
 }
 
 .tag {

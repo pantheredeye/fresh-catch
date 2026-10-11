@@ -84,7 +84,7 @@ describe("GET / — fish board", () => {
     expect(html).not.toContain("Request Flounder"); // sold-out row is a non-link
     expect(html).toContain("Sold out");
     expect(html).toContain("/ask?species=Flounder");
-    expect(html).toContain("Have a question? Ask Evan");
+    expect(html).toContain("Question? Ask Evan");
     expect(html).not.toContain("next week");
   });
 
@@ -160,7 +160,7 @@ describe("GET / — public page polish (#82)", () => {
     expect(closing).toMatch(/<a href="\/order"[^>]*>Request fish<\/a>/);
     expect(closing).toContain("Call (505) 555-0142");
     expect(closing).not.toContain("Text (505)");
-    expect(closing).toMatch(/<a href="\/ask">Have a question\? Ask Evan →<\/a>/);
+    expect(closing).toMatch(/<a href="\/ask">Question\? Ask Evan →<\/a>/);
     expect(html).not.toContain("call-card");
     expect(html).not.toContain("requests/new");
     expect(html).not.toContain("Call Evan about");
@@ -199,7 +199,8 @@ describe("GET / — public page polish (#82)", () => {
   it("uses the vendor display name, ends the week-of stamp with a period, and drops the star copy", async () => {
     await publish([{ name: "Mullet", note: "Fresh." }]);
     const html = await (await app.request("/", {}, env)).text();
-    expect(html).toMatch(/Week of \w+ \d+\. The list is set each Monday\./);
+    expect(html).toMatch(/Week of \w+ \d+\./);
+    expect(html).not.toContain("The list is set each Monday");
     expect(html).not.toContain("Sam");
     expect(html).not.toContain("Star a market");
     expect(html).toContain("We&#39;ll touch base");
@@ -282,7 +283,7 @@ describe("GET / — status strip is the next-stop line (handoff §4)", () => {
     }
   });
 
-  it("closed-today: 'Closed today · Next: <market>, <Day> <hours>'; its route row carries a Next tag", async () => {
+  it("closed-today: 'Closed today · Next: <market>, <Day> <hours>'; its route row stays plain (no Next tag)", async () => {
     const { weekday } = nowUtcParts();
     const otherDay = (weekday + 2) % 7;
     const market = await addMarket({
@@ -299,8 +300,9 @@ describe("GET / — status strip is the next-stop line (handoff §4)", () => {
     expect(s).toMatch(new RegExp(`Next: ${market.name}, \\w{3} 10–6`));
     expect(html).not.toContain("No market today");
     const row = html.slice(html.lastIndexOf('<div class="mk', html.indexOf(`<a href="/markets/${market.id}">`)));
-    expect(row.slice(0, 200)).toContain('class="mk now"');
-    expect(row.slice(0, 300)).toContain('<span class="tag">Next</span>');
+    expect(row.slice(0, 200)).toContain('class="mk"');
+    expect(row.slice(0, 200)).not.toContain("mk now");
+    expect(row.slice(0, 300)).not.toContain('<span class="tag">Next</span>');
   });
 
   it("no-structured-data: 'Next stop · <market>, <schedule>' with no dot", async () => {
@@ -366,6 +368,8 @@ describe("GET / — route + saved band", () => {
     expect(html).toContain(`href="/markets/${active.id}"`);
     expect(html).toContain("Our markets");
     expect(html).toContain(">Popups<");
+    // Every route row ships an inert Save toggle for favorites.js to hydrate.
+    expect(html).toContain(`favorite-toggle" aria-pressed="false" data-market-id="${active.id}"`);
   });
 
   it("hides the Popups section when no popup is live", async () => {

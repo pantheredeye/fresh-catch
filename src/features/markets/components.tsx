@@ -302,8 +302,8 @@ function marketLocation(market: Market): string | null {
 }
 
 /** Favoriting is client-side only (localStorage island, #58) — every card ships the same inert markup and `favorites.js` hydrates state on load. */
-const FavoriteToggle: FC<{ marketId: string }> = ({ marketId }) => (
-  <Button variant="ghost" class="favorite-toggle" data={{ "market-id": marketId }} ariaPressed={false}>
+export const FavoriteToggle: FC<{ marketId: string; inline?: boolean }> = ({ marketId, inline }) => (
+  <Button variant="ghost" inline={inline} class="favorite-toggle" data={{ "market-id": marketId }} ariaPressed={false}>
     <span aria-hidden="true">☆</span> Save
   </Button>
 );
@@ -348,7 +348,7 @@ export const MarketDetail: FC<{
           ) : hasAddress ? (
             <Button href={mapsHref(market.address!)}>Directions to {market.name}</Button>
           ) : null}
-          <a href={`/ask?market=${encodeURIComponent(market.id)}`}>Have a question? Ask {name} →</a>
+          <a href={`/ask?market=${encodeURIComponent(market.id)}`}>Question? Ask {name} →</a>
         </div>
       </Band>
       <Band tone="paper">

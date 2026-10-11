@@ -3,6 +3,7 @@ import type { Market, Vendor } from "@/lib/db";
 import type { CatchContent, CatchItem } from "@/features/catch/pipeline";
 import { formatPrice, mapsHref, telHref, vendorDisplayName, formatPhoneDisplay } from "@/lib/format";
 import { formatSchedule } from "@/features/markets/display";
+import { FavoriteToggle } from "@/features/markets/components";
 import { Button } from "@/ui/button";
 import { SectionHeading } from "@/ui/section-heading";
 import { FishArt } from "./fish-art";
@@ -93,7 +94,7 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last"; askN
         </h3>
         {item.soldOut ? (
           <a class="req" href={askHref}>
-            <WithArrow label={`Have a question? Ask ${askName}`} />
+            <WithArrow label={`Question? Ask ${askName}`} />
           </a>
         ) : (
           <span class="req">
@@ -134,7 +135,7 @@ export const FishBoard: FC<{ content: CatchContent | null; weekOf: string | null
     <SectionHeading level={1} title="On ice this week" meta={hasPrices(content) ? "per pound" : undefined} />
     {content && content.items.length > 0 ? (
       <>
-        <p class="stamp">{weekOf}. The list is set each Monday.</p>
+        <p class="stamp">{weekOf}.</p>
         <div class="stack-tight">
           {content.items.map((item, index) => (
             <FishRow
@@ -161,7 +162,7 @@ export type RouteRow = {
   todayTag: string | null;
 };
 
-/** One stop on the week's route (item 6) — today's row (or, when nothing's on today, the next stop the status strip links to) gets `.now` + a tag, per handoff §3's split-control amendment. */
+/** One stop on the week's route (item 6) — today's row gets `.now` + a tag, per handoff §3's split-control amendment. The name link stretches over the whole card (`.mk h3 a::after`); Directions and the Save toggle sit above it via z-index. */
 const RouteRowView: FC<{ row: RouteRow }> = ({ row }) => {
   const { market, dayLabel, hoursLabel, addressLabel, isToday, todayTag } = row;
   const hasAddress = Boolean(market.address);
@@ -172,13 +173,19 @@ const RouteRowView: FC<{ row: RouteRow }> = ({ row }) => {
       <h3>
         <a href={`/markets/${market.id}`}>{market.name}</a>
       </h3>
+      <span class="mk-go" aria-hidden="true">
+        {ARROW_ICON}
+      </span>
       {hoursLabel || market.schedule?.trim() ? <p class="hrs2">{hoursLabel || formatSchedule(market.schedule)}</p> : null}
       {addressLabel ? <p class="addr2">{addressLabel}</p> : null}
-      {hasAddress ? (
-        <a class="mk-dir" href={mapsHref(market.address!)} aria-label={`Directions to ${market.name}`}>
-          Directions →
-        </a>
-      ) : null}
+      <div class="mk-foot">
+        {hasAddress ? (
+          <a class="mk-dir" href={mapsHref(market.address!)} aria-label={`Directions to ${market.name}`}>
+            Directions →
+          </a>
+        ) : null}
+        <FavoriteToggle marketId={market.id} inline />
+      </div>
     </div>
   );
 };
@@ -227,7 +234,7 @@ export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ ve
       </Button>
     ) : null}
     <p>
-      <a href="/ask">Have a question? Ask {vendorDisplayName(vendor)} →</a>
+      <a href="/ask">Question? Ask {vendorDisplayName(vendor)} →</a>
     </p>
   </>
 );
