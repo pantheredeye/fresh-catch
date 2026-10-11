@@ -951,10 +951,17 @@ ol.stack {
   flex-basis: 100%;
 }
 
+/* ≥700px: one row — wordmark left; phone · My requests grouped right (not spread by space-between). */
 @media (min-width: 700px) {
+  .bar .brand {
+    margin-right: auto;
+  }
   .bar a[href^="tel:"] {
     order: 0;
     flex-basis: auto;
+  }
+  .bar-nav a[href="/requests"] {
+    order: 1;
   }
 }
 
