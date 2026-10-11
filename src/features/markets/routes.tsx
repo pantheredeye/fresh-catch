@@ -46,7 +46,7 @@ marketRoutes.get("/markets/past", async (c) => {
           </div>
         )}
         <p>
-          <a href="/ask">Have a question? Ask {vendorDisplayName(vendor)} →</a>
+          <a href="/ask">Question? Ask {vendorDisplayName(vendor)} →</a>
         </p>
       </Page>
       <Footer />

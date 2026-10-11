@@ -33,9 +33,9 @@ describe("shared header + footer", () => {
     expect(f).not.toContain("/logout");
   });
 
-  it("/requests: logged out shows Log in link", async () => {
+  it("/requests: logged out explains device-local requests and shows Log in link", async () => {
     const html = await get("/requests");
-    expect(html).toContain("See these on another device?");
+    expect(html).toContain("Your requests are saved to this browser.");
     expect(html).toContain('<a href="/login">Log in</a>');
   });
 

@@ -101,7 +101,6 @@ function buildRouteRows(
   livePopups: Market[],
   now: Date,
   tz: string,
-  nextStopId: string | null,
 ): RouteRow[] {
   const local = localParts(now, tz);
   const todayWeekday = local.weekday;
@@ -123,7 +122,6 @@ function buildRouteRows(
     const occurrence = nextOccurrence(market, now, tz);
     const occursToday = occurrence === null || isSameLocalDate(localParts(occurrence.opensAt, tz), local);
     const isToday = market.dayOfWeek === todayWeekday && occursToday;
-    const isNext = !isToday && market.id === nextStopId;
     return {
       market,
       isPopup: false,
@@ -133,14 +131,8 @@ function buildRouteRows(
           ? formatHoursRange(market.openMinutes, market.closeMinutes)
           : null,
       addressLabel: marketAddressLine(market),
-      isToday: isToday || isNext,
-      todayTag: isToday
-        ? occurrence?.state === "open-now"
-          ? "Here today"
-          : "Here later today"
-        : isNext
-          ? "Next"
-          : null,
+      isToday,
+      todayTag: isToday ? (occurrence?.state === "open-now" ? "Here today" : "Here later today") : null,
     };
   });
 
@@ -176,10 +168,8 @@ homeRoutes.get("/", async (c) => {
 
   const fallbackMarket = status.market || status.next ? null : (regularMarkets[0] ?? null);
   const strip = buildStrip(status, fallbackMarket, now, tz);
-  // "Next" only when nothing's on today — mirrors the strip's "Closed today · Next: …" / schedule-only line.
-  const nextStopId = status.kind === "closed-today" ? ((status.next?.market.id ?? fallbackMarket?.id) ?? null) : null;
 
-  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz, nextStopId);
+  const routeRows = buildRouteRows(regularMarkets, livePopups, now, tz);
   const savedPins = buildSavedPins([...livePopups, ...regularMarkets], now, tz);
 
   return c.html(
