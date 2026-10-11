@@ -199,7 +199,7 @@ const ItemRow: FC<{
 );
 
 /**
- * One form for both request types (plan addendum #2) — a radio toggle plus a
+ * Admin walk-up form: one form for both request types (plan addendum #2) — a radio toggle plus a
  * pure-CSS `:has()` rule (`.request-form:has(#type-question:checked)
  * .fish-only`) hides the species/quantity fields for questions. Zero JS
  * (R10): neither field carries `required` since a hidden-but-required input
@@ -218,6 +218,8 @@ export const RequestForm: FC<{
 }> = ({ action, csrfToken, values = {}, errors = {}, catchItems, autofocusItem }) => {
   const isQuestion = values.requestType === "question";
   const customer = catchItems !== undefined;
+  // Customer pages show only their own half; the admin walk-up form keeps the radio toggle.
+  const showItems = !customer || !isQuestion;
   const items = values.items?.length ? values.items : [{}];
   const rowCatchItems = customer && catchItems.length > 0 ? catchItems : undefined;
   // issue 116: an error anchor must never land inside a folded row.
@@ -240,19 +242,9 @@ export const RequestForm: FC<{
       </button>
       <ErrorSummary items={Object.entries(errors).map(([id, message]) => ({ id, message }))} />
       {customer ? (
-        <fieldset class="segmented">
-          <legend class="field-label">What do you need?</legend>
-          <div class="segmented-options">
-            <label>
-              <input type="radio" id="type-fish" name="requestType" value="fish" checked={!isQuestion} />
-              <span>Request an order</span>
-            </label>
-            <label>
-              <input type="radio" id="type-question" name="requestType" value="question" checked={isQuestion} />
-              <span>Ask a question</span>
-            </label>
-          </div>
-        </fieldset>
+        // Customer pages are split (/order, /ask) — the type rides along as a
+        // hidden field so the shared POST /requests knows which one this is.
+        <input type="hidden" name="requestType" value={isQuestion ? "question" : "fish"} />
       ) : (
         <fieldset class="request-type-toggle">
           <legend class="field-label">What do you need?</legend>
@@ -266,6 +258,7 @@ export const RequestForm: FC<{
           </label>
         </fieldset>
       )}
+      {showItems ? (
       <div class="fish-only stack">
         <div class="stack" id="builder-rows" data-max-items={String(MAX_REQUEST_ITEMS)}>
           {items.map((item, index) => (
@@ -304,12 +297,13 @@ export const RequestForm: FC<{
           </template>
         ) : null}
       </div>
+      ) : null}
       <Textarea
         id="notes"
         name="notes"
-        label="Details"
+        label={customer ? (isQuestion ? "Your question" : "Details") : "Details"}
         value={values.notes}
-        helperText="Add details, or ask your question here."
+        helperText={customer && !isQuestion ? "Anything else we should know?" : "Add details, or ask your question here."}
         errorText={errors.notes}
       />
       <Input
@@ -337,11 +331,15 @@ export const RequestForm: FC<{
         value={values.contactPhone}
         errorText={errors.contactPhone}
       />
-      <Button type="submit">
-        <span class="submit-fish">{submitLabel({ ...values, requestType: "fish" })}</span>
-        <span class="submit-question">Send question</span>
-      </Button>
-      {customer ? <script type="module" src={assetUrl("/js/order-builder.js")}></script> : null}
+      {customer ? (
+        <Button type="submit">{isQuestion ? "Send question" : submitLabel({ ...values, requestType: "fish" })}</Button>
+      ) : (
+        <Button type="submit">
+          <span class="submit-fish">{submitLabel({ ...values, requestType: "fish" })}</span>
+          <span class="submit-question">Send question</span>
+        </Button>
+      )}
+      {customer && !isQuestion ? <script type="module" src={assetUrl("/js/order-builder.js")}></script> : null}
     </form>
   );
 };

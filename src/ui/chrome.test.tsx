@@ -17,7 +17,7 @@ const footer = (html: string) => html.slice(html.indexOf("<footer"), html.indexO
 
 describe("shared header + footer", () => {
   it("header has My requests, never /admin or /login", async () => {
-    for (const path of ["/", "/requests", "/requests/new", "/login"]) {
+    for (const path of ["/", "/requests", "/order", "/ask", "/login"]) {
       const h = header(await get(path));
       expect(h, path).toContain('<a href="/requests">My requests</a>');
       expect(h, path).not.toContain("/admin");

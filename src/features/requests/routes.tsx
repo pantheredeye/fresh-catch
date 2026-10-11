@@ -117,12 +117,21 @@ async function renderBuilderPage(
     // The submit path already fetched the live catch for isCustom — reuse it.
     options.catchItems ?? listRequestableCatchItems(),
   ]);
+  const isQuestion = values.requestType === "question";
+  const heading = isQuestion ? "Ask a question" : "Request an order";
   return c.html(
-    <Document title="New request — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
+    <Document title={`${heading} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
       <BrandBar vendor={vendor} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
-        <h1>New request</h1>
+        <h1>{heading}</h1>
+        <p class="muted">
+          {isQuestion ? (
+            <>Want fish instead? <a href="/order">Request an order</a></>
+          ) : (
+            <>Just have a question? <a href="/ask">Ask us</a></>
+          )}
+        </p>
         <RequestForm
           action="/requests"
           csrfToken={csrfToken}
@@ -138,20 +147,32 @@ async function renderBuilderPage(
   );
 }
 
-/**
- * Registered before `/requests/:id` below — Hono matches routes in
- * registration order, and this static path would otherwise be swallowed as
- * `id: "new"` (same gotcha `/markets/past` documents).
- */
-requestRoutes.get("/requests/new", async (c) => {
-  const type = c.req.query("type") === "question" ? "question" : "fish";
+requestRoutes.get("/order", async (c) => {
   const species = c.req.query("species");
   const values: RequestFormValues = {
-    requestType: type,
+    requestType: "fish",
     items: [{ species: species ?? undefined }],
     contactEmail: c.var.session?.email,
   };
   return renderBuilderPage(c, values, {}, 200);
+});
+
+requestRoutes.get("/ask", async (c) => {
+  const species = c.req.query("species");
+  const values: RequestFormValues = {
+    requestType: "question",
+    // Pre-seeded from a fish row's "Ask" link so the question has its subject.
+    notes: species ? `About ${species}: ` : undefined,
+    contactEmail: c.var.session?.email,
+  };
+  return renderBuilderPage(c, values, {}, 200);
+});
+
+/** Legacy URL (bookmarks, old emails) — forwards to the split pages. */
+requestRoutes.get("/requests/new", (c) => {
+  const species = c.req.query("species");
+  const query = species ? `?species=${encodeURIComponent(species)}` : "";
+  return c.redirect(`${c.req.query("type") === "question" ? "/ask" : "/order"}${query}`, 301);
 });
 
 requestRoutes.post("/requests", csrfProtect(), async (c) => {

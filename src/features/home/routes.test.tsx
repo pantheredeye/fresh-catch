@@ -83,7 +83,7 @@ describe("GET / — fish board", () => {
     expect(html).toContain("Request Mullet");
     expect(html).not.toContain("Request Flounder"); // sold-out row is a non-link
     expect(html).toContain("Sold out");
-    expect(html).toContain("/requests/new?type=question&amp;species=Flounder");
+    expect(html).toContain("/ask?species=Flounder");
     expect(html).toContain('Ask about <span class="nowrap">it<svg');
     expect(html).not.toContain("next week");
   });
@@ -163,7 +163,7 @@ describe("GET / — public page polish (#82)", () => {
       expect(html).not.toContain("Call/text");
       expect(html).not.toContain("Call or text");
       expect(html).toContain("Ask for a price.");
-      expect(html).toMatch(/<a href="\/requests\/new"[^>]*>Request a hold<\/a>/);
+      expect(html).toMatch(/<a href="\/order"[^>]*>Request a hold<\/a>/);
     } finally {
       await db.vendor.update({ where: { id: vendor!.id }, data: { phone: vendor!.phone } });
     }
@@ -196,7 +196,7 @@ describe("GET / — public page polish (#82)", () => {
   it("renders the sticky action bar and a normalized sms: link when the vendor has a phone", async () => {
     const html = await (await app.request("/", {}, env)).text();
     expect(html).toContain('class="action-bar"');
-    expect(html).toContain('href="/requests/new"');
+    expect(html).toContain('href="/order"');
     expect(html).toContain('href="sms:+15055550142"');
   });
 

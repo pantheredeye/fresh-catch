@@ -115,7 +115,7 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
   const rowClass = ["fish", position === "first" ? "first" : "", position === "last" ? "last" : "", item.soldOut ? "out" : ""]
     .filter(Boolean)
     .join(" ");
-  const askHref = `/requests/new?type=question&species=${encodeURIComponent(item.name)}`;
+  const askHref = `/ask?species=${encodeURIComponent(item.name)}`;
 
   const body = (
     <>
@@ -151,7 +151,7 @@ const FishRow: FC<{ item: CatchItem; position: "first" | "middle" | "last" }> = 
     return <div class={rowClass}>{body}</div>;
   }
   return (
-    <a class={rowClass} href={`/requests/new?species=${encodeURIComponent(item.name)}`} aria-label={requestLabel(item)}>
+    <a class={rowClass} href={`/order?species=${encodeURIComponent(item.name)}`} aria-label={requestLabel(item)}>
       {body}
     </a>
   );
@@ -265,7 +265,7 @@ export const ClosingBand: FC<{ vendor: Vendor | null; priced: boolean }> = ({ ve
         </Button>
       </>
     ) : (
-      <Button href="/requests/new">Request a hold</Button>
+      <Button href="/order">Request a hold</Button>
     )}
   </>
 );
@@ -277,7 +277,7 @@ export const CallCard: FC<{ vendor: Vendor | null; priced: boolean }> = ({ vendo
       <div class="card call-card">
         <h2 class="hd hd-sm">Want one held?</h2>
         <p class="muted">{holdCopy(false, priced)}</p>
-        <Button href="/requests/new">Request a hold</Button>
+        <Button href="/order">Request a hold</Button>
       </div>
     );
   }

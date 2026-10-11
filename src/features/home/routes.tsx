@@ -195,7 +195,7 @@ homeRoutes.get("/", async (c) => {
             items={[
               { href: telHref(vendor.phone), label: "Call" },
               { href: smsHref(vendor.phone), label: "Text" },
-              { href: "/requests/new", label: "Request" },
+              { href: "/order", label: "Request" },
             ]}
           />
         ) : null}
