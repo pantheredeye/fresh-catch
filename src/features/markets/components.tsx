@@ -368,7 +368,7 @@ export const MarketDetail: FC<{
           <FavoriteToggle marketId={market.id} />
         </div>
       </Band>
-      <Footer vendor={vendor} session={session} />
+      <Footer />
       <script type="module" src={assetUrl("/js/favorites.js")}></script>
     </Page>
   );

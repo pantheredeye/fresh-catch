@@ -49,7 +49,7 @@ marketRoutes.get("/markets/past", async (c) => {
           <a href="/requests/new?type=question">Ask about a market</a>
         </p>
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
   );
 });

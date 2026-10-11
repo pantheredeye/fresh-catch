@@ -189,7 +189,7 @@ homeRoutes.get("/", async (c) => {
         <Band tone="deep" class="home-closing" container>
           <ClosingBand vendor={vendor} priced={hasPrices(catchContent)} />
         </Band>
-        <Footer vendor={vendor} session={session} container />
+        <Footer container />
         {vendor?.phone ? (
           <ActionBar
             items={[

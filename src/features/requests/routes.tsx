@@ -6,6 +6,7 @@ import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
+import { Button } from "@/ui/button";
 import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
 import { requireSecret } from "@/lib/env";
@@ -131,7 +132,7 @@ async function renderBuilderPage(
           autofocusItem={autofocusItem}
         />
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
     status,
   );
@@ -186,6 +187,7 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
 });
 
 requestRoutes.get("/requests", async (c) => {
+  const session = c.var.session;
   const [requests, vendor] = await Promise.all([
     listRequestsForViewer({
       deviceToken: c.var.deviceToken,
@@ -205,8 +207,26 @@ requestRoutes.get("/requests", async (c) => {
             <RequestListRow request={request} />
           ))}
         </div>
+        <div class="stack-tight">
+          {session ? (
+            <>
+              <p class="muted">Signed in as {session.email}</p>
+              {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
+              <form method="post" action="/logout">
+                <input type="hidden" name="csrfToken" value={session.csrfToken} />
+                <Button type="submit" variant="secondary">
+                  Log out
+                </Button>
+              </form>
+            </>
+          ) : (
+            <p class="muted">
+              See these on another device? <a href="/login">Log in</a>
+            </p>
+          )}
+        </div>
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
   );
 });
@@ -240,7 +260,7 @@ requestRoutes.get("/requests/:id", async (c) => {
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
         <MessageForm action={`/requests/${request.id}/messages`} csrfToken={csrfToken} />
       </Page>
-      <Footer vendor={vendor} session={c.var.session} />
+      <Footer />
     </Document>,
   );
 });
@@ -274,7 +294,7 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
             errorText={result.errors.body}
           />
         </Page>
-        <Footer vendor={vendor} session={c.var.session} />
+        <Footer />
       </Document>,
       400,
     );

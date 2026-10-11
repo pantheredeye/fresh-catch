@@ -978,6 +978,10 @@ ol.stack {
   flex-wrap: wrap;
 }
 
+.bar-nav {
+  display: contents;
+}
+
 .brand {
   font-family: var(--font-display);
   font-size: 26px;
@@ -991,13 +995,26 @@ ol.stack {
   font-size: 18px;
   display: inline-flex;
   align-items: center;
-  min-height: 46px;
+  min-height: 58px;
   padding: 4px 2px;
   text-decoration: none;
 }
 
 .bar a:hover {
   text-decoration: underline;
+}
+
+/* <700px: row 1 = wordmark + My requests, row 2 = phone. */
+.bar a[href^="tel:"] {
+  order: 3;
+  flex-basis: 100%;
+}
+
+@media (min-width: 700px) {
+  .bar a[href^="tel:"] {
+    order: 0;
+    flex-basis: auto;
+  }
 }
 
 .strip {
