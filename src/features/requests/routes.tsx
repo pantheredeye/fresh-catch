@@ -329,6 +329,7 @@ requestRoutes.get("/requests/:id", async (c) => {
           <RequestConfirmation
             requestType={request.requestType}
             hasCustomItems={request.items.some((item) => item.isCustom)}
+            signedIn={Boolean(c.var.session)}
           />
         ) : null}
         {checkout === "success" || checkout === "cancel" ? <CheckoutNotice outcome={checkout} /> : null}

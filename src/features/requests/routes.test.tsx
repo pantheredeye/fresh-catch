@@ -663,6 +663,40 @@ describe("R3: claim on login", () => {
 });
 
 
+describe("confirmation nudge", () => {
+  it("anon ?created=1 shows the save-to-account nudge with a /login link", async () => {
+    const owner = await visitAsNewDevice();
+    const createRes = await createRequestAs(owner.cookie, owner.csrfToken, fishFields());
+    const res = await app.request(createRes.headers.get("location")!, { headers: { Cookie: owner.cookie } }, env);
+    const html = await res.text();
+    expect(html).toContain("Saved to this phone or browser.");
+    expect(html).toContain('<a href="/login">Log in</a> to see it on any device.');
+  });
+
+  it("signed in ?created=1 shows no nudge", async () => {
+    const owner = await visitAsNewDevice();
+    const createRes = await createRequestAs(owner.cookie, owner.csrfToken, fishFields());
+    const location = createRes.headers.get("location")!;
+    const email = `nudge-${crypto.randomUUID()}@example.com`;
+    const sendRes = await app.request(
+      "/login",
+      { method: "POST", body: new URLSearchParams({ email }), headers: { ...formHeaders, Cookie: owner.cookie } },
+      env,
+    );
+    const code = extractDevCode(await sendRes.text());
+    const verifyRes = await app.request(
+      "/login/verify",
+      { method: "POST", body: new URLSearchParams({ email, code }), headers: { ...formHeaders, Cookie: owner.cookie } },
+      env,
+    );
+    const session = sessionCookie(verifyRes);
+    const res = await app.request(location, { headers: { Cookie: `${session}; ${owner.cookie}` } }, env);
+    const html = await res.text();
+    expect(html).toContain("Requested.");
+    expect(html).not.toContain("Saved to this phone or browser.");
+  });
+});
+
 describe("claim flash + logout", () => {
   const get = async (path: string) => (await app.request(path, {}, env)).text();
 
