@@ -729,8 +729,60 @@ describe("#64 email alerts", () => {
     await waitOnExecutionContext(ctx);
 
     expect(res.status).toBe(302);
-    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    // vendor alert + customer confirmation (bead 132)
+    expect(sendEmailMock).toHaveBeenCalledTimes(2);
     expect(sendEmailMock.mock.calls[0][1].subject).toContain(fields["items[0].species"]);
+  });
+
+  it("sends the customer a confirmation with a valid token link (bead 132)", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const ctx = createExecutionContext();
+    const res = await app.request(
+      "/requests",
+      { method: "POST", body: new URLSearchParams({ ...fishFields(), csrfToken }), headers: { ...formHeaders, Cookie: cookie } },
+      env,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+
+    const mail = sendEmailMock.mock.calls.map(([, m]) => m).find((m) => m.to === "jamie@example.com")!;
+    expect(mail.subject).toMatch(/^We got your request: /);
+    const link = mail.html.match(/href="([^"]+\?t=[^"]+)"/)![1];
+    const id = locationPath(res.headers.get("location")!).split("/").pop();
+    expect(link).toContain(`/requests/${id}?t=`);
+    // Valid token swaps for a cookie and redirects to the clean URL.
+    const thread = await app.request(link.replace(env.APP_URL, ""), {}, env);
+    expect(thread.status).toBe(302);
+    expect(thread.headers.get("location")).toBe(`/requests/${id}`);
+    // Evan's alert never carries the token.
+    const alert = sendEmailMock.mock.calls.map(([, m]) => m).find((m) => m.to !== "jamie@example.com")!;
+    expect(alert.html).not.toContain("?t=");
+  });
+
+  it("sends no customer email for phone-only requests (bead 132)", async () => {
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const ctx = createExecutionContext();
+    const res = await app.request(
+      "/requests",
+      {
+        method: "POST",
+        body: new URLSearchParams({ ...fishFields({ contactEmail: "", contactPhone: "555-123-4567" }), csrfToken }),
+        headers: { ...formHeaders, Cookie: cookie },
+      },
+      env,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(302);
+    expect(sendEmailMock.mock.calls.filter(([, m]) => m.to === "jamie@example.com")).toHaveLength(0);
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failed confirmation send doesn't fail the request (bead 132)", async () => {
+    sendEmailMock.mockRejectedValueOnce(new Error("resend down"));
+    const { cookie, csrfToken } = await visitAsNewDevice();
+    const res = await createRequestAs(cookie, csrfToken, fishFields());
+    expect(res.status).toBe(302);
   });
 
   it("alerts the vendor on a customer reply", async () => {

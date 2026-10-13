@@ -88,3 +88,14 @@ export async function notifyCustomerOfVendorReply(env: Bindings, request: FishRe
     html: alertHtml("2 Fishes Seafood replied to your request", await requestSummary(request), url, "View your request"),
   });
 }
+
+/** Customer receipt at submit, with the secret thread link (#132). Skips silently for phone-only requests. */
+export async function notifyCustomerOfNewRequest(env: Bindings, request: FishRequest): Promise<void> {
+  if (!request.contactEmail) return;
+  const url = customerThreadUrl(env, request);
+  await sendEmail(env, {
+    to: request.contactEmail,
+    subject: `We got your request: ${requestTitleWithCount(request)}`,
+    html: alertHtml("We got your request", await requestSummary(request), url, "View your request"),
+  });
+}

@@ -25,7 +25,7 @@ import {
   getRequestWithMessages,
   listRequestsForViewer,
 } from "./queries";
-import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
+import { notifyCustomerOfNewRequest, notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
 import { MAX_REQUEST_ITEMS, parseMessageForm, parseRequestForm, rawItemRows } from "./validation";
 import {
   LoginPrompt,
@@ -235,6 +235,7 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
     userId: c.var.session?.userId ?? null,
   });
   runInBackground(c, notifyVendorOfNewRequest(c.env, request));
+  runInBackground(c, notifyCustomerOfNewRequest(c.env, request));
   return c.redirect(`/requests/${request.id}?created=1`);
 });
 
