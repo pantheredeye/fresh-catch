@@ -355,6 +355,18 @@ export const RequestConfirmation: FC<{ requestType: string; hasCustomItems?: boo
   </p>
 );
 
+/** Logged-out status block (issue 129) — the "why can I see this, and what does logging in change" line plus Log in. */
+export const LoginPrompt: FC<{ message: string }> = ({ message }) => (
+  <>
+    <p class="muted">{message}</p>
+    <form method="get" action="/login">
+      <Button type="submit" variant="secondary">
+        Log in
+      </Button>
+    </form>
+  </>
+);
+
 const STATUS_LABEL: Record<RequestStatus, string> = {
   open: "Open",
   confirmed: "Confirmed",

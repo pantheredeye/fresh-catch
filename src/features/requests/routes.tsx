@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
-import { Button } from "@/ui/button";
 import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
 import { getMarket } from "@/features/markets/queries";
@@ -16,7 +16,9 @@ import { csrfProtect } from "@/features/auth/middleware";
 import { createDeviceCsrfToken } from "@/features/auth/csrf";
 import { checkRateLimit } from "@/features/auth/rate-limit";
 import {
+  accessTokenMatches,
   appendMessage,
+  attachRequestToViewer,
   canViewRequest,
   createRequest,
   getRequest,
@@ -26,6 +28,7 @@ import {
 import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
 import { MAX_REQUEST_ITEMS, parseMessageForm, parseRequestForm, rawItemRows } from "./validation";
 import {
+  LoginPrompt,
   MessageForm,
   RequestConfirmation,
   RequestForm,
@@ -53,9 +56,33 @@ async function csrfTokenFor(c: AppContext): Promise<string> {
   return createDeviceCsrfToken(c.var.deviceToken, requireSecret(c.env, "SESSION_SECRET"));
 }
 
+/**
+ * Issue 131 secret-link access. `?t=<accessToken>` is swapped for this httpOnly
+ * cookie scoped to `Path=/requests/<id>` — sent for that one thread and its
+ * reply POST, never for the list or another thread — then redirected away so
+ * the token leaves the address bar. The token is never logged.
+ */
+const THREAD_ACCESS_COOKIE = "rt";
+const THREAD_ACCESS_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
+function setThreadAccessCookie(c: AppContext, requestId: string, token: string) {
+  setCookie(c, THREAD_ACCESS_COOKIE, token, {
+    path: `/requests/${requestId}`,
+    httpOnly: true,
+    secure: !import.meta.env.DEV,
+    sameSite: "Lax",
+    maxAge: THREAD_ACCESS_MAX_AGE_SECONDS,
+  });
+}
+
 function viewerFor(c: AppContext) {
   const session = c.var.session;
-  return { deviceToken: c.var.deviceToken, userId: session?.userId ?? null, isAdmin: session?.isAdmin ?? false };
+  return {
+    deviceToken: c.var.deviceToken,
+    userId: session?.userId ?? null,
+    isAdmin: session?.isAdmin ?? false,
+    accessToken: getCookie(c, THREAD_ACCESS_COOKIE) ?? null,
+  };
 }
 
 function formString(value: unknown): string | undefined {
@@ -246,14 +273,7 @@ requestRoutes.get("/requests", async (c) => {
               {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
             </>
           ) : (
-            <>
-              <p class="muted">We're holding these on this phone for now. Log in and we'll save them to your account.</p>
-              <form method="get" action="/login">
-                <Button type="submit" variant="secondary">
-                  Log in
-                </Button>
-              </form>
-            </>
+            <LoginPrompt message="We're holding these on this phone for now. Log in and we'll save them to your account." />
           )}
         </div>
         {requests.length === 0 ? <p class="muted">No requests yet.</p> : null}
@@ -269,9 +289,28 @@ requestRoutes.get("/requests", async (c) => {
 });
 
 requestRoutes.get("/requests/:id", async (c) => {
+  // The thread URL itself (and any token in it) must never leak via Referer.
+  c.header("Referrer-Policy", "no-referrer");
   const request = await getRequestWithMessages(c.req.param("id"));
+  const viewer = viewerFor(c);
+
+  // Issue 131: a valid `?t=` swaps for the scoped cookie, then strips itself. A
+  // wrong token is ignored — the viewer falls through to the normal checks.
+  const linkToken = c.req.query("t");
+  if (request && accessTokenMatches(request, linkToken)) {
+    setThreadAccessCookie(c, request.id, request.accessToken);
+    await attachRequestToViewer(request, viewer);
+    return c.redirect(`/requests/${request.id}`);
+  }
+
   // R2: 404, not 403 — a bare unguessable id in the URL must not confirm a thread exists.
-  if (!request || !canViewRequest(request, viewerFor(c))) return c.text("Not found", 404);
+  if (!request || !canViewRequest(request, viewer)) return c.text("Not found", 404);
+  // Re-check on every link-cookie view so logging in later still claims the thread.
+  if (viewer.userId && !request.userId && accessTokenMatches(request, viewer.accessToken)) {
+    await attachRequestToViewer(request, viewer);
+  }
+  const session = c.var.session;
+  const viaLinkOnly = !session && request.deviceToken !== c.var.deviceToken;
 
   const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
   // Where Stripe Checkout returns the customer (#60). Purely a message —
@@ -292,6 +331,11 @@ requestRoutes.get("/requests/:id", async (c) => {
           />
         ) : null}
         {checkout === "success" || checkout === "cancel" ? <CheckoutNotice outcome={checkout} /> : null}
+        {viaLinkOnly ? (
+          <div class="stack-tight" data-requests-status>
+            <LoginPrompt message="You opened this from a link, so it isn't saved on this phone. Log in to keep it with your account." />
+          </div>
+        ) : null}
         <RequestHeaderCard request={request} />
         {request.order ? <OrderSummaryCard order={request.order} /> : null}
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
@@ -303,6 +347,7 @@ requestRoutes.get("/requests/:id", async (c) => {
 });
 
 requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
+  c.header("Referrer-Policy", "no-referrer");
   const request = await getRequest(c.req.param("id"));
   if (!request || !canViewRequest(request, viewerFor(c))) return c.text("Not found", 404);
 

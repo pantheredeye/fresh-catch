@@ -63,6 +63,7 @@ function assertA11yFloors(html: string, path: string) {
 describe("a11y floors across every GET HTML route", () => {
   let marketId: string;
   let requestId: string;
+  let requestAccessToken: string;
   let adminCookie: string;
 
   beforeAll(async () => {
@@ -86,8 +87,8 @@ describe("a11y floors across every GET HTML route", () => {
     });
     marketId = market.id;
 
-    // origin: "vendor" requests are viewable by anyone (queries.ts:canViewRequest)
-    // — sidesteps needing a matching device-token cookie for this fixture.
+    // Opened via its secret-link cookie (#131) — sidesteps needing a matching
+    // device-token cookie, and renders the link-only Log in prompt too.
     const request = await createRequest(
       {
         requestType: "fish",
@@ -101,6 +102,7 @@ describe("a11y floors across every GET HTML route", () => {
       { origin: "vendor", status: "confirmed" },
     );
     requestId = request.id;
+    requestAccessToken = request.accessToken;
 
     adminCookie = (await mintAdminSession(env as unknown as Bindings)).cookie;
   });
@@ -113,7 +115,7 @@ describe("a11y floors across every GET HTML route", () => {
       { path: "/order" },
       { path: "/ask" },
       { path: "/requests" },
-      { path: `/requests/${requestId}` },
+      { path: `/requests/${requestId}`, init: { headers: { Cookie: `rt=${requestAccessToken}` } } },
       { path: "/login" },
       { path: "/dev/showcase" },
       { path: "/admin", init: { headers: { Cookie: adminCookie } } },

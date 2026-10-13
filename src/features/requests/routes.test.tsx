@@ -3,6 +3,9 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupDb, db } from "@/lib/db";
 import type { Bindings } from "@/types";
 import { mintAdminSession } from "@/features/auth/test-helpers";
+import { createSessionValue, SESSION_COOKIE_NAME } from "@/features/auth/session";
+import { generateCsrfToken } from "@/features/auth/csrf";
+import { requireSecret } from "@/lib/env";
 import { publishCatchUpdate } from "@/features/catch/queries";
 import * as emailLib from "@/lib/email";
 import app from "../../index";
@@ -489,6 +492,111 @@ describe("POST /requests/:id/messages", () => {
       env,
     );
     expect(res.status).toBe(404);
+  });
+});
+
+describe("issue 131 secret-link thread access", () => {
+  /** A customer thread owned by some other device, plus its id and access token. */
+  async function threadOwnedElsewhere(fields = fishFields()) {
+    const owner = await visitAsNewDevice();
+    const createRes = await createRequestAs(owner.cookie, owner.csrfToken, fields);
+    const id = locationPath(createRes.headers.get("location")!).split("/").pop()!;
+    const { accessToken } = (await db.fishRequest.findUnique({ where: { id } }))!;
+    return { id, accessToken, owner, fields };
+  }
+
+  function cookiePair(res: Response, name: string): string {
+    const found = (res.headers.getSetCookie?.() ?? []).find((c) => c.startsWith(`${name}=`));
+    if (!found) throw new Error(`no ${name} cookie set`);
+    return found.split(";")[0];
+  }
+
+  it("swaps a valid ?t= for a thread-scoped httpOnly cookie and strips it from the URL", async () => {
+    const { id, accessToken, fields } = await threadOwnedElsewhere();
+
+    const linkRes = await newVisitorRequest(`/requests/${id}?t=${accessToken}`);
+    expect(linkRes.status).toBe(302);
+    expect(linkRes.headers.get("location")).toBe(`/requests/${id}`);
+    expect(linkRes.headers.get("referrer-policy")).toBe("no-referrer");
+    const rtHeader = (linkRes.headers.getSetCookie?.() ?? []).find((c) => c.startsWith("rt="))!;
+    expect(rtHeader).toContain(`Path=/requests/${id}`);
+    expect(rtHeader).toContain("HttpOnly");
+
+    const cookies = `${cookiePair(linkRes, "rt")}; ${cookiePair(linkRes, "device")}`;
+    const res = await app.request(`/requests/${id}`, { headers: { Cookie: cookies } }, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    const html = await res.text();
+    expect(html).toContain(fields["items[0].species"]);
+    expect(html).toContain("You opened this from a link");
+    expect(html).not.toContain(accessToken);
+  });
+
+  it("404s a wrong or missing token, as before", async () => {
+    const { id, accessToken } = await threadOwnedElsewhere();
+    expect((await newVisitorRequest(`/requests/${id}`)).status).toBe(404);
+    expect((await newVisitorRequest(`/requests/${id}?t=`)).status).toBe(404);
+    expect((await newVisitorRequest(`/requests/${id}?t=${accessToken.slice(0, -1)}x`)).status).toBe(404);
+    expect((await newVisitorRequest(`/requests/${id}`, { headers: { Cookie: "rt=nope" } })).status).toBe(404);
+  });
+
+  it("never opens another thread with A's token", async () => {
+    const a = await threadOwnedElsewhere();
+    const b = await threadOwnedElsewhere();
+    expect((await newVisitorRequest(`/requests/${b.id}?t=${a.accessToken}`)).status).toBe(404);
+    expect((await newVisitorRequest(`/requests/${b.id}`, { headers: { Cookie: `rt=${a.accessToken}` } })).status).toBe(404);
+  });
+
+  it("grants no list access and doesn't move the thread off the owner's device", async () => {
+    const { id, accessToken, owner, fields } = await threadOwnedElsewhere();
+    const linkRes = await newVisitorRequest(`/requests/${id}?t=${accessToken}`);
+    const device = cookiePair(linkRes, "device");
+
+    const listHtml = await (await app.request("/requests", { headers: { Cookie: device } }, env)).text();
+    expect(listHtml).not.toContain(fields["items[0].species"]);
+    const ownerList = await (await app.request("/requests", { headers: { Cookie: owner.cookie } }, env)).text();
+    expect(ownerList).toContain(fields["items[0].species"]);
+  });
+
+  it("lets a link viewer reply with their own device CSRF token", async () => {
+    const { id, accessToken } = await threadOwnedElsewhere();
+    const linkRes = await newVisitorRequest(`/requests/${id}?t=${accessToken}`);
+    const cookies = `${cookiePair(linkRes, "rt")}; ${cookiePair(linkRes, "device")}`;
+    const csrfToken = extractCsrfToken(await (await app.request(`/requests/${id}`, { headers: { Cookie: cookies } }, env)).text());
+
+    const replyRes = await app.request(
+      `/requests/${id}/messages`,
+      { method: "POST", body: new URLSearchParams({ body: "Reply from my laptop", csrfToken }), headers: { ...formHeaders, Cookie: cookies } },
+      env,
+    );
+    expect(replyRes.status).toBe(302);
+    const html = await (await app.request(`/requests/${id}`, { headers: { Cookie: cookies } }, env)).text();
+    expect(html).toContain("Reply from my laptop");
+
+    // Without the link cookie, the same device is a stranger again.
+    const noLink = await app.request(
+      `/requests/${id}/messages`,
+      { method: "POST", body: new URLSearchParams({ body: "x", csrfToken }), headers: { ...formHeaders, Cookie: cookiePair(linkRes, "device") } },
+      env,
+    );
+    expect(noLink.status).toBe(404);
+  });
+
+  it("claims the thread for a logged-in viewer so it shows in their list", async () => {
+    const { id, accessToken, fields } = await threadOwnedElsewhere();
+    const user = await db.user.create({ data: { email: `link-${crypto.randomUUID()}@example.com` } });
+    const sessionValue = await createSessionValue(
+      { userId: user.id, email: user.email!, isAdmin: false, csrfToken: generateCsrfToken() },
+      requireSecret(env as unknown as Bindings, "SESSION_SECRET"),
+    );
+    const session = `${SESSION_COOKIE_NAME}=${sessionValue}`;
+
+    const linkRes = await app.request(`/requests/${id}?t=${accessToken}`, { headers: { Cookie: session } }, env);
+    expect(linkRes.status).toBe(302);
+    expect((await db.fishRequest.findUnique({ where: { id } }))?.userId).toBe(user.id);
+
+    const listHtml = await (await app.request("/requests", { headers: { Cookie: session } }, env)).text();
+    expect(listHtml).toContain(fields["items[0].species"]);
   });
 });
 

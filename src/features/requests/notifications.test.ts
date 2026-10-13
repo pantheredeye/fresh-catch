@@ -81,7 +81,15 @@ describe("notifyCustomerOfVendorReply", () => {
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const [, message] = sendEmailMock.mock.calls[0];
     expect(message.to).toBe("customer@example.com");
-    expect(message.html).toContain(`${bindings.APP_URL}/requests/${request.id}`);
+    // #131: the secret link opens the thread from any device.
+    expect(message.html).toContain(`${bindings.APP_URL}/requests/${request.id}?t=${request.accessToken}`);
+  });
+
+  it("never puts the customer's access token in Evan's alerts", async () => {
+    const request = await createRequest(fishInput(), { deviceToken: "d6", userId: null });
+    await notifyVendorOfNewRequest(bindings, request);
+    await notifyVendorOfCustomerReply(bindings, request);
+    for (const [, message] of sendEmailMock.mock.calls) expect(message.html).not.toContain(request.accessToken);
   });
 
   it("skips silently when the request has no contactEmail", async () => {
