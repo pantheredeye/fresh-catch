@@ -930,7 +930,8 @@ ol.stack {
   letter-spacing: -0.01em;
 }
 
-.bar a {
+.bar a,
+.bar-link {
   color: var(--color-action-primary);
   font-weight: 700;
   font-size: 18px;
@@ -941,17 +942,29 @@ ol.stack {
   text-decoration: none;
 }
 
-.bar a:hover {
+.bar-link {
+  background: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.bar a:hover,
+.bar-link:hover {
   text-decoration: underline;
 }
 
-/* <700px: row 1 = wordmark + My requests, row 2 = phone. */
+.bar-logout {
+  display: contents;
+}
+
+/* <700px: row 1 = wordmark + Requests + auth link, row 2 = phone. */
 .bar a[href^="tel:"] {
   order: 3;
   flex-basis: 100%;
 }
 
-/* ≥700px: one row — wordmark left; phone · My requests grouped right (not spread by space-between). */
+/* ≥700px: one row — wordmark left; phone · Requests · auth grouped right (not spread by space-between). */
 @media (min-width: 700px) {
   .bar .brand {
     margin-right: auto;

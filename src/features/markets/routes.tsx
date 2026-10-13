@@ -26,7 +26,7 @@ marketRoutes.get("/markets/past", async (c) => {
   const [popups, vendor] = await Promise.all([listPastPopups(), getVendor()]);
   return c.html(
     <Document title="Past popups — 2 Fishes Seafood">
-      <BrandBar vendor={vendor} />
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <SectionHeading level={1} title="Past popups" meta={`${popups.length} popup${popups.length === 1 ? "" : "s"}`} />

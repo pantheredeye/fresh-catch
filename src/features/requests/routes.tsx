@@ -122,7 +122,7 @@ async function renderBuilderPage(
   const heading = isQuestion ? "Ask a question" : "Request an order";
   return c.html(
     <Document title={`${heading} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <h1>{heading}</h1>
@@ -221,11 +221,11 @@ requestRoutes.get("/requests", async (c) => {
     getVendor(),
   ]);
   return c.html(
-    <Document title="My requests — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
+    <Document title="Your requests — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
-        <h1>My requests</h1>
+        <h1>Your requests</h1>
         {requests.length === 0 ? <p class="muted">No requests yet.</p> : null}
         <div class="stack">
           {requests.map((request) => (
@@ -270,9 +270,9 @@ requestRoutes.get("/requests/:id", async (c) => {
   const created = c.req.query("created") === "1";
   return c.html(
     <Document title={`${requestTitle(request)} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
-        <BackLink href="/requests">My requests</BackLink>
+        <BackLink href="/requests">Your requests</BackLink>
         {created ? (
           <RequestConfirmation
             requestType={request.requestType}
@@ -308,9 +308,9 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
     ]);
     return c.html(
       <Document title={`${requestTitle(request)} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
-        <BrandBar vendor={vendor} />
+        <BrandBar vendor={vendor} session={c.var.session} />
         <Page>
-          <BackLink href="/requests">My requests</BackLink>
+          <BackLink href="/requests">Your requests</BackLink>
           <RequestHeaderCard request={request} />
           <Thread messages={withMessages?.messages ?? []} viewer="customer" customerName={request.contactName} />
           <MessageForm

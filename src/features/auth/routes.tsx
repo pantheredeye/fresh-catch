@@ -16,6 +16,7 @@ import { createLoginCode, normalizeEmail, verifyLoginCode } from "./login-codes"
 import { claimRequestsForUser } from "@/features/requests/queries";
 import { checkRateLimit } from "./rate-limit";
 import { sendLoginCodeEmail } from "./email";
+import type { SessionPayload } from "./session";
 import { createSessionValue, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "./session";
 import { generateCsrfToken, requireCsrf } from "./csrf";
 
@@ -32,9 +33,9 @@ function isAllowlistedAdmin(env: Bindings, email: string): boolean {
     .includes(normalizeEmail(email));
 }
 
-const EmailForm: FC<{ vendor: Vendor | null; errorText?: string }> = ({ vendor, errorText }) => (
+const EmailForm: FC<{ vendor: Vendor | null; session: SessionPayload | null; errorText?: string }> = ({ vendor, session, errorText }) => (
   <Document title="Log in — 2 Fishes Seafood">
-    <BrandBar vendor={vendor} />
+    <BrandBar vendor={vendor} session={session} />
     <Page>
       <Card>
         <h1>Log in</h1>
@@ -54,14 +55,15 @@ const EmailForm: FC<{ vendor: Vendor | null; errorText?: string }> = ({ vendor, 
   </Document>
 );
 
-const CodeForm: FC<{ vendor: Vendor | null; email: string; devCode?: string; errorText?: string }> = ({
+const CodeForm: FC<{ vendor: Vendor | null; session: SessionPayload | null; email: string; devCode?: string; errorText?: string }> = ({
   vendor,
+  session,
   email,
   devCode,
   errorText,
 }) => (
   <Document title="Enter your code — 2 Fishes Seafood">
-    <BrandBar vendor={vendor} />
+    <BrandBar vendor={vendor} session={session} />
     <Page>
       <Card>
         <h1>Enter your code</h1>
@@ -84,7 +86,7 @@ const CodeForm: FC<{ vendor: Vendor | null; email: string; devCode?: string; err
 authRoutes.get("/login", async (c) => {
   if (c.var.session) return c.redirect("/");
   const vendor = await getVendor();
-  return c.html(<EmailForm vendor={vendor} />);
+  return c.html(<EmailForm vendor={vendor} session={c.var.session} />);
 });
 
 authRoutes.post("/login", async (c) => {
@@ -93,19 +95,19 @@ authRoutes.post("/login", async (c) => {
   const vendor = await getVendor();
 
   if (!email || !email.includes("@")) {
-    return c.html(<EmailForm vendor={vendor} errorText="Enter a valid email." />, 400);
+    return c.html(<EmailForm vendor={vendor} session={c.var.session} errorText="Enter a valid email." />, 400);
   }
 
   const rl = await checkRateLimit(clientIp(c.req.raw), "otpSend", email);
   if (!rl.allowed) {
-    return c.html(<EmailForm vendor={vendor} errorText="Too many attempts. Try again later." />, 429);
+    return c.html(<EmailForm vendor={vendor} session={c.var.session} errorText="Too many attempts. Try again later." />, 429);
   }
 
   const code = await createLoginCode(email);
   const sent = await sendLoginCodeEmail(c.env, email, code);
   const devCode = !sent && import.meta.env.DEV ? code : undefined;
 
-  return c.html(<CodeForm vendor={vendor} email={email} devCode={devCode} />);
+  return c.html(<CodeForm vendor={vendor} session={c.var.session} email={email} devCode={devCode} />);
 });
 
 authRoutes.post("/login/verify", async (c) => {
@@ -115,12 +117,12 @@ authRoutes.post("/login/verify", async (c) => {
   const vendor = await getVendor();
 
   if (!email) {
-    return c.html(<EmailForm vendor={vendor} errorText="Enter a valid email." />, 400);
+    return c.html(<EmailForm vendor={vendor} session={c.var.session} errorText="Enter a valid email." />, 400);
   }
 
   const rl = await checkRateLimit(clientIp(c.req.raw), "otpVerify", email);
   if (!rl.allowed) {
-    return c.html(<CodeForm vendor={vendor} email={email} errorText="Too many attempts. Try again later." />, 429);
+    return c.html(<CodeForm vendor={vendor} session={c.var.session} email={email} errorText="Too many attempts. Try again later." />, 429);
   }
 
   const result = await verifyLoginCode(email, code);
@@ -130,7 +132,7 @@ authRoutes.post("/login/verify", async (c) => {
       : result.expired
         ? "That code expired. Request a new one."
         : "Incorrect code.";
-    return c.html(<CodeForm vendor={vendor} email={email} errorText={message} />, 400);
+    return c.html(<CodeForm vendor={vendor} session={c.var.session} email={email} errorText={message} />, 400);
   }
 
   const isAdmin = isAllowlistedAdmin(c.env, email);

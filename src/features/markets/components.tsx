@@ -328,7 +328,7 @@ export const MarketDetail: FC<{
   const hasPhone = Boolean(vendor?.phone);
   return (
     <Page bleed>
-      <BrandBar vendor={vendor} />
+      <BrandBar vendor={vendor} session={session} />
       {status ? <StatusStrip open={status.open} label={status.label} message={status.message} /> : null}
       <Band tone="shallow">
         <div class="stack">

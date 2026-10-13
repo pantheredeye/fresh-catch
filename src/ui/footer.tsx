@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 
-/** Footer — © Digital Glue line only. Login/"My requests"/Admin live in the header and `/requests`. `note` carries page-specific copy. */
+/** Footer — © Digital Glue line only. Log in/Log out/Requests live in the header; Admin on `/requests`. `note` carries page-specific copy. */
 export const Footer: FC<{ note?: string; container?: boolean }> = ({ note, container }) => (
   <footer>
     <div class={container ? "container stack-tight" : "wrap stack-tight"}>

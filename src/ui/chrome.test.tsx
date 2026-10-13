@@ -16,10 +16,23 @@ const header = (html: string) => html.slice(0, html.indexOf("</nav>"));
 const footer = (html: string) => html.slice(html.indexOf("<footer"), html.indexOf("</footer>"));
 
 describe("shared header + footer", () => {
-  it("header has My requests, never /admin or /login", async () => {
+  it("anon header has Requests + Log in, never /admin or /logout", async () => {
     for (const path of ["/", "/requests", "/order", "/ask", "/login"]) {
       const h = header(await get(path));
-      expect(h, path).toContain('<a href="/requests">My requests</a>');
+      expect(h, path).toContain('<a href="/requests">Requests</a>');
+      expect(h, path).toContain('<a href="/login">Log in</a>');
+      expect(h, path).not.toContain("/admin");
+      expect(h, path).not.toContain("/logout");
+    }
+  });
+
+  it("signed-in header has Requests + Log out form, never /admin or /login", async () => {
+    const { cookie } = await mintAdminSession(env as unknown as Bindings);
+    for (const path of ["/", "/requests", "/order", "/ask"]) {
+      const h = header(await get(path, cookie));
+      expect(h, path).toContain('<a href="/requests">Requests</a>');
+      expect(h, path).toContain('action="/logout"');
+      expect(h, path).toContain("Log out");
       expect(h, path).not.toContain("/admin");
       expect(h, path).not.toContain("/login");
     }
