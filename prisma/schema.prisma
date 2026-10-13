@@ -101,6 +101,7 @@ model FishRequest {
   id               String    @id @default(uuid())
   userId           String?
   deviceToken      String?
+  accessToken      String    @unique // secret-link thread access from any device (#131) — 256-bit random, never logged
   contactName      String
   contactEmail     String?
   contactPhone     String?
