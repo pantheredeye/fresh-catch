@@ -163,8 +163,9 @@ export function setRequestStatus(id: string, status: RequestStatus): Promise<Fis
 }
 
 /** R3: login claims the device's anonymous requests — only rows not already attached to an account. */
-export async function claimRequestsForUser(deviceToken: string, userId: string): Promise<void> {
-  await db.fishRequest.updateMany({ where: { deviceToken, userId: null }, data: { userId } });
+export async function claimRequestsForUser(deviceToken: string, userId: string): Promise<number> {
+  const { count } = await db.fishRequest.updateMany({ where: { deviceToken, userId: null }, data: { userId } });
+  return count;
 }
 
 /**

@@ -271,7 +271,8 @@ describe("claimRequestsForUser", () => {
     });
 
     const claimingUserId = await createUser();
-    await claimRequestsForUser(deviceToken, claimingUserId);
+    expect(await claimRequestsForUser(deviceToken, claimingUserId)).toBe(1);
+    expect(await claimRequestsForUser(deviceToken, claimingUserId)).toBe(0);
 
     const afterUnclaimed = await getRequestWithMessages(unclaimed.id);
     const afterOwned = await getRequestWithMessages(alreadyOwned.id);

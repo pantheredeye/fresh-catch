@@ -18,6 +18,7 @@ import { checkRateLimit } from "./rate-limit";
 import { sendLoginCodeEmail } from "./email";
 import type { SessionPayload } from "./session";
 import { createSessionValue, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "./session";
+import { issueDeviceToken } from "./middleware";
 import { generateCsrfToken, requireCsrf } from "./csrf";
 
 export const authRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -143,7 +144,7 @@ authRoutes.post("/login/verify", async (c) => {
   });
 
   // R3: carries the device's anonymous requests over to the account being logged into.
-  await claimRequestsForUser(c.var.deviceToken, user.id);
+  const claimed = await claimRequestsForUser(c.var.deviceToken, user.id);
 
   const secret = requireSecret(c.env, "SESSION_SECRET");
   const sessionValue = await createSessionValue(
@@ -159,7 +160,8 @@ authRoutes.post("/login/verify", async (c) => {
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
-  return c.redirect("/");
+  if (isAdmin) return c.redirect("/admin");
+  return c.redirect(claimed > 0 ? `/requests?claimed=${claimed}` : "/requests");
 });
 
 authRoutes.post("/logout", async (c) => {
@@ -172,5 +174,7 @@ authRoutes.post("/logout", async (c) => {
     }
   }
   deleteCookie(c, SESSION_COOKIE_NAME, { path: "/" });
-  return c.redirect("/");
+  // Fresh device so this phone stops showing the account's guest-claimed requests.
+  issueDeviceToken(c);
+  return c.redirect("/requests?loggedout=1");
 });

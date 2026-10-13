@@ -48,15 +48,18 @@ describe("shared header + footer", () => {
 
   it("/requests: logged out explains device-local requests and shows Log in link", async () => {
     const html = await get("/requests");
-    expect(html).toContain("Your requests are saved to this browser.");
-    expect(html).toContain('<a href="/login">Log in</a>');
+    expect(html).toContain("holding these on this phone for now. Log in and we&#39;ll save them to your account.");
+    expect(html).toContain('<form method="get" action="/login">');
+    expect(html).not.toContain("Logged in as");
+    // status block precedes the list
+    expect(html.indexOf("data-requests-status")).toBeLessThan(html.indexOf("No requests yet."));
   });
 
   it("/requests: admin sees Admin link and logout form", async () => {
     const { cookie } = await mintAdminSession(env as unknown as Bindings);
     const html = await get("/requests", cookie);
-    expect(html).toContain("Signed in as");
+    expect(html).toContain("Logged in as admin@example.com.");
     expect(html).toContain('<a href="/admin">Admin</a>');
-    expect(html).toContain('action="/logout"');
+    expect(html.indexOf("data-requests-status")).toBeLessThan(html.indexOf("No requests yet."));
   });
 });

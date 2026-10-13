@@ -536,6 +536,7 @@ describe("R3: claim on login", () => {
       env,
     );
     const session = sessionCookie(verifyRes);
+    expect(verifyRes.headers.get("location")).toBe("/requests?claimed=1");
 
     // Fresh device cookie (no device= from `owner`) + the new session — the claim, not the device token, must carry it.
     const freshDeviceRes = await app.request("/requests", { headers: { Cookie: session } }, env);
@@ -550,6 +551,59 @@ describe("R3: claim on login", () => {
 
     const threadRes = await app.request(location, { headers: { Cookie: `${session}; ${freshDeviceCookie}` } }, env);
     expect(threadRes.status).toBe(200);
+  });
+});
+
+
+describe("claim flash + logout", () => {
+  const get = async (path: string) => (await app.request(path, {}, env)).text();
+
+  it("flashes the claimed count, singular and plural", async () => {
+    expect(await get("/requests?claimed=1")).toContain("1 request saved to your account.");
+    expect(await get("/requests?claimed=3")).toContain("3 requests saved to your account.");
+  });
+
+  it("ignores junk or zero claimed values", async () => {
+    for (const v of ["abc", "0", "-2", "1.5", "99999999"]) {
+      expect(await get(`/requests?claimed=${v}`), v).not.toContain("saved to your account");
+    }
+  });
+
+  it("logout rotates the device cookie so guest requests no longer show", async () => {
+    const owner = await visitAsNewDevice();
+    const fields = fishFields();
+    await createRequestAs(owner.cookie, owner.csrfToken, fields);
+
+    const email = `logout-${crypto.randomUUID()}@example.com`;
+    const sendRes = await app.request(
+      "/login",
+      { method: "POST", body: new URLSearchParams({ email }), headers: { ...formHeaders, Cookie: owner.cookie } },
+      env,
+    );
+    const code = extractDevCode(await sendRes.text());
+    const verifyRes = await app.request(
+      "/login/verify",
+      { method: "POST", body: new URLSearchParams({ email, code }), headers: { ...formHeaders, Cookie: owner.cookie } },
+      env,
+    );
+    const session = sessionCookie(verifyRes);
+    const sessionHtml = await (await app.request("/requests", { headers: { Cookie: `${session}; ${owner.cookie}` } }, env)).text();
+    const csrfToken = sessionHtml.match(/name="csrfToken" value="([^"]+)"/)![1];
+
+    const logoutRes = await app.request(
+      "/logout",
+      { method: "POST", body: new URLSearchParams({ csrfToken }), headers: { ...formHeaders, Cookie: `${session}; ${owner.cookie}` } },
+      env,
+    );
+    expect(logoutRes.status).toBe(302);
+    expect(logoutRes.headers.get("location")).toBe("/requests?loggedout=1");
+    const newDevice = extractDeviceCookie(logoutRes);
+    expect(newDevice).not.toBe(owner.cookie.match(/device=[^;]+/)![0]);
+
+    const after = await app.request("/requests?loggedout=1", { headers: { Cookie: newDevice } }, env);
+    const html = await after.text();
+    expect(html).not.toContain(fields["items[0].species"]);
+    expect(html).toContain("You&#39;re logged out. Your requests are safe in your account. Log in any time to see them.");
   });
 });
 

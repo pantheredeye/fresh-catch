@@ -213,6 +213,9 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
 
 requestRoutes.get("/requests", async (c) => {
   const session = c.var.session;
+  const claimedParam = c.req.query("claimed") ?? "";
+  const claimedCount = /^[1-9]\d{0,5}$/.test(claimedParam) ? Number(claimedParam) : 0;
+  const loggedOut = c.req.query("loggedout") === "1";
   const [requests, vendor] = await Promise.all([
     listRequestsForViewer({
       deviceToken: c.var.deviceToken,
@@ -226,29 +229,38 @@ requestRoutes.get("/requests", async (c) => {
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <h1>Your requests</h1>
+        {claimedCount > 0 ? (
+          <p class="notice notice-success" role="status">
+            {claimedCount} {claimedCount === 1 ? "request" : "requests"} saved to your account.
+          </p>
+        ) : null}
+        {loggedOut && !session ? (
+          <p class="notice notice-info" role="status">
+            You're logged out. Your requests are safe in your account. Log in any time to see them.
+          </p>
+        ) : null}
+        <div class="stack-tight" data-requests-status>
+          {session ? (
+            <>
+              <p class="muted">Logged in as {session.email}.</p>
+              {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
+            </>
+          ) : (
+            <>
+              <p class="muted">We're holding these on this phone for now. Log in and we'll save them to your account.</p>
+              <form method="get" action="/login">
+                <Button type="submit" variant="secondary">
+                  Log in
+                </Button>
+              </form>
+            </>
+          )}
+        </div>
         {requests.length === 0 ? <p class="muted">No requests yet.</p> : null}
         <div class="stack">
           {requests.map((request) => (
             <RequestListRow request={request} />
           ))}
-        </div>
-        <div class="stack-tight">
-          {session ? (
-            <>
-              <p class="muted">Signed in as {session.email}</p>
-              {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
-              <form method="post" action="/logout">
-                <input type="hidden" name="csrfToken" value={session.csrfToken} />
-                <Button type="submit" variant="secondary">
-                  Log out
-                </Button>
-              </form>
-            </>
-          ) : (
-            <p class="muted">
-              Your requests are saved to this browser. <a href="/login">Log in</a> to see them on any device.
-            </p>
-          )}
         </div>
       </Page>
       <Footer />
