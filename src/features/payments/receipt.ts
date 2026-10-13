@@ -3,6 +3,7 @@ import type { Order } from "@/lib/db";
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { formatCents } from "@/features/orders/components";
+import { customerThreadUrl } from "@/features/requests/notifications";
 
 /**
  * Customer receipt for a Stripe payment (#60's done-when). Plain HTML, same
@@ -22,7 +23,11 @@ export async function sendPaymentReceipt(
   const vendor = await db.vendor.findFirst();
   const businessName = vendor?.name ?? "2 Fishes Seafood";
   const remaining = order.totalDue != null ? Math.max(order.totalDue - order.amountPaid, 0) : 0;
-  const threadUrl = order.requestId ? `${env.APP_URL}/requests/${order.requestId}` : env.APP_URL;
+  // Secret thread link (#131) so the receipt opens the thread from any device.
+  const request = order.requestId
+    ? await db.fishRequest.findUnique({ where: { id: order.requestId }, select: { id: true, accessToken: true } })
+    : null;
+  const threadUrl = request ? customerThreadUrl(env, request) : env.APP_URL;
 
   const rows: Array<[string, string]> = [
     [payment.isDeposit ? "Deposit paid" : "Amount paid", formatCents(payment.amountCents)],
