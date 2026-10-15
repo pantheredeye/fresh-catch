@@ -70,13 +70,32 @@ export async function notifyVendorOfCustomerReply(env: Bindings, request: FishRe
   });
 }
 
+/**
+ * The customer's secret thread link (#131) — opens the thread from any
+ * device. Goes in customer emails only; never log it or put it in Evan's alerts.
+ */
+export function customerThreadUrl(env: Pick<Bindings, "APP_URL">, request: Pick<FishRequest, "id" | "accessToken">): string {
+  return `${env.APP_URL}/requests/${request.id}?t=${encodeURIComponent(request.accessToken)}`;
+}
+
 /** Customer alert: Evan replied (or opened a vendor-initiated thread). Skips silently when there's no email on file. */
 export async function notifyCustomerOfVendorReply(env: Bindings, request: FishRequest): Promise<void> {
   if (!request.contactEmail) return;
-  const url = `${env.APP_URL}/requests/${request.id}`;
+  const url = customerThreadUrl(env, request);
   await sendEmail(env, {
     to: request.contactEmail,
     subject: `2 Fishes Seafood replied: ${requestTitleWithCount(request)}`,
     html: alertHtml("2 Fishes Seafood replied to your request", await requestSummary(request), url, "View your request"),
+  });
+}
+
+/** Customer receipt at submit, with the secret thread link (#132). Skips silently for phone-only requests. */
+export async function notifyCustomerOfNewRequest(env: Bindings, request: FishRequest): Promise<void> {
+  if (!request.contactEmail) return;
+  const url = customerThreadUrl(env, request);
+  await sendEmail(env, {
+    to: request.contactEmail,
+    subject: `We got your request: ${requestTitleWithCount(request)}`,
+    html: alertHtml("We got your request", await requestSummary(request), url, "View your request"),
   });
 }

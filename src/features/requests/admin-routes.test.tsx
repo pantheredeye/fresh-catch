@@ -223,11 +223,17 @@ describe("#64 vendor-initiated requests", () => {
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     expect(sendEmailMock.mock.calls[0][1].to).toBe("walkup@example.com");
 
-    // A brand-new anonymous device (no matching deviceToken/userId) can still open the
-    // thread — the emailed deep link to the unguessable id is the access control (#64).
+    // Issue 131: the bare id no longer opens a vendor thread — the emailed link's
+    // access token does, from a brand-new device with no deviceToken/userId.
     const strangerRes = await app.request(`/requests/${id}`, {}, env);
-    expect(strangerRes.status).toBe(200);
-    expect(await strangerRes.text()).toContain(species);
+    expect(strangerRes.status).toBe(404);
+    const emailedLink = sendEmailMock.mock.calls[0][1].html.match(/href="([^"]+\?t=[^"]+)"/)![1];
+    const linkRes = await app.request(new URL(emailedLink).pathname + new URL(emailedLink).search, {}, env);
+    expect(linkRes.status).toBe(302);
+    const rt = linkRes.headers.get("set-cookie")!.match(/rt=[^;]+/)![0];
+    const threadRes = await app.request(`/requests/${id}`, { headers: { Cookie: rt } }, env);
+    expect(threadRes.status).toBe(200);
+    expect(await threadRes.text()).toContain(species);
   });
 
   it("grows and submits a multi-fish walk-up via the no-JS row builder (issue 105)", async () => {

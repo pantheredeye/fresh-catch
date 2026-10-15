@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import type { Bindings, Variables } from "@/types";
 import { requireSecret } from "@/lib/env";
@@ -7,6 +7,19 @@ import { requireCsrf, verifyDeviceCsrfToken } from "./csrf";
 
 const DEVICE_COOKIE_NAME = "device";
 const DEVICE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
+/** Sets a fresh device cookie and returns the token. Also used by logout to rotate identity. */
+export function issueDeviceToken(c: Context): string {
+  const token = crypto.randomUUID();
+  setCookie(c, DEVICE_COOKIE_NAME, token, {
+    path: "/",
+    httpOnly: true,
+    secure: !import.meta.env.DEV,
+    sameSite: "Lax",
+    maxAge: DEVICE_MAX_AGE_SECONDS,
+  });
+  return token;
+}
 
 /**
  * Anonymous device-token cookie. Every visitor gets a stable, unauthenticated
@@ -19,17 +32,7 @@ export function deviceTokenMiddleware(): MiddlewareHandler<{
   Variables: Variables;
 }> {
   return async (c, next) => {
-    let token = getCookie(c, DEVICE_COOKIE_NAME);
-    if (!token) {
-      token = crypto.randomUUID();
-      setCookie(c, DEVICE_COOKIE_NAME, token, {
-        path: "/",
-        httpOnly: true,
-        secure: !import.meta.env.DEV,
-        sameSite: "Lax",
-        maxAge: DEVICE_MAX_AGE_SECONDS,
-      });
-    }
+    const token = getCookie(c, DEVICE_COOKIE_NAME) ?? issueDeviceToken(c);
     c.set("deviceToken", token);
     await next();
   };

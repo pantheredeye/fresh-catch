@@ -160,6 +160,8 @@ describe("POST /webhooks/stripe — checkout.session.completed", () => {
     expect(message.subject).toContain(`#${order.orderNumber}`);
     expect(message.html).toContain("$50.00");
     expect(message.html).toContain("Paid in full");
+    // Receipt's thread link carries the secret token (#131) so it opens on any device.
+    expect(message.html).toContain(`/requests/${requestId}?t=${encodeURIComponent(thread!.accessToken)}`);
   });
 
   it("is idempotent — a replayed event records nothing twice", async () => {

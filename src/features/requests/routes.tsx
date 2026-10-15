@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 import type { Bindings, Variables } from "@/types";
 import { Document } from "@/ui/document";
 import { Page } from "@/ui/page";
 import { BrandBar } from "@/ui/brand-bar";
 import { Footer } from "@/ui/footer";
 import { BackLink } from "@/ui/back-link";
-import { Button } from "@/ui/button";
 import { listRequestableCatchItems, type RequestableCatchItem } from "@/features/catch/queries";
 import { getVendor } from "@/features/vendor/queries";
 import { getMarket } from "@/features/markets/queries";
@@ -16,16 +16,19 @@ import { csrfProtect } from "@/features/auth/middleware";
 import { createDeviceCsrfToken } from "@/features/auth/csrf";
 import { checkRateLimit } from "@/features/auth/rate-limit";
 import {
+  accessTokenMatches,
   appendMessage,
+  attachRequestToViewer,
   canViewRequest,
   createRequest,
   getRequest,
   getRequestWithMessages,
   listRequestsForViewer,
 } from "./queries";
-import { notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
+import { notifyCustomerOfNewRequest, notifyVendorOfCustomerReply, notifyVendorOfNewRequest } from "./notifications";
 import { MAX_REQUEST_ITEMS, parseMessageForm, parseRequestForm, rawItemRows } from "./validation";
 import {
+  LoginPrompt,
   MessageForm,
   RequestConfirmation,
   RequestForm,
@@ -53,9 +56,33 @@ async function csrfTokenFor(c: AppContext): Promise<string> {
   return createDeviceCsrfToken(c.var.deviceToken, requireSecret(c.env, "SESSION_SECRET"));
 }
 
+/**
+ * Issue 131 secret-link access. `?t=<accessToken>` is swapped for this httpOnly
+ * cookie scoped to `Path=/requests/<id>` — sent for that one thread and its
+ * reply POST, never for the list or another thread — then redirected away so
+ * the token leaves the address bar. The token is never logged.
+ */
+const THREAD_ACCESS_COOKIE = "rt";
+const THREAD_ACCESS_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
+function setThreadAccessCookie(c: AppContext, requestId: string, token: string) {
+  setCookie(c, THREAD_ACCESS_COOKIE, token, {
+    path: `/requests/${requestId}`,
+    httpOnly: true,
+    secure: !import.meta.env.DEV,
+    sameSite: "Lax",
+    maxAge: THREAD_ACCESS_MAX_AGE_SECONDS,
+  });
+}
+
 function viewerFor(c: AppContext) {
   const session = c.var.session;
-  return { deviceToken: c.var.deviceToken, userId: session?.userId ?? null, isAdmin: session?.isAdmin ?? false };
+  return {
+    deviceToken: c.var.deviceToken,
+    userId: session?.userId ?? null,
+    isAdmin: session?.isAdmin ?? false,
+    accessToken: getCookie(c, THREAD_ACCESS_COOKIE) ?? null,
+  };
 }
 
 function formString(value: unknown): string | undefined {
@@ -122,7 +149,7 @@ async function renderBuilderPage(
   const heading = isQuestion ? "Ask a question" : "Request an order";
   return c.html(
     <Document title={`${heading} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
         <h1>{heading}</h1>
@@ -208,11 +235,15 @@ requestRoutes.post("/requests", csrfProtect(), async (c) => {
     userId: c.var.session?.userId ?? null,
   });
   runInBackground(c, notifyVendorOfNewRequest(c.env, request));
+  runInBackground(c, notifyCustomerOfNewRequest(c.env, request));
   return c.redirect(`/requests/${request.id}?created=1`);
 });
 
 requestRoutes.get("/requests", async (c) => {
   const session = c.var.session;
+  const claimedParam = c.req.query("claimed") ?? "";
+  const claimedCount = /^[1-9]\d{0,5}$/.test(claimedParam) ? Number(claimedParam) : 0;
+  const loggedOut = c.req.query("loggedout") === "1";
   const [requests, vendor] = await Promise.all([
     listRequestsForViewer({
       deviceToken: c.var.deviceToken,
@@ -221,34 +252,36 @@ requestRoutes.get("/requests", async (c) => {
     getVendor(),
   ]);
   return c.html(
-    <Document title="My requests — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
+    <Document title="Your requests — 2 Fishes Seafood" deviceToken={c.var.deviceToken}>
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
         <BackLink href="/">Back to 2 Fishes Seafood</BackLink>
-        <h1>My requests</h1>
+        <h1>Your requests</h1>
+        {claimedCount > 0 ? (
+          <p class="notice notice-success" role="status">
+            {claimedCount} {claimedCount === 1 ? "request" : "requests"} saved to your account.
+          </p>
+        ) : null}
+        {loggedOut && !session ? (
+          <p class="notice notice-info" role="status">
+            You're logged out. Your requests are safe in your account. Log in any time to see them.
+          </p>
+        ) : null}
+        <div class="stack-tight" data-requests-status>
+          {session ? (
+            <>
+              <p class="muted">Logged in as {session.email}.</p>
+              {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
+            </>
+          ) : (
+            <LoginPrompt message="We're holding these on this phone for now. Log in and we'll save them to your account." />
+          )}
+        </div>
         {requests.length === 0 ? <p class="muted">No requests yet.</p> : null}
         <div class="stack">
           {requests.map((request) => (
             <RequestListRow request={request} />
           ))}
-        </div>
-        <div class="stack-tight">
-          {session ? (
-            <>
-              <p class="muted">Signed in as {session.email}</p>
-              {session.isAdmin ? <p><a href="/admin">Admin</a></p> : null}
-              <form method="post" action="/logout">
-                <input type="hidden" name="csrfToken" value={session.csrfToken} />
-                <Button type="submit" variant="secondary">
-                  Log out
-                </Button>
-              </form>
-            </>
-          ) : (
-            <p class="muted">
-              Your requests are saved to this browser. <a href="/login">Log in</a> to see them on any device.
-            </p>
-          )}
         </div>
       </Page>
       <Footer />
@@ -257,9 +290,28 @@ requestRoutes.get("/requests", async (c) => {
 });
 
 requestRoutes.get("/requests/:id", async (c) => {
+  // The thread URL itself (and any token in it) must never leak via Referer.
+  c.header("Referrer-Policy", "no-referrer");
   const request = await getRequestWithMessages(c.req.param("id"));
+  const viewer = viewerFor(c);
+
+  // Issue 131: a valid `?t=` swaps for the scoped cookie, then strips itself. A
+  // wrong token is ignored — the viewer falls through to the normal checks.
+  const linkToken = c.req.query("t");
+  if (request && accessTokenMatches(request, linkToken)) {
+    setThreadAccessCookie(c, request.id, request.accessToken);
+    await attachRequestToViewer(request, viewer);
+    return c.redirect(`/requests/${request.id}`);
+  }
+
   // R2: 404, not 403 — a bare unguessable id in the URL must not confirm a thread exists.
-  if (!request || !canViewRequest(request, viewerFor(c))) return c.text("Not found", 404);
+  if (!request || !canViewRequest(request, viewer)) return c.text("Not found", 404);
+  // Re-check on every link-cookie view so logging in later still claims the thread.
+  if (viewer.userId && !request.userId && accessTokenMatches(request, viewer.accessToken)) {
+    await attachRequestToViewer(request, viewer);
+  }
+  const session = c.var.session;
+  const viaLinkOnly = !session && request.deviceToken !== c.var.deviceToken;
 
   const [csrfToken, vendor] = await Promise.all([csrfTokenFor(c), getVendor()]);
   // Where Stripe Checkout returns the customer (#60). Purely a message —
@@ -270,16 +322,22 @@ requestRoutes.get("/requests/:id", async (c) => {
   const created = c.req.query("created") === "1";
   return c.html(
     <Document title={`${requestTitle(request)} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
-      <BrandBar vendor={vendor} />
+      <BrandBar vendor={vendor} session={c.var.session} />
       <Page>
-        <BackLink href="/requests">My requests</BackLink>
+        <BackLink href="/requests">Your requests</BackLink>
         {created ? (
           <RequestConfirmation
             requestType={request.requestType}
             hasCustomItems={request.items.some((item) => item.isCustom)}
+            signedIn={Boolean(c.var.session)}
           />
         ) : null}
         {checkout === "success" || checkout === "cancel" ? <CheckoutNotice outcome={checkout} /> : null}
+        {viaLinkOnly ? (
+          <div class="stack-tight" data-requests-status>
+            <LoginPrompt message="You opened this from a link, so it isn't saved on this phone. Log in to keep it with your account." />
+          </div>
+        ) : null}
         <RequestHeaderCard request={request} />
         {request.order ? <OrderSummaryCard order={request.order} /> : null}
         <Thread messages={request.messages} viewer="customer" customerName={request.contactName} />
@@ -291,6 +349,7 @@ requestRoutes.get("/requests/:id", async (c) => {
 });
 
 requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
+  c.header("Referrer-Policy", "no-referrer");
   const request = await getRequest(c.req.param("id"));
   if (!request || !canViewRequest(request, viewerFor(c))) return c.text("Not found", 404);
 
@@ -308,9 +367,9 @@ requestRoutes.post("/requests/:id/messages", csrfProtect(), async (c) => {
     ]);
     return c.html(
       <Document title={`${requestTitle(request)} — 2 Fishes Seafood`} deviceToken={c.var.deviceToken}>
-        <BrandBar vendor={vendor} />
+        <BrandBar vendor={vendor} session={c.var.session} />
         <Page>
-          <BackLink href="/requests">My requests</BackLink>
+          <BackLink href="/requests">Your requests</BackLink>
           <RequestHeaderCard request={request} />
           <Thread messages={withMessages?.messages ?? []} viewer="customer" customerName={request.contactName} />
           <MessageForm

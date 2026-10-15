@@ -5,7 +5,9 @@ import type { Bindings } from "@/types";
 import { MAX_REQUEST_ITEMS } from "./validation";
 import type { RequestInput, RequestItemInput } from "./validation";
 import {
+  accessTokenMatches,
   appendMessage,
+  attachRequestToViewer,
   canViewRequest,
   claimRequestsForUser,
   createRequest,
@@ -134,7 +136,13 @@ describe("migration 0007 backfill", () => {
     // pre-#102 schema held. itemCount keeps the column default (1), matching
     // what existing fish rows have after the migration.
     const legacy = await db.fishRequest.create({
-      data: { contactName: "Jamie", requestType: "fish", species: "Snapper", quantity: "1 whole" },
+      data: {
+        contactName: "Jamie",
+        requestType: "fish",
+        species: "Snapper",
+        quantity: "1 whole",
+        accessToken: crypto.randomUUID(),
+      },
     });
 
     // Mirrors the backfill statement in migrations/0007_request_items.sql —
@@ -271,7 +279,8 @@ describe("claimRequestsForUser", () => {
     });
 
     const claimingUserId = await createUser();
-    await claimRequestsForUser(deviceToken, claimingUserId);
+    expect(await claimRequestsForUser(deviceToken, claimingUserId)).toBe(1);
+    expect(await claimRequestsForUser(deviceToken, claimingUserId)).toBe(0);
 
     const afterUnclaimed = await getRequestWithMessages(unclaimed.id);
     const afterOwned = await getRequestWithMessages(alreadyOwned.id);
@@ -281,7 +290,7 @@ describe("claimRequestsForUser", () => {
 });
 
 describe("canViewRequest", () => {
-  const request = { deviceToken: "device-a", userId: "user-a", origin: "customer" };
+  const request = { deviceToken: "device-a", userId: "user-a", accessToken: "secret-a" };
 
   it("allows admin regardless of identity", () => {
     expect(canViewRequest(request, { deviceToken: "other", userId: null, isAdmin: true })).toBe(true);
@@ -296,8 +305,78 @@ describe("canViewRequest", () => {
     expect(canViewRequest(request, { deviceToken: "other", userId: "other-user", isAdmin: false })).toBe(false);
   });
 
-  it("allows any viewer on a vendor-initiated thread (deep link is the access control)", () => {
-    const vendorRequest = { deviceToken: null, userId: null, origin: "vendor" };
-    expect(canViewRequest(vendorRequest, { deviceToken: "anyone", userId: null, isAdmin: false })).toBe(true);
+  it("allows the thread's access token, and only that token (#131)", () => {
+    const stranger = { deviceToken: "other", userId: null, isAdmin: false };
+    expect(canViewRequest(request, { ...stranger, accessToken: "secret-a" })).toBe(true);
+    expect(canViewRequest(request, { ...stranger, accessToken: "secret-b" })).toBe(false);
+    expect(canViewRequest(request, { ...stranger, accessToken: "" })).toBe(false);
+    expect(canViewRequest(request, { ...stranger, accessToken: null })).toBe(false);
+  });
+
+  it("no longer opens an owner-less vendor thread by bare id (#131)", () => {
+    const vendorRequest = { deviceToken: null, userId: null, accessToken: "secret-v" };
+    expect(canViewRequest(vendorRequest, { deviceToken: "anyone", userId: null, isAdmin: false })).toBe(false);
+  });
+});
+
+describe("request access tokens (#131)", () => {
+  it("gives every request a distinct 256-bit base64url token", async () => {
+    const a = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    const b = await createRequest(fishInput(), { deviceToken: null, userId: null }, { origin: "vendor" });
+    expect(a.accessToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(b.accessToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(a.accessToken).not.toBe(b.accessToken);
+    expect(accessTokenMatches(a, a.accessToken)).toBe(true);
+    expect(accessTokenMatches(a, b.accessToken)).toBe(false);
+    expect(accessTokenMatches(a, undefined)).toBe(false);
+  });
+
+  it("is unique at the database level (migration 0008)", async () => {
+    const a = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    const b = await createRequest(fishInput(), { deviceToken: crypto.randomUUID(), userId: null });
+    await expect(db.fishRequest.update({ where: { id: b.id }, data: { accessToken: a.accessToken } })).rejects.toThrow();
+  });
+});
+
+describe("attachRequestToViewer (#131)", () => {
+  async function user(): Promise<string> {
+    return (await db.user.create({ data: { email: `${crypto.randomUUID()}@example.com` } })).id;
+  }
+
+  it("adopts an owner-less thread onto the opening device", async () => {
+    const request = await createRequest(fishInput(), { deviceToken: null, userId: null }, { origin: "vendor" });
+    const deviceToken = crypto.randomUUID();
+    await attachRequestToViewer(request, { deviceToken, userId: null, isAdmin: false });
+    expect((await db.fishRequest.findUnique({ where: { id: request.id } }))?.deviceToken).toBe(deviceToken);
+  });
+
+  it("never moves a thread off another device", async () => {
+    const owner = crypto.randomUUID();
+    const request = await createRequest(fishInput(), { deviceToken: owner, userId: null });
+    await attachRequestToViewer(request, { deviceToken: crypto.randomUUID(), userId: null, isAdmin: false });
+    expect((await db.fishRequest.findUnique({ where: { id: request.id } }))?.deviceToken).toBe(owner);
+  });
+
+  it("claims an unclaimed thread for a logged-in viewer, keeping the original device", async () => {
+    const owner = crypto.randomUUID();
+    const userId = await user();
+    const request = await createRequest(fishInput(), { deviceToken: owner, userId: null });
+    await attachRequestToViewer(request, { deviceToken: crypto.randomUUID(), userId, isAdmin: false });
+    const after = await db.fishRequest.findUnique({ where: { id: request.id } });
+    expect(after).toMatchObject({ userId, deviceToken: owner });
+  });
+
+  it("never reassigns a claimed thread, and admins never take ownership", async () => {
+    const ownerId = await user();
+    const claimed = await createRequest(fishInput(), { deviceToken: null, userId: ownerId });
+    await attachRequestToViewer(claimed, { deviceToken: crypto.randomUUID(), userId: await user(), isAdmin: false });
+    expect((await db.fishRequest.findUnique({ where: { id: claimed.id } }))?.userId).toBe(ownerId);
+
+    const vendorThread = await createRequest(fishInput(), { deviceToken: null, userId: null }, { origin: "vendor" });
+    await attachRequestToViewer(vendorThread, { deviceToken: crypto.randomUUID(), userId: await user(), isAdmin: true });
+    expect(await db.fishRequest.findUnique({ where: { id: vendorThread.id } })).toMatchObject({
+      userId: null,
+      deviceToken: null,
+    });
   });
 });

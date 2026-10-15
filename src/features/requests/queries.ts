@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { randomToken, timingSafeEqual } from "@/lib/tokens";
 import type { FishRequest, RequestItem, RequestMessage } from "@/lib/db";
 import type { OrderWithPayments } from "@/features/orders/queries";
 import { MAX_REQUEST_ITEMS } from "./validation";
@@ -30,7 +31,8 @@ export type RequestOrigin = "customer" | "vendor";
  * rows/titles/emails need no join (#102). `origin: "vendor"` is #64's second
  * entry point (Evan's "New request" button): no device token, opening message
  * is `sender: "vendor"`, and it's born `status: "confirmed"` instead of the
- * default `"open"`.
+ * default `"open"`. Every request gets a fresh `accessToken` (#131) — the
+ * secret in emailed thread links.
  */
 export async function createRequest(
   data: RequestInput,
@@ -53,6 +55,7 @@ export async function createRequest(
       itemCount: items.length,
       deviceToken: identity.deviceToken,
       userId: identity.userId,
+      accessToken: randomToken(),
       origin,
       status,
       lastMessageAt: now,
@@ -163,25 +166,57 @@ export function setRequestStatus(id: string, status: RequestStatus): Promise<Fis
 }
 
 /** R3: login claims the device's anonymous requests — only rows not already attached to an account. */
-export async function claimRequestsForUser(deviceToken: string, userId: string): Promise<void> {
-  await db.fishRequest.updateMany({ where: { deviceToken, userId: null }, data: { userId } });
+export async function claimRequestsForUser(deviceToken: string, userId: string): Promise<number> {
+  const { count } = await db.fishRequest.updateMany({ where: { deviceToken, userId: null }, data: { userId } });
+  return count;
 }
 
 /**
- * R2: device token OR session user OR admin. A bare unguessable id in the
- * URL is not itself authorization — except for `origin: "vendor"` threads
- * (#64), which are created with no device token or account at all; the
- * emailed deep link to the unguessable id *is* the access control, since
- * that's the only way a walk-up customer without an account reaches it.
+ * #131: a secret thread link was opened — make the thread findable from here
+ * without stealing it from anyone. Logged in → claim it if unclaimed; else
+ * adopt it onto this device only if no device owns it yet (vendor-origin
+ * walk-ups). Never overwrites another device's or account's ownership.
+ * Admins (Evan checking a customer's link) never take ownership.
+ */
+export async function attachRequestToViewer(
+  request: Pick<FishRequest, "id" | "deviceToken" | "userId">,
+  viewer: { deviceToken: string; userId: string | null; isAdmin: boolean },
+): Promise<void> {
+  if (viewer.isAdmin) return;
+  if (viewer.userId) {
+    if (!request.userId) {
+      await db.fishRequest.updateMany({ where: { id: request.id, userId: null }, data: { userId: viewer.userId } });
+    }
+    return;
+  }
+  if (!request.deviceToken && !request.userId) {
+    await db.fishRequest.updateMany({
+      where: { id: request.id, deviceToken: null, userId: null },
+      data: { deviceToken: viewer.deviceToken },
+    });
+  }
+}
+
+/** Constant-time check of a presented thread-link token (#131). */
+export function accessTokenMatches(request: Pick<FishRequest, "accessToken">, presented: string | null | undefined): boolean {
+  return !!presented && timingSafeEqual(request.accessToken, presented);
+}
+
+/**
+ * R2: device token OR session user OR admin OR the thread's secret link token
+ * (#131). A bare unguessable id in the URL is not itself authorization —
+ * vendor-origin threads (#64) used to be the exception; their emailed link
+ * now carries the access token instead. The token opens this one thread
+ * only; it never widens `listRequestsForViewer`.
  */
 export function canViewRequest(
-  request: Pick<FishRequest, "deviceToken" | "userId" | "origin">,
-  viewer: { deviceToken: string; userId: string | null; isAdmin: boolean },
+  request: Pick<FishRequest, "deviceToken" | "userId" | "accessToken">,
+  viewer: { deviceToken: string; userId: string | null; isAdmin: boolean; accessToken?: string | null },
 ): boolean {
   if (viewer.isAdmin) return true;
-  if (request.origin === "vendor") return true;
   if (request.userId && request.userId === viewer.userId) return true;
   if (request.deviceToken && request.deviceToken === viewer.deviceToken) return true;
+  if (accessTokenMatches(request, viewer.accessToken)) return true;
   return false;
 }
 

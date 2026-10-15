@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "@/lib/tokens";
+
 export const SESSION_COOKIE_NAME = "session";
 // Browsers cap Max-Age at 400 days regardless of what's sent — using that as
 // the "persistent" ceiling rather than picking an arbitrary shorter value.
@@ -24,13 +26,6 @@ function base64UrlDecode(value: string): Uint8Array {
     .padEnd(Math.ceil(value.length / 4) * 4, "=");
   const binary = atob(padded);
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return mismatch === 0;
 }
 
 async function hmacKey(secret: string): Promise<CryptoKey> {

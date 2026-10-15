@@ -345,14 +345,33 @@ export const RequestForm: FC<{
 };
 
 /** Post-submit confirmation (handoff §3: same verb all the way through — "Request bass" → "Requested"). */
-export const RequestConfirmation: FC<{ requestType: string; hasCustomItems?: boolean }> = ({
+export const RequestConfirmation: FC<{ requestType: string; hasCustomItems?: boolean; signedIn?: boolean }> = ({
   requestType,
   hasCustomItems,
+  signedIn,
 }) => (
   <p class="notice notice-success" role="status">
     {requestType === "question" ? "Sent." : "Requested."} 2 Fishes Seafood will reply here.
     {hasCustomItems ? " Some of your fish aren't on this week's list — availability and price will be confirmed." : null}
+    {signedIn ? null : (
+      <>
+        {" "}
+        Saved to this phone or browser. <a href="/login">Log in</a> to see it on any device.
+      </>
+    )}
   </p>
+);
+
+/** Logged-out status block (issue 129) — the "why can I see this, and what does logging in change" line plus Log in. */
+export const LoginPrompt: FC<{ message: string }> = ({ message }) => (
+  <>
+    <p class="muted">{message}</p>
+    <form method="get" action="/login">
+      <Button type="submit" variant="secondary">
+        Log in
+      </Button>
+    </form>
+  </>
 );
 
 const STATUS_LABEL: Record<RequestStatus, string> = {

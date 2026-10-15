@@ -175,7 +175,7 @@ homeRoutes.get("/", async (c) => {
   return c.html(
     <Document deviceToken={c.var.deviceToken}>
       <Page bleed>
-        <BrandBar vendor={vendor} container />
+        <BrandBar vendor={vendor} session={c.var.session} container />
         {strip ? <StatusStrip {...strip} container /> : null}
         <SavedBand pins={savedPins} />
         <div class="home-split">
