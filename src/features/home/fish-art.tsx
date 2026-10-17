@@ -138,7 +138,7 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
           <path d="M6 38c0-10 10-16 24-17 24-3 46 1 62 8l22-11-2 16 2 16-22-11c-16 7-38 11-62 10C16 48 6 46 6 38Z" />
           <path d="M34 21l10-12 10 11c-7 0-13 0-20 1ZM58 20c10-5 22-3 30 7-9-4-19-6-30-7ZM36 46l4 12 12-9c-6 0-11-1-16-3Z" />
-          <circle cx="86" cy="33" r="3.6" fill="var(--palette-sand)" />
+          <circle cx="85" cy="33" r="4.4" fill="var(--palette-sand)" />
           <circle cx="19" cy="31" r="2.8" fill="var(--palette-sand)" />
         </svg>
       );
@@ -179,7 +179,7 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
     case "grouper":
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
-          <path d="M2 34c6-10 18-16 32-17 24-2 46 2 62 13l14-12c10 6 10 26 0 32l-14-12c-16 11-38 16-62 15-14 0-26-5-32-13l16-2Z" />
+          <path d="M2 34c6-10 18-16 32-17 24-2 46 2 62 13l14-12c10 6 10 26 0 32l-14-12c-16 11-38 16-62 15-14 0-26-5-32-13l22-5Z" />
           <path d="M36 17l3-6 4 5 3-6 4 5 3-5 4 5 3-5 4 6c8 1 16 4 22 10-16-6-34-8-50-9ZM40 48l4 11 12-8c-6 0-11-1-16-3Z" />
           <circle cx="22" cy="28" r="3" fill="var(--palette-sand)" />
         </svg>
