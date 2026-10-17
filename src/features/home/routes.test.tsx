@@ -107,10 +107,28 @@ describe("GET / — fish board", () => {
     expect(html).toMatch(/<h3>\s*Flounder\s*<span class="tag tag-muted">Sold out<\/span>\s*<\/h3>/);
   });
 
-  it("fishKind helper", () => {
-    expect(fishKind("Sea Bass")).toBe("bass");
-    expect(fishKind("Crawfish")).toBe("crawfish");
-    expect(fishKind("Pompano")).toBe("fish");
+  it.each([
+    ["Sea Bass", "bass"],
+    ["Crawfish", "crawfish"],
+    ["Royal Reds", "shrimp"],
+    ["Royal Red Shrimp", "shrimp"],
+    ["Gulf Shrimp", "shrimp"],
+    ["Prawns", "shrimp"],
+    ["Pompano", "pompano"],
+    ["Red Snapper", "snapper"],
+    ["Blue Crab", "crab"],
+    ["Oysters", "oyster"],
+    ["Redfish", "redfish"],
+    ["Red Drum", "redfish"],
+    ["Speckled Trout", "trout"],
+    ["Speck", "trout"],
+    ["Sea Trout", "trout"],
+    ["Black Drum", "drum"],
+    ["Sheepshead", "sheepshead"],
+    ["Gag Grouper", "grouper"],
+    ["Tilapia", "fish"],
+  ])("fishKind(%j) → %s", (name, kind) => {
+    expect(fishKind(name)).toBe(kind);
   });
 
   it("shows a plain notice when there's no live catch update at all", async () => {

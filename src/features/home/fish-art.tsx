@@ -7,11 +7,21 @@ import type { FC } from "hono/jsx";
  * fish so every row has an icon.
  */
 const KINDS: Array<[string, RegExp]> = [
+  ["shrimp", /\b(shrimps?|prawns?|royal reds?)\b/],
   ["crawfish", /\b(crawfish|crayfish|crawdad)s?\b/],
   ["catfish", /\bcatfish(es)?\b/],
   ["flounder", /\b(flounder|fluke)s?\b/],
   ["shark", /\bsharks?\b/],
   ["bass", /\bbass(es)?\b/],
+  ["pompano", /\bpompanos?\b/],
+  ["snapper", /\bsnappers?\b/],
+  ["crab", /\bcrabs?\b/],
+  ["oyster", /\boysters?\b/],
+  ["redfish", /\b(red ?fish(es)?|red drums?)\b/],
+  ["trout", /\b(speckled trout|spotted sea ?trout|specks?|(sea ?)?trout)\b/],
+  ["drum", /\b(black )?drums?\b/],
+  ["sheepshead", /\bsheepsheads?\b/],
+  ["grouper", /\bgroupers?\b/],
 ];
 
 /** Alias-tolerant species match ("Sea Bass", "Flounders" → art key); `"fish"` when unknown. */
