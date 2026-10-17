@@ -195,6 +195,39 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
           <circle cx="22" cy="28" r="3" fill="var(--palette-sand)" />
         </svg>
       );
+    case "vermilion":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M2 34c8-9 22-15 40-16 20-1 38 5 50 13l24-17-10 22 10 22-24-17c-12 8-30 13-50 12-18 0-32-5-40-13l8-3Z" />
+          <path d="M34 19l3-6 3 5 3-6 3 5 3-6 3 5 3-5 3 5 3-4 3 6c6 1 12 4 16 8-14-5-30-7-46-7ZM36 46l4 11 10-8c-5 0-10-1-14-3Z" />
+          <circle cx="20" cy="29" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "mahi":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M6 48C3 36 4 22 10 14c10-6 30-4 50 2 14 4 26 10 34 15l22-19-8 24 8 24-22-19c-16 5-38 9-58 11-14 1-26 0-30-4Z" />
+          <path d="M11 14C13 4 32 1 52 4c18 3 34 13 42 27-10-7-22-12-34-15-18-5-36-6-49-2ZM44 51c16-1 32-4 46-9-6 9-24 16-44 16Z" />
+          <path d="M16 14c14-4 30-3 44 2 12 4 22 9 30 15" fill="none" stroke="var(--palette-sand)" stroke-width="2.6" stroke-linecap="round" />
+          <circle cx="15" cy="34" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "tuna":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M2 36c10-14 30-20 52-20 18 0 32 7 40 16 6-10 12-20 22-30-4 12-8 22-10 34 2 12 6 22 10 30-10-8-16-18-22-28-8 9-22 16-40 16-22 0-42-6-52-18Z" />
+          <path d="M54 17 64 0c0 6 0 12-2 18ZM52 52l12 15c0-6-1-10-3-15ZM36 18l4-8 6 7ZM72 18l3-4 2 5ZM80 21l3-4 2 6ZM72 51l3 5 3-6ZM80 48l3 5 3-7Z" />
+          <circle cx="18" cy="32" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "swordfish":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M0 33 30 29v8ZM26 31c10-6 26-9 42-7 12 2 20 6 26 9 6-9 12-18 20-25-2 10-6 20-8 28 2 8 6 18 8 28-8-7-14-16-20-25-8 5-20 9-34 9-14 0-26-4-34-11Z" />
+          <path d="M38 26 44 2c5 6 10 14 12 22ZM42 46l4 12 8-10c-4 0-8-1-12-2Z" />
+          <circle cx="34" cy="31" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
     default:
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
