@@ -114,6 +114,34 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
           <circle cx="28" cy="27" r="3" fill="var(--palette-sand)" />
         </svg>
       );
+    case "crab":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M30 34 10 28l20-6c10-8 50-8 60 0l20 6-20 6c-4 12-16 18-30 18S34 46 30 34Z" />
+          <path d="M12 16c-2-8 4-14 14-14l-6 7 10 1c-2 8-12 12-18 6ZM108 16c2-8-4-14-14-14l6 7-10 1c2 8 12 12 18 6Z" />
+          <g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M40 24 30 22 20 16M80 24l10-2 10-6M36 42l-14 6-4 10M44 48l-10 8-2 8M84 42l14 6 4 10M76 48l10 8 2 8" />
+          </g>
+          <circle cx="52" cy="24" r="2.6" fill="var(--palette-sand)" />
+          <circle cx="68" cy="24" r="2.6" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "oyster":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M30 62C14 52 18 30 34 18c2-6 8-8 12-6 3-5 9-6 13-3 4-4 10-4 13 0 5-3 11-2 13 3 5-1 10 2 10 7 5 2 7 8 4 12 3 4 1 10-4 11 0 6-6 9-11 7-2 5-8 7-12 4C66 54 48 62 30 62Z" />
+          <path d="M27 54C26 49 30 43 38 40 47 38 58 40 61 46 63 50 58 55 52 57M24 49C23 40 30 30 44 26 58 23 76 26 82 35 85 42 76 51 66 54" fill="none" stroke="var(--palette-sand)" stroke-width="2.6" stroke-linecap="round" />
+        </svg>
+      );
+    case "redfish":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M6 38c0-10 10-16 24-17 24-3 46 1 62 8l22-11-2 16 2 16-22-11c-16 7-38 11-62 10C16 48 6 46 6 38Z" />
+          <path d="M34 21l10-12 10 11c-7 0-13 0-20 1ZM58 20c10-5 22-3 30 7-9-4-19-6-30-7ZM36 46l4 12 12-9c-6 0-11-1-16-3Z" />
+          <circle cx="86" cy="33" r="3.6" fill="var(--palette-sand)" />
+          <circle cx="19" cy="31" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
     default:
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
