@@ -14,6 +14,7 @@ const KINDS: Array<[string, RegExp]> = [
   ["shark", /\bsharks?\b/],
   ["bass", /\bbass(es)?\b/],
   ["pompano", /\bpompanos?\b/],
+  ["vermilion", /\b(vermilions?|beeliners?)\b/],
   ["snapper", /\bsnappers?\b/],
   ["crab", /\bcrabs?\b/],
   ["oyster", /\boysters?\b/],
@@ -22,6 +23,16 @@ const KINDS: Array<[string, RegExp]> = [
   ["drum", /\b(black )?drums?\b/],
   ["sheepshead", /\bsheepsheads?\b/],
   ["grouper", /\bgroupers?\b/],
+  ["mahi", /\b(mahi(-| )?mahi|mahi|dorados?|dolphin ?fish(es)?)\b/],
+  ["tuna", /\b(tunas?|yellowfin|ahi)\b/],
+  ["triggerfish", /\btrigger ?fish(es)?\b/],
+  ["tripletail", /\btriple ?tails?\b/],
+  ["cobia", /\b(cobias?|ling|lemon ?fish)\b/],
+  ["amberjack", /\bamber ?jacks?\b/],
+  ["mackerel", /\b(spanish |king )?mackerels?\b/],
+  ["mullet", /\bmullets?\b/],
+  ["swordfish", /\bsword ?fish(es)?\b/],
+  ["buffalo", /\bbuffalo( ?fish(es)?)?\b/],
 ];
 
 /** Alias-tolerant species match ("Sea Bass", "Flounders" → art key); `"fish"` when unknown. */
