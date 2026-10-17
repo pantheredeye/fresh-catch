@@ -198,9 +198,9 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
     case "vermilion":
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
-          <path d="M2 34c8-9 22-15 40-16 20-1 38 5 50 13l24-17-10 22 10 22-24-17c-12 8-30 13-50 12-18 0-32-5-40-13l8-3Z" />
-          <path d="M34 19l3-6 3 5 3-6 3 5 3-6 3 5 3-5 3 5 3-4 3 6c6 1 12 4 16 8-14-5-30-7-46-7ZM36 46l4 11 10-8c-5 0-10-1-14-3Z" />
-          <circle cx="20" cy="29" r="2.8" fill="var(--palette-sand)" />
+          <path d="M2 36c10-7 24-11 40-11 18 0 36 3 50 8l24-17-10 22 10 22-24-17c-14 5-32 8-50 8-16 0-30-4-40-15Z" />
+          <path d="M36 28l3-5 3 4 3-5 3 4 3-5 3 4 3-5 3 4 3-4 3 5c6 1 12 3 16 6-14-4-30-6-46-7ZM36 50l4 9 10-7c-5 0-10-1-14-2Z" />
+          <circle cx="16" cy="33" r="2.8" fill="var(--palette-sand)" />
         </svg>
       );
     case "mahi":
