@@ -85,6 +85,35 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
           <circle cx="17" cy="35" r="2.8" fill="var(--palette-sand)" />
         </svg>
       );
+    case "shrimp":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M4 32 20 26c18-12 52-16 76-6 16 8 18 26 6 34l-9-8c6-5 4-14-6-16-16-4-34 2-48 10-8 4-16 4-21 0Z" />
+          <path d="M98 49 78 60l10 6 8-6 6 7 4-14Z" />
+          <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+            <path d="M20 27C14 13 30 4 64 4M22 26C14 18 18 8 34 1M38 41l-3 11M48 37l-2 12M58 34l-1 11" />
+          </g>
+          <path d="M62 17c2 6 1 12-2 17M78 16c3 6 3 13 0 18M92 21c4 5 5 11 2 16" fill="none" stroke="var(--palette-sand)" stroke-width="2.6" stroke-linecap="round" />
+          <circle cx="24" cy="30" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "pompano":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M8 36c0-12 8-20 20-24l28-5 34 24 26-27-12 29 12 29-26-27-34 24-28-4C16 52 8 46 8 36Z" />
+          <path d="M56 8C66 4 78 1 92 0 84 7 78 14 74 20ZM56 60c10 3 22 6 36 7-8-6-14-12-18-18Z" />
+          <circle cx="22" cy="30" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "snapper":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M2 42 36 13c22-3 40 3 54 15l26-14-8 21 8 20-26-12c-14 10-32 15-50 14C24 56 10 52 2 42Z" />
+          <path d="M36 14l3-8 4 7 3-8 4 7 3-7 4 7 3-7 4 7 3-6 3 8c9 0 17 5 22 12-14-6-38-10-56-12Z" />
+          <path d="M38 46l4 13 12-9c-6 0-11-2-16-4Z" />
+          <circle cx="28" cy="27" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
     default:
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
