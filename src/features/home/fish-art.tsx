@@ -262,6 +262,32 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
           <circle cx="15" cy="31" r="3" fill="var(--palette-sand)" />
         </svg>
       );
+    case "mackerel":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M2 35c12-6 28-9 46-9 18 0 34 3 46 6l22-16-8 20 8 20-22-16c-12 3-28 6-46 6-18 0-34-3-46-9Z" />
+          <path d="M30 27l6-8c8 0 18 2 24 7ZM70 28l3-5 3 5ZM78 29l3-5 3 5ZM86 30l3-5 3 5ZM70 44l3 5 3-5ZM78 43l3 5 3-5ZM86 42l3 5 3-5Z" />
+          <circle cx="16" cy="33" r="2.6" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "mullet":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M4 36c0-8 8-12 20-12 24-2 48 0 68 6l22-14-6 20 6 20-22-14c-20 6-44 8-68 6-12 0-20-4-20-12Z" />
+          <path d="M44 24l6-10 6 10ZM70 26l6-8 4 9Z" />
+          <path d="M24 32h62M24 40h62" fill="none" stroke="var(--palette-sand)" stroke-width="2.6" stroke-linecap="round" />
+          <circle cx="13" cy="33" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "buffalo":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M4 40c2-8 8-14 18-18 10-10 24-14 36-12 14 2 26 12 34 20l22-16-6 22 6 22-22-16c-12 8-30 12-48 12-18 0-34-4-40-14Z" />
+          <path d="M48 11l8-10c14 2 26 12 34 25-10-8-24-14-42-15Z" />
+          <path d="M40 54l4 10 10-8c-5 0-10-1-14-2Z" />
+          <circle cx="15" cy="35" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
     default:
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
