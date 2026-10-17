@@ -1,7 +1,7 @@
 import type { FC } from "hono/jsx";
 
 /**
- * Filled-silhouette fish drawings. All share one viewBox (rendered 72×40),
+ * Filled-silhouette fish drawings. All share one viewBox (rendered 46×26, 72×40 ≥700px),
  * face left, one detail level (silhouette + eye + one feature).
  * `currentColor`, decorative + `aria-hidden`. Unmatched names get a generic
  * fish so every row has an icon.
@@ -140,6 +140,48 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
           <path d="M34 21l10-12 10 11c-7 0-13 0-20 1ZM58 20c10-5 22-3 30 7-9-4-19-6-30-7ZM36 46l4 12 12-9c-6 0-11-1-16-3Z" />
           <circle cx="86" cy="33" r="3.6" fill="var(--palette-sand)" />
           <circle cx="19" cy="31" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "trout":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M4 36c6-8 20-11 36-11 22-1 40 2 54 6l20-9-2 12 2 12-20-9c-14 4-32 7-54 7-16 0-30-2-36-9Z" />
+          <path d="M40 26l8-11 8 10c-5 0-11 0-16 1ZM62 25c8-4 16-3 22 4-7-2-14-3-22-4ZM36 43l4 10 10-7c-5 0-10-1-14-3Z" />
+          <g fill="var(--palette-sand)">
+            <circle cx="52" cy="31" r="2.4" />
+            <circle cx="64" cy="30" r="2.4" />
+            <circle cx="76" cy="32" r="2.4" />
+            <circle cx="88" cy="33" r="2.4" />
+            <circle cx="70" cy="38" r="2.4" />
+          </g>
+          <circle cx="16" cy="32" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "drum":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M6 44c4-14 18-30 38-32 20-1 36 8 48 18l20-8v26l-20-8c-12 8-30 14-48 13-18 0-32-3-38-9Z" />
+          <path d="M40 13l8-10 10 10c-6-1-12-1-18 0Z" />
+          <path d="M40 50l4 12 12-9c-6 0-11-1-16-3Z" />
+          <path d="M12 49l-2 8M18 51l-1 8M24 52v8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+          <circle cx="22" cy="32" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "sheepshead":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M6 38c2-14 16-24 36-26 22-2 40 8 52 18l22-14-8 18 8 18-22-14c-12 10-30 18-52 18-20 0-34-6-36-18Z" />
+          <path d="M34 14l3-8 4 7 3-8 4 7 3-8 4 8 3-7 4 8 3-6 3 8c-12-3-24-4-34-1Z" />
+          <path d="M30 18v36M44 13v42M58 13v41M72 17v34M84 23v22" fill="none" stroke="var(--palette-sand)" stroke-width="3" stroke-linecap="round" />
+          <circle cx="20" cy="30" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "grouper":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M2 34c6-10 18-16 32-17 24-2 46 2 62 13l14-12c10 6 10 26 0 32l-14-12c-16 11-38 16-62 15-14 0-26-5-32-13l16-2Z" />
+          <path d="M36 17l3-6 4 5 3-6 4 5 3-5 4 5 3-5 4 6c8 1 16 4 22 10-16-6-34-8-50-9ZM40 48l4 11 12-8c-6 0-11-1-16-3Z" />
+          <circle cx="22" cy="28" r="3" fill="var(--palette-sand)" />
         </svg>
       );
     default:
