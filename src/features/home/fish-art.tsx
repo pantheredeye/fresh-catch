@@ -228,6 +228,40 @@ export const FishArt: FC<{ name: string }> = ({ name }) => {
           <circle cx="34" cy="31" r="2.8" fill="var(--palette-sand)" />
         </svg>
       );
+    case "triggerfish":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M4 38l6-4c8-10 20-18 34-20l22-6 22 22 24-12-6 18 6 18-24-12-22 22-22-6c-14-2-26-10-34-20Z" />
+          <path d="M36 16 42 0l6 14Z" />
+          <circle cx="32" cy="24" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "tripletail":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M4 38c2-14 16-22 36-22 18 0 32 6 42 16v8c-10 10-24 16-42 16-20 0-34-6-36-18Z" />
+          <path d="M50 17C60 6 80 2 94 6c8 4 8 12 0 16-8 2-14 4-16 6-8-6-18-10-28-11ZM50 55c10 11 30 15 44 11 8-4 8-12 0-16-8-2-14-4-16-6-8 6-18 10-28 11ZM80 32c12-6 30-4 34 4-4 8-22 10-34 4Z" />
+          <circle cx="18" cy="32" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "cobia":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M2 36l6-4c8-4 18-8 32-9 20-1 40 3 52 8l22-17-8 22 8 22-22-17c-12 5-32 9-52 8-16-1-28-4-38-11Z" />
+          <path d="M36 24l3-6 3 5 3-6 3 5 3-6 3 6ZM60 23l10-11c4 4 6 10 6 13ZM60 49l10 11c4-4 6-10 6-13Z" />
+          <path d="M22 37h68" fill="none" stroke="var(--palette-sand)" stroke-width="3" stroke-linecap="round" />
+          <circle cx="14" cy="31" r="2.8" fill="var(--palette-sand)" />
+        </svg>
+      );
+    case "amberjack":
+      return (
+        <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
+          <path d="M3 37c7-11 21-18 39-19 20-1 38 5 50 13l24-19-8 24 8 24-24-19c-12 8-30 13-50 13-18 0-32-6-39-17Z" />
+          <path d="M44 19l8-9c12 2 28 8 38 18-14-6-30-9-46-9ZM50 53l8 9c12-2 24-10 32-18-12 6-26 9-40 9Z" />
+          <path d="M22 44 34 21" fill="none" stroke="var(--palette-sand)" stroke-width="3" stroke-linecap="round" />
+          <circle cx="15" cy="31" r="3" fill="var(--palette-sand)" />
+        </svg>
+      );
     default:
       return (
         <svg class="draw" viewBox="0 0 120 67" fill="currentColor" aria-hidden="true">
