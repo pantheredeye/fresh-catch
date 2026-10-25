@@ -7,7 +7,6 @@ import { createMarket, cancelMarket } from "@/features/markets/queries";
 import { publishCatchUpdate } from "@/features/catch/queries";
 import { fishKind } from "./fish-art";
 import type { MarketInput } from "@/features/markets/validation";
-import { localParts } from "@/lib/format";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
@@ -19,10 +18,9 @@ beforeAll(async () => {
 
 const createdMarketIds: string[] = [];
 
-// Every market created in a test is cancelled/deactivated afterward — status
-// (`resolveToday`) considers every active market in the DB, so leftovers
-// from one test would leak into another test's "which market is featured"
-// assertions.
+// Every market created in a test is cancelled/deactivated afterward — the
+// route/saved bands consider every active market in the DB, so leftovers
+// from one test would leak into another test's assertions.
 afterEach(async () => {
   await Promise.all(createdMarketIds.splice(0).map((id) => cancelMarket(id)));
 });
