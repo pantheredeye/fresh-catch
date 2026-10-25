@@ -74,7 +74,7 @@
   --width-md: 800px;
   --width-lg: 1200px;
   --width-xl: 1400px;
-  --width-container: 1160px; /* home page: one shared left/right edge for bar, strip, hero, split, footer */
+  --width-container: 1160px; /* home page: one shared left/right edge for bar, split, footer */
 
   /* Color — text. Every pairing is >=7:1 against the surfaces it actually
      renders on (computed from the palette hexes above — see contrast notes
@@ -902,7 +902,7 @@ ol.stack {
   text-decoration: underline;
 }
 
-/* Landing page (#73, handoff §5) — brand bar, status strip, hero, saved
+/* Landing page (#73, handoff §5) — brand bar, saved
    band, fish board, route, closing band, footer. */
 
 .bar {
@@ -984,8 +984,7 @@ ol.stack {
   padding: var(--space-sm) 0;
 }
 
-.strip .wrap,
-.strip .container {
+.strip .wrap {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1013,21 +1012,6 @@ ol.stack {
 
 .strip.shut {
   background: var(--palette-muted);
-}
-
-a.strip-link {
-  display: block;
-  text-decoration: none;
-}
-
-.strip-link .container,
-.strip-link .wrap {
-  min-height: 58px;
-}
-
-.strip-link .strip-arrow {
-  color: var(--palette-paper);
-  font-weight: 800;
 }
 
 .strip.shut .dot {

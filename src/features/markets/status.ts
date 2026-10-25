@@ -84,7 +84,7 @@ export function nextOccurrence(market: StatusMarket, now: Date, tz: string): Occ
  * with all three structured hour fields set participate; `schedule`-only
  * markets don't have enough to compute a state and are silently skipped.
  *
- * A live popup always wins the hero over a regular market on the same day
+ * A live popup always wins over a regular market on the same day
  * (epic #69 Q9, locked): while one is live it's the only thing this ever
  * reports as "open", regardless of any regular market's hours.
  */
@@ -134,30 +134,6 @@ export function describeTodayStatus(status: TodayStatus, now: Date, tz: string):
     return `Back on ${WEEKDAY_NAMES[localParts(status.next.opensAt, tz).weekday]}.`;
   }
   return "Closed.";
-}
-
-/**
- * The next *different* market on the weekly route after today, for the
- * hero's "Then Saturday, …" line (handoff §5). Walks day-of-week forward
- * from tomorrow, skipping `excludeMarketId` (whichever market the hero is
- * already showing) — popups don't recur so they're not candidates here.
- */
-export function nextDifferentMarketByDay(
-  markets: StatusMarket[],
-  excludeMarketId: string | null,
-  now: Date,
-  tz: string,
-): { weekday: number; market: StatusMarket } | null {
-  const regulars = markets.filter(
-    (m) => m.type === "regular" && m.active && m.dayOfWeek !== null && m.id !== excludeMarketId,
-  );
-  const todayWeekday = localParts(now, tz).weekday;
-  for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
-    const weekday = (todayWeekday + daysAhead) % 7;
-    const market = regulars.find((m) => m.dayOfWeek === weekday);
-    if (market) return { weekday, market };
-  }
-  return null;
 }
 
 /**

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   describeOccurrence,
   describeTodayStatus,
-  nextDifferentMarketByDay,
   nextOccurrence,
   resolveToday,
   type StatusMarket,
@@ -263,33 +262,5 @@ describe("describeOccurrence (saved band)", () => {
     const live = popup({ expiresAt: new Date("2026-09-12T23:00:00Z") }); // Saturday 6pm CDT
     const occurrence = nextOccurrence(live, WEDNESDAY_OPEN, TZ)!;
     expect(describeOccurrence(occurrence, WEDNESDAY_OPEN, TZ)).toBe("Open until Saturday, 6pm");
-  });
-});
-
-describe("nextDifferentMarketByDay (hero 'Then Saturday, …' line)", () => {
-  it("finds the next market on a later day, skipping the excluded one", () => {
-    const wednesday = regular({ id: "wed", dayOfWeek: 3 });
-    const saturday = regular({ id: "sat", name: "Cottonwood Plaza", dayOfWeek: 6 });
-    const result = nextDifferentMarketByDay([wednesday, saturday], "wed", WEDNESDAY_OPEN, TZ);
-    expect(result).toEqual({ weekday: 6, market: saturday });
-  });
-
-  it("wraps the week to find a market before the excluded one's day", () => {
-    const saturday = regular({ id: "sat", dayOfWeek: 6 });
-    const wednesday = regular({ id: "wed", name: "Mesa View", dayOfWeek: 3 });
-    const result = nextDifferentMarketByDay([saturday, wednesday], "sat", WEDNESDAY_OPEN, TZ);
-    expect(result).toEqual({ weekday: 3, market: wednesday });
-  });
-
-  it("returns null when no other regular market exists", () => {
-    const only = regular({ id: "only" });
-    expect(nextDifferentMarketByDay([only], "only", WEDNESDAY_OPEN, TZ)).toBeNull();
-  });
-
-  it("ignores popups and inactive markets as candidates", () => {
-    const live = popup({ dayOfWeek: null });
-    const inactive = regular({ id: "inactive", dayOfWeek: 6, active: false });
-    const result = nextDifferentMarketByDay([live, inactive], null, WEDNESDAY_OPEN, TZ);
-    expect(result).toBeNull();
   });
 });
