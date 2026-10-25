@@ -5,7 +5,7 @@ import type { Bindings } from "@/types";
 const DEFAULT_FROM = "2 Fishes Seafood <notifications@digitalglue.dev>";
 
 export type EmailMessage = {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   from?: string;
@@ -28,7 +28,7 @@ export function escapeHtml(value: string): string {
  */
 export async function sendEmail(env: Bindings, message: EmailMessage): Promise<boolean> {
   if (!env.RESEND_API_KEY) {
-    console.log(`[dev] email to ${message.to}: ${message.subject}`);
+    console.log(`[dev] email to ${[message.to].flat().join(", ")}: ${message.subject}`);
     return false;
   }
 

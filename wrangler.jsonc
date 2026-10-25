@@ -20,7 +20,7 @@
   // Production values — this file is deployed as-is (see docs/CUTOVER.md).
   // Override locally via .dev.vars (see .env.example), not by editing these.
   "vars": {
-    "ADMIN_EMAILS": "barrett@digitalglue.dev", // Evan's email pending — append it (comma-separated) + redeploy when known
+    "ADMIN_EMAILS": "barrett@digitalglue.dev,2FishesSeafood@gmail.com",
     "APP_URL": "https://market.digitalglue.dev"
   },
   "d1_databases": [
