@@ -11,6 +11,7 @@ const bindings = env as unknown as Bindings;
 
 beforeEach(async () => {
   await setupDb(bindings);
+  await db.vendor.deleteMany();
   sendEmailMock.mockClear();
 });
 
@@ -27,13 +28,14 @@ function fishInput(overrides: Partial<Parameters<typeof createRequest>[0]> = {})
 }
 
 describe("notifyVendorOfNewRequest / notifyVendorOfCustomerReply", () => {
-  it("emails the first ADMIN_EMAILS entry when no Vendor.notificationEmail is set", async () => {
+  it("emails every ADMIN_EMAILS entry when no Vendor.notificationEmail is set", async () => {
+    const multi = { ...bindings, ADMIN_EMAILS: "a@x.com, b@x.com,," };
     const request = await createRequest(fishInput(), { deviceToken: "d1", userId: null });
-    await notifyVendorOfNewRequest(bindings, request);
+    await notifyVendorOfNewRequest(multi, request);
 
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const [, message] = sendEmailMock.mock.calls[0];
-    expect(message.to).toBe(bindings.ADMIN_EMAILS.split(",")[0].trim());
+    expect(message.to).toEqual(["a@x.com", "b@x.com"]);
     expect(message.subject).toContain("Halibut");
     expect(message.html).toContain(`${bindings.APP_URL}/admin/requests/${request.id}`);
   });
@@ -59,14 +61,32 @@ describe("notifyVendorOfNewRequest / notifyVendorOfCustomerReply", () => {
     expect(message.html).not.toContain("<Salmon>");
   });
 
-  it("prefers Vendor.notificationEmail over the ADMIN_EMAILS fallback", async () => {
+  it("adds Vendor.notificationEmail to the ADMIN_EMAILS recipients", async () => {
+    const multi = { ...bindings, ADMIN_EMAILS: "a@x.com,b@x.com" };
     await db.vendor.create({ data: { id: "evan", name: "Evan", notificationEmail: "evan@example.com" } });
     const request = await createRequest(fishInput(), { deviceToken: "d2", userId: null });
-    await notifyVendorOfCustomerReply(bindings, request);
+    await notifyVendorOfCustomerReply(multi, request);
 
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
-    expect(sendEmailMock.mock.calls[0][1].to).toBe("evan@example.com");
+    expect(sendEmailMock.mock.calls[0][1].to).toEqual(["evan@example.com", "a@x.com", "b@x.com"]);
     expect(sendEmailMock.mock.calls[0][1].subject).toContain("reply");
+  });
+
+  it("dedupes notificationEmail against admins case-insensitively", async () => {
+    const multi = { ...bindings, ADMIN_EMAILS: "a@x.com,b@x.com" };
+    await db.vendor.create({ data: { id: "evan", name: "Evan", notificationEmail: "A@X.com" } });
+    const request = await createRequest(fishInput(), { deviceToken: "d7", userId: null });
+    await notifyVendorOfNewRequest(multi, request);
+
+    expect(sendEmailMock.mock.calls[0][1].to).toEqual(["A@X.com", "b@x.com"]);
+  });
+
+  it("skips silently when there are no recipients", async () => {
+    const none = { ...bindings, ADMIN_EMAILS: "" };
+    const request = await createRequest(fishInput(), { deviceToken: "d8", userId: null });
+    await notifyVendorOfNewRequest(none, request);
+    await notifyVendorOfCustomerReply(none, request);
+    expect(sendEmailMock).not.toHaveBeenCalled();
   });
 });
 

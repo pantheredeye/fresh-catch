@@ -5,16 +5,23 @@ import type { FishRequest } from "@/lib/db";
 import { requestTitleWithCount } from "./components";
 import { listRequestItems, requestItemLine } from "./queries";
 
-function firstAdminEmail(env: Bindings): string | undefined {
+function adminEmails(env: Bindings): string[] {
   return env.ADMIN_EMAILS.split(",")
     .map((entry) => entry.trim())
-    .find(Boolean);
+    .filter(Boolean);
 }
 
-/** `Vendor.notificationEmail` when set, else the first `ADMIN_EMAILS` entry — see issue #64. */
-async function vendorAlertRecipient(env: Bindings): Promise<string | undefined> {
+/** `Vendor.notificationEmail` (if set) plus every `ADMIN_EMAILS` entry, deduped case-insensitively — see issue #64. */
+async function vendorAlertRecipients(env: Bindings): Promise<string[]> {
   const vendor = await db.vendor.findFirst();
-  return vendor?.notificationEmail ?? firstAdminEmail(env);
+  const seen = new Set<string>();
+  return [vendor?.notificationEmail?.trim(), ...adminEmails(env)].filter((email): email is string => {
+    if (!email) return false;
+    const key = email.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** `heading`/`body` are customer-supplied free text (contactName, species, notes) — always escaped, never trusted. */
@@ -46,10 +53,10 @@ async function requestSummary(request: FishRequest): Promise<string> {
   return request.quantity ? `${requestTitleWithCount(request)} — ${request.quantity}` : requestTitleWithCount(request);
 }
 
-/** Evan alert: a customer opened a new request. Skips silently if no recipient is configured. */
+/** Evan alert: a customer opened a new request. Skips silently if no recipients are configured. */
 export async function notifyVendorOfNewRequest(env: Bindings, request: FishRequest): Promise<void> {
-  const to = await vendorAlertRecipient(env);
-  if (!to) return;
+  const to = await vendorAlertRecipients(env);
+  if (to.length === 0) return;
   const url = `${env.APP_URL}/admin/requests/${request.id}`;
   await sendEmail(env, {
     to,
@@ -58,10 +65,10 @@ export async function notifyVendorOfNewRequest(env: Bindings, request: FishReque
   });
 }
 
-/** Evan alert: a customer replied on an existing thread. Skips silently if no recipient is configured. */
+/** Evan alert: a customer replied on an existing thread. Skips silently if no recipients are configured. */
 export async function notifyVendorOfCustomerReply(env: Bindings, request: FishRequest): Promise<void> {
-  const to = await vendorAlertRecipient(env);
-  if (!to) return;
+  const to = await vendorAlertRecipients(env);
+  if (to.length === 0) return;
   const url = `${env.APP_URL}/admin/requests/${request.id}`;
   await sendEmail(env, {
     to,
