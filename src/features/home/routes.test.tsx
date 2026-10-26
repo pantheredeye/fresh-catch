@@ -7,7 +7,6 @@ import { createMarket, cancelMarket } from "@/features/markets/queries";
 import { publishCatchUpdate } from "@/features/catch/queries";
 import { fishKind } from "./fish-art";
 import type { MarketInput } from "@/features/markets/validation";
-import { localParts } from "@/lib/format";
 
 beforeAll(async () => {
   await setupDb(env as unknown as Bindings);
@@ -19,10 +18,9 @@ beforeAll(async () => {
 
 const createdMarketIds: string[] = [];
 
-// Every market created in a test is cancelled/deactivated afterward — status
-// (`resolveToday`) considers every active market in the DB, so leftovers
-// from one test would leak into another test's "which market is featured"
-// assertions.
+// Every market created in a test is cancelled/deactivated afterward — the
+// route/saved bands consider every active market in the DB, so leftovers
+// from one test would leak into another test's assertions.
 afterEach(async () => {
   await Promise.all(createdMarketIds.splice(0).map((id) => cancelMarket(id)));
 });
@@ -262,13 +260,8 @@ describe("GET / — public page polish (#82)", () => {
   });
 });
 
-/** The strip is a full-width link to the featured market. */
-function strip(html: string): string {
-  return html.match(/<a class="strip[^"]*" href="[^"]*">[\s\S]*?<\/a>/)?.[0] ?? "";
-}
-
-describe("GET / — status strip is the next-stop line (handoff §4)", () => {
-  it("open: 'Open now · <market> until <close>' linking to the market", async () => {
+describe("GET / — no status strip; route band carries today's state", () => {
+  it("open market: no strip; single h1, Directions link, no call-Evan copy", async () => {
     const { weekday, minutesOfDay } = nowUtcParts();
     const market = await addMarket({
       name: `OpenMarket ${crypto.randomUUID()}`,
@@ -279,11 +272,7 @@ describe("GET / — status strip is the next-stop line (handoff §4)", () => {
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    const s = strip(html);
-    expect(s).toContain(`href="/markets/${market.id}"`);
-    expect(s).toContain("<b>Open now</b>");
-    expect(s).toContain(`${market.name} until `);
-    expect(s).toContain('class="dot"');
+    expect(html).not.toContain('class="strip');
     expect(html).not.toContain("hero-name");
     expect(html.match(/<h1[ >]/g)?.length).toBe(1);
     expect(html).toContain(`aria-label="Directions to ${market.name}"`);
@@ -291,49 +280,17 @@ describe("GET / — status strip is the next-stop line (handoff §4)", () => {
     expect(html).not.toContain("Call Evan about");
   });
 
-  it("opens-later: 'Opens <time> · <market>'", async () => {
-    // Near UTC midnight there's no room left in the day for a "later today"
-    // window — clamping to 1439 collapses close <= open, the market loses its
-    // structured hours, and the page falls back to schedule-only.
-    // Pin the vendor to the fixed-offset zone whose local time is mid-day so
-    // the window always fits, whatever the wall clock says.
-    const offsetHours = new Date().getUTCHours() - 12; // Etc/GMT+N means UTC-N
-    const tz = offsetHours === 0 ? "UTC" : offsetHours > 0 ? `Etc/GMT+${offsetHours}` : `Etc/GMT-${-offsetHours}`;
-    await db.vendor.update({ where: { id: "test-vendor" }, data: { timezone: tz } });
-    try {
-      const local = localParts(new Date(), tz);
-      const openMinutes = local.hour * 60 + local.minute + 30;
-      const market = await addMarket({
-        name: `LaterMarket ${crypto.randomUUID()}`,
-        dayOfWeek: local.weekday,
-        openMinutes,
-        closeMinutes: openMinutes + 60,
-      });
-
-      const s = strip(await (await app.request("/", {}, env)).text());
-      expect(s).toContain(`href="/markets/${market.id}"`);
-      expect(s).toMatch(/<b>Opens \d{1,2}(:\d\d)?[ap]m<\/b>/);
-      expect(s).toContain(market.name);
-    } finally {
-      await db.vendor.update({ where: { id: "test-vendor" }, data: { timezone: "UTC" } });
-    }
-  });
-
-  it("closed-today: 'Closed today · Next: <market>, <Day> <hours>'; its route row stays plain (no Next tag)", async () => {
+  it("closed-today market: no strip; its route row stays plain (no Next tag)", async () => {
     const { weekday } = nowUtcParts();
-    const otherDay = (weekday + 2) % 7;
     const market = await addMarket({
       name: `LaterWeekMarket ${crypto.randomUUID()}`,
-      dayOfWeek: otherDay,
+      dayOfWeek: (weekday + 2) % 7,
       openMinutes: 10 * 60,
       closeMinutes: 18 * 60,
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    const s = strip(html);
-    expect(s).toContain(`href="/markets/${market.id}"`);
-    expect(s).toContain("<b>Closed today</b>");
-    expect(s).toMatch(new RegExp(`Next: ${market.name}, \\w{3} 10–6`));
+    expect(html).not.toContain('class="strip');
     expect(html).not.toContain("No market today");
     const row = html.slice(html.lastIndexOf('<div class="mk', html.indexOf(`<a href="/markets/${market.id}">`)));
     expect(row.slice(0, 200)).toContain('class="mk"');
@@ -341,22 +298,19 @@ describe("GET / — status strip is the next-stop line (handoff §4)", () => {
     expect(row.slice(0, 300)).not.toContain('<span class="tag">Next</span>');
   });
 
-  it("no-structured-data: 'Next stop · <market>, <schedule>' with no dot", async () => {
+  it("schedule-only market: no strip, no 'Next stop'", async () => {
     const market = await addMarket({
       name: `ScheduleOnly ${crypto.randomUUID()}`,
       schedule: "Every other Saturday, call ahead",
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    const s = strip(html);
-    expect(s).toContain(`href="/markets/${market.id}"`);
-    expect(s).toContain("<b>Next stop</b>");
-    expect(s).toContain(market.name);
-    expect(s).toContain("Every other Saturday, call ahead");
-    expect(s).not.toContain('class="dot"');
+    expect(html).not.toContain('class="strip');
+    expect(html).not.toContain("Next stop");
+    expect(html).toContain(market.name);
   });
 
-  it("a live popup takes the strip over a regular market open the same day (epic #69, locked)", async () => {
+  it("popup and regular market are both listed", async () => {
     const { weekday, minutesOfDay } = nowUtcParts();
     const regularMarket = await addMarket({
       name: `RegularOpen ${crypto.randomUUID()}`,
@@ -371,11 +325,8 @@ describe("GET / — status strip is the next-stop line (handoff §4)", () => {
     });
 
     const html = await (await app.request("/", {}, env)).text();
-    const s = strip(html);
-    expect(s).toContain(`href="/markets/${popupMarket.id}"`);
-    expect(s).toContain(popupMarket.name);
-    expect(s).not.toContain(regularMarket.name);
-    expect(html).toContain(regularMarket.name); // still listed on the route below
+    expect(html).toContain(popupMarket.name);
+    expect(html).toContain(regularMarket.name);
   });
 });
 
